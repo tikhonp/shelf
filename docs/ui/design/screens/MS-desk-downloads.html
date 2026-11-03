@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Desktop · Downloads with one open</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<style>body { margin: 0; }</style>
+</head>
+<body>
+<div class="rs desk console" style="position: relative; min-height: 100vh; display: flex; flex-direction: column">
+<header class="menubar">
+<a class="brand" href="MS-desk-search.html"><span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>Music Shelf</a>
+<nav style="display: flex; gap: 6px" aria-label="Main">
+<a class="mb-item" href="MS-desk-search.html">Search</a>
+<a class="mb-item on" href="MS-desk-downloads.html" aria-current="page">Downloads<span class="led run" title="Downloads in progress"></span><span class="sr">, downloads in progress</span></a>
+<a class="mb-item" href="MS-desk-status.html">Status<span class="led bad" title="Qobuz token expired"></span></a>
+</nav>
+<div class="mb-right">
+<span class="vfd" style="font-size: 15px">LAST SCAN 3 MIN</span>
+<button type="button" class="key sm"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-14 5.3"></path><path d="M4 12a8 8 0 0 1 14-5.3"></path><path d="M18 3v4h-4"></path><path d="M6 21v-4h4"></path></svg>Scan now</button>
+<span class="vfd num">14:32</span>
+</div>
+</header>
+
+<div style="flex: 1; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px; padding: 20px var(--gutter) 28px">
+<div style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<div class="lcd" style="flex-direction: row; align-items: baseline; gap: 10px; padding: 8px 14px"><span class="lcd-big num" style="font-size: 30px">1</span><span class="lcd-l">RUNNING</span></div>
+<div class="lcd" style="flex-direction: row; align-items: baseline; gap: 10px; padding: 8px 14px"><span class="lcd-big num" style="font-size: 30px">2</span><span class="lcd-l">QUEUED</span></div>
+<div class="lcd" style="flex-direction: row; align-items: baseline; gap: 10px; padding: 8px 14px"><span class="lcd-big num" style="font-size: 30px">1</span><span class="lcd-l">FAILED, 24 H</span></div>
+</div>
+
+<section class="win" aria-labelledby="rd-lathe">
+<div class="tb"><h1 id="rd-lathe">Current download</h1><span class="stripes"></span><span class="led rec blink" title="Downloading"></span></div>
+<div style="display: flex; flex-wrap: wrap; gap: 18px; padding: 16px">
+<div style="padding: 8px 0 8px 8px"><div class="lathe spin" style="--s: 170px; --p: .29" aria-hidden="true"><span class="plat"></span><span class="disc"></span><span class="cut"></span><span class="cv label a-orchard"></span><span class="head"></span></div></div>
+<div style="flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 14px">
+<div class="two" style="gap: 3px">
+<span class="ttl" style="font-size: 20px"><span class="ell">Glass Orchard</span><span class="ver">Deluxe Edition</span></span>
+<span class="sub" style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px">Vela Choir <span class="src am">Apple Music</span> ALAC · asked by Web</span>
+</div>
+<div class="lcd" style="flex: none; gap: 4px" role="img" aria-label="3 of 12 tracks done, now track 4, Under the Glasshouse, 62 percent, 2 minutes 41 seconds elapsed">
+<div style="display: flex; align-items: baseline; gap: 10px"><span class="lcd-big num">03/12</span><span class="lcd-l">TRACKS DONE</span><span class="lcd-l num" style="margin-left: auto">02:41 ELAPSED</span></div>
+<div class="lcd-l" style="display: flex; gap: 10px"><span class="ell">NOW: UNDER THE GLASSHOUSE</span><span class="num" style="margin-left: auto">62%</span></div>
+</div>
+<div class="deck-keys"><a class="key" href="MS-phone-download.html">Details</a><button type="button" class="key"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h12v12H6z"></path></svg>Cancel</button></div>
+</div>
+</div>
+</section>
+
+<section class="win" aria-labelledby="rd-hist">
+<div class="tb"><h2 id="rd-hist">History</h2><span class="stripes"></span><span class="t3 sm" style="white-space: nowrap">Last 7 days</span></div>
+<div class="rows" role="table" aria-label="History" style="overflow-x: auto">
+<div class="row thead g-hist" role="row">
+<span role="columnheader">Finished</span>
+<span role="columnheader">Album</span>
+<span role="columnheader">Source</span>
+<span role="columnheader">Kind</span>
+<span role="columnheader">Result</span>
+<span role="columnheader" class="r">Took</span>
+<span role="columnheader" class="r">Size</span>
+<span role="columnheader"><span class="sr">Actions</span></span>
+</div>
+
+<div class="row g-hist" role="row">
+<span role="cell" class="t2 num sm">14:32</span>
+<span role="cell" class="two"><span class="ttl" style="font-size: 14px"><span class="ell">Low Tide Hymns</span><span class="ver"></span></span><span class="sub ell" style="color: var(--text-2)">Northern Static</span></span>
+<span role="cell" class="two"><span class="src qz">Qobuz</span><span class="xs t3">@tikhon</span></span>
+<span role="cell" class="t2 sm">Album</span>
+<span role="cell"><span class="pill done">Done</span></span>
+<span role="cell" class="r num t2 sm">1m 48s</span>
+<span role="cell" class="r num t2 sm">612 MB</span>
+<span role="cell" class="r"></span>
+</div>
+
+<div class="row g-hist" role="row">
+<span role="cell" class="t2 num sm">14:05</span>
+<span role="cell" class="two"><span class="ttl" style="font-size: 14px"><span class="ell">Northern Lights, Southern Static</span><span class="ver"></span></span><span class="sub ell" style="color: var(--red)">Qobuz returned 401: token expired</span></span>
+<span role="cell" class="two"><span class="src qz">Qobuz</span><span class="xs t3">Web</span></span>
+<span role="cell" class="t2 sm">Album</span>
+<span role="cell"><span class="pill failed">Failed</span></span>
+<span role="cell" class="r num t2 sm">2s</span>
+<span role="cell" class="r num t2 sm">—</span>
+<span role="cell" class="r"><button type="button" class="key sm"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.5-5.8"></path><path d="M4 4v5h5"></path></svg>Retry</button></span>
+</div>
+
+<div class="row g-hist cur" role="row">
+<span role="cell" class="t2 num sm">13:40</span>
+<span role="cell" class="two"><span class="ttl" style="font-size: 14px"><span class="ell">Paper Lanterns</span><span class="ver"></span></span><span class="sub ell" style="color: var(--text-2)">The Quiet Arcade · 11 of 12 tracks</span></span>
+<span role="cell" class="two"><span class="src am">Apple Music</span><span class="xs t3">Web</span></span>
+<span role="cell" class="t2 sm">Album</span>
+<span role="cell"><span class="pill partial">Done with errors</span></span>
+<span role="cell" class="r num t2 sm">3m 10s</span>
+<span role="cell" class="r num t2 sm">486 MB</span>
+<span role="cell" class="r"><button type="button" class="key sm"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.5-5.8"></path><path d="M4 4v5h5"></path></svg>Retry</button></span>
+</div>
+
+<div class="row g-hist" role="row">
+<span role="cell" class="t2 num sm">12:24</span>
+<span role="cell" class="two"><span class="ttl" style="font-size: 14px"><span class="ell">Northern Static</span><span class="ver"></span></span><span class="sub ell" style="color: var(--text-2)">4 albums: 3 done, 1 skipped</span></span>
+<span role="cell" class="two"><span class="src qz">Qobuz</span><span class="xs t3">@tikhon</span></span>
+<span role="cell" class="t2 sm">Artist</span>
+<span role="cell"><span class="pill done">Done</span></span>
+<span role="cell" class="r num t2 sm">6m 02s</span>
+<span role="cell" class="r num t2 sm">1.9 GB</span>
+<span role="cell" class="r"></span>
+</div>
+
+<div class="row g-hist" role="row">
+<span role="cell" class="t2 num sm">2 Nov</span>
+<span role="cell" class="two"><span class="ttl" style="font-size: 14px"><span class="ell">Hollow Bells</span><span class="ver"></span></span><span class="sub ell" style="color: var(--text-2)">Mira Holt</span></span>
+<span role="cell" class="two"><span class="src am">Apple Music</span><span class="xs t3">Web</span></span>
+<span role="cell" class="t2 sm">Track</span>
+<span role="cell"><span class="pill canceled">Canceled</span></span>
+<span role="cell" class="r num t2 sm">4s</span>
+<span role="cell" class="r num t2 sm">—</span>
+<span role="cell" class="r"><button type="button" class="key sm"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.5-5.8"></path><path d="M4 4v5h5"></path></svg>Retry</button></span>
+</div>
+
+<div class="row g-hist" role="row">
+<span role="cell" class="t2 num sm">2 Nov</span>
+<span role="cell" class="two"><span class="ttl" style="font-size: 14px"><span class="ell">Quiet Rooms</span><span class="ver"></span></span><span class="sub ell" style="color: var(--text-2)">Mira Holt</span></span>
+<span role="cell" class="two"><span class="src am">Apple Music</span><span class="xs t3">@tikhon</span></span>
+<span role="cell" class="t2 sm">Album</span>
+<span role="cell"><span class="pill done">Done</span></span>
+<span role="cell" class="r num t2 sm">2m 33s</span>
+<span role="cell" class="r num t2 sm">702 MB</span>
+<span role="cell" class="r"></span>
+</div>
+
+<div class="row g-hist" role="row">
+<span role="cell" class="t2 num sm">2 Nov</span>
+<span role="cell" class="two"><span class="ttl" style="font-size: 14px"><span class="ell">Low Tide Hymns</span><span class="ver">2024 Remaster</span></span><span class="sub ell" style="color: var(--text-2)">Already downloaded on 1 Nov 2026</span></span>
+<span role="cell" class="two"><span class="src qz">Qobuz</span><span class="xs t3">Web</span></span>
+<span role="cell" class="t2 sm">Album</span>
+<span role="cell"><span class="pill skipped">Skipped</span></span>
+<span role="cell" class="r num t2 sm">—</span>
+<span role="cell" class="r num t2 sm">—</span>
+<span role="cell" class="r"></span>
+</div>
+
+</div>
+</section>
+</div>
+
+<div style="flex: 1 1 400px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+<section class="win off" aria-labelledby="rd-rack">
+<div class="tb"><h2 id="rd-rack">Queue · 2</h2><span class="stripes"></span></div>
+<div class="rack" style="padding: 14px">
+<div class="spine"><span class="cv band a-ferry"></span><span class="no">01</span><span class="two"><span class="ttl" style="font-size: 14px"><span class="ell">Night Ferry</span></span><span class="sub ell">Mira Holt · Qobuz · Max</span></span><button type="button" class="key sm icon" aria-label="Cancel Night Ferry"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<div class="spine"><span class="cv band a-hours"></span><span class="no">02</span><span class="two"><span class="ttl" style="font-size: 14px"><span class="ell">Small Hours, Vol. 2</span></span><span class="sub ell">Various Artists · Qobuz · 24/96</span></span><button type="button" class="key sm icon" aria-label="Cancel Small Hours, Vol. 2"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+</div>
+</section>
+
+<section class="win" aria-labelledby="rd-one">
+<div class="tb"><h2 id="rd-one" class="num">Download 418</h2><span class="stripes"></span><a class="wbtn" href="https://music.apple.com/" aria-label="Open on Apple Music"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v6H4V6h6"></path></svg></a><button type="button" class="wbtn" aria-label="Close"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<div style="display: flex; flex-direction: column; gap: 14px; padding: 16px">
+<div style="display: flex; gap: 14px; align-items: center">
+<span class="cv a-lantern" style="width: 64px; height: 64px"></span>
+<div class="two" style="flex: 1; gap: 3px">
+<span class="ttl" style="font-size: 17px">Paper Lanterns</span>
+<span class="sub">The Quiet Arcade</span>
+<span><span class="pill partial"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5"></path><path d="M12 17h.01"></path></svg>Done with errors · 11 of 12</span></span>
+</div>
+<button type="button" class="key sun"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.5-5.8"></path><path d="M4 4v5h5"></path></svg>Retry</button>
+</div>
+<dl class="meta panel" style="grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr)">
+<dt>Source</dt><dd><span class="src am">Apple Music</span></dd>
+<dt>Asked by</dt><dd>Web</dd>
+<dt>Format</dt><dd>ALAC</dd>
+<dt>Started</dt><dd class="num">13:37:02</dd>
+<dt>Delivered</dt><dd class="num">FLAC 16/44.1</dd>
+<dt>Finished</dt><dd class="num">13:40:12</dd>
+<dt>Size</dt><dd class="num">486 MB</dd>
+<dt>Took</dt><dd class="num">3m 10s</dd>
+</dl>
+<div class="panel" style="display: flex; flex-direction: column; gap: 8px">
+<span class="px t3" style="font-size: 12px">Release folder</span>
+<code class="mono" style="word-break: break-all">apple-music/The Quiet Arcade - Paper Lanterns (2023)[16B-44.1kHz]</code>
+<span class="px t3" style="font-size: 12px; margin-top: 4px">Provenance file</span>
+<code class="mono" style="word-break: break-all">…/Paper Lanterns (2023)[16B-44.1kHz]/shelf.txt</code>
+</div>
+<div class="rows" role="table" aria-label="Tracks" style="border: 1px solid var(--ink); border-radius: 6px; overflow: hidden">
+
+<div class="row" role="row" style="grid-template-columns: 22px minmax(0, 1fr) auto; min-height: 38px; padding: 4px 10px; row-gap: 2px">
+<span role="cell" class="t3 num r xs">1</span>
+<span role="cell" class="ell sm">01. Paper Lanterns.flac</span>
+<span role="cell" class="st"><span class="led ok"></span>Done</span>
+<span class="xs" style="grid-column: 2 / -1; color: var(--red); display: none">Decryption failed: the wrapper closed the connection.</span>
+</div>
+
+<div class="row" role="row" style="grid-template-columns: 22px minmax(0, 1fr) auto; min-height: 38px; padding: 4px 10px; row-gap: 2px">
+<span role="cell" class="t3 num r xs">2</span>
+<span role="cell" class="ell sm">02. Streetlight Choir.flac</span>
+<span role="cell" class="st"><span class="led ok"></span>Done</span>
+<span class="xs" style="grid-column: 2 / -1; color: var(--red); display: none">Decryption failed: the wrapper closed the connection.</span>
+</div>
+
+<div class="row" role="row" style="grid-template-columns: 22px minmax(0, 1fr) auto; min-height: 38px; padding: 4px 10px; row-gap: 2px">
+<span role="cell" class="t3 num r xs">3</span>
+<span role="cell" class="ell sm">03. Slow Parade.flac</span>
+<span role="cell" class="st"><span class="led ok"></span>Done</span>
+<span class="xs" style="grid-column: 2 / -1; color: var(--red); display: none">Decryption failed: the wrapper closed the connection.</span>
+</div>
+
+<div class="row" role="row" style="grid-template-columns: 22px minmax(0, 1fr) auto; min-height: 38px; padding: 4px 10px; row-gap: 2px">
+<span role="cell" class="t3 num r xs">4</span>
+<span role="cell" class="ell sm">04. Kite Season.flac</span>
+<span role="cell" class="st"><span class="led ok"></span>Done</span>
+<span class="xs" style="grid-column: 2 / -1; color: var(--red); display: none">Decryption failed: the wrapper closed the connection.</span>
+</div>
+
+<div class="row" role="row" style="grid-template-columns: 22px minmax(0, 1fr) auto; min-height: 38px; padding: 4px 10px; row-gap: 2px">
+<span role="cell" class="t3 num r xs">5</span>
+<span role="cell" class="ell sm">05. Arcade Rain.flac</span>
+<span role="cell" class="st"><span class="led ok"></span>Done</span>
+<span class="xs" style="grid-column: 2 / -1; color: var(--red); display: none">Decryption failed: the wrapper closed the connection.</span>
+</div>
+
+<div class="row" role="row" style="grid-template-columns: 22px minmax(0, 1fr) auto; min-height: 38px; padding: 4px 10px; row-gap: 2px">
+<span role="cell" class="t3 num r xs">6</span>
+<span role="cell" class="ell sm">06. Lantern Row.flac</span>
+<span role="cell" class="st"><span class="led ok"></span>Done</span>
+<span class="xs" style="grid-column: 2 / -1; color: var(--red); display: none">Decryption failed: the wrapper closed the connection.</span>
+</div>
+
+<div class="row" role="row" style="grid-template-columns: 22px minmax(0, 1fr) auto; min-height: 38px; padding: 4px 10px; row-gap: 2px">
+<span role="cell" class="t3 num r xs">7</span>
+<span role="cell" class="ell sm">07. Ember Walk.flac</span>
+<span role="cell" class="st"><span class="led bad"></span>Failed</span>
+<span class="xs" style="grid-column: 2 / -1; color: var(--red); display: block">Decryption failed: the wrapper closed the connection.</span>
+</div>
+
+<div class="row" role="row" style="grid-template-columns: 22px minmax(0, 1fr) auto; min-height: 38px; padding: 4px 10px; row-gap: 2px">
+<span role="cell" class="t3 num r xs">8</span>
+<span role="cell" class="ell sm">08. Quiet Hours.flac</span>
+<span role="cell" class="st"><span class="led ok"></span>Done</span>
+<span class="xs" style="grid-column: 2 / -1; color: var(--red); display: none">Decryption failed: the wrapper closed the connection.</span>
+</div>
+
+</div>
+<div class="term" role="log" aria-label="Download log">
+<div><span class="ts">13:39:02</span>  <span class="wn">07. Ember Walk: retrying (2 of 3)</span></div>
+<div><span class="ts">13:39:12</span>  <span class="er">07. Ember Walk: decryption failed</span></div>
+<div><span class="ts">13:40:10</span>  wrote shelf.txt</div>
+<div><span class="ts">13:40:12</span>  <span class="wn">done with errors: 11 of 12 tracks</span></div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</div>
+<!-- Add ?theme=day to the address to see the Day theme. -->
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>

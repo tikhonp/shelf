@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Music Shelf, short name shelf, manages a Navidrome music library. It downloads releases from Qobuz and Apple Music into the library, searches both catalogs, and keeps a record of every download. One Go binary with one SQLite file and a Vue web UI, deployed on blackberry next to Navidrome behind the sh-main gateway. Docs, code, logs and UI are in English.
 
-State: phase 1. Steps 0, 1a and 1b are done: the docs, the shelf skeleton with the platform, a placeholder Vue page, the image and CI, and the downloads core with the jobs system, the source interfaces, and the downloads, catalog and fake source modules. Step 1c is under way in qobuz-dl-go. `docs/status.md` says what is done and what comes next.
+State: phase 1. Steps 0, 1a and 1b are done: the docs, the shelf skeleton with the platform, a placeholder Vue page, the image and CI, and the downloads core with the jobs system, the source interfaces, and the downloads, catalog and fake source modules. The UI design is exported to `docs/ui/design/`. Step 1c is under way in qobuz-dl-go. `docs/status.md` says what is done and what comes next.
 
 ## Read first
 
@@ -13,7 +13,7 @@ State: phase 1. Steps 0, 1a and 1b are done: the docs, the shelf skeleton with t
 - `docs/decisions.md`: what was decided and why.
 - `docs/architecture.md`, then `docs/data-model.md`, then the doc of the part you touch.
 - The step's contract in `docs/build/` before starting the step.
-- For the UI: `docs/ui/design-brief.md`, and `docs/ui/design/` once the Claude Design screens are exported.
+- For the UI: `docs/ui/design/README.md` and its screens, then `docs/ui/design-brief.md`. The design wins where they differ.
 
 ## Rules for all code
 

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Phone · Search, before the first search</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<style>body { margin: 0; }</style>
+</head>
+<body>
+<div class="rs ph desk" style="position: relative; width: 390px; height: 844px; overflow: hidden">
+<section class="win" style="position: absolute; left: 8px; right: 12px; top: 10px; bottom: 96px" aria-labelledby="pst-t">
+<div class="tb">
+<h1 id="pst-t">Search</h1>
+<span class="stripes"></span>
+<button type="button" class="wbtn txt srcbtn" aria-expanded="false" aria-controls="pst-src" aria-label="Sources: All sources"><span>All sources</span><span class="lamps" aria-hidden="true"><span class="led ok"></span><span class="led ok"></span></span><svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 12px">
+<div id="pst-src" class="rockers" role="group" aria-label="Sources to search" style="display: none">
+<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Qobuz</span><span class="rk-state"><span class="led ok"></span>On</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Apple Music</span><span class="rk-state"><span class="led ok"></span>On</span></span></button>
+</div>
+<div style="display: flex; gap: 10px">
+<label class="field" style="flex: 1">
+<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m20 20-4.5-4.5"></path></svg>
+<span class="sr">Search, or paste a Qobuz or Apple Music link</span>
+<input type="search" placeholder="Search or paste a link">
+</label>
+<button type="button" class="key icon" aria-label="Paste a link" title="Paste a link" style="height: 50px; width: 50px"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="3" width="8" height="4"></rect><path d="M16 5h3v16H5V5h3"></path></svg></button>
+</div>
+
+<div class="empty" style="padding: 22px 8px 18px">
+<h2 style="font-family: var(--label); font-size: 21px; font-weight: 700; line-height: 1.2; color: var(--text)">Search Qobuz and Apple Music</h2>
+<p>Type an album, an artist or a track, or paste a link from either app.</p>
+</div>
+
+<section class="deck" aria-labelledby="pst-deck">
+<div class="deck-top"><span class="led rec blink"></span><h2 id="pst-deck" class="px" style="font-size: 13px">Downloading now</h2><span class="stripes"></span></div>
+<a href="MS-phone-download.html" style="display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none">
+<span class="cv a-orchard" style="width: 56px; height: 56px"></span>
+<span class="two" style="flex: 1; gap: 2px">
+<span class="ttl"><span class="ell">Glass Orchard</span><span class="ver">Deluxe Edition</span></span>
+<span class="sub" style="display: flex; align-items: center; gap: 8px">Vela Choir <span class="src am">Apple Music</span></span>
+</span>
+<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>
+</a>
+<div class="lcd" role="img" aria-label="3 of 12 tracks done, now track 4, Under the Glasshouse, 2 minutes 41 seconds">
+<div style="display: flex; align-items: baseline; gap: 10px"><span class="lcd-big num" style="font-size: 26px">03/12</span><span class="lcd-l">TRACKS DONE</span><span class="lcd-l num" style="margin-left: auto">02:41</span></div>
+<div class="lcd-l ell">NOW: UNDER THE GLASSHOUSE</div>
+</div>
+<div style="display: flex; align-items: center; gap: 10px">
+<span class="px t2" style="font-size: 11px">Tracks</span>
+<div class="meter" style="flex: 1" role="img" aria-label="3 of 12 tracks done, track 4 downloading"><i class="d"></i><i class="d"></i><i class="d"></i><i class="c"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+</div>
+<div class="deck-keys">
+<a class="key" href="MS-phone-download.html" style="flex: 1"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9"></path></svg>Details</a>
+<button type="button" class="key" style="flex: 1"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>Cancel</button>
+</div>
+</section>
+</div>
+</section>
+
+<nav class="dock" aria-label="Main">
+<a href="MS-phone-start.html" class="on" aria-current="page"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m20 20-4.5-4.5"></path></svg>Search</a>
+<a href="MS-phone-downloads.html"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"></rect><circle cx="9" cy="12" r="2"></circle><circle cx="15" cy="12" r="2"></circle><path d="M7 18l1.5-3h7L17 18"></path></svg>Downloads<span class="led run" title="Downloads in progress"></span><span class="sr">, downloads in progress</span></a>
+<a href="MS-phone-status.html"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17a8 8 0 1 1 16 0"></path><path d="M12 17l4-5"></path></svg>Status</a>
+</nav>
+</div>
+<!-- Add ?theme=day to the address to see the Day theme. -->
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>

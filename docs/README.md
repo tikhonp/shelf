@@ -14,8 +14,8 @@ Everything about Music Shelf lives in this folder. The docs describe shelf as it
 | [telegram.md](telegram.md) | The bot's flow and texts. |
 | [provenance.md](provenance.md) | The `shelf.txt` format. |
 | [deployment.md](deployment.md) | Compose services, the gateway, permissions, backups, cutover. |
-| [ui/design-brief.md](ui/design-brief.md) | The brief for Claude Design. |
-| [ui/design/](ui/design/README.md) | Exported design screens and tokens. |
+| [ui/design-brief.md](ui/design-brief.md) | The brief for the Claude Design session, brought in line with its result. |
+| [ui/design/](ui/design/README.md) | The design: screens, stylesheets and rules. |
 | [build/](build/README.md) | Step contracts for phase 1. |
 | [manual-checklist.md](manual-checklist.md) | End-to-end checks on blackberry and their results. |
 

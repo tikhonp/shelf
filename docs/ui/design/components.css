@@ -1,0 +1,420 @@
+/* Music Shelf parts, split from the canvas stylesheet project/retro.css on 2026-11-04. The rules use the variables
+   in tokens.css and apply under the class rs on the root element. The class ph marks the phone layout, and console
+   gives the desktop its wooden sides and wider gutter.
+   Windows are console modules, buttons are ivory push buttons, quality labels are masking tape, the queue is a shelf
+   of tape boxes, and the detail view of a download shows a disc being cut. UI text never names any of this.
+   Body text is IBM Plex Sans at 14px and secondary text 13px, labels are IBM Plex Sans Condensed, displays are
+   Pixelify Sans. Text passes WCAG AA in both themes, phone targets are 44px or more, and the light falls from the
+   top left. */
+
+body:has(.rs) { background: #14171C; }
+body:has(.rs.day) { background: #CBC6BC; }
+
+/* Base */
+.rs {
+  background: var(--desk);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+.rs *, .rs *::before, .rs *::after { box-sizing: border-box; }
+.rs button, .rs input { font: inherit; color: inherit; }
+.rs a { color: var(--sun-text); text-underline-offset: 2px; }
+.rs h1, .rs h2, .rs h3, .rs p, .rs dl, .rs dd, .rs figure, .rs ol { margin: 0; }
+.rs :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.rs .px { font-family: var(--label); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.rs .mono { font-family: var(--mono); font-size: 13px; }
+.rs .num { font-variant-numeric: tabular-nums; }
+.rs .t2 { color: var(--text-2); }
+.rs .t3 { color: var(--text-3); }
+.rs .sm { font-size: 13px; }
+.rs .xs { font-size: 12px; }
+.rs .ell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.rs .r { justify-self: end; text-align: right; }
+.rs .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.rs svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.rs svg.i.s { width: 15px; height: 15px; }
+.rs svg.i.l { width: 22px; height: 22px; }
+.rs kbd { font-family: var(--disp); }
+
+/* The console: dark painted metal with a faint brushed grain */
+.rs.desk, .rs .desk { background-color: var(--desk); background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, .018) 0 1px, transparent 1px 4px); }
+
+/* Wooden end cheeks on the desktop console; a wooden armrest under the phone switches */
+.rs.console::before, .rs.console::after { content: ""; position: absolute; z-index: 6; top: 0; bottom: 0; width: 14px; pointer-events: none; background: linear-gradient(90deg, rgba(255, 255, 255, .1), rgba(0, 0, 0, .3)), var(--wood); }
+.rs.console::before { left: 0; box-shadow: 2px 0 6px rgba(0, 0, 0, .4); }
+.rs.console::after { right: 0; box-shadow: -2px 0 6px rgba(0, 0, 0, .4); }
+
+/* Meter bridge: brand plate, lit navigation switches, status lamps and a clock */
+.rs .menubar { position: relative; z-index: 5; display: flex; align-items: center; gap: 6px; min-height: 52px; padding: 0 var(--gutter); background: linear-gradient(180deg, #1E232B, #12151A); border-bottom: 1px solid var(--ink); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 3px 10px rgba(0, 0, 0, .35); color: #ECE8DF; }
+.rs .brand { display: flex; align-items: center; gap: 10px; margin-right: 14px; font-family: var(--label); font-size: 16px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; color: #ECE8DF; text-decoration: none; }
+.rs .logo { display: flex; align-items: flex-end; gap: 2px; flex: none; height: 20px; padding: 2px 3px; background: #07090C; border-radius: 3px; box-shadow: inset 0 1px 2px rgba(0, 0, 0, .8); }
+.rs .logo i { display: block; width: 4px; border-radius: 1px; }
+.rs .logo i:nth-child(1) { height: 8px; background: var(--green); box-shadow: 0 0 6px var(--green); }
+.rs .logo i:nth-child(2) { height: 12px; background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+.rs .logo i:nth-child(3) { height: 15px; background: var(--red); box-shadow: 0 0 6px var(--red); }
+.rs .mb-item { position: relative; display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border: 1px solid #07090C; border-radius: 5px; background: linear-gradient(180deg, #4A5262, #3A4150); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 2px 0 #07090C; font-family: var(--label); font-size: 14px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #ECE8DF; text-decoration: none; white-space: nowrap; }
+.rs .mb-item:hover { filter: brightness(1.1); }
+.rs .mb-item.on { background: radial-gradient(ellipse at 50% 40%, var(--lit-hi), var(--lamp) 55%, var(--lit-lo)); color: var(--lit-text); box-shadow: inset 0 1px 0 #fff, 0 1px 0 #07090C, 0 0 calc(12px * var(--glow)) rgba(244, 238, 220, .45); transform: translateY(1px); }
+.rs .mb-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.rs .vfd { display: inline-flex; align-items: center; height: 32px; padding: 0 10px; background: var(--lcd); border-radius: 4px; box-shadow: inset 1px 2px 4px rgba(0, 0, 0, .8); color: var(--lcd-text); font: 400 18px/1 var(--disp); text-shadow: 0 0 6px var(--lcd-glow); }
+
+/* Modules: a painted faceplate with a label plate, two screws and vent slots */
+.rs .win { position: relative; display: flex; flex-direction: column; min-width: 0; background: linear-gradient(180deg, var(--win-hi), var(--win) 120px); border: 1px solid var(--ink); border-radius: 7px; box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .1), 4px 8px 22px rgba(0, 0, 0, .45), 1px 2px 4px rgba(0, 0, 0, .3); overflow: hidden; }
+.rs .tb { display: flex; align-items: center; gap: 10px; flex: none; min-height: 40px; padding: 0 10px; background: var(--title); border-bottom: 1px solid var(--ink); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06); color: var(--title-text); }
+.rs .tb::before, .rs .tb::after { content: ""; flex: none; width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(45deg, transparent 43%, #2A2F37 43% 57%, transparent 57%), radial-gradient(circle at 35% 30%, #EEF0F2, #9AA0A9 55%, #575D66); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .45), 1px 1px 1px rgba(0, 0, 0, .4); }
+.rs .tb::after { order: 99; }
+.rs .tb h1, .rs .tb h2 { font-family: var(--label); font-size: 15px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; line-height: 1; white-space: nowrap; color: var(--title-text); }
+.rs .stripes { flex: 1; min-width: 20px; height: 7px; border-radius: 4px; background: repeating-linear-gradient(90deg, #05070A 0 16px, transparent 16px 22px); box-shadow: 0 1px 0 rgba(255, 255, 255, .06); opacity: .9; }
+.rs .win.off .tb { background: var(--title-off); }
+.rs .wbtn { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: none; width: 28px; height: 28px; padding: 0; border: 1px solid var(--ink); border-radius: 3px; background: linear-gradient(180deg, var(--key-hi), var(--key) 60%, var(--key-lo)); color: var(--key-text); box-shadow: inset 0 1px 0 var(--key-hl), 0 2px 0 #050608; cursor: pointer; text-decoration: none; }
+.rs .wbtn::after { content: ""; position: absolute; inset: -8px; }
+.rs .wbtn:active { transform: translateY(2px); box-shadow: inset 0 1px 3px var(--key-sh); }
+.rs .wbtn svg.i { width: 15px; height: 15px; }
+.rs.ph .tb { min-height: 54px; padding: 0 8px; }
+/* Phone: the cap stays in proportion to the title bar; the invisible ::after keeps the touch target at 44px */
+.rs.ph .wbtn { width: 30px; height: 30px; }
+.rs.ph .wbtn::after { inset: -7px; }
+.rs.ph .wbtn svg.i { width: 16px; height: 16px; }
+/* A title-bar cap with words, used for the Sources switch on the phone: small, in the corner of the Search window */
+.rs .wbtn.txt, .rs.ph .wbtn.txt { width: auto; gap: 7px; padding: 0 9px; font-family: var(--label); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.rs .wbtn.txt svg.chev { width: 13px; height: 13px; }
+.rs .leds { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 0 8px; border-radius: 6px; text-decoration: none; }
+
+/* Push buttons after the British console EQ module: ivory caps in a dark bezel with a bold capital legend, sinking 2px
+   when pressed. A selected switch is backlit peach with a brown legend; amber is lit only on the main action of a screen. */
+.rs .key { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 15px; border: 1px solid var(--key-edge); border-radius: 3px; background: linear-gradient(180deg, var(--key-hi), var(--key) 60%, var(--key-lo)); color: var(--key-text); font-family: var(--label); font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; line-height: 1; white-space: nowrap; text-decoration: none; cursor: pointer; box-shadow: inset 0 1px 0 var(--key-hl), inset 0 -2px 0 rgba(0, 0, 0, .1), 0 2px 0 var(--key-edge), 1px 4px 6px rgba(0, 0, 0, .4); transition: transform .06s ease, box-shadow .06s ease; }
+.rs .key:hover { filter: brightness(1.04); }
+.rs .key:active, .rs .key.pressed { transform: translateY(2px); box-shadow: inset 0 1px 3px var(--key-sh), 0 0 0 var(--key-edge); }
+.rs .key.sun { background: radial-gradient(ellipse at 50% 40%, var(--sun-hi), var(--sun) 70%); color: var(--sun-ink); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 -2px 0 rgba(120, 60, 0, .15), 0 2px 0 var(--key-edge), 1px 4px 6px rgba(0, 0, 0, .4), 0 0 16px var(--sun-glow); }
+.rs .key.sun:active, .rs .key.sun.pressed { box-shadow: inset 1px 2px 4px rgba(120, 60, 0, .4), 0 0 0 var(--key-edge), 0 0 16px var(--sun-glow); }
+.rs .key.sm { height: 32px; padding: 0 11px; font-size: 13px; box-shadow: inset 0 1px 0 var(--key-hl), 0 2px 0 var(--key-edge), 1px 3px 5px rgba(0, 0, 0, .3); }
+.rs .key.sm:active, .rs .key.sm.pressed { transform: translateY(2px); box-shadow: inset 0 1px 3px var(--key-sh), 0 0 0 var(--key-edge); }
+.rs .key.lg { height: 54px; padding: 0 20px; border-radius: 4px; font-size: 16px; letter-spacing: .08em; }
+.rs .key.icon { width: 40px; padding: 0; }
+.rs .key.sm.icon { width: 32px; }
+.rs .key.lg.icon { width: 54px; }
+.rs .key.block { width: 100%; }
+.rs.ph .key:not(.sm):not(.lg) { height: 46px; }
+.rs.ph .key.icon:not(.sm):not(.lg) { width: 46px; }
+.rs.ph .key.sm { height: 40px; }
+.rs .key.flat { background: transparent; border-color: transparent; box-shadow: none; color: var(--text-2); }
+.rs .key.flat:active { transform: none; }
+.rs .key.off, .rs .key:disabled { opacity: .45; pointer-events: none; }
+.rs .split { position: relative; display: inline-flex; gap: 2px; }
+.rs .split > .key:first-child { border-top-right-radius: 2px; border-bottom-right-radius: 2px; }
+.rs .split > .key + .key { border-top-left-radius: 2px; border-bottom-left-radius: 2px; padding: 0 9px; }
+.rs .split.block { display: flex; width: 100%; }
+.rs .split.block > .key:first-child { flex: 1; }
+
+/* Inputs are plain recessed fields. LCDs only ever show information, never take input. */
+.rs .field { display: flex; align-items: center; gap: 10px; min-height: 50px; padding: 0 6px 0 12px; background: var(--field); border: 1px solid var(--ink); border-radius: 6px; box-shadow: inset 1px 2px 4px rgba(0, 0, 0, .45); color: var(--text-3); }
+.rs .field:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+.rs .field input { flex: 1; min-width: 0; height: 46px; border: 0; outline: 0; background: transparent; font-size: 16px; color: var(--text); }
+.rs .field input::placeholder { color: var(--text-3); }
+.rs.day .field { color: #5D6573; }
+.rs.day .field input::placeholder { color: #5D6573; }
+.rs .input { width: 100%; height: 46px; padding: 0 12px; background: var(--field); border: 1px solid var(--ink); border-radius: 6px; box-shadow: inset 2px 3px 5px rgba(0, 0, 0, .4); font-size: 16px; color: var(--text); }
+.rs .lbl-f { display: flex; flex-direction: column; gap: 6px; font-family: var(--label); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-2); }
+.rs .segk { display: inline-flex; gap: 4px; padding: 4px; background: var(--plate); border-radius: 7px; box-shadow: inset 1px 2px 4px rgba(0, 0, 0, .6); }
+.rs .segk button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 38px; padding: 0 14px; border: 1px solid var(--ink); border-radius: 3px; background: linear-gradient(180deg, var(--key-hi), var(--key) 60%, var(--key-lo)); color: var(--key-text); font-family: var(--label); font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; cursor: pointer; box-shadow: inset 0 1px 0 var(--key-hl), inset 0 -2px 0 rgba(0, 0, 0, .1), 0 2px 0 #050608; }
+.rs .segk button[aria-checked="true"], .rs .segk button[aria-pressed="true"] { background: radial-gradient(ellipse at 50% 40%, var(--lit-hi), var(--lamp) 55%, var(--lit-lo)); color: var(--lit-text); box-shadow: inset 0 1px 0 #fff, inset 0 0 8px rgba(240, 150, 60, .35), 0 0 calc(12px * var(--glow)) var(--lit-glow); transform: translateY(2px); }
+.rs .segk.block { display: flex; width: 100%; }
+.rs .segk.block button { flex: 1; }
+.rs.ph .segk button { height: 44px; }
+/* Sources: every source is searched by default and the results come in one list. The Sources switch shows which are on
+   and opens a strip of rocker switches, one per source, like the rockers on a synth panel; it pushes the content down.
+   Lamps: green is on and working, red or yellow is on but failing, dark is off. A rocker is on when its top is pressed in. */
+.rs .srcbtn .lamps { display: inline-flex; gap: 6px; margin-left: 2px; }
+.rs .srcbtn .chev { width: 16px; height: 16px; transition: transform .2s ease; }
+.rs .srcbtn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.rs .rockers { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; padding: 8px 10px; background: var(--win-2); border: 1px solid var(--ink); border-radius: 6px; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .35); }
+.rs .rocker { display: inline-flex; align-items: center; gap: 12px; min-height: 64px; padding: 4px 10px 4px 4px; border: 0; border-radius: 5px; background: transparent; color: var(--text); text-align: left; cursor: pointer; }
+.rs .rocker:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.rs .rk { flex: none; display: flex; flex-direction: column; align-items: center; gap: 3px; font: 700 9px/1 var(--label); letter-spacing: .12em; color: var(--text-3); }
+.rs .rk-case { display: block; width: 24px; height: 38px; padding: 3px; background: #07090C; border-radius: 4px; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .9), 0 1px 0 rgba(255, 255, 255, .1); }
+.rs .rk-paddle { display: block; height: 100%; border-radius: 2px; background: linear-gradient(180deg, #F7F3EA, #E2DCCB 46%, #8F887A 50%, #B3AB99 54%, #857F72); box-shadow: inset 0 1px 0 #fff, 0 -1px 2px rgba(0, 0, 0, .4); }
+.rs .rocker[aria-checked="true"] .rk-paddle { background: linear-gradient(180deg, #857F72, #B3AB99 46%, #8F887A 50%, #F7F3EA 54%, #E2DCCB); box-shadow: inset 0 -1px 0 #fff, 0 1px 2px rgba(0, 0, 0, .4); }
+.rs .rk-t { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.rs .rk-name { font-family: var(--label); font-size: 15px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+.rs .rk-state { display: inline-flex; align-items: center; gap: 7px; font-size: 14px; color: var(--text-2); white-space: nowrap; }
+.rs .rocker[aria-checked="false"] .rk-name { color: var(--text-3); }
+@media (prefers-reduced-motion: reduce) { .rs .srcbtn .chev { transition: none; } }
+.rs .ftabs { display: flex; gap: 6px; padding: 10px 12px; background: var(--win-2); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); overflow-x: auto; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .3); }
+.rs .ftabs button { flex: none; height: 34px; padding: 0 14px; border: 1px solid var(--ink); border-radius: 3px; background: linear-gradient(180deg, var(--key-hi), var(--key) 60%, var(--key-lo)); color: var(--key-text); font-family: var(--label); font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; box-shadow: inset 0 1px 0 var(--key-hl), inset 0 -2px 0 rgba(0, 0, 0, .1), 0 2px 0 #050608; }
+.rs .ftabs button[aria-selected="true"] { background: radial-gradient(ellipse at 50% 40%, var(--lit-hi), var(--lamp) 55%, var(--lit-lo)); color: var(--lit-text); box-shadow: inset 0 1px 0 #fff, inset 0 0 8px rgba(240, 150, 60, .35), 0 0 calc(10px * var(--glow)) var(--lit-glow); transform: translateY(2px); }
+.rs.ph .ftabs button { height: 44px; padding: 0 12px; }
+
+/* Rotary selector in one row: two positions, the knob, two positions. The labels with their lamps are the real
+   buttons; the knob leans towards the chosen one. Pointer angles: -75deg, -40deg, 40deg, 75deg. */
+.rs .rotary { display: flex; justify-content: center; padding: 6px 12px; background: var(--win-2); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); box-shadow: inset 0 1px 3px rgba(0, 0, 0, .3); }
+.rs .rot-labels { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 4px; width: 100%; max-width: 460px; }
+.rs .rot-labels .knob { margin: 0 4px; }
+.rs .rot-labels button:not(.knob) { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-height: 48px; padding: 4px 2px; border: 0; border-radius: 5px; background: transparent; color: var(--text-2); font-family: var(--label); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
+.rs .rot-labels button:not(.knob):hover { color: var(--text); background: color-mix(in srgb, var(--text) 6%, transparent); }
+.rs .rot-labels button[aria-checked="true"] { color: var(--text); }
+.rs .rot-labels .led { --c: #3A4554; box-shadow: none; }
+.rs.day .rot-labels .led { --c: #9AA0A9; }
+.rs .rot-labels button[aria-checked="true"] .led { --c: var(--sun); box-shadow: 0 0 calc(9px * var(--glow)) var(--sun); }
+
+/* Lists: plain, with a row cursor */
+.rs .rows { display: flex; flex-direction: column; min-width: 0; }
+.rs .row { display: grid; align-items: center; column-gap: 12px; min-height: 58px; padding: 7px 14px; border-bottom: 1px solid var(--line); }
+.rs .row:hover { background: var(--win-2); }
+.rs .row.cur, .rs .row.cur:hover { background: var(--sel); box-shadow: inset 0 0 0 2px var(--focus); }
+.rs .thead { position: sticky; top: 0; z-index: 2; min-height: 34px; padding-top: 0; padding-bottom: 0; background: var(--win-2); border-bottom: 1px solid var(--ink); font-family: var(--label); font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); }
+.rs .thead:hover { background: var(--win-2); }
+.rs .two { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.rs .ttl { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 15px; font-weight: 600; color: var(--text); }
+.rs .ver { color: var(--text-3); font-weight: 400; white-space: nowrap; }
+.rs .ver:empty { display: none; }
+.rs .sub { font-size: 13px; color: var(--text-2); }
+.rs .e { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 17px; height: 17px; border: 1px solid var(--text-3); border-radius: 3px; font-size: 10px; font-weight: 700; color: var(--text-2); }
+.rs .g-res { grid-template-columns: 46px minmax(220px, 1fr) 46px 64px 150px 140px 140px 34px; }
+.rs .g-res-n { grid-template-columns: 46px minmax(200px, 1fr) 150px 140px 46px; }
+.rs .g-res .n, .rs .g-res-n .w { display: none; }
+.rs .g-ph { grid-template-columns: 62px minmax(0, 1fr) 50px; min-height: 88px; padding: 10px 12px; }
+.rs .g-hist { grid-template-columns: 70px minmax(200px, 1.6fr) minmax(110px, 1fr) 76px 168px 64px 74px 92px; }
+.rs .g-trk { grid-template-columns: 26px minmax(0, 1fr) 48px 112px 36px; min-height: 44px; padding: 4px 10px; }
+.rs .g-alb { grid-template-columns: 46px minmax(0, 1fr) 132px 36px; min-height: 60px; padding: 6px 10px; }
+/* A cell that a row type doesn't use, such as Download on an artist row. A class, because inline display would beat the narrow grid's rule. */
+.rs .gone { display: none !important; }
+
+/* Covers */
+.rs .cv { flex: none; width: 46px; height: 46px; border: 1px solid var(--ink); border-radius: 3px; background: var(--key); box-shadow: 1px 2px 3px rgba(0, 0, 0, .3); }
+.rs .row .cv { box-shadow: none; }
+.rs .cv.round { border-radius: 50%; }
+.rs .a-tide { background: radial-gradient(circle at 68% 32%, #EDE6CF 0 16%, transparent 16.5%), linear-gradient(180deg, #1D3F4C 0 62%, #2F7A84 62% 70%, #24606B 70% 100%); }
+.rs .a-tide2 { background: radial-gradient(circle at 68% 32%, #F6C66B 0 16%, transparent 16.5%), linear-gradient(180deg, #3A2E4F 0 62%, #C26A4A 62% 70%, #6E3B4E 70% 100%); }
+.rs .a-instr { background: radial-gradient(circle at 68% 32%, transparent 0 13%, #1D3F4C 13.5% 16%, transparent 16.5%), linear-gradient(180deg, #E8E6E1 0 62%, #A7B8BE 62% 100%); }
+.rs .a-harbour { background: radial-gradient(circle at 50% 118%, #F2E3B3 0 40%, transparent 40.5%), repeating-linear-gradient(180deg, #0F2A44 0 10%, #16395C 10% 20%); }
+.rs .a-signal { background: conic-gradient(from 270deg at 50% 100%, #E4572E 0 25%, #F3A712 25% 50%, #29335C 50% 100%); }
+.rs .a-weather { background: repeating-linear-gradient(135deg, #5C6B73 0 9%, #9DB4C0 9% 18%); }
+.rs .a-halden { background: radial-gradient(circle at 50% 50%, #D7263D 0 13%, transparent 13.5%), repeating-radial-gradient(circle at 50% 50%, #1B1B1E 0 5%, #2C2C33 5% 6%); }
+.rs .a-radio { background: linear-gradient(90deg, #F25C54 0 25%, #F7B267 25% 50%, #F4845F 50% 75%, #3D348B 75% 100%); }
+.rs .a-hours { background: radial-gradient(circle, #E9A6C9 0 20%, transparent 21%) 0 0 / 25% 25%, #3B2A5C; }
+.rs .a-lights { background: radial-gradient(circle at 30% 30%, #5BC0BE 0 9%, transparent 9.5%), radial-gradient(circle at 70% 70%, #F4D35E 0 9%, transparent 9.5%), linear-gradient(180deg, #0B132B 0 50%, #1C2541 50% 100%); }
+.rs .a-lantern { background: radial-gradient(circle at 30% 40%, #FCE3B0 0 14%, transparent 14.5%), radial-gradient(circle at 62% 60%, #FFD27A 0 11%, transparent 11.5%), radial-gradient(circle at 80% 28%, #FBE9C8 0 7%, transparent 7.5%), #C8461F; }
+.rs .a-ferry { background: radial-gradient(circle at 50% 44%, #F4C542 0 7%, transparent 7.5%), linear-gradient(180deg, #14213D 0 58%, #F4C542 58% 60%, #1B2C52 60% 100%); }
+.rs .a-orchard { background: linear-gradient(135deg, #B8DDB0 0 34%, #2F6B3F 34% 67%, #18402A 67% 100%); }
+.rs .a-winter { background: radial-gradient(circle at 50% 72%, #6C8EA4 0 24%, transparent 24.5%), linear-gradient(180deg, #DDE7EE 0 72%, #F7F9FA 72% 100%); }
+.rs .a-bells { background: radial-gradient(circle at 50% 38%, #F7EDE2 0 20%, transparent 20.5%), #84A59D; }
+.rs .a-rooms { background: linear-gradient(90deg, #EAD7C3 0 50%, #DDB892 50% 100%); box-shadow: inset 0 0 0 7px #7F5539; }
+.rs .a-arcade { background: linear-gradient(90deg, #E76F51 0 20%, #F4A261 20% 40%, #E9C46A 40% 60%, #2A9D8F 60% 80%, #264653 80% 100%); }
+.rs .a-bergen { background: radial-gradient(circle at 30% 70%, #5B8DEF 0 22%, transparent 22.5%), #0F1A2B; }
+.rs .a-night { background: radial-gradient(circle at 75% 25%, #F6F2D4 0 10%, transparent 10.5%), #232946; }
+
+/* LEDs: health and live state, with a lens highlight; they glow at night */
+.rs .led { --c: var(--grey-lamp); display: inline-block; flex: none; width: 11px; height: 11px; border: 1px solid var(--ink); border-radius: 50%; background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .85) 0 15%, rgba(255, 255, 255, 0) 45%), var(--c); box-shadow: 0 0 calc(9px * var(--glow)) var(--c); }
+.rs .led.ok { --c: var(--green); }
+.rs .led.warn { --c: var(--yellow); }
+.rs .led.bad, .rs .led.rec { --c: var(--red); }
+.rs .led.run { --c: var(--cyan); }
+.rs .led.off { --c: #3A4554; box-shadow: none; }
+.rs.day .led.off { --c: #9AA0A9; }
+.rs .led.blink { animation: rs-blink 1.1s linear infinite; }
+
+/* Masking tape for quality: the color of the tape marks the tier, the words say it */
+.rs .stk { --c: var(--tape); display: inline-flex; align-items: center; height: 22px; padding: 0 9px; background: var(--c); color: var(--tape-ink); font-family: var(--label); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; font-variant-numeric: tabular-nums; clip-path: polygon(0 10%, 3% 0, 30% 6%, 62% 0, 97% 5%, 100% 0, 98% 50%, 100% 100%, 70% 94%, 35% 100%, 4% 95%, 0 100%, 2% 50%); }
+.rs .stk.hi { --c: #F3D46B; }
+.rs .stk.master { --c: #F2A35C; }
+.rs .stk.atmos { --c: #A9C6F2; }
+.rs .stk.lossy { --c: #C7CBD1; }
+.rs .stks { display: flex; flex-wrap: wrap; gap: 5px; min-width: 0; }
+
+/* Indicator lenses for download results */
+.rs .pill { --c: var(--grey-lamp); display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border: 1px solid var(--ink); border-radius: 4px; background: linear-gradient(180deg, rgba(255, 255, 255, .45), rgba(255, 255, 255, 0) 55%), var(--c); color: #12100A; font-family: var(--label); font-size: 13px; font-weight: 700; letter-spacing: .03em; white-space: nowrap; box-shadow: 0 0 calc(10px * var(--glow)) color-mix(in srgb, var(--c) 55%, transparent); }
+.rs .pill svg.i { width: 13px; height: 13px; stroke-width: 2.6; }
+.rs .pill.done { --c: var(--green); }
+.rs .pill.partial { --c: var(--yellow); }
+.rs .pill.failed { --c: var(--red); }
+.rs .pill.run { --c: var(--cyan); }
+.rs .pill.queued { --c: var(--grey-lamp); }
+.rs .pill.canceled, .rs .pill.skipped { background: transparent; color: var(--text-2); border-color: var(--text-3); box-shadow: none; }
+.rs .pill.skipped { border-style: dashed; }
+.rs .st { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; color: var(--text-2); white-space: nowrap; }
+/* Source names are plain text, no lamp or color mark; in a line of details a middle dot separates them */
+.rs .src { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-2); white-space: nowrap; }
+.rs .sub .src::before { content: "·"; font-weight: 400; }
+
+/* Pop-up menu */
+.rs .pop { position: absolute; z-index: 20; min-width: 230px; padding: 6px; background: var(--win); border: 1px solid var(--ink); border-radius: 7px; box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .1), 6px 10px 24px rgba(0, 0, 0, .5); }
+.rs .pop-h { padding: 6px 10px; font-family: var(--label); font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3); }
+.rs .pop button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 0 10px; border: 0; border-radius: 5px; background: transparent; font-size: 14px; text-align: left; cursor: pointer; color: var(--text); }
+.rs .pop button:hover, .rs .pop button.hl { background: var(--lamp); color: #1A1206; }
+.rs .pop .ck { display: inline-flex; flex: none; width: 18px; }
+.rs .pop .hint { margin-left: auto; font-size: 12px; color: var(--text-3); }
+.rs .pop button.hl .hint, .rs .pop button:hover .hint { color: inherit; }
+.rs.ph .pop button { min-height: 56px; font-size: 16px; }
+
+/* Dialogs */
+.rs .scrim { position: absolute; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; padding: 16px; background: var(--scrim); }
+.rs .dlg { width: 100%; max-width: 440px; }
+.rs .dlg-body { display: flex; flex-direction: column; gap: 14px; padding: 18px; }
+.rs .dlg-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; padding: 0 18px 18px; }
+.rs .digits { display: flex; gap: 8px; }
+.rs .digit { width: 44px; height: 56px; padding: 0; text-align: center; background: var(--field); border: 1px solid var(--ink); border-radius: 6px; box-shadow: inset 1px 2px 4px rgba(0, 0, 0, .45); font: 600 26px var(--font); color: var(--text); }
+.rs .digit.focus { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* Phone: a strip of console switches at the bottom */
+.rs .dock { position: absolute; left: 8px; right: 12px; bottom: 14px; z-index: 30; display: flex; gap: 6px; padding: 7px; background: linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(0, 0, 0, .28)), repeating-linear-gradient(1deg, #4E2B18 0 2px, #5E351F 2px 5px, #53301B 5px 8px, #6A3D24 8px 12px, #573220 12px 15px); border: 1px solid var(--ink); border-radius: 12px; box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .08), 4px 8px 20px rgba(0, 0, 0, .5); }
+.rs .dock a { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 56px; border: 1px solid #07090C; border-radius: 4px; background: linear-gradient(180deg, var(--key-hi), var(--key) 60%, var(--key-lo)); box-shadow: inset 0 1px 0 var(--key-hl), inset 0 -2px 0 rgba(0, 0, 0, .1), 0 3px 0 #07090C; font-family: var(--label); font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--key-text); text-decoration: none; }
+.rs .dock a.on { background: radial-gradient(ellipse at 50% 40%, var(--lit-hi), var(--lamp) 55%, var(--lit-lo)); color: var(--lit-text); box-shadow: inset 0 1px 0 #fff, inset 0 0 10px rgba(240, 150, 60, .35), 0 0 calc(12px * var(--glow)) var(--lit-glow); transform: translateY(3px); }
+/* A scrolling column: its children keep their own height instead of shrinking to fit when the content is taller */
+.rs .vscroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; display: flex; flex-direction: column; }
+.rs .vscroll > * { flex: none; }
+/* Phone Status and setup modules: a lamp, the part's name and a short note on one line, then a display and actions */
+.rs .smod { display: flex; flex-direction: column; gap: 10px; padding: 14px 12px; border-bottom: 1px solid var(--ink); }
+.rs .smod-h { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.rs .smod-h h2 { font-family: var(--label); font-size: 16px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; color: var(--text); }
+.rs .smod-h .sub { margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rs .smod .lcd, .rs .panel .lcd { flex: none; }
+.rs .smod-keys { display: flex; gap: 10px; }
+.rs .smod-keys > .key { flex: 1; }
+.rs .smod-keys > .key.sun { flex: 2; }
+/* A tab carries one amber lamp in its top right corner while there is something to look at: downloads running or
+   queued, or a part that needs attention. No lamp otherwise. */
+.rs .dock a .led { --c: var(--sun); position: absolute; top: 7px; right: 7px; }
+.rs .menubar nav .mb-item .led { --c: var(--sun); position: absolute; top: 4px; right: 4px; width: 9px; height: 9px; }
+/* Phone: modules stack between the top edge and the dock; a notification takes its own slot and pushes the window up, never covers it */
+.rs .stack { position: absolute; left: 8px; right: 12px; top: 10px; bottom: 96px; display: flex; flex-direction: column; gap: 10px; }
+.rs .stack > .win { flex: 1 1 auto; min-height: 0; }
+.rs .stack > .win.slot { flex: none; animation: rs-slot .24s ease-out both; }
+.rs .stack > .win.slot .tb::before { display: none; }
+.rs .stack > .win.slot .tb .led { order: -1; }
+
+/* Current download in compact views: the cover, a display with tracks done and the current track, one lamp per track */
+.rs .deck { display: flex; flex-direction: column; gap: 12px; padding: 14px; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .03) 0 1px, transparent 1px 3px), linear-gradient(160deg, color-mix(in srgb, var(--deck) 80%, #fff), var(--deck) 45%); border: 1px solid var(--ink); border-radius: 7px; box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .14), 2px 4px 10px rgba(0, 0, 0, .3); }
+.rs .deck-top { display: flex; align-items: center; gap: 10px; color: var(--text-2); }
+.rs .deck-top .px, .rs .deck-top > span:not(.led):not(.stripes) { font-family: var(--label); font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.rs .deck .stripes { background: repeating-linear-gradient(90deg, rgba(0, 0, 0, .55) 0 12px, transparent 12px 17px); }
+.rs .lcd { position: relative; flex: 1 1 140px; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; padding: 10px 12px; overflow: hidden; background: var(--lcd); border: 1px solid var(--ink); border-radius: 5px; box-shadow: inset 1px 2px 6px rgba(0, 0, 0, .85); color: var(--lcd-text); font-family: var(--disp); text-shadow: 0 0 6px var(--lcd-glow); }
+.rs .lcd::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(160deg, rgba(255, 255, 255, .07) 0 30%, transparent 45%), repeating-linear-gradient(180deg, rgba(0, 0, 0, .16) 0 1px, transparent 1px 3px), repeating-linear-gradient(90deg, rgba(0, 0, 0, .07) 0 1px, transparent 1px 3px); }
+.rs .lcd-big { font-size: 36px; line-height: 1; letter-spacing: .02em; }
+.rs .lcd-l { font-size: 15px; line-height: 1.2; letter-spacing: .04em; }
+.rs .meter { display: flex; gap: 4px; padding: 5px; background: #07090C; border-radius: 4px; box-shadow: inset 1px 1px 3px rgba(0, 0, 0, .9); }
+.rs .meter i { flex: 1; height: 10px; background: #1B2A1F; border-radius: 1px; }
+.rs .meter i.d { background: var(--green); box-shadow: 0 0 calc(6px * var(--glow)) var(--green); }
+.rs .meter i.c { background: var(--sun); box-shadow: 0 0 calc(6px * var(--glow)) var(--sun); animation: rs-blink 1s linear infinite; }
+.rs .meter i.f { background: var(--red); box-shadow: 0 0 calc(6px * var(--glow)) var(--red); }
+.rs .deck-keys { display: flex; flex-wrap: wrap; gap: 12px; }
+
+/* Mastering lathe: downloading is cutting the master. --p is progress; the cutting head moves from the outer
+   edge towards the label, the cut grooves cover the lacquer behind it, and the label (the cover) turns. */
+.rs .lathe { --s: 220px; --p: .5; position: relative; flex: none; width: var(--s); height: var(--s); margin-right: calc(var(--s) * .12); }
+.rs .lathe .plat { position: absolute; inset: -3%; border-radius: 50%; background: conic-gradient(from 30deg, #8A9099, #D9DDE2, #8A9099, #5E646D, #8A9099, #D9DDE2, #8A9099); box-shadow: 3px 6px 12px rgba(0, 0, 0, .5), inset 0 0 0 1px rgba(0, 0, 0, .5); }
+.rs .lathe .disc { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 42%), radial-gradient(circle closest-side, #232838 0 97%, #3A3F4E 97.5% 100%); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .6); }
+.rs .lathe .cut { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(rgba(255, 255, 255, 0) 0 30%, rgba(255, 255, 255, .16) 37.5%, rgba(255, 255, 255, 0) 45% 80%, rgba(255, 255, 255, .12) 87.5%, rgba(255, 255, 255, 0) 95%), repeating-radial-gradient(circle closest-side, #0E1018 0 1px, #2A2E3C 1px 2px); -webkit-mask: radial-gradient(circle closest-side, transparent 0 calc((96 - 56 * var(--p)) * 1%), #000 calc((96 - 56 * var(--p)) * 1% + .4%) 96%, transparent 96.4%); mask: radial-gradient(circle closest-side, transparent 0 calc((96 - 56 * var(--p)) * 1%), #000 calc((96 - 56 * var(--p)) * 1% + .4%) 96%, transparent 96.4%); }
+.rs .lathe .label { position: absolute; inset: 31%; width: auto; height: auto; border: 1px solid rgba(0, 0, 0, .5); border-radius: 50%; box-shadow: none; }
+.rs .lathe::after { content: ""; position: absolute; z-index: 2; left: 50%; top: 50%; width: 4%; height: 4%; transform: translate(-50%, -50%); border-radius: 50%; background: #D9DCE0; }
+.rs .lathe.spin .label { animation: rs-spin 1.8s linear infinite; }
+.rs .lathe .head { position: absolute; z-index: 3; top: calc(50% - 6px); left: calc(50% + (96 - 56 * var(--p)) * .5% - 6px); right: calc(var(--s) * -.12); height: 12px; border: 1px solid #07090C; border-radius: 3px; background: linear-gradient(180deg, #E1E5EA, #8A9099); box-shadow: 2px 4px 6px rgba(0, 0, 0, .5); transition: left .6s ease; }
+.rs .lathe .head::before { content: ""; position: absolute; left: -2px; top: -9px; width: 22px; height: 28px; border: 1px solid #07090C; border-radius: 4px; background: linear-gradient(160deg, #4A5262, #2A2F37); box-shadow: 1px 2px 4px rgba(0, 0, 0, .5); }
+.rs .lathe .head::after { content: ""; position: absolute; left: 2px; top: 3px; width: 5px; height: 5px; border-radius: 50%; background: var(--red); box-shadow: 0 0 calc(8px * var(--glow)) var(--red); }
+@media (prefers-reduced-motion: reduce) { .rs .lathe.spin .label { animation: none; } .rs .lathe .head { transition: none; } }
+
+/* Format selector: a knob with lamp-lit positions; the positions are the real radio buttons */
+.rs .fmt-list { display: flex; flex-direction: column; gap: 2px; }
+.rs .fmt-list button { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border: 0; border-radius: 5px; background: transparent; color: var(--text-2); font-family: var(--label); font-size: 14px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; text-align: left; cursor: pointer; }
+.rs .fmt-list button:hover { color: var(--text); background: color-mix(in srgb, var(--text) 6%, transparent); }
+.rs .fmt-list button[aria-checked="true"] { color: var(--text); }
+.rs .fmt-list .led { --c: #3A4554; box-shadow: none; }
+.rs.day .fmt-list .led { --c: #9AA0A9; }
+.rs .fmt-list button[aria-checked="true"] .led { --c: var(--sun); box-shadow: 0 0 calc(9px * var(--glow)) var(--sun); }
+.rs .fmt-list .hint { font-family: var(--font); font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--text-3); }
+
+/* Rack units: a wide faceplate with rack ears and screws; name plate, display, controls */
+.rs .unit { flex-direction: row; align-items: stretch; border-radius: 4px; }
+.rs .unit::before, .rs .unit::after { content: ""; flex: none; width: 28px; background: radial-gradient(circle at 50% 18px, #D5D9DF 0 3.5px, #4A5059 4px 6px, transparent 6.5px), radial-gradient(circle at 50% calc(100% - 18px), #D5D9DF 0 3.5px, #4A5059 4px 6px, transparent 6.5px), var(--win-2); }
+.rs .unit::before { border-right: 1px solid var(--ink); }
+.rs .unit::after { border-left: 1px solid var(--ink); }
+.rs .unit-body { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; padding: 16px 18px; }
+.rs .plate { display: flex; flex-direction: column; gap: 6px; width: 190px; flex: none; }
+.rs .plate h2 { display: flex; align-items: center; gap: 10px; font-family: var(--label); font-size: 18px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+
+/* Meter: one SVG, viewBox 0 0 200 120, pivot at (100, 150), sweep -40deg to +40deg. The needle angle is
+   -40 + 80 * value. Only the rate-limit wait uses it, because there the wait is the one thing on screen. */
+.rs .vu { display: flex; align-items: center; flex: 1 1 150px; min-width: 130px; padding: 6px; background: #0C0F13; border: 1px solid var(--ink); border-radius: 7px; box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .08), 1px 2px 4px rgba(0, 0, 0, .4); }
+.rs .vu-face { position: relative; width: 100%; overflow: hidden; background: radial-gradient(ellipse at 50% 120%, #FFF6D8 0 35%, var(--vu-face) 75%); border-radius: 4px; box-shadow: inset 0 6px 12px rgba(0, 0, 0, .35); }
+.rs .vu-face::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(160deg, rgba(255, 255, 255, .45) 0 18%, rgba(255, 255, 255, 0) 38%); }
+.rs .vu svg { display: block; width: 100%; height: auto; }
+.rs .vu .arc { fill: none; stroke: var(--vu-ink); stroke-width: 1.4; }
+.rs .vu .ticks { fill: none; stroke: var(--vu-ink); stroke-width: 6; stroke-dasharray: 1.2 6.689; stroke-dashoffset: .6; }
+.rs .vu .ticks.major { stroke-width: 11; stroke-dasharray: 1.8 38.52; stroke-dashoffset: .9; }
+.rs .vu .vn { fill: var(--vu-ink); font: 700 12px var(--label); text-anchor: middle; }
+.rs .vu .needle { stroke: #1A1206; stroke-width: 1.6; stroke-linecap: round; }
+.rs .vu .needle-sh { stroke: rgba(0, 0, 0, .18); stroke-width: 2; stroke-linecap: round; }
+.rs .vu .hub { fill: #2A2416; }
+
+/* Knobs copied from the 1081 EQ module picture; no marks are printed around them. --s is the size, --a the pointer
+   angle (0 is up). Markup: <span|button class="knob grey|blue|red"><i></i></span>.
+   Grey and blue: a wide polished silver ring with a black line engraved on it, a dark gap, and a cap with a scalloped
+   edge, a raised rim and a flat centre, with a short white tick on the rim. On the 1081 the ring and the cap are two
+   knobs; here they are one, so the black line and the white tick turn together. Only the cap color differs. */
+.rs .knob { --s: 48px; --a: 0deg; --ring: 0px;
+  --tooth: #9AA1A9;
+  --cap: radial-gradient(circle at 38% 30%, rgba(255, 255, 255, .28), rgba(255, 255, 255, 0) 40%), radial-gradient(circle closest-side, #A9B0B8 0 72%, #7E858E 76%, #C6CCD2 81%, #A7AEB6 92%, #7C838C 100%);
+  --ptr: #101216; --ptr-w: 2px; --ptr-len: .2;
+  position: relative; flex: none; display: inline-block; width: var(--s); height: var(--s); border-radius: 50%; }
+.rs .knob > i { position: absolute; inset: var(--ring); border-radius: 50%; background: radial-gradient(circle at 30% 22%, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 42%), radial-gradient(circle closest-side, #0A0F18 0 76%, #2A2E35 78%, transparent 79.5%), conic-gradient(from -90deg, #F1F3F5, #DADDE1 60deg, #B9BDC3 110deg, #8B9097 160deg, #6A6E75 205deg, #979BA2 245deg, #D6D9DD 300deg, #F1F3F5); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .6), 2px 4px 7px rgba(0, 0, 0, .55), 0 1px 1px rgba(0, 0, 0, .4); transition: transform .08s ease; }
+.rs .knob > i::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: repeating-conic-gradient(var(--tooth) 0 8deg, #0A0F18 8deg 15deg); -webkit-mask: radial-gradient(circle closest-side, transparent 64%, #000 64% 74.5%, transparent 75%); mask: radial-gradient(circle closest-side, transparent 64%, #000 64% 74.5%, transparent 75%); }
+.rs .knob > i::after { content: ""; position: absolute; inset: 16%; border-radius: 50%; background: var(--cap); box-shadow: inset 0 -2px 3px rgba(0, 0, 0, .3), 0 0 0 1px rgba(5, 10, 20, .6); }
+.rs .knob::after { content: ""; position: absolute; z-index: 1; left: calc(50% - var(--ptr-w) / 2); top: calc(var(--ring) + (var(--s) / 2 - var(--ring)) * .03); width: var(--ptr-w); height: calc((var(--s) / 2 - var(--ring)) * var(--ptr-len)); border-radius: 1px; background: var(--ptr); box-shadow: 0 0 1px rgba(0, 0, 0, .4); transform-origin: 50% calc((var(--s) / 2 - var(--ring)) * .97); transform: rotate(var(--a)); transition: transform .3s ease; }
+.rs .knob::before { content: ""; position: absolute; z-index: 1; left: calc(50% - 1px); top: calc(var(--s) * .14); width: 2px; height: calc(var(--s) * .08); border-radius: 1px; background: #F4F0E8; transform-origin: 50% calc(var(--s) * .36); transform: rotate(var(--a)); transition: transform .3s ease; }
+.rs .knob.blue { --tooth: #3463A2; --cap: radial-gradient(circle at 38% 30%, rgba(255, 255, 255, .2), rgba(255, 255, 255, 0) 40%), radial-gradient(circle closest-side, #24508C 0 72%, #183A69 76%, #4373B4 81%, #2F5D9B 92%, #1D4174 100%); }
+/* Red knob, copied from the 1081 gain switch: a dark slate skirt with a polished rim; a red fin that runs across the
+   whole knob and sticks out past the cap at both ends, with the white pointer on one end and a groove on the other;
+   a round red cap with a raised ring around a darker centre. The fin and the pointer turn; the light stays top left. */
+.rs .knob.red { --ptr: #F4F0E8; --ptr-w: 2px; --ptr-len: .21; }
+.rs .knob.red::before { content: none; }
+.rs .knob.red > i { background: radial-gradient(circle at 32% 24%, rgba(255, 255, 255, .3), rgba(255, 255, 255, 0) 48%), radial-gradient(circle closest-side, #2B3442 0 82%, #171C24 84.5%, transparent 85.5%), conic-gradient(from -60deg, #D8DDE3, #8E96A0 70deg, #3A424D 160deg, #262C35 200deg, #5A626D 280deg, #D8DDE3); }
+.rs .knob.red > i::before { inset: 1% 40.5%; border-radius: 3px; background: linear-gradient(90deg, transparent 43%, rgba(45, 0, 0, .55) 43% 57%, transparent 57%), linear-gradient(90deg, #5A0F0B, #A9271F 26%, #CB463C 46%, #9B221B 70%, #540E0A); -webkit-mask: none; mask: none; box-shadow: 0 0 3px rgba(0, 0, 0, .6); transform: rotate(var(--a)); transition: transform .3s ease; }
+.rs .knob.red > i::after { inset: 11.5%; background: radial-gradient(circle at 36% 30%, rgba(255, 190, 170, .32), rgba(255, 190, 170, 0) 36%), radial-gradient(circle closest-side, #921C17 0 63%, #5C0F0C 66%, #C4392F 70%, #A82722 84%, #6B120E 100%); box-shadow: inset 0 -2px 3px rgba(0, 0, 0, .35), 0 2px 5px rgba(0, 0, 0, .6); }
+/* A pressable knob looks exactly like the plain one: no button chrome; it dips a little while pressed */
+.rs button.knob { appearance: none; margin: 0; border: 0; padding: 0; background: none; color: inherit; cursor: pointer; }
+.rs button.knob:active > i { transform: scale(.96); }
+.rs button.knob:active::after, .rs button.knob:active::before { transform: rotate(var(--a)) scale(.96); }
+
+/* EQ-style display: the frequency range a format can carry */
+.rs .eq { position: relative; overflow: hidden; background: var(--lcd); border: 1px solid var(--ink); border-radius: 5px; box-shadow: inset 1px 2px 6px rgba(0, 0, 0, .85); }
+.rs .eq svg { display: block; width: 100%; height: auto; }
+.rs .eq .grid { stroke: rgba(125, 247, 210, .14); stroke-width: 1; fill: none; }
+.rs .eq .limit { stroke: rgba(255, 225, 90, .7); stroke-width: 1.2; stroke-dasharray: 3 3; fill: none; }
+.rs .eq .curve { stroke: var(--lcd-text); stroke-width: 2.2; fill: none; filter: drop-shadow(0 0 3px var(--lcd-glow)); }
+.rs .eq .fill { fill: rgba(125, 247, 210, .12); stroke: none; }
+.rs .eq text { fill: rgba(125, 247, 210, .8); font: 11px var(--disp); }
+
+/* The rack: queued downloads as tape boxes on a shelf, the next one on top */
+.rs .rack { display: flex; flex-direction: column; gap: 6px; }
+.rs .spine { display: grid; grid-template-columns: 14px 30px minmax(0, 1fr) auto; align-items: center; column-gap: 10px; min-height: 56px; padding-right: 8px; overflow: hidden; background: repeating-linear-gradient(90deg, rgba(0, 0, 0, .03) 0 2px, transparent 2px 7px), linear-gradient(180deg, #D3B485, var(--box)); border: 1px solid var(--ink); border-radius: 3px; box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .35), 2px 3px 5px rgba(0, 0, 0, .35); color: var(--box-ink); }
+.rs .spine .band { align-self: stretch; width: 14px; height: auto; border: 0; border-right: 1px solid var(--ink); border-radius: 0; box-shadow: none; }
+.rs .spine .no { font: 400 18px var(--disp); color: var(--box-ink); text-align: center; }
+.rs .spine .two { padding: 4px 10px; background: var(--tape); clip-path: polygon(0 6%, 4% 0, 60% 4%, 100% 0, 98% 50%, 100% 100%, 40% 96%, 3% 100%, 1% 50%); }
+.rs .spine .ttl, .rs .spine .sub { color: var(--box-ink); }
+.rs .spine .key { --key-hl: rgba(255, 255, 255, .3); }
+
+/* Terminal log, sub-panels, meta lists, empty states */
+.rs .term { margin: 0; padding: 10px 12px; overflow: hidden; background: #07090C; border: 1px solid var(--ink); border-radius: 5px; box-shadow: inset 1px 2px 6px rgba(0, 0, 0, .9); color: #CFE9C9; font-family: var(--mono); font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; }
+.rs .term .ts { color: #8F93A8; }
+.rs .term .ok { color: #7EE2A8; }
+.rs .term .wn { color: #FFD15C; }
+.rs .term .er { color: #FF8F8F; }
+.rs .panel { padding: 14px; background: var(--win-2); border: 1px solid var(--ink); border-radius: 6px; box-shadow: inset 1px 2px 4px rgba(0, 0, 0, .3); }
+.rs .meta { display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: 16px; row-gap: 6px; font-size: 14px; }
+.rs .meta dt { font-family: var(--label); font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); padding-top: 2px; }
+.rs .meta dd { min-width: 0; }
+.rs .empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px 16px; text-align: center; color: var(--text-2); }
+.rs .empty h3, .rs .empty h2 { font-family: var(--label); font-size: 20px; font-weight: 700; letter-spacing: .04em; line-height: 1.2; color: var(--text); }
+.rs .note { display: flex; gap: 12px; align-items: flex-start; padding: 14px; background: var(--win-2); border: 1px solid var(--ink); border-radius: 6px; box-shadow: inset 1px 2px 4px rgba(0, 0, 0, .3); text-align: left; }
+.rs .sk { display: block; height: 12px; background: var(--win-2); border-radius: 3px; animation: rs-blink 1.6s linear infinite; }
+
+@keyframes rs-spin { to { transform: rotate(360deg); } }
+@keyframes rs-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: .4; } }
+@keyframes rs-slot { from { max-height: 0; opacity: 0; } to { max-height: 140px; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .rs .led.blink, .rs .meter i.c, .rs .sk, .rs .stack > .win.slot { animation: none; }
+  .rs .key, .rs .key:active, .rs .key.sm:active { transition: none; transform: none; }
+  .rs .knob::after, .rs .knob::before, .rs .knob > i, .rs .knob.red > i::before { transition: none; }
+}

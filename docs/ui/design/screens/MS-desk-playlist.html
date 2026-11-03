@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Desktop · Search with a playlist open</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<style>body { margin: 0; }</style>
+</head>
+<body>
+<div style="min-height: 100vh; background: #14171C">
+
+
+<div class="rs desk console" style="position: relative; min-height: 100vh; display: flex; flex-direction: column; overflow: hidden">
+<header class="menubar">
+<a class="brand" href="MS-desk-search.html"><span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>Music Shelf</a>
+<nav style="display: flex; gap: 2px" aria-label="Main">
+<a class="mb-item on" href="MS-desk-search.html" aria-current="page">Search</a>
+<a class="mb-item" href="MS-desk-downloads.html">Downloads<span class="led run" title="Downloads in progress"></span><span class="sr">, downloads in progress</span></a>
+<a class="mb-item" href="MS-desk-status.html">Status</a>
+</nav>
+<div class="mb-right">
+<a class="mb-item" href="MS-desk-downloads.html" style="font-size: 15px"><span class="led rec blink"></span><span class="num">03/12</span> Glass Orchard</a>
+<span class="leds" aria-label="Qobuz, Apple Music and Navidrome work"><span class="led ok" title="Qobuz works"></span><span class="led ok" title="Apple Music works"></span><span class="led ok" title="Navidrome answers"></span></span>
+<button type="button" class="key sm icon" aria-label="Switch to Day" title="Switch to Day"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"></path><circle cx="12" cy="12" r="4"></circle></svg></button>
+<span class="px num" style="font-size: 17px">14:32</span>
+</div>
+</header>
+
+<div style="position: relative; flex: 1; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px; padding: 20px var(--gutter) 28px">
+
+<section class="win" style="flex: 999 1 560px; z-index: 1" aria-labelledby="rs-t">
+<div class="tb"><h1 id="rs-t">Search</h1><span class="stripes"></span><span class="t3 sm num" style="white-space: nowrap">5 of 23 playlists</span></div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px">
+<label class="field" style="flex: 1 1 320px">
+<svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="display: block"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m20 20-4.5-4.5"></path></svg>
+<svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="display: none"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"></path><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg>
+<span class="sr">Search, or paste a Qobuz or Apple Music link</span>
+<input type="search" value="northern static" placeholder="Search, or paste a Qobuz or Apple Music link">
+<kbd class="px t3" style="display: block; padding: 0 8px; font-size: 15px">/</kbd>
+<button type="button" class="key flat icon" style="display: none" aria-label="Clear"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</label>
+<button type="button" class="key srcbtn" style="display: inline-flex; height: 50px" aria-expanded="false" aria-controls="rs-src"><span>All sources</span><span class="lamps" aria-hidden="true"><span class="led ok"></span><span class="led ok"></span></span><svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+</div>
+<div style="display: none; padding: 0 14px 14px">
+<div id="rs-src" class="rockers" role="group" aria-label="Sources to search" style="flex: 1">
+<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Qobuz</span><span class="rk-state"><span class="led ok"></span>On</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Apple Music</span><span class="rk-state"><span class="led ok"></span>On</span></span></button>
+<p class="t2 sm" style="margin-left: auto; max-width: 320px">Every source that is on is searched, and the results come in one list.</p>
+</div>
+</div>
+
+<div class="rotary" role="radiogroup" aria-label="Type" style="display: flex">
+<div class="rot-labels">
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>Albums</button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>Tracks</button>
+<button type="button" class="knob red" style="--s: 48px; --a: 75deg" aria-label="Switch type, now Playlists" title="Press to turn"><i></i></button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>Artists</button>
+<button type="button" role="radio" aria-checked="true"><span class="led"></span>Playlists</button>
+</div>
+</div>
+
+<div class="rows" role="grid" aria-label="Playlists" tabIndex="0" style="display: flex; overflow-x: auto">
+<div class="row thead g-res-n" role="row">
+<span role="columnheader"><span class="sr">Cover</span></span>
+<span role="columnheader">Playlist</span>
+<span role="columnheader" class="r w">Tracks</span>
+<span role="columnheader" class="r w">Length</span>
+<span role="columnheader">Quality</span>
+<span role="columnheader">Status</span>
+<span role="columnheader"><span class="sr">Download</span></span>
+<span role="columnheader" class="w"><span class="sr">Link</span></span>
+</div>
+
+<div class="row g-res-n cur" role="row" aria-selected="true">
+<span role="gridcell"><span class="cv a-night"></span></span>
+<span role="gridcell" class="two">
+<button type="button" class="ttl" style="padding: 0; border: 0; background: none; text-align: left; cursor: pointer"><span class="ell">Northern Static: Essentials</span></button>
+<span class="sub" style="display: flex; align-items: center; gap: 10px; min-width: 0"><span class="ell">Qobuz editors</span><span class="src" style="flex: none">Qobuz</span></span>
+</span>
+<span role="gridcell" class="r num t2 w">25</span>
+<span role="gridcell" class="r num t2 w">1:52:40</span>
+<span role="gridcell"><span class="stk ">Mixed quality</span></span>
+<span role="gridcell"></span>
+<span role="gridcell">
+<span class="split w"><button type="button" class="key sm" aria-label="Download Northern Static: Essentials"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg>Download</button><button type="button" class="key sm" aria-label="Choose format" aria-haspopup="menu"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></span>
+<button type="button" class="key sm icon n" aria-label="Download Northern Static: Essentials"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button>
+<button type="button" class="key sm icon gone" aria-label="Open Northern Static: Essentials"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"></path></svg></button>
+</span>
+<span role="gridcell" class="w"><a class="key sm icon flat" href="https://play.qobuz.com/" aria-label="Open on Qobuz"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v6H4V6h6"></path></svg></a></span>
+</div>
+
+<div class="row g-res-n" role="row" aria-selected="false">
+<span role="gridcell"><span class="cv a-tide2"></span></span>
+<span role="gridcell" class="two">
+<button type="button" class="ttl" style="padding: 0; border: 0; background: none; text-align: left; cursor: pointer"><span class="ell">Northern Static Essentials</span></button>
+<span class="sub" style="display: flex; align-items: center; gap: 10px; min-width: 0"><span class="ell">Apple Music editors</span><span class="src" style="flex: none">Apple Music</span></span>
+</span>
+<span role="gridcell" class="r num t2 w">30</span>
+<span role="gridcell" class="r num t2 w">2:04:18</span>
+<span role="gridcell"><span class="stk ">Lossless</span></span>
+<span role="gridcell"></span>
+<span role="gridcell">
+<span class="split w"><button type="button" class="key sm" aria-label="Download Northern Static Essentials"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg>Download</button><button type="button" class="key sm" aria-label="Choose format" aria-haspopup="menu"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></span>
+<button type="button" class="key sm icon n" aria-label="Download Northern Static Essentials"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button>
+<button type="button" class="key sm icon gone" aria-label="Open Northern Static Essentials"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"></path></svg></button>
+</span>
+<span role="gridcell" class="w"><a class="key sm icon flat" href="https://music.apple.com/" aria-label="Open on Apple Music"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v6H4V6h6"></path></svg></a></span>
+</div>
+
+<div class="row g-res-n" role="row" aria-selected="false">
+<span role="gridcell"><span class="cv a-winter"></span></span>
+<span role="gridcell" class="two">
+<button type="button" class="ttl" style="padding: 0; border: 0; background: none; text-align: left; cursor: pointer"><span class="ell">Static and Snow</span></button>
+<span class="sub" style="display: flex; align-items: center; gap: 10px; min-width: 0"><span class="ell">Apple Music editors</span><span class="src" style="flex: none">Apple Music</span></span>
+</span>
+<span role="gridcell" class="r num t2 w">42</span>
+<span role="gridcell" class="r num t2 w">2:48:05</span>
+<span role="gridcell"><span class="stk ">Lossless</span></span>
+<span role="gridcell"><span class="st"><span class="led ok"></span>In library</span></span>
+<span role="gridcell">
+<span class="split w"><button type="button" class="key sm" aria-label="Download Static and Snow"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg>Download</button><button type="button" class="key sm" aria-label="Choose format" aria-haspopup="menu"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></span>
+<button type="button" class="key sm icon n" aria-label="Download Static and Snow"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button>
+<button type="button" class="key sm icon gone" aria-label="Open Static and Snow"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"></path></svg></button>
+</span>
+<span role="gridcell" class="w"><a class="key sm icon flat" href="https://music.apple.com/" aria-label="Open on Apple Music"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v6H4V6h6"></path></svg></a></span>
+</div>
+
+<div class="row g-res-n" role="row" aria-selected="false">
+<span role="gridcell"><span class="cv a-rooms"></span></span>
+<span role="gridcell" class="two">
+<button type="button" class="ttl" style="padding: 0; border: 0; background: none; text-align: left; cursor: pointer"><span class="ell">Nordic Indie Now</span></button>
+<span class="sub" style="display: flex; align-items: center; gap: 10px; min-width: 0"><span class="ell">Qobuz editors</span><span class="src" style="flex: none">Qobuz</span></span>
+</span>
+<span role="gridcell" class="r num t2 w">60</span>
+<span role="gridcell" class="r num t2 w">3:55:12</span>
+<span role="gridcell"><span class="stk ">Mixed quality</span></span>
+<span role="gridcell"></span>
+<span role="gridcell">
+<span class="split w"><button type="button" class="key sm" aria-label="Download Nordic Indie Now"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg>Download</button><button type="button" class="key sm" aria-label="Choose format" aria-haspopup="menu"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></span>
+<button type="button" class="key sm icon n" aria-label="Download Nordic Indie Now"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button>
+<button type="button" class="key sm icon gone" aria-label="Open Nordic Indie Now"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"></path></svg></button>
+</span>
+<span role="gridcell" class="w"><a class="key sm icon flat" href="https://play.qobuz.com/" aria-label="Open on Qobuz"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v6H4V6h6"></path></svg></a></span>
+</div>
+
+<div class="row g-res-n" role="row" aria-selected="false">
+<span role="gridcell"><span class="cv a-arcade"></span></span>
+<span role="gridcell" class="two">
+<button type="button" class="ttl" style="padding: 0; border: 0; background: none; text-align: left; cursor: pointer"><span class="ell">Quiet Static</span></button>
+<span class="sub" style="display: flex; align-items: center; gap: 10px; min-width: 0"><span class="ell">Apple Music editors</span><span class="src" style="flex: none">Apple Music</span></span>
+</span>
+<span role="gridcell" class="r num t2 w">18</span>
+<span role="gridcell" class="r num t2 w">1:09:30</span>
+<span role="gridcell"><span class="stk ">Lossless</span></span>
+<span role="gridcell"></span>
+<span role="gridcell">
+<span class="split w"><button type="button" class="key sm" aria-label="Download Quiet Static"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg>Download</button><button type="button" class="key sm" aria-label="Choose format" aria-haspopup="menu"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></span>
+<button type="button" class="key sm icon n" aria-label="Download Quiet Static"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button>
+<button type="button" class="key sm icon gone" aria-label="Open Quiet Static"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"></path></svg></button>
+</span>
+<span role="gridcell" class="w"><a class="key sm icon flat" href="https://music.apple.com/" aria-label="Open on Apple Music"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v6H4V6h6"></path></svg></a></span>
+</div>
+
+</div>
+<div class="empty" style="display: none"><h2>No sources on</h2><p>Turn on at least one source to search.</p></div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px">
+<span class="t3 sm">↑ ↓ move · Enter opens · Esc closes · / searches</span>
+<button type="button" class="key">Load more</button>
+</div>
+
+<div style="display: none; flex-direction: column; gap: 18px; padding: 0 14px 16px">
+<p class="sub" style="display: flex; align-items: center; gap: 8px">The link points to an album on <span class="src">Apple Music</span></p>
+<div style="display: flex; flex-wrap: wrap; gap: 30px; align-items: flex-start">
+<div style="position: relative; flex: none; margin: 4px 12px 0 6px">
+<span class="cv a-lantern" style="display: block; width: 200px; height: 200px; border-width: 2px; border-radius: 6px; box-shadow: 5px 5px 0 var(--ink)"></span>
+<span class="stk" style="position: absolute; left: -14px; top: 14px; transform: rotate(-8deg); height: 26px; font-size: 12px">Lossless</span>
+<span class="stk atmos" style="position: absolute; right: -16px; bottom: 18px; transform: rotate(5deg); height: 26px; font-size: 12px">Dolby Atmos</span>
+</div>
+<div style="flex: 1 1 340px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
+<div class="two" style="gap: 4px">
+<span class="src">Apple Music · Album</span>
+<h2 style="font-size: 24px; font-weight: 700; line-height: 1.2">Paper Lanterns</h2>
+<a href="MS-desk-search.html" style="font-size: 15px; font-weight: 600">The Quiet Arcade</a>
+<span class="sub num">2023 · 12 tracks · 46:20 · Arcade Sound</span>
+</div>
+<button type="button" class="key sun" style="align-self: flex-start"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg>Download album · ALAC</button>
+<div class="panel" style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px">
+<button type="button" class="knob blue" style="--s: 64px; --a: 45deg" aria-label="Switch format, now ALAC" title="Press to turn"><i></i></button>
+<div class="fmt-list" role="radiogroup" aria-label="Format">
+<button type="button" role="radio" aria-checked="true"><span class="led"></span>ALAC<span class="hint">default</span></button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>Dolby Atmos</button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>AAC</button>
+</div>
+<p class="t2 sm" style="flex: 1 1 150px">Lossless, up to 24-bit 48 kHz for this album, saved as FLAC.</p>
+</div>
+</div>
+</div>
+<div class="rows" role="table" aria-label="Tracks of Paper Lanterns" style="border: 2px solid var(--ink); border-radius: 10px; overflow: hidden">
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">1</span>
+<span role="cell" class="ell">Paper Lanterns</span>
+<span role="cell" class="t2 num r sm">4:02</span>
+<span role="cell"><span class="stk">Lossless</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Paper Lanterns"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">2</span>
+<span role="cell" class="ell">Night Market</span>
+<span role="cell" class="t2 num r sm">3:36</span>
+<span role="cell"><span class="stk">Lossless</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Night Market"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">3</span>
+<span role="cell" class="ell">Lantern Smoke</span>
+<span role="cell" class="t2 num r sm">4:18</span>
+<span role="cell"><span class="stk">Lossless</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Lantern Smoke"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">4</span>
+<span role="cell" class="ell">Arcade Rain</span>
+<span role="cell" class="t2 num r sm">3:51</span>
+<span role="cell"><span class="stk">Lossless</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Arcade Rain"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">5</span>
+<span role="cell" class="ell">Slow Neon</span>
+<span role="cell" class="t2 num r sm">4:44</span>
+<span role="cell"><span class="stk">Lossless</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Slow Neon"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">6</span>
+<span role="cell" class="ell">Folded Light</span>
+<span role="cell" class="t2 num r sm">3:12</span>
+<span role="cell"><span class="stk">Lossless</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Folded Light"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">7</span>
+<span role="cell" class="ell">Ticket Booth</span>
+<span role="cell" class="t2 num r sm">2:58</span>
+<span role="cell"><span class="stk">Lossless</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Ticket Booth"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">8</span>
+<span role="cell" class="ell">Ferris Wheel at Dusk</span>
+<span role="cell" class="t2 num r sm">5:06</span>
+<span role="cell"><span class="stk">Lossless</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Ferris Wheel at Dusk"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">9</span>
+<span role="cell" class="ell">Coins in the Fountain</span>
+<span role="cell" class="t2 num r sm">3:27</span>
+<span role="cell"><span class="stk">Lossless</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Coins in the Fountain"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">10</span>
+<span role="cell" class="ell">Last Tram</span>
+<span role="cell" class="t2 num r sm">4:09</span>
+<span role="cell"><span class="stk">Lossless</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Last Tram"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">11</span>
+<span role="cell" class="ell">The Quiet Arcade</span>
+<span role="cell" class="t2 num r sm">3:40</span>
+<span role="cell"><span class="stk">Lossless</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download The Quiet Arcade"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">12</span>
+<span role="cell" class="ell">Paper Lanterns (Reprise)</span>
+<span role="cell" class="t2 num r sm">3:17</span>
+<span role="cell"><span class="stk">Lossless</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Paper Lanterns (Reprise)"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+</div>
+</div>
+</section>
+
+<div style="flex: 1 1 470px; min-width: 0; display: flex; flex-direction: column; gap: 20px; z-index: 1">
+
+
+
+
+
+
+
+<section class="win" aria-labelledby="rs-pl">
+<div class="tb"><h2 id="rs-pl">Playlist</h2><span class="stripes"></span><a class="wbtn" href="https://play.qobuz.com/" aria-label="Open on Qobuz"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v6H4V6h6"></path></svg></a><button type="button" class="wbtn" aria-label="Close the playlist"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<div style="display: flex; flex-direction: column; gap: 16px; padding: 16px">
+<div style="display: flex; gap: 18px; align-items: flex-start">
+<div style="position: relative; flex: none">
+<span class="cv a-night" style="display: block; width: 150px; height: 150px; border-width: 2px; border-radius: 6px; box-shadow: 4px 4px 0 var(--ink)"></span>
+<span class="stk" style="position: absolute; right: -14px; bottom: 12px; transform: rotate(-6deg); height: 26px; font-size: 12px">Mixed quality</span>
+</div>
+<div class="two" style="gap: 4px">
+<span class="src">Qobuz · Playlist</span>
+<h3 style="font-size: 22px; font-weight: 700; line-height: 1.2">Northern Static: Essentials</h3>
+<span style="font-size: 15px; font-weight: 600">Qobuz editors</span>
+<span class="sub num">25 tracks · 1:52:40</span>
+<button type="button" class="key sun" style="margin-top: 10px; align-self: flex-start"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg>Download playlist · Max</button>
+</div>
+</div>
+<div class="panel" style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px">
+<button type="button" class="knob blue" style="--s: 64px; --a: 45deg" aria-label="Switch format, now Max" title="Press to turn"><i></i></button>
+<div class="fmt-list" role="radiogroup" aria-label="Format">
+<button type="button" role="radio" aria-checked="true"><span class="led"></span>Max<span class="hint">default</span></button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>24/96</button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>CD</button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>MP3 320</button>
+</div>
+<p class="t2 sm" style="flex: 1 1 150px">A track that doesn't reach the format comes in the best quality it has. The playlist gets its own folder.</p>
+</div>
+<div class="rows" role="table" aria-label="Tracks" style="border: 2px solid var(--ink); border-radius: 10px; overflow: hidden">
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">1</span>
+<span role="cell" class="two"><span class="ell" style="font-weight: 600">Low Tide Hymn</span><span class="sub ell">Northern Static · Low Tide Hymns</span></span>
+<span role="cell" class="t2 num r sm">5:03</span>
+<span role="cell"><span class="stk hi">Hi-Res 24/96</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Low Tide Hymn"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">2</span>
+<span role="cell" class="two"><span class="ell" style="font-weight: 600">Harbour Lights</span><span class="sub ell">Northern Static · Harbour Lights</span></span>
+<span role="cell" class="t2 num r sm">4:21</span>
+<span role="cell"><span class="stk ">CD 16/44.1</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Harbour Lights"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">3</span>
+<span role="cell" class="two"><span class="ell" style="font-weight: 600">Static Weather</span><span class="sub ell">Northern Static · Static Weather</span></span>
+<span role="cell" class="t2 num r sm">3:49</span>
+<span role="cell"><span class="stk hi">Hi-Res 24/96</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Static Weather"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">4</span>
+<span role="cell" class="two"><span class="ell" style="font-weight: 600">Breakwater (Live)</span><span class="sub ell">Northern Static · Live at Halden</span></span>
+<span role="cell" class="t2 num r sm">4:40</span>
+<span role="cell"><span class="stk hi">Hi-Res 24/96</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Breakwater (Live)"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">5</span>
+<span role="cell" class="two"><span class="ell" style="font-weight: 600">Signal Fires</span><span class="sub ell">Northern Static · Signal Fires</span></span>
+<span role="cell" class="t2 num r sm">4:58</span>
+<span role="cell"><span class="stk hi">Hi-Res 24/96</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Signal Fires"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">6</span>
+<span role="cell" class="two"><span class="ell" style="font-weight: 600">Salt in the Wiring</span><span class="sub ell">Northern Static · Low Tide Hymns</span></span>
+<span role="cell" class="t2 num r sm">3:47</span>
+<span role="cell"><span class="stk hi">Hi-Res 24/96</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Salt in the Wiring"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">7</span>
+<span role="cell" class="two"><span class="ell" style="font-weight: 600">Night Ferries</span><span class="sub ell">Northern Static · Night Ferries</span></span>
+<span role="cell" class="t2 num r sm">4:12</span>
+<span role="cell"><span class="stk ">CD 16/44.1</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Night Ferries"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">8</span>
+<span role="cell" class="two"><span class="ell" style="font-weight: 600">Grey Water</span><span class="sub ell">Northern Static · Grey Water</span></span>
+<span role="cell" class="t2 num r sm">5:30</span>
+<span role="cell"><span class="stk ">CD 16/44.1</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Grey Water"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">9</span>
+<span role="cell" class="two"><span class="ell" style="font-weight: 600">Coastal Radio</span><span class="sub ell">Northern Static · Coastal Radio</span></span>
+<span role="cell" class="t2 num r sm">3:52</span>
+<span role="cell"><span class="stk lossy">MP3 320</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Coastal Radio"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">10</span>
+<span role="cell" class="two"><span class="ell" style="font-weight: 600">Undertow</span><span class="sub ell">Northern Static · Low Tide Hymns</span></span>
+<span role="cell" class="t2 num r sm">3:58</span>
+<span role="cell"><span class="stk hi">Hi-Res 24/96</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download Undertow"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">11</span>
+<span role="cell" class="two"><span class="ell" style="font-weight: 600">First Rooms</span><span class="sub ell">Northern Static · First Rooms</span></span>
+<span role="cell" class="t2 num r sm">4:44</span>
+<span role="cell"><span class="stk lossy">MP3 320</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download First Rooms"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+<div class="row g-trk" role="row">
+<span role="cell" class="t3 num r sm">12</span>
+<span role="cell" class="two"><span class="ell" style="font-weight: 600">The Long Shore</span><span class="sub ell">Northern Static · Low Tide Hymns</span></span>
+<span role="cell" class="t2 num r sm">6:21</span>
+<span role="cell"><span class="stk hi">Hi-Res 24/96</span></span>
+<span role="cell"><button type="button" class="key sm icon flat" aria-label="Download The Long Shore"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button></span>
+</div>
+
+</div>
+</div>
+</section>
+
+</div>
+</div>
+</div>
+
+</div>
+<!-- Add ?theme=day to the address to see the Day theme. -->
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>

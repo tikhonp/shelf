@@ -6,7 +6,7 @@ Phase 1. Steps 0, 1a and 1b are done. 1a built the shelf skeleton: the trimmed p
 
 1b built the downloads core: the jobs system, the daily backup and the event hub in the platform, the source types and registry in `internal/source`, and the `downloads`, `catalog` and `fakesource` modules. With `SHELF_DEV_FAKE_SOURCE=true`, shelf searches, resolves and downloads canned items, writes `shelf.txt`, and streams progress and logs. `shelf manage download <url>` queues from the shell.
 
-The Claude Design canvas exists, and its Studio redesign page is the current direction. Before step 1g, its screens and tokens go into [ui/design/](ui/design/).
+The UI design is done. Its screens, stylesheets and rules are in [ui/design/](ui/design/README.md), exported from the Claude Design canvas on 2026-11-04. The brief and 1g's contract match it.
 
 Step 1c is under way in qobuz-dl-go: its design is done, and steps 1 to 5 of its 11 (goldens and fixtures, the Python compatibility layer, utils and settings, the API client, tags) are done. Its step 6, fake Qobuz, is next. Its `docs/status.md` has the details.
 
@@ -30,10 +30,15 @@ Next: step 6 in qobuz-dl-go, and in shelf 1e or 1f, which need only 1b. 1d waits
 | 1d | Qobuz module | after 1b and 1c |
 | 1e | Apple Music module and shelf-wrapper | next, can start |
 | 1f | Navidrome and Telegram | next, can start |
-| 1g | Web UI | after 1b to 1f and the design |
+| 1g | Web UI | after 1b to 1f; the design is done |
 | 1h | Deployment and cutover | last |
 
 ## Log
+
+### 2026-11-04
+
+- The UI design: the Studio redesign page of the canvas exported to [ui/design/](ui/design/README.md) as `tokens.css`, `components.css`, 29 screens and a README with the rules. The brief and 1g's contract now follow it: phone first, Night by default, and search across every source that is on. See [decisions.md](decisions.md).
+- The export found secondary text and links below WCAG AA on parts of both themes. Their new colors pass, on the canvas and in the export.
 
 ### 2026-11-03
 

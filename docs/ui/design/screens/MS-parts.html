@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Parts and tokens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<style>body { margin: 0; }</style>
+</head>
+<body>
+<div class="rs desk" style="width: 1440px; height: 1500px; padding: 48px; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 class="px" style="font-size: 24px">Parts and tokens</h1>
+<p class="t2" style="max-width: 900px">The studio look lives in the controls and pictures, never in the words. Every label says what the app does: Downloading, Queue, Rate limited, Hi-Res 24/96. Progress always has a number next to it.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start">
+
+<div style="display: flex; flex-direction: column; gap: 20px">
+<section class="win"><div class="tb"><h2>Switches</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 14px; padding: 16px">
+<div style="display: flex; flex-wrap: wrap; gap: 12px"><button type="button" class="key">Details</button><button type="button" class="key pressed">Pressed</button><button type="button" class="key sun">Download album</button></div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px"><button type="button" class="key sm">Small</button><button type="button" class="key icon" aria-label="Download"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></button><button type="button" class="key lg">Phone 54</button></div>
+<button type="button" class="key srcbtn" aria-expanded="true" style="align-self: flex-start"><span>Qobuz only</span><span class="lamps" aria-hidden="true"><span class="led ok"></span><span class="led off"></span></span><svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+<div class="rockers" role="group" aria-label="Sources to search"><button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Qobuz</span><span class="rk-state"><span class="led ok"></span>On</span></span></button><button type="button" class="rocker" role="switch" aria-checked="false"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Apple Music</span><span class="rk-state"><span class="led off"></span>Off</span></span></button></div>
+<p class="t2 sm">Search covers every source by default. The Sources switch names what is searched and opens one rocker per source; a rocker is on when its top is pressed in. Lamps: green is on, red or yellow is on but failing, dark is off.</p>
+<p class="t2 sm">Ivory push buttons with capital legends. Amber is lit only on the main action of a screen; a selected switch is backlit peach. Buttons sink 2px when pressed.</p>
+</div></section>
+
+<section class="win"><div class="tb"><h2>Rotary selector</h2><span class="stripes"></span></div>
+<div class="rotary" role="radiogroup" aria-label="Type" style="border-top: 0">
+<div class="rot-labels">
+<button type="button" role="radio" aria-checked="true"><span class="led"></span>Albums</button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>Tracks</button>
+<button type="button" class="knob red" style="--s: 48px; --a: -75deg" aria-label="Switch type, now Albums" title="Press to turn"><i></i></button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>Artists</button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>Playlists</button>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 14px 16px">
+<p class="t2 sm">Replaces tabs for the type switch, in one row about as tall as tabs. Press a label to pick it, or press the knob to turn it to the next position. The lamp lights the chosen one; arrow keys move it.</p>
+<span class="px t3" style="font-size: 12px">Fallback: lit tab switches</span>
+<div class="ftabs" role="tablist" aria-label="Type" style="border: 1px solid var(--ink); border-radius: 6px"><button type="button" role="tab" aria-selected="true">Albums</button><button type="button" role="tab" aria-selected="false">Tracks</button><button type="button" role="tab" aria-selected="false">Artists</button></div>
+</div></section>
+
+<section class="win"><div class="tb"><h2>Knobs</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 14px; padding: 16px">
+<div style="display: flex; align-items: center; gap: 22px"><span class="knob red" style="--s: 56px; --a: -40deg" aria-hidden="true"><i></i></span><span class="knob blue" style="--a: 0deg" aria-hidden="true"><i></i></span><span class="knob grey" style="--a: 120deg" aria-hidden="true"><i></i></span><span class="knob grey" style="--s: 64px; --a: 75deg" aria-hidden="true"><i></i></span></div>
+<p class="t2 sm">Knobs appear only where they choose something: the type and the format. The red knob has a red fin across a round cap, with the white pointer on one end of the fin; grey and blue knobs have a silver ring with a black line and a scalloped cap with a white tick, and the two turn together. The type switch is red, the format switch blue. No marks are printed around a knob. The pointer turns in 0.3 s.</p>
+</div></section>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 20px">
+<section class="win"><div class="tb"><h2>Format selector</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 14px; padding: 16px">
+<div class="panel" style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px">
+<span class="knob blue" style="--s: 64px; --a: 45deg" aria-hidden="true"><i></i></span>
+<div class="fmt-list" role="radiogroup" aria-label="Format">
+<button type="button" role="radio" aria-checked="true"><span class="led"></span>Max<span class="hint">default</span></button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>24/96</button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>CD</button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>MP3 320</button>
+</div>
+</div>
+<span class="px t3" style="font-size: 12px">What each format carries</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<figure style="display: flex; flex-direction: column; gap: 4px"><div class="eq"><svg viewBox="0 0 300 100" aria-hidden="true"><path class="grid" d="M0 30 H300 M0 60 H300 M57 0 V100 M138 0 V100 M220 0 V100"></path><path class="fill" d="M0 30 H300 V90 H0 Z"></path><path class="curve" d="M0 30 H300"></path><line class="limit" x1="244.5" y1="6" x2="244.5" y2="94"></line></svg></div><figcaption class="xs t2">24/192: to 96 kHz</figcaption></figure>
+<figure style="display: flex; flex-direction: column; gap: 4px"><div class="eq"><svg viewBox="0 0 300 100" aria-hidden="true"><path class="grid" d="M0 30 H300 M0 60 H300 M57 0 V100 M138 0 V100 M220 0 V100"></path><path class="fill" d="M0 30 H274 L277 90 L0 90 Z"></path><path class="curve" d="M0 30 H274 L277 90"></path><line class="limit" x1="244.5" y1="6" x2="244.5" y2="94"></line></svg></div><figcaption class="xs t2">24/96: to 48 kHz</figcaption></figure>
+<figure style="display: flex; flex-direction: column; gap: 4px"><div class="eq"><svg viewBox="0 0 300 100" aria-hidden="true"><path class="grid" d="M0 30 H300 M0 60 H300 M57 0 V100 M138 0 V100 M220 0 V100"></path><path class="fill" d="M0 30 H246 L249 90 L0 90 Z"></path><path class="curve" d="M0 30 H246 L249 90"></path><line class="limit" x1="244.5" y1="6" x2="244.5" y2="94"></line></svg></div><figcaption class="xs t2">CD: to 22 kHz</figcaption></figure>
+<figure style="display: flex; flex-direction: column; gap: 4px"><div class="eq"><svg viewBox="0 0 300 100" aria-hidden="true"><path class="grid" d="M0 30 H300 M0 60 H300 M57 0 V100 M138 0 V100 M220 0 V100"></path><path class="fill" d="M0 30 H236 Q243 30 246 90 L0 90 Z"></path><path class="curve" d="M0 30 H236 Q243 30 246 90"></path><line class="limit" x1="244.5" y1="6" x2="244.5" y2="94"></line></svg></div><figcaption class="xs t2">MP3 320: rolls off near 20 kHz</figcaption></figure>
+</div>
+<p class="t2 sm">The dashed line is 20 kHz, the top of human hearing. The curves are approximate; they explain the formats, they don't measure the files.</p>
+</div></section>
+
+<section class="win"><div class="tb"><h2>Meters</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 14px; padding: 16px">
+<div style="display: flex; gap: 10px">
+<div class="vu" style="min-width: 0" role="img" aria-label="Wait: 42 seconds left"><div class="vu-face"><svg viewBox="0 0 200 120" aria-hidden="true"><path class="arc" d="M29.29 65.74 A110 110 0 0 1 170.71 65.74"></path><path class="ticks" d="M27.36 63.44 A113 113 0 0 1 172.64 63.44"></path><path class="ticks major" d="M25.76 61.52 A115.5 115.5 0 0 1 174.24 61.52"></path><text class="vn" x="16.4" y="54.4">0</text><text class="vn" x="55.5" y="31.8">15</text><text class="vn" x="100" y="24">30</text><text class="vn" x="144.5" y="31.8">45</text><text class="vn" x="183.6" y="54.4">60</text><g transform="rotate(16 100 150)"><line class="needle-sh" x1="101.5" y1="150" x2="101.5" y2="36"></line><line class="needle" x1="100" y1="150" x2="100" y2="34"></line></g><path class="hub" d="M78 120 A22 22 0 0 1 122 120 Z"></path></svg></div></div>
+</div>
+<div class="meter" role="img" aria-label="Tracks: 6 done, 1 failed, 1 running, 4 waiting"><i class="d"></i><i class="d"></i><i class="d"></i><i class="d"></i><i class="d"></i><i class="f"></i><i class="d"></i><i class="c"></i><i></i><i></i><i></i><i></i></div>
+<p class="t2 sm">The app has one meter, for the wait while a source is rate limited. It has a numbered scale, and the text under it says what it measures. Download progress shows on a display and on the track lights: green done, amber now, red failed, dark waiting.</p>
+</div></section>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 20px">
+<section class="win"><div class="tb"><h2>Displays</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 14px; padding: 16px">
+<div class="lcd"><div class="lcd-big num">03/12</div><div class="lcd-l">04 UNDER THE GLASSHOUSE</div></div>
+<div class="rs day" style="padding: 12px; border-radius: 6px; background: #E4E1DA; border: 1px solid #1B1F27"><div class="lcd"><div class="lcd-big num">03/12</div><div class="lcd-l">DAY: BACKLIT LCD</div></div></div>
+<div style="display: flex; align-items: center; gap: 10px"><span class="vfd num">14:32</span><span class="vfd">LAST SCAN 3 MIN</span></div>
+<label class="field"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m20 20-4.5-4.5"></path></svg><span class="sr">Search</span><input type="search" value="northern static"></label>
+<p class="t2 sm">Sampler-style LCDs in Pixelify Sans, cyan on black at night and a green backlit panel by day, only show information: counters, the clock, track names, states. Anything you type into is a plain field, like the search field above. Paths and logs stay in IBM Plex Mono.</p>
+</div></section>
+
+<section class="win"><div class="tb"><h2>States and quality labels</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 14px; padding: 16px">
+<div style="display: flex; flex-wrap: wrap; gap: 14px"><span class="st"><span class="led ok"></span>Works</span><span class="st"><span class="led warn"></span>Signed out</span><span class="st"><span class="led bad"></span>Expired</span><span class="st"><span class="led run blink"></span>Running</span><span class="st"><span class="led off"></span>Off</span></div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px"><span class="pill queued">Queued</span><span class="pill run">Running</span><span class="pill done">Done</span><span class="pill partial">Done with errors</span><span class="pill failed">Failed</span><span class="pill canceled">Canceled</span><span class="pill skipped">Skipped</span></div>
+<div class="stks"><span class="stk master">Hi-Res 24/192</span><span class="stk hi">Hi-Res 24/96</span><span class="stk">CD 16/44.1</span><span class="stk">Lossless</span><span class="stk atmos">Dolby Atmos</span><span class="stk lossy">MP3 320</span></div>
+<div style="display: flex; gap: 16px"><span class="src qz">Qobuz</span><span class="src am">Apple Music</span></div>
+</div></section>
+
+<section class="win"><div class="tb"><h2>Download progress</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 14px; padding: 16px">
+<div style="display: flex; align-items: center; gap: 14px">
+<div class="lathe spin" style="--s: 96px; --p: .6" aria-hidden="true"><span class="plat"></span><span class="disc"></span><span class="cut"></span><span class="cv label a-tide"></span><span class="head"></span></div>
+</div>
+<div class="spine"><span class="cv band a-ferry"></span><span class="no">01</span><span class="two"><span class="ttl" style="font-size: 14px"><span class="ell">Night Ferry</span></span><span class="sub ell">Mira Holt · Qobuz · Max</span></span><button type="button" class="key sm icon" aria-label="Cancel"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<p class="t2 sm">Each element shows one thing and says what. Compact views show the cover, a display with tracks done and the current track, and one light per track. Only the detail view adds a picture: the disc being cut, standing on the panel without a frame. Its display shows tracks done and the time, and the track list shows each track, so nothing repeats. A queued download is a boxed tape with its position number.</p>
+</div></section>
+</div>
+</div>
+
+<section class="win"><div class="tb"><h2>Tokens</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-wrap: wrap; gap: 12px 22px; padding: 16px">
+<span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--desk)"></span><span class="mono t2">--desk</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--win)"></span><span class="mono t2">--win</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--win-2)"></span><span class="mono t2">--win-2</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--title)"></span><span class="mono t2">--title</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--key)"></span><span class="mono t2">--key</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--ink)"></span><span class="mono t2">--ink</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--text)"></span><span class="mono t2">--text</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--text-2)"></span><span class="mono t2">--text-2</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--text-3)"></span><span class="mono t2">--text-3</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--sun)"></span><span class="mono t2">--sun</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--lamp)"></span><span class="mono t2">--lamp</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--green)"></span><span class="mono t2">--green</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--yellow)"></span><span class="mono t2">--yellow</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--red)"></span><span class="mono t2">--red</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--cyan)"></span><span class="mono t2">--cyan</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--lcd)"></span><span class="mono t2">--lcd</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--lcd-text)"></span><span class="mono t2">--lcd-text</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--vu-face)"></span><span class="mono t2">--vu-face</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--tape)"></span><span class="mono t2">--tape</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--box)"></span><span class="mono t2">--box</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--focus)"></span><span class="mono t2">--focus</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--ink); background: var(--sel)"></span><span class="mono t2">--sel</span></span>
+</div></section>
+</div>
+<!-- Add ?theme=day to the address to see the Day theme. -->
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>
