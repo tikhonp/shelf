@@ -22,7 +22,7 @@ Next: step 1a in shelf and step 1c in qobuz-dl-go. Neither depends on the other.
 | 0 | `CLAUDE.md` and docs in both repos | done |
 | 1a | shelf skeleton | next |
 | 1b | Downloads core | after 1a |
-| 1c | qobuz-dl-go | next, in its own repo |
+| 1c | qobuz-dl-go | next: the design session in its repo, from `docs/prompts/01-design.md` there |
 | 1d | Qobuz module | after 1b and 1c |
 | 1e | Apple Music module and shelf-wrapper | after 1b |
 | 1f | Navidrome and Telegram | after 1b |
@@ -36,6 +36,7 @@ Next: step 1a in shelf and step 1c in qobuz-dl-go. Neither depends on the other.
 - The phase 1 plan was approved. Its decisions are in [decisions.md](decisions.md).
 - Step 0: both repos initialised on `main`, docs written, one commit each.
 - Remotes added and pushed: shelf on Forgejo, qobuz-dl-go on GitHub only. See [decisions.md](decisions.md).
+- qobuz-dl-go got its requirements, design questions, references and session prompts, so its design session can start in that repo.
 
 ## Notes for the next step
 
