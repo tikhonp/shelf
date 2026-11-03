@@ -5,7 +5,8 @@
 // Item IDs choose the behavior: an ID ending in -fail fails its second
 // track, -slow sleeps 200 ms per track, -big has 40 tracks, an artist or
 // label ID ending in -empty has no albums, and an ID starting with missing
-// is not in the catalog.
+// is not in the catalog. Links to /video/ and /station/ are refused, as a
+// real source refuses music videos.
 package fakesource
 
 import (
@@ -64,6 +65,17 @@ func (s *Source) ItemCalls() int { return int(s.items.Load()) }
 // Link is the link of an item.
 func (s *Source) Link(kind source.Kind, id string) string {
 	return "https://" + s.id + ".test/" + string(kind) + "/" + url.PathEscape(id)
+}
+
+// RefuseLink knows https://<id>.test/video/<id> and /station/<id>, which
+// stand for links a real source can't download.
+func (s *Source) RefuseLink(raw string) bool {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || u.Host != s.id+".test" {
+		return false
+	}
+	kind, id, ok := strings.Cut(strings.Trim(u.Path, "/"), "/")
+	return ok && id != "" && (kind == "video" || kind == "station")
 }
 
 // ParseLink claims https://<id>.test/<kind>/<item id>.

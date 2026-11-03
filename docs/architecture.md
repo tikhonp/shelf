@@ -40,9 +40,9 @@ Modules:
 | `telegram` | The bot. It implements the downloads module's notifier port. |
 | `fakesource` | A source with canned data for tests, and for UI work when `SHELF_DEV_FAKE_SOURCE` is on. |
 
-A module implements `Name()` and `Migrations()` and declares the rest through optional interfaces, found by type assertion, as in `proxier/internal/platform/module/module.go`: `Initializer`, `Migrated`, `RouteDeclarer`, `JobDeclarer` and `SourceDeclarer`. `module.Deps` gives a module the config, the logger, the database, the jobs system, the hub, the source registry, and a `Closing` channel that long-lived responses end on. The platform registers job types, schedules and sources after every `Init`. Adding a source means one new module and one line in `main`.
+A module implements `Name()` and `Migrations()` and declares the rest through optional interfaces, found by type assertion, as in `proxier/internal/platform/module/module.go`: `Initializer`, `Migrated`, `RouteDeclarer`, `JobDeclarer`, `SourceDeclarer` and `Runner`. Only serve calls a `Runner`'s `Run`, which holds work that lasts as long as the server, such as the bot's long polling. `manage` opens the platform too, so `Init` never logs in or reaches the network. The platform logs a `Run` that fails, and the server goes on without it. `module.Deps` gives a module the config, the logger, the database, the jobs system, the hub, the source registry, and a `Closing` channel that long-lived responses end on. The platform registers job types, schedules and sources after every `Init`. Adding a source means one new module and one line in `main`.
 
-Modules reach each other through ports that `main` wires. The catalog module's `Statuses` port is the downloads module. The downloads module has a `Notifier` port, which 1f fills with the bot, and a `Scanner` port, which 1f fills with Navidrome; both do nothing until then.
+Modules reach each other through ports that `main` wires. The catalog module's `Statuses` port is the downloads module. The downloads module's `Notifier` port is the bot, and its `Scanner` port is the navidrome module. The bot reaches the downloads module through its own `Downloads` port, which the downloads service implements. The downloads service exists from `downloads.New`, so `main` wires these before `Init`.
 
 ## Source interfaces
 
@@ -69,6 +69,10 @@ type Switch interface {
 
 type LinkParser interface {
     ParseLink(raw string) (Ref, bool)
+}
+
+type LinkRefuser interface {
+    RefuseLink(raw string) bool // its own link to something shelf can't download, such as a music video
 }
 
 type Searcher interface {
@@ -99,7 +103,7 @@ type Library interface {
 - `Reporter` has `Plan`, `Start`, `Progress` with the bytes written, `Done` with the file, its quality and size, a skipped flag or an error, and `Log`, the download's log. A position, 1 to n in release order, names each track. Several goroutines may call its methods.
 - `Download` returns an error only when the download could not run or its context ended. A failed track goes to `Reporter.Done`.
 - `DownloadResult` lists the release folders and files, relative to the music root, the tool that wrote them, such as `amdl 0.1.4`, and what the catalog calls a track, `track` or `song`.
-- `source.Registry` holds every registered source. `ParseLink` asks all of them, switched on or not, so shelf can refuse a link from a switched-off source by name.
+- `source.Registry` holds every registered source. `ParseLink` asks all of them, switched on or not, so shelf can refuse a link from a switched-off source by name. `RefusedLink` finds the source that refuses a link, so the bot can say music videos are not supported rather than that the link is unknown.
 
 ## Downloads
 
@@ -117,6 +121,17 @@ type Library interface {
 - Retry accepts `failed`, `partial` and `canceled` downloads. It starts a new job from `resolve` and keeps the old job and its log. Retry of an artist or label retries its albums that did not end done. To retry an album of an artist, retry the artist.
 - At shutdown the jobs platform gives running steps 3 seconds, then marks them `interrupted`. At start they resume from their first unfinished step; sources skip files that are already complete.
 - A parent's status follows its children: running while any child is queued or running, then `done` when all are done or skipped, `failed` when all failed, `canceled` when all were canceled, and `partial` otherwise. A parent without children ends `done` with the note "nothing to download" in `error`. Its counts are the sums of its children's.
+
+## Library
+
+The navidrome module's `navidrome.Client` is the `Library`. It calls Navidrome's Subsonic API with token authentication, so the password never travels, and the URL, which carries the token, never reaches an error or the log.
+
+- Each download that ends done or partial asks the `Scanner` port for a scan. That queues a `navidrome.scan` job on the `library` queue for `SHELF_NAVIDROME_SCAN_DELAY` from now, with the coalescing key `scan`. A request that comes while the scan waits merges into it and moves it later, so a burst of downloads gives one scan.
+- `POST /api/library/scan` queues a scan that runs now, or moves the waiting one to now.
+- The job reads `getScanStatus`. If Navidrome is scanning, the job defers for 30 seconds, so a scan that starts after the downloads that asked reads their files. Otherwise it calls `startScan`, a quick scan.
+- When Navidrome doesn't answer, the job defers for a minute without counting an attempt, so it stays the one queued scan that requests merge into. After ten failures in a row the job fails. A Subsonic error, such as a wrong password, fails it at once.
+- The hub gets a `scan` event when a scan starts, and when a poll sees it end. Polling runs every 10 seconds only while a scan is known to run: after the job started one, after the job found one running, or after `GET /api/library/scan` saw one. It stops after about five minutes without an answer.
+- With `SHELF_NAVIDROME_URL` empty the module is off: downloads queue no scan, and `POST /api/library/scan` answers 422.
 
 ## Events
 
@@ -146,7 +161,9 @@ JSON in and out. Errors are `{"error": "<message>"}` with a 4xx or 5xx status.
 | `POST /api/downloads/{id}/cancel` | Cancel a queued or running download. Answers the download; 409 when it has ended. |
 | `POST /api/downloads/{id}/retry` | Retry a failed, partial or canceled download. Answers the download; 409 for any other. |
 | `GET /api/downloads/{id}/log` | Server-sent log lines. |
-| `GET /api/library/scan`, `POST /api/library/scan` | The Navidrome scan state, or start a scan. |
+| `GET /api/library/scan` | The scan state read from Navidrome now, and whether it answers: `{"enabled", "ok", "message", "address", "latency_ms", "scanning", "count", "last_scan"}`. A Navidrome that doesn't answer is `ok: false` with a message, not a failed request. |
+| `POST /api/library/scan` | Start a scan now. Answers 202 with `{"job_id"}`; 422 when Navidrome is not set up. |
+| `GET /api/telegram` | The bot for the Status page: `{"enabled", "connected", "username", "users"}`. |
 | `GET /api/applemusic/wrapper` | The wrapper state for the Status page. |
 | `POST /api/applemusic/wrapper/login`, `/code`, `/restart` | Sign-in and restart, passed to the supervisor. |
 | `GET /api/events` | Server-sent `download`, `scan` and `source` events. |

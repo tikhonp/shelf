@@ -25,6 +25,17 @@ func TestParseLink(t *testing.T) {
 			t.Errorf("%s claimed", bad)
 		}
 	}
+	// Videos and stations are refused, not claimed.
+	for _, link := range []string{"https://fake.test/video/v-1", "https://fake.test/station/s-1"} {
+		if _, ok := s.ParseLink(link); ok || !s.RefuseLink(link) {
+			t.Errorf("%s: claimed %v, refused %v", link, ok, s.RefuseLink(link))
+		}
+	}
+	for _, link := range []string{"https://fake.test/album/album-1", "https://other.test/video/v-1", "https://fake.test/video/"} {
+		if s.RefuseLink(link) {
+			t.Errorf("%s refused", link)
+		}
+	}
 }
 
 func TestSearchFiltersCannedItems(t *testing.T) {

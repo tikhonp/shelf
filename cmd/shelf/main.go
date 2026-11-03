@@ -25,6 +25,8 @@ import (
 	"github.com/tikhonp/shelf/internal/modules/catalog"
 	"github.com/tikhonp/shelf/internal/modules/downloads"
 	"github.com/tikhonp/shelf/internal/modules/fakesource"
+	"github.com/tikhonp/shelf/internal/modules/navidrome"
+	"github.com/tikhonp/shelf/internal/modules/telegram"
 	"github.com/tikhonp/shelf/internal/platform"
 	"github.com/tikhonp/shelf/internal/platform/config"
 	"github.com/tikhonp/shelf/internal/platform/db"
@@ -32,10 +34,16 @@ import (
 	"github.com/tikhonp/shelf/internal/platform/obs"
 )
 
-// modules are the enabled modules, in migration order.
+// modules are the enabled modules, in migration order. main wires their
+// ports here: the bot and Navidrome are the downloads module's notifier and
+// scanner.
 func modules(cfg *config.Config) []module.Module {
 	dl := downloads.New()
-	ms := []module.Module{dl, catalog.New(dl)}
+	nav := navidrome.New()
+	bot := telegram.New(dl.Service())
+	dl.Service().SetScanner(nav)
+	dl.Service().SetNotifier(bot)
+	ms := []module.Module{dl, catalog.New(dl), nav, bot}
 	if cfg.DevFakeSource {
 		ms = append(ms, fakesource.New())
 	}

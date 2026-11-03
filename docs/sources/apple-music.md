@@ -44,7 +44,7 @@ Artwork URLs are templates with `{w}x{h}`; the UI asks for the size it shows.
 - `/<storefront>/playlist/<slug>/pl.<id>` as a playlist
 - `/<storefront>/artist/<slug>/<id>` as an artist
 
-Music video and station links are refused with "Music videos and stations are not supported yet."
+Music video and station links are refused with "Music videos and stations are not supported yet.": the module implements `source.LinkRefuser` for them, and `ParseLink` leaves them.
 
 ## The amdl runner
 

@@ -41,11 +41,14 @@ const (
 // OriginRef is what the bot needs to edit its status message. It never
 // holds tokens.
 type OriginRef struct {
-	ChatID           int64  `json:"chat_id,omitempty"`
-	RequestMessageID int    `json:"request_message_id,omitempty"`
-	StatusMessageID  int    `json:"status_message_id,omitempty"`
-	UserID           int64  `json:"user_id,omitempty"`
-	Username         string `json:"username,omitempty"`
+	ChatID           int64 `json:"chat_id,omitempty"`
+	RequestMessageID int   `json:"request_message_id,omitempty"`
+	StatusMessageID  int   `json:"status_message_id,omitempty"`
+	// StatusIsText marks a status message sent as text, because the cover
+	// could not be sent. Its edits change the text, not a caption.
+	StatusIsText bool   `json:"status_is_text,omitempty"`
+	UserID       int64  `json:"user_id,omitempty"`
+	Username     string `json:"username,omitempty"`
 }
 
 // Download is one request to fetch an item.

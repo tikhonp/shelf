@@ -7,13 +7,16 @@ import (
 	"io"
 	"io/fs"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"testing/fstest"
+	"time"
 
 	"github.com/labstack/echo/v5"
 	"github.com/tikhonp/shelf/internal/platform"
@@ -213,5 +216,64 @@ func TestOpenCreatesTheDataDirectory(t *testing.T) {
 	defer func() { _ = a.Close() }()
 	if _, err := os.Stat(filepath.Join(cfg.DataDir, "shelf.db")); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// runner is a module whose Run lasts until the server stops, or fails at
+// once.
+type runner struct {
+	name    string
+	fail    bool
+	started chan struct{}
+	stopped atomic.Bool
+}
+
+func (r *runner) Name() string    { return r.name }
+func (*runner) Migrations() fs.FS { return nil }
+func (r *runner) Run(ctx context.Context) error {
+	close(r.started)
+	if r.fail {
+		return errors.New("no network")
+	}
+	<-ctx.Done()
+	time.Sleep(20 * time.Millisecond)
+	r.stopped.Store(true)
+	return nil
+}
+
+func TestRunnersRunWithServe(t *testing.T) {
+	steady := &runner{name: "steady", started: make(chan struct{})}
+	broken := &runner{name: "broken", fail: true, started: make(chan struct{})}
+	a := open(t, steady, broken)
+	a.Cfg.HTTPAddr = "127.0.0.1:0"
+	sctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	done := make(chan error, 1)
+	go func() { done <- a.Serve(sctx, func(net.Addr) {}) }()
+	<-steady.started
+	<-broken.started
+	select {
+	case err := <-done:
+		t.Fatalf("a failing runner stopped the server: %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	if !steady.stopped.Load() {
+		t.Fatal("Serve returned before the runner stopped")
+	}
+}
+
+// A runner's work is serve's only: Open and Migrate, which manage runs,
+// never start it.
+func TestManageStartsNoRunner(t *testing.T) {
+	r := &runner{name: "steady", started: make(chan struct{})}
+	open(t, r)
+	select {
+	case <-r.started:
+		t.Fatal("Run started outside Serve")
+	default:
 	}
 }

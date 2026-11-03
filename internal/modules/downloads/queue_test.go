@@ -242,3 +242,43 @@ func TestSourcesRunInParallel(t *testing.T) {
 		t.Fatal("not done")
 	}
 }
+
+func TestAhead(t *testing.T) {
+	r := newRig(t)
+	other := fakesource.NewSource("other", "Other")
+	if err := r.reg.Add(other); err != nil {
+		t.Fatal(err)
+	}
+	first := r.queue(QueueRequest{Ref: album("album-1")})
+	r.queue(QueueRequest{Ref: album("album-2")})
+	// An artist waits on its albums, and another source has its own queue.
+	r.queue(QueueRequest{Ref: source.Ref{Source: "fake", Kind: source.KindArtist, ID: "artist-1"}})
+	r.queue(QueueRequest{Ref: source.Ref{Source: "other", Kind: source.KindAlbum, ID: "album-1"}})
+	third := r.queue(QueueRequest{Ref: album("album-3"), Origin: OriginTelegram,
+		OriginRef: OriginRef{ChatID: 1, StatusMessageID: 5, StatusIsText: true}})
+	for d, want := range map[int64]int{first.ID: 0, third.ID: 2} {
+		if n, err := r.svc.Ahead(bg, d); err != nil || n != want {
+			t.Fatalf("download %d: %d ahead, %v; want %d", d, n, err, want)
+		}
+	}
+	if _, err := r.svc.Ahead(bg, 999); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("unknown download: %v", err)
+	}
+	if ref := r.get(third.ID).OriginRef; !ref.StatusIsText || ref.StatusMessageID != 5 {
+		t.Fatalf("origin %+v", ref)
+	}
+}
+
+func TestDownloadedAt(t *testing.T) {
+	r := newRig(t)
+	r.start()
+	if _, err := r.svc.DownloadedAt(bg, album("album-1")); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("before: %v", err)
+	}
+	r.queue(QueueRequest{Ref: album("album-1")})
+	r.h.Drain()
+	at, err := r.svc.DownloadedAt(bg, album("album-1"))
+	if err != nil || !at.Equal(r.h.Clock.Now()) {
+		t.Fatalf("at %v, %v", at, err)
+	}
+}

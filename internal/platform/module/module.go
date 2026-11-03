@@ -99,3 +99,12 @@ type JobDeclarer interface {
 type SourceDeclarer interface {
 	Sources() []source.Source
 }
+
+// Runner is a module with work that lasts as long as the server, such as
+// the bot's long polling. Only serve calls Run, so work that logs in or
+// reaches the network goes here and not in Init, which manage runs too. Run
+// returns when ctx ends. The platform logs an error before then, and the
+// server goes on without that work.
+type Runner interface {
+	Run(ctx context.Context) error
+}
