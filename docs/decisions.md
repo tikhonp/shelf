@@ -2,6 +2,17 @@
 
 Newest first. A changed decision gets a new entry that names the one it replaces.
 
+## 2026-11-03: qobuz-dl-go interface
+
+Made in qobuz-dl-go's design session. They change what shelf's 1c and 1d contracts said.
+
+| Topic | Decision | Why |
+| --- | --- | --- |
+| Types | Dicts inside the port, typed views outside, each with `Raw`. Replaces 1c's typed structs throughout. | Names and tags must see values with Python's types. |
+| Templates | A port of `str.format`, without `PartialFormatter`, which upstream never uses. Replaces 1c's template row. | The source. |
+| Playlists | shelf downloads playlists through `HandleID`, not `DownloadFromID`. Replaces that part of 1d's download row. | Only `handle_url` writes the m3u8. |
+| HTTP client | shelf's client has no `Timeout`; qobuz-dl-go times each call. Replaces 1d's 30-second client. | A client timeout cuts long transfers. |
+
 ## 2026-11-03: qobuz-dl-go hosting
 
 | Topic | Decision | Why |
