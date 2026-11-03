@@ -8,11 +8,13 @@ Phase 1. Steps 0, 1a, 1b and 1f are done. 1a built the shelf skeleton: the trimm
 
 1f added the navidrome and telegram modules. Finished downloads ask Navidrome for one scan per burst, `/api/library/scan` shows and starts scans, and the bot queues links, asks before artists, searches albums by text, and keeps one status message per download up to date until the `notify` step gives it its final text. The platform gained `module.Runner`, the start hook that only serve runs.
 
+1e built the applemusic module and shelf-wrapper. The module searches and reads Apple's catalog, downloads with amdl, and follows and signs in the wrapper through `/api/applemusic/wrapper`. shelf-wrapper is wrapper-lite with tini and a Go supervisor that runs service mode, signs in with the 2FA code file, and serves the control API. CI's image job now pushes shelf-wrapper too; it hasn't run yet. A local run of both images on this Mac worked for everything that doesn't call Apple. The staging run on blackberry is still to do, and with it the live fixtures.
+
 The UI design is done. Its screens, stylesheets and rules are in [ui/design/](ui/design/README.md), exported from the Claude Design canvas on 2026-11-04. The brief and 1g's contract match it.
 
 Step 1c is under way in qobuz-dl-go: its design is done, and steps 1 to 5 of its 11 (goldens and fixtures, the Python compatibility layer, utils and settings, the API client, tags) are done. Its step 6, fake Qobuz, is next. Its `docs/status.md` has the details.
 
-Next: step 6 in qobuz-dl-go, and in shelf 1e, which needs only 1b. 1d waits for qobuz-dl-go. qobuz-dl-go has no checkout at `~/projects/qobuz-dl-go` on this machine now; clone it there before its next step.
+Next: step 6 in qobuz-dl-go, and 1e's staging run on blackberry when the owner allows it. 1d waits for qobuz-dl-go. qobuz-dl-go has no checkout at `~/projects/qobuz-dl-go` on this machine now; clone it there before its next step.
 
 ## Remotes
 
@@ -30,7 +32,7 @@ Next: step 6 in qobuz-dl-go, and in shelf 1e, which needs only 1b. 1d waits for 
 | 1b | Downloads core | done |
 | 1c | qobuz-dl-go | in progress: steps 1 to 5 of 11 done in that repo |
 | 1d | Qobuz module | after 1b and 1c |
-| 1e | Apple Music module and shelf-wrapper | next, can start |
+| 1e | Apple Music module and shelf-wrapper | built; the staging run on blackberry and the live fixtures are left |
 | 1f | Navidrome and Telegram | done |
 | 1g | Web UI | after 1b to 1f; the design is done |
 | 1h | Deployment and cutover | last |
@@ -38,6 +40,8 @@ Next: step 6 in qobuz-dl-go, and in shelf 1e, which needs only 1b. 1d waits for 
 ## Log
 
 ### 2026-11-04
+
+- Step 1e, short of its staging run: the applemusic module, the amdl runner, the wrapper client, `internal/wrapperapi`, `cmd/shelf-wrapper` and the image's `wrapper` target. `make check`, `make lint`, `make web-check` and `docker build .` pass. A local compose run checked the wrapper under Rosetta, the routes, the event and the stop. Calls to Apple's catalog were not run from this machine, and the catalog tests use hand-written answers. What differs from the contract is in the As built section of [build/1e.md](build/1e.md), and the decisions in [decisions.md](decisions.md).
 
 - Step 1f: the navidrome and telegram modules. `make check`, `make lint`, `make web-check` and `docker build .` pass, and a manual run of serve answered the new routes and queued one scan for a finished download. The bot hasn't met the real Telegram yet; the manual checklist covers it in 1h. What differs from the contract is in the As built section of [build/1f.md](build/1f.md), and the decisions in [decisions.md](decisions.md).
 
@@ -59,6 +63,7 @@ Next: step 6 in qobuz-dl-go, and in shelf 1e, which needs only 1b. 1d waits for 
 
 ## Notes for the next step
 
+- 1e's staging run: the steps are at the end of the As built section of [build/1e.md](build/1e.md). Sign in only a wrapper with its own data folder: wrapper-lite's device ID comes from the Apple ID.
 - The As built sections of [build/1b.md](build/1b.md) and [build/1f.md](build/1f.md) end with notes for the later steps. The main ones: a source module logs in and starts goroutines in `Run` from `module.Runner`, never in `Init`, because `manage` opens the platform too; a source registers with `Switch` when its settings are missing; Apple Music implements `source.LinkRefuser` for music videos and stations; and the Status page reads `/api/telegram` and the health fields of `/api/library/scan`.
 - The values the old bot runs with in production are in [sources/qobuz.md](sources/qobuz.md), so the Qobuz settings keep parity.
 - 1c ports qobuz-dl 2.5.9. qobuz-dl-go's `docs/port-spec.md` has been checked line by line against the 2.5.9 source; the source still wins where they differ.

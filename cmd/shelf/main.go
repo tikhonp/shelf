@@ -22,6 +22,7 @@ import (
 	"time"
 	_ "time/tzdata" // the alpine image may lack zone files for SHELF_TIMEZONE
 
+	"github.com/tikhonp/shelf/internal/modules/applemusic"
 	"github.com/tikhonp/shelf/internal/modules/catalog"
 	"github.com/tikhonp/shelf/internal/modules/downloads"
 	"github.com/tikhonp/shelf/internal/modules/fakesource"
@@ -43,7 +44,7 @@ func modules(cfg *config.Config) []module.Module {
 	bot := telegram.New(dl.Service())
 	dl.Service().SetScanner(nav)
 	dl.Service().SetNotifier(bot)
-	ms := []module.Module{dl, catalog.New(dl), nav, bot}
+	ms := []module.Module{dl, catalog.New(dl), nav, bot, applemusic.New()}
 	if cfg.DevFakeSource {
 		ms = append(ms, fakesource.New())
 	}

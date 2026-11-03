@@ -2,6 +2,20 @@
 
 Newest first. A changed decision gets a new entry that names the one it replaces.
 
+## 2026-11-04: step 1e
+
+| Topic | Decision | Why |
+| --- | --- | --- |
+| Sign-in result | `login complete, exiting` decides whether a sign-in worked. Replaces "the line and exit code 0" as the test of success; the exit code still has to be 0. | The launcher exits 0 however wrapper-lite ends. |
+| Starting state | The wrapper has a sixth state, `starting`, from a start of service mode until it answers. | A restart or a new container has no answer yet, and `signed_out` would be a guess. |
+| PID 1 | tini is PID 1 in shelf-wrapper, with the supervisor as its child. | A SIGKILL of the launcher's group orphans wrapper-lite's process, and only PID 1 can reap it. |
+| Wrapper log | The control API's `GET /v1/log` reaches the UI as `GET /api/applemusic/wrapper/log`. The supervisor leaves wrapper-lite's `request: GET /status` lines out of it. | The brief's Status card has a log tail, and the polls would fill it. |
+| Progress | The runner marks a song started at amdl's `Track N of M` line, skipped at `already exists locally`, and keeps its failure lines. Replaces the contract's count at the end until a fixture exists. | These lines are print statements in amdl's rip.go, so they hold without a recorded run. |
+| Failed runs | A non-zero amdl exit fails the download without per-song results; a retry picks up the files amdl skips. | With `exit-on-error`, amdl exits before it prints its list, and guessing the files from output or folder times would be fragile. |
+| Config rendering | The renderer parses the base config as YAML nodes, so comments and key order stay, and writes the rendered file before a run, not at startup. Replaces "a generic map, written at startup". | Init must not write, since `manage` runs it, and the rendered file stays readable next to the base. |
+| Requests | The client reads albums with `include=tracks,artists`, without `extend=extendedAssetUrls` and `record-labels`. | shelf uses neither; the label is an album attribute. |
+| Fixtures | The catalog tests use hand-written answers in the API's shape; the staging run's recorded answers replace them. | This session made no live call to the catalog API from the development machine. |
+
 ## 2026-11-04: step 1f
 
 | Topic | Decision | Why |

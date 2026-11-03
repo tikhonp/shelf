@@ -1,7 +1,7 @@
 # <branch>-<sha7>, as CI sets it
 APP_VERSION := $(shell b=$$(git rev-parse --abbrev-ref HEAD 2>/dev/null) && c=$$(git rev-parse --short=7 HEAD 2>/dev/null) && echo "$$b-$$c" || echo dev)
 
-.PHONY: check test lint web-check dev manage build-image
+.PHONY: check test lint web-check dev manage build-image build-wrapper-image
 
 # CI passes GOTESTFLAGS=-timeout=30m, because its runner is slower than a laptop.
 GOTESTFLAGS ?=
@@ -40,3 +40,8 @@ manage:
 
 build-image:
 	docker buildx build --build-arg APP_VERSION=$(APP_VERSION) -t code.tikhonnnnn.com/tikhon/shelf:local --load .
+
+# wrapper-lite is amd64 only, so on an arm64 machine this builds under
+# emulation.
+build-wrapper-image:
+	docker buildx build --platform linux/amd64 --target wrapper --build-arg APP_VERSION=$(APP_VERSION) -t code.tikhonnnnn.com/tikhon/shelf-wrapper:local --load .

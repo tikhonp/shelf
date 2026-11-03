@@ -1,0 +1,3 @@
+{"results":{"playlists":{"href":"/v1/catalog/ru/search?limit=2&term=ambient&types=playlists","data":[
+{"id":"pl.0123456789abcdef","type":"playlists","href":"/v1/catalog/ru/playlists/pl.0123456789abcdef","attributes":{"lastModifiedDate":"2026-10-30T08:00:00Z","isChart":false,"name":"Ambient Essentials","playlistType":"editorial","curatorName":"Apple Music Ambient","artwork":{"width":1080,"height":1080,"url":"https://is1-ssl.mzstatic.com/image/thumb/Features/v4/44/55/66/source/{w}x{h}cc.jpg"},"url":"https://music.apple.com/ru/playlist/ambient-essentials/pl.0123456789abcdef","playParams":{"id":"pl.0123456789abcdef","kind":"playlist"},"description":{"standard":"Calm music."}}}
+]}},"meta":{"results":{"order":["playlists"],"rawOrder":["playlists"]}}}

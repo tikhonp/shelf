@@ -1,0 +1,6 @@
+{"data":[{"id":"pl.0123456789abcdef","type":"playlists","href":"/v1/catalog/ru/playlists/pl.0123456789abcdef","attributes":{"lastModifiedDate":"2026-10-30T08:00:00Z","name":"Ambient Essentials","playlistType":"editorial","curatorName":"Apple Music Ambient","artwork":{"width":1080,"height":1080,"url":"https://is1-ssl.mzstatic.com/image/thumb/Features/v4/44/55/66/source/{w}x{h}cc.jpg"},"url":"https://music.apple.com/ru/playlist/ambient-essentials/pl.0123456789abcdef"},
+"relationships":{"tracks":{"href":"/v1/catalog/ru/playlists/pl.0123456789abcdef/tracks","data":[
+{"id":"1440000001","type":"songs","attributes":{"albumName":"Low Tide Hymns","trackNumber":1,"durationInMillis":201500,"isrc":"XX0000000001","discNumber":1,"audioTraits":["lossless"],"name":"Shoreline","artistName":"Northern Static"}},
+{"id":"1500000001","type":"music-videos","attributes":{"name":"Shoreline (Video)","artistName":"Northern Static","durationInMillis":210000}},
+{"id":"1440000200","type":"songs","attributes":{"albumName":"Paper Lanterns","trackNumber":4,"durationInMillis":199000,"isrc":"XX0000000200","discNumber":1,"audioTraits":["lossy-stereo"],"name":"Salt","artistName":"Harbor Lights"}}
+]}}}]}

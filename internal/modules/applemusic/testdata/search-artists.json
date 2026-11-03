@@ -1,0 +1,4 @@
+{"results":{"artists":{"href":"/v1/catalog/ru/search?limit=2&term=northern&types=artists","data":[
+{"id":"111","type":"artists","href":"/v1/catalog/ru/artists/111","attributes":{"genreNames":["Electronic"],"name":"Northern Static","url":"https://music.apple.com/ru/artist/northern-static/111","artwork":{"width":2400,"height":2400,"url":"https://is1-ssl.mzstatic.com/image/thumb/AMCArtistImages/v4/11/22/33/source/{w}x{h}bb.jpg"}}},
+{"id":"222","type":"artists","href":"/v1/catalog/ru/artists/222","attributes":{"genreNames":["Ambient"],"name":"Harbor Lights","url":"https://music.apple.com/ru/artist/harbor-lights/222"}}
+]}},"meta":{"results":{"order":["artists"],"rawOrder":["artists"]}}}

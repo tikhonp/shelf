@@ -1,0 +1,11 @@
+{"data":[{"id":"111","type":"artists","href":"/v1/catalog/ru/artists/111","attributes":{"genreNames":["Electronic"],"name":"Northern Static","url":"https://music.apple.com/ru/artist/northern-static/111","artwork":{"width":2400,"height":2400,"url":"https://is1-ssl.mzstatic.com/image/thumb/AMCArtistImages/v4/11/22/33/source/{w}x{h}bb.jpg"}},
+"relationships":{"albums":{"href":"/v1/catalog/ru/artists/111/albums","next":"/v1/catalog/ru/artists/111/albums?offset=25","data":[]}},
+"views":{
+"full-albums":{"href":"/v1/catalog/ru/artists/111/view/full-albums","next":"/v1/catalog/ru/artists/111/view/full-albums?offset=1","attributes":{"title":"Albums"},"data":[
+{"id":"1440000000","type":"albums","attributes":{"artistName":"Northern Static","name":"Low Tide Hymns","releaseDate":"2019-03-01","trackCount":3,"audioTraits":["lossless"],"url":"https://music.apple.com/ru/album/low-tide-hymns/1440000000"}}]},
+"singles":{"href":"/v1/catalog/ru/artists/111/view/singles","attributes":{"title":"Singles & EPs"},"data":[
+{"id":"1440000100","type":"albums","attributes":{"artistName":"Northern Static","name":"Glass Weather - Single","isSingle":true,"releaseDate":"2021-05-07","trackCount":1,"url":"https://music.apple.com/ru/album/glass-weather-single/1440000100"}}]},
+"compilation-albums":{"href":"/v1/catalog/ru/artists/111/view/compilation-albums","attributes":{"title":"Compilations"},"data":[]},
+"appears-on-albums":{"href":"/v1/catalog/ru/artists/111/view/appears-on-albums","attributes":{"title":"Appears On"},"data":[
+{"id":"1440000300","type":"albums","attributes":{"artistName":"Various Artists","name":"Night Drive","releaseDate":"2020-01-10","trackCount":12,"isCompilation":true,"url":"https://music.apple.com/ru/album/night-drive/1440000300"}}]}
+}}]}

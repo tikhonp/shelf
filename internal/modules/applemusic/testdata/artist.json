@@ -1,0 +1,1 @@
+{"data":[{"id":"222","type":"artists","href":"/v1/catalog/ru/artists/222","attributes":{"genreNames":["Ambient"],"name":"Harbor Lights","url":"https://music.apple.com/ru/artist/harbor-lights/222"},"relationships":{"albums":{"href":"/v1/catalog/ru/artists/222/albums","data":[]}}}]}
