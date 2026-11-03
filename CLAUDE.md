@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Music Shelf, short name shelf, manages a Navidrome music library. It downloads releases from Qobuz and Apple Music into the library, searches both catalogs, and keeps a record of every download. One Go binary with one SQLite file and a Vue web UI, deployed on blackberry next to Navidrome behind the sh-main gateway. Docs, code, logs and UI are in English.
 
-State: phase 1, step 0 is done, so the docs exist and no code does yet. `docs/status.md` says what is done and what comes next.
+State: phase 1, step 0 is done, so the docs exist and no shelf code does yet. Step 1c is under way in qobuz-dl-go. `docs/status.md` says what is done and what comes next.
 
 ## Read first
 
