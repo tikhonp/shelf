@@ -1,0 +1,18 @@
+bin/
+tmp/
+data/
+*.db
+*.db-shm
+*.db-wal
+.env
+.DS_Store
+*.swp
+.idea/
+.vscode/
+/shelf
+/shelf-wrapper
+
+# Vue build output; the placeholder keeps go:embed compiling without a UI build
+internal/platform/ui/dist/*
+!internal/platform/ui/dist/.keep
+web/node_modules/
