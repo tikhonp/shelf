@@ -3,9 +3,11 @@ module github.com/tikhonp/shelf
 go 1.27.3
 
 require (
+	github.com/go-telegram/bot v1.27.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/labstack/echo/v5 v5.4.2
 	github.com/pressly/goose/v3 v3.29.0
+	golang.org/x/time v0.16.0
 	modernc.org/sqlite v1.60.1
 )
 
@@ -20,7 +22,6 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
-	golang.org/x/time v0.15.0 // indirect
 	modernc.org/libc v1.78.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect

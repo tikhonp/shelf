@@ -196,9 +196,30 @@ func (a *App) Serve(ctx context.Context, onListen func(net.Addr)) error {
 		<-ctx.Done()
 		a.closeStreams()
 	}()
+	runners := a.startRunners(ctx)
 	httpErr := httpx.Run(ctx, a.HTTP(), a.Cfg.HTTPAddr, onListen)
 	stop()
-	return errors.Join(httpErr, <-jobsDone)
+	err := errors.Join(httpErr, <-jobsDone)
+	runners.Wait()
+	return err
+}
+
+// startRunners starts every module's Run. A runner that fails stops only its
+// own work, so a bot that can't reach Telegram doesn't stop downloads.
+func (a *App) startRunners(ctx context.Context) *sync.WaitGroup {
+	var wg sync.WaitGroup
+	for _, m := range a.Modules {
+		r, ok := m.(module.Runner)
+		if !ok {
+			continue
+		}
+		wg.Go(func() {
+			if err := r.Run(ctx); err != nil && ctx.Err() == nil {
+				a.Log.Error("module stopped", "module", m.Name(), "error", err)
+			}
+		})
+	}
+	return &wg
 }
 
 func (a *App) closeStreams() { a.closeOnce.Do(func() { close(a.closing) }) }

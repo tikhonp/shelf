@@ -23,7 +23,8 @@ var migrationFiles embed.FS
 // Name is the module's name.
 const Name = "downloads"
 
-// Module is the downloads module. Its Service exists after Init.
+// Module is the downloads module. Its Service exists from New, so main can
+// wire the ports before Init; it works after Init.
 type Module struct {
 	// KeepAlive is how often the event and log streams send a comment while
 	// idle. Tests make it short.
@@ -34,7 +35,7 @@ type Module struct {
 }
 
 // New returns the module.
-func New() *Module { return &Module{KeepAlive: web.KeepAlive} }
+func New() *Module { return &Module{KeepAlive: web.KeepAlive, svc: &Service{Now: time.Now}} }
 
 func (*Module) Name() string { return Name }
 
@@ -43,9 +44,9 @@ func (*Module) Migrations() fs.FS {
 	return sub
 }
 
-// Init builds the service.
+// Init gives the service the platform.
 func (m *Module) Init(d module.Deps) error {
-	m.svc = newService(d)
+	m.svc.init(d)
 	m.closing = d.Closing
 	return nil
 }

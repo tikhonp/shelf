@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Music Shelf, short name shelf, manages a Navidrome music library. It downloads releases from Qobuz and Apple Music into the library, searches both catalogs, and keeps a record of every download. One Go binary with one SQLite file and a Vue web UI, deployed on blackberry next to Navidrome behind the sh-main gateway. Docs, code, logs and UI are in English.
 
-State: phase 1. Steps 0, 1a and 1b are done: the docs, the shelf skeleton with the platform, a placeholder Vue page, the image and CI, and the downloads core with the jobs system, the source interfaces, and the downloads, catalog and fake source modules. The UI design is exported to `docs/ui/design/`. Step 1c is under way in qobuz-dl-go. `docs/status.md` says what is done and what comes next.
+State: phase 1. Steps 0, 1a, 1b and 1f are done: the docs, the shelf skeleton with the platform, a placeholder Vue page, the image and CI, the downloads core with the jobs system, the source interfaces, and the downloads, catalog and fake source modules, and the navidrome and telegram modules. The UI design is exported to `docs/ui/design/`. Step 1c is under way in qobuz-dl-go. `docs/status.md` says what is done and what comes next.
 
 ## Read first
 
@@ -19,6 +19,7 @@ State: phase 1. Steps 0, 1a and 1b are done: the docs, the shelf skeleton with t
 
 - Every edge case in a doc or a step contract gets a test. A behavior change updates the docs in the same commit.
 - Modules live under `internal/modules/<name>` and are enabled in `cmd/shelf/main.go`. A module never reads another module's tables. It talks to others through ports, which are small interfaces, and through the event hub.
+- `Init` reaches no network and starts no goroutine, because `manage` opens the platform too. Work that lasts as long as the server goes in `Run` from `module.Runner`.
 - A source is a module that implements the interfaces in `internal/source`. Code outside that module never knows which source it talks to.
 - Nothing slow or remote happens inside a database transaction. Read, act, then write.
 - Schema changes go only into new goose migrations. Tables are STRICT. Stored times are UTC text.
@@ -60,7 +61,7 @@ Before committing: `make check`, `make lint`, `make web-check`, `docker build .`
 cmd/shelf/              serve | manage <command> | healthcheck | version
 internal/platform/      config, obs, db, migrations, httpx, module, web, ui, jobs, backup, hub, testwait
 internal/source/        catalog types, the source interfaces and the registry
-internal/modules/       downloads, catalog, fakesource
+internal/modules/       downloads, catalog, fakesource, navidrome, telegram
 web/                    the Vue app
 docs/                   all project information
 ```
@@ -69,7 +70,7 @@ Later steps add:
 
 ```
 cmd/shelf-wrapper/      supervisor for the wrapper-lite image (1e)
-internal/modules/       qobuz (1d), applemusic (1e), navidrome, telegram (1f)
+internal/modules/       qobuz (1d), applemusic (1e)
 ```
 
 ## Related repositories

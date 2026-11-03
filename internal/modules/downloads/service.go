@@ -60,8 +60,8 @@ type Service struct {
 	scanner  Scanner
 }
 
-func newService(d module.Deps) *Service {
-	return &Service{Now: time.Now, cfg: d.Cfg, db: d.DB, jobs: d.Jobs, hub: d.Hub, sources: d.Sources, log: d.Log}
+func (s *Service) init(d module.Deps) {
+	s.cfg, s.db, s.jobs, s.hub, s.sources, s.log = d.Cfg, d.DB, d.Jobs, d.Hub, d.Sources, d.Log
 }
 
 func (s *Service) now() db.Time { return db.At(s.Now()) }
@@ -473,4 +473,32 @@ func (s *Service) requeue(ctx context.Context, tx *sqlx.Tx, d Download, by strin
 
 func (s *Service) publish(d Download, current string) {
 	s.hub.Publish(Topic, d.event(current))
+}
+
+// Ahead counts the downloads of the same source that run or wait before
+// this queued one: the "2 ahead" of the bot's status message. An artist or
+// label waits on its albums, so only albums, playlists and tracks count.
+func (s *Service) Ahead(ctx context.Context, id int64) (int, error) {
+	d, err := s.load(ctx, id)
+	if err != nil {
+		return 0, err
+	}
+	var n int
+	err = s.db.R.GetContext(ctx, &n, `
+		SELECT count(*) FROM downloads
+		WHERE source = ? AND id < ? AND status IN ('queued', 'running') AND kind NOT IN ('artist', 'label')`,
+		d.Ref.Source, id)
+	return n, err
+}
+
+// DownloadedAt says when ref went into downloaded_items: what a skipped
+// download's message shows. ErrNotFound when it is not there.
+func (s *Service) DownloadedAt(ctx context.Context, ref source.Ref) (time.Time, error) {
+	var at db.Time
+	err := s.db.R.GetContext(ctx, &at, `SELECT at FROM downloaded_items WHERE source = ? AND kind = ? AND item_id = ?`,
+		ref.Source, string(ref.Kind), ref.ID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return time.Time{}, ErrNotFound
+	}
+	return at.Time, err
 }

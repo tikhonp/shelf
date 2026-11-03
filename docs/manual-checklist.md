@@ -18,7 +18,7 @@ End-to-end checks that only the real deployment can answer: real accounts, the r
 6. Cancel a running download, retry a failed one, and restart the container during a download. The download continues where it stopped.
 7. Ask for a downloaded album again: it is skipped. With force, it downloads.
 8. An album the old bot downloaded before the cutover is skipped after the import.
-9. Telegram: a link gets a status message that moves from queued to downloading to done. Cancel stops a running download. An artist link asks before queuing. Plain text returns album buttons that queue on tap. `/queue` lists progress. A user outside the whitelist is refused.
+9. Telegram: a link gets a status message with the cover that moves from queued to downloading to done. Cancel stops a running download, and Retry starts it again in the same message. A link already in the library says when it was downloaded, and Download again fetches it. An artist link asks before queuing. Plain text returns album buttons that queue on tap. `/queue` lists progress. A user outside the whitelist is refused. A restart of shelf while a download runs keeps its message moving, and it ends with one final edit.
 10. Every finished download's folder has a `shelf.txt` with the right IDs and links, and a second download into the same folder appends a block.
 11. New folders are 0755 and new files 0644, owned by 10001, and Navidrome lists the new albums.
 12. The next morning a backup is in `${SHELF_DATA}/backups` and on the HDD.

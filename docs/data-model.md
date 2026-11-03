@@ -37,7 +37,7 @@ CREATE TABLE downloads (
     bytes         INTEGER NOT NULL DEFAULT 0,
     folder        TEXT NOT NULL DEFAULT '',   -- the release folder, relative to the music root
     origin        TEXT NOT NULL CHECK (origin IN ('web', 'telegram', 'cli')),
-    origin_ref    TEXT NOT NULL DEFAULT '{}', -- JSON: chat_id, request_message_id, status_message_id, user_id, username
+    origin_ref    TEXT NOT NULL DEFAULT '{}', -- JSON: chat_id, request_message_id, status_message_id, status_is_text, user_id, username
     notified      INTEGER NOT NULL DEFAULT 0 CHECK (notified IN (0, 1)),
     created_at    TEXT NOT NULL,
     started_at    TEXT,
@@ -87,5 +87,5 @@ Rules:
 - `finish` marks a track that never ended, because the source stopped or skipped it, `failed` with "not downloaded".
 - An artist or label download has children and no tracks. Its counts are the sums of its children's counts. Children share their parent's origin, format and force flag, with an empty `origin_ref`.
 - `downloaded_items` gets a row when an album, playlist or track download ends `done`. A `partial` download writes no row, so asking for it again fetches the missing tracks; the sources skip files that are already complete. `skipped` downloads read the table and never write it. `shelf manage import-qobuz-db` writes rows with `imported = 1` and no `download_id`.
-- `origin_ref` holds what the bot needs to edit its status message. It never holds tokens.
+- `origin_ref` holds what the bot needs to edit its status message. `status_is_text` marks a status message sent as text, without a cover, whose edits change the text and not a caption. The bot sends the message before it queues, so a download from Telegram has its message from the start. It never holds tokens.
 - Paths are relative to `SHELF_MUSIC_DIR`, so the database stays valid if the mount point changes.

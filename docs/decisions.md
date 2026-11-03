@@ -2,6 +2,17 @@
 
 Newest first. A changed decision gets a new entry that names the one it replaces.
 
+## 2026-11-04: step 1f
+
+| Topic | Decision | Why |
+| --- | --- | --- |
+| Start hook | A module with work that lasts as long as the server implements `module.Runner`. Only serve calls `Run`; one that fails is logged and the server goes on. | `manage` opens the platform too, and a bot that can't reach Telegram must not stop downloads. |
+| Status message first | The bot sends a download's status message before it queues the download, and passes the message's ID in `origin_ref`. Replaces 1b's note about a service method that saves `status_message_id` later. | A download that ends at once would reach its `notify` step before the message existed. |
+| Edits read late | The editor keeps one edit per message in the send queue, and the edit reads the download's state when its turn comes. It never shows a state that has ended. | Whichever edit runs later reads the newer state, so a message never shows an older state after a newer one. |
+| Refused links | A source implements `source.LinkRefuser` for its links shelf can't download, such as music videos. | The bot names the reason without knowing the source. |
+| Failed scans | Navidrome that doesn't answer defers the scan job for a minute, up to ten times; a Subsonic error fails it at once. | A deferred job stays the one queued scan that requests merge into; retries with backoff left one job per request. |
+| Health on the Status page | `GET /api/library/scan` reads Navidrome live and says whether it answers. `GET /api/telegram` says whether the bot is connected. | The Status screen shows both, and 1g's contract listed no route for the bot. |
+
 ## 2026-11-04: UI design
 
 Made in the Claude Design session. They change what `ui/design-brief.md` and 1g's contract said, and both now match. The screens and rules are in [ui/design/](ui/design/README.md).

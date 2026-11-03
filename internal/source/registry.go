@@ -76,3 +76,14 @@ func (r *Registry) ParseLink(raw string) (Ref, Source, bool) {
 	}
 	return Ref{}, nil, false
 }
+
+// RefusedLink returns the source that knows raw as a link of its own it
+// can't download, such as a music video.
+func (r *Registry) RefusedLink(raw string) (Source, bool) {
+	for _, s := range r.All() {
+		if lr, ok := s.(LinkRefuser); ok && lr.RefuseLink(raw) {
+			return s, true
+		}
+	}
+	return nil, false
+}

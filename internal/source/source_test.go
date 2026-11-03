@@ -68,6 +68,9 @@ func (f fake) ParseLink(raw string) (source.Ref, bool) {
 	return source.Ref{Kind: source.KindAlbum, ID: strings.TrimPrefix(raw, "https://"+f.id+"/")}, true
 }
 
+// RefuseLink knows the source's links to videos, which ParseLink leaves.
+func (f fake) RefuseLink(raw string) bool { return strings.HasPrefix(raw, "https://"+f.id+"/video/") }
+
 func TestRegistry(t *testing.T) {
 	r := source.NewRegistry()
 	if err := r.Add(fake{"a", true}); err != nil {
@@ -92,5 +95,12 @@ func TestRegistry(t *testing.T) {
 	}
 	if _, _, ok := r.ParseLink("https://c/12"); ok {
 		t.Fatal("a link no source knows was claimed")
+	}
+	// A link a source knows but can't use is refused by that source.
+	if s, ok := r.RefusedLink("https://b/video/3"); !ok || s.ID() != "b" {
+		t.Fatalf("refused by %v, %v", s, ok)
+	}
+	if _, ok := r.RefusedLink("https://c/video/3"); ok {
+		t.Fatal("a link no source knows was refused by one")
 	}
 }
