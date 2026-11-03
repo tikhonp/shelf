@@ -76,9 +76,9 @@ Tracks:
 | `ISRC` | For a single track. |
 | `Requested format` | The format asked for, in words. |
 | `Delivered` | The highest quality among the files written. |
-| `Requested by` | `Web`, or `Telegram @username, user <id>`. |
+| `Requested by` | `Web`, `CLI`, or `Telegram @username, user <id>`. |
 | `Started`, `Finished` | RFC 3339 in the display time zone, `Europe/Moscow`. |
 | `Tools` | shelf's version and the tool that wrote the files. |
-| `Tracks` | Position, file name, the track's catalog ID, ISRC, format, and `done`, `skipped` or `failed`. |
+| `Tracks` | Position, file name, the track's catalog ID after the word the source uses for a track, ISRC, format, and `done`, `skipped` or `failed`. A failed track without a file shows its title and no format. shelf leaves out empty columns. |
 
 Later versions may add keys. Readers ignore keys they don't know and never depend on line order other than the first line.

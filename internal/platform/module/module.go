@@ -20,6 +20,9 @@ import (
 	"github.com/labstack/echo/v5"
 	"github.com/tikhonp/shelf/internal/platform/config"
 	"github.com/tikhonp/shelf/internal/platform/db"
+	"github.com/tikhonp/shelf/internal/platform/hub"
+	"github.com/tikhonp/shelf/internal/platform/jobs"
+	"github.com/tikhonp/shelf/internal/source"
 )
 
 // Module is a registered part of shelf.
@@ -56,6 +59,17 @@ type Deps struct {
 	Cfg *config.Config
 	Log *slog.Logger
 	DB  *db.DB
+	// Jobs enqueues and controls background work.
+	Jobs *jobs.System
+	// Hub carries events between modules and to the event stream.
+	Hub *hub.Hub
+	// Sources holds every registered source. It fills after every Init, so
+	// read it when serving, not in Init.
+	Sources *source.Registry
+	// Closing is closed when serve starts to stop. A long-lived response,
+	// such as an event stream, ends on it, because the HTTP server's
+	// shutdown doesn't cancel a running request.
+	Closing <-chan struct{}
 }
 
 // Initializer is a module with setup work. platform.Open calls Init after
@@ -72,3 +86,16 @@ type Migrated interface {
 // RouteDeclarer is a module with endpoints. api is the /api group, where the
 // error handler answers with JSON.
 type RouteDeclarer interface{ Routes(api *echo.Group) }
+
+// JobDeclarer is a module with job types and schedules. Their names start
+// with the module's name. The platform registers them after Init.
+type JobDeclarer interface {
+	JobTypes() []jobs.Type
+	Schedules() []jobs.Schedule
+}
+
+// SourceDeclarer is a module that provides sources. The platform adds them
+// to the registry after Init, switched on or not.
+type SourceDeclarer interface {
+	Sources() []source.Source
+}

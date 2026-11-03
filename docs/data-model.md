@@ -4,12 +4,14 @@ One SQLite file, `/data/shelf.db`, in WAL mode with foreign keys on. Each module
 
 ## Platform
 
-From proxier's `internal/platform/migrations/00003_jobs.sql`, without the vault columns and the event cursors:
+`internal/platform/migrations/00001_jobs.sql`, from proxier's `00003_jobs.sql` without the vault column, the subject columns and the event cursors:
 
 - `jobs`: one row per job, with its queue, type, resource and coalescing keys, a state of `queued`, `running`, `succeeded`, `failed`, `cancelled` or `interrupted`, payload JSON, attempt counters, lease, timestamps, error and log counters.
 - `job_steps`: each job's named steps and their state.
 - `job_log_lines`: log lines per job. The row ID is the event ID of the log stream. A job keeps its first and last 5,000 lines.
-- `schedules`: run-time state of scheduled jobs such as the backup.
+- `schedules`: run-time state of scheduled jobs: `platform.backup` at 03:30 and `platform.retention` at 05:00.
+
+The retention job deletes failed jobs after 90 days and other finished jobs after 30, with their steps and log lines. A download keeps its row; its log goes with its job.
 
 ## Downloads module
 
@@ -44,6 +46,7 @@ CREATE TABLE downloads (
 CREATE INDEX downloads_list ON downloads (status, id);
 CREATE INDEX downloads_parent ON downloads (parent_id);
 CREATE INDEX downloads_item ON downloads (source, kind, item_id);
+CREATE INDEX downloads_job ON downloads (job_id);
 
 CREATE TABLE download_tracks (
     download_id INTEGER NOT NULL REFERENCES downloads (id) ON DELETE CASCADE,
@@ -78,9 +81,11 @@ CREATE TABLE downloaded_items (
 
 Rules:
 
-- A download's `status` moves from `queued` to `running` to one of `done`, `partial`, `failed` or `canceled`. `skipped` is set at creation and never changes. Retry moves `failed`, `partial` and `canceled` back to `queued`.
+- A download's `status` moves from `queued` to `running` to one of `done`, `partial`, `failed` or `canceled`. `skipped` is set at creation and never changes. Retry moves `failed`, `partial` and `canceled` back to `queued`, clears `error`, the counts, the times and `notified`, and points `job_id` at a new job.
 - `partial` means some tracks failed. The release folder stays where the source left it; for Qobuz that is an `[INCOMPLETE]` folder.
-- An artist or label download has children and no tracks. Its counts are the sums of its children's counts.
+- `error` says why a download failed. A running download with an error has failed in `resolve` or `fetch` and will end at `finish`. An artist or label without albums ends `done` with "nothing to download" there.
+- `finish` marks a track that never ended, because the source stopped or skipped it, `failed` with "not downloaded".
+- An artist or label download has children and no tracks. Its counts are the sums of its children's counts. Children share their parent's origin, format and force flag, with an empty `origin_ref`.
 - `downloaded_items` gets a row when an album, playlist or track download ends `done`. A `partial` download writes no row, so asking for it again fetches the missing tracks; the sources skip files that are already complete. `skipped` downloads read the table and never write it. `shelf manage import-qobuz-db` writes rows with `imported = 1` and no `download_id`.
 - `origin_ref` holds what the bot needs to edit its status message. It never holds tokens.
 - Paths are relative to `SHELF_MUSIC_DIR`, so the database stays valid if the mount point changes.
