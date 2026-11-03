@@ -1,0 +1,17 @@
+# Development stack: air rebuilds and restarts shelf on every change.
+# Production runs code.tikhonnnnn.com/tikhon/shelf from sh-blackberry/music.yaml.
+services:
+  shelf:
+    build:
+      context: .
+      target: dev
+    container_name: shelf
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/src
+      - ./data:/data
+      - ./music:/music

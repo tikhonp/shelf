@@ -2,6 +2,12 @@
 
 Newest first. A changed decision gets a new entry that names the one it replaces.
 
+## 2026-11-03: step 1a
+
+| Topic | Decision | Why |
+| --- | --- | --- |
+| Config | `config.Load` takes a lookup function with `os.LookupEnv`'s signature. An unset variable takes its default, and one set to an empty value is empty. Replaces 1a's `Load(getenv)`. | `getenv` can't tell unset from empty, yet `SHELF_AMDL_CONFIG` and `SHELF_NAVIDROME_URL` have defaults and an empty value must turn their part off. |
+
 ## 2026-11-03: qobuz-dl-go interface
 
 Made in qobuz-dl-go's design session. They change what shelf's 1c and 1d contracts said.
