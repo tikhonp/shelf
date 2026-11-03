@@ -52,6 +52,46 @@ RUN --mount=type=cache,target=/go/pkg/mod/ \
     -o /out/shelf ./cmd/shelf && \
     mkdir /out/data
 
+# build-wrapper: the supervisor of the shelf-wrapper image, static and with
+# no shelf packages but internal/wrapperapi.
+FROM --platform=$BUILDPLATFORM base AS build-wrapper
+WORKDIR /src
+ARG TARGETOS
+ARG TARGETARCH
+ARG APP_VERSION=dev
+RUN --mount=type=cache,target=/go/pkg/mod/ \
+    --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=bind,target=. \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath \
+    -ldflags "-s -w -X main.version=${APP_VERSION}" \
+    -o /out/shelf-wrapper ./cmd/shelf-wrapper
+
+# wrapper: wrapper-lite with the supervisor as its entrypoint, in place of
+# the image's entrypoint.sh, which checks an outdated account database path.
+# Build it with --platform linux/amd64: wrapper-lite is amd64 only. The base
+# is pinned by digest and bumped on purpose; look the digest up with
+# `docker buildx imagetools inspect ghcr.io/tikhonp/wrapper-lite:latest`.
+# tini is PID 1, so it reaps the wrapper-lite processes a SIGKILL orphans,
+# and passes Docker's SIGTERM to the supervisor.
+FROM ghcr.io/tikhonp/wrapper-lite@sha256:d6a49555e7640c79e33b497ac8f5de86f1e0b9d5f3f856a480fea0f928f87728 AS wrapper
+RUN apt-get update && apt-get install -y --no-install-recommends tini && rm -rf /var/lib/apt/lists/*
+COPY --from=build-wrapper /out/shelf-wrapper /usr/local/bin/shelf-wrapper
+ARG APP_VERSION=dev
+ARG BUILD_DATE=
+ARG VCS_REF=
+LABEL org.opencontainers.image.title="Music Shelf wrapper" \
+      org.opencontainers.image.description="wrapper-lite for Music Shelf, with a supervisor that signs it in" \
+      org.opencontainers.image.source="https://code.tikhonnnnn.com/tikhon/shelf" \
+      org.opencontainers.image.licenses="AGPL-3.0-only" \
+      org.opencontainers.image.version="${APP_VERSION}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.created="${BUILD_DATE}"
+WORKDIR /app
+EXPOSE 12340 12341
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/shelf-wrapper"]
+# The base image's CMD would reach the supervisor as an argument.
+CMD []
+
 # prod: the runtime image, and the last stage, so `docker build .` builds it.
 # amdl and the Qobuz segmented fallback call ffmpeg. amdl is the upstream
 # static binary, the one that runs in production today.

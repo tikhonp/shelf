@@ -141,7 +141,7 @@ The hub carries three kinds of event. `GET /api/events` streams them as server-s
 | --- | --- |
 | `download` | `id`, `parent_id`, `status`, `tracks_done`, `tracks_total`, `tracks_failed`, `current`, the title of the track being fetched, `bytes`, `error` |
 | `scan` | `scanning`, `count`, `last_scan` |
-| `source` | `id`, `ok`, `message`; for Apple Music also the wrapper state |
+| `source` | `id`, `ok`, `message`; for Apple Music also `wrapper`, the wrapper state, null when it doesn't answer |
 
 Streams send `Cache-Control: no-store`, `X-Accel-Buffering: no` and a keepalive comment every 15 seconds, and end when serve stops. A client that reconnects reloads the lists, so the stream needs no replay. The per-download log stream, `GET /api/downloads/{id}/log`, sends the latest job's lines as `line` events with `time`, `level`, `step` and `text`, and the line's row ID as the event ID. It resumes after `Last-Event-ID`, or after `?after=` on a fresh connection, as proxier's job log does. When the job has ended and every line is sent, it sends a `done` event with the job's `state`, and the client closes the stream, or `EventSource` would reconnect.
 
@@ -164,8 +164,9 @@ JSON in and out. Errors are `{"error": "<message>"}` with a 4xx or 5xx status.
 | `GET /api/library/scan` | The scan state read from Navidrome now, and whether it answers: `{"enabled", "ok", "message", "address", "latency_ms", "scanning", "count", "last_scan"}`. A Navidrome that doesn't answer is `ok: false` with a message, not a failed request. |
 | `POST /api/library/scan` | Start a scan now. Answers 202 with `{"job_id"}`; 422 when Navidrome is not set up. |
 | `GET /api/telegram` | The bot for the Status page: `{"enabled", "connected", "username", "users"}`. |
-| `GET /api/applemusic/wrapper` | The wrapper state for the Status page. |
-| `POST /api/applemusic/wrapper/login`, `/code`, `/restart` | Sign-in and restart, passed to the supervisor. |
+| `GET /api/applemusic/wrapper` | The wrapper state for the Status page: `{"state", "storefront", "since", "error", "code_deadline"}`. 503 when the wrapper doesn't answer. |
+| `POST /api/applemusic/wrapper/login`, `/code`, `/restart` | Sign-in and restart, passed to the supervisor. Its 409 and 400 answers come through with their message; 502 when it refuses shelf's token. 422 when Apple Music is not set up. |
+| `GET /api/applemusic/wrapper/log?after=` | The wrapper's kept log lines after a line number, for the Status page's log tail: `{"lines": [{"n", "time", "text"}]}`. |
 | `GET /api/events` | Server-sent `download`, `scan` and `source` events. |
 | `GET /api/version` | `{"version"}` for the UI. |
 | `GET /healthz` | Liveness for Docker and `shelf healthcheck`. |
@@ -221,4 +222,4 @@ Tokens and passwords are `config.Secret`, which prints, logs and marshals as `[r
 | `SHELF_DEV_FAKE_SOURCE` | `false` | Register the fake source, for UI work without accounts. |
 | `SHELF_LOG_LEVEL` | `info` | slog level. |
 
-The supervisor in shelf-wrapper reads `SHELF_WRAPPER_TOKEN`, plus optional `SHELF_WRAPPER_LITE_ARGS` for extra wrapper-lite flags.
+The supervisor in shelf-wrapper reads `SHELF_WRAPPER_TOKEN`, plus optional `SHELF_WRAPPER_LITE_ARGS`: more wrapper-lite flags, split on spaces, for service mode and sign-in.

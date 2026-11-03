@@ -108,6 +108,8 @@ jobs:
         run: |
           IMAGE="${REGISTRY}/${{ github.repository }}"
           echo "tags=${IMAGE}:${{ github.sha }},${IMAGE}:${{ github.ref_name }},${IMAGE}:latest" >> "$GITHUB_OUTPUT"
+          WRAPPER="${IMAGE}-wrapper"
+          echo "wrapper_tags=${WRAPPER}:${{ github.sha }},${WRAPPER}:${{ github.ref_name }},${WRAPPER}:latest" >> "$GITHUB_OUTPUT"
           echo "version=${{ github.ref_name }}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
@@ -122,3 +124,18 @@ jobs:
             BUILD_DATE=${{ github.event.head_commit.timestamp }}
             VCS_REF=${{ github.sha }}
           tags: ${{ steps.version.outputs.tags }}
+
+      # shelf-wrapper: wrapper-lite and the supervisor. wrapper-lite is amd64
+      # only.
+      - name: Build and push shelf-wrapper
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: wrapper
+          push: true
+          platforms: linux/amd64
+          build-args: |
+            APP_VERSION=${{ steps.version.outputs.version }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+          tags: ${{ steps.version.outputs.wrapper_tags }}

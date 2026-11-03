@@ -1,0 +1,4 @@
+{"next":"/v1/catalog/ru/artists/222/albums?offset=100","data":[
+{"id":"1440000500","type":"albums","attributes":{"artistName":"Harbor Lights","name":"Paper Lanterns","releaseDate":"2016-04-01","trackCount":10,"url":"https://music.apple.com/ru/album/paper-lanterns/1440000500"}},
+{"id":"1440000501","type":"albums","attributes":{"artistName":"Harbor Lights","name":"Lantern - EP","isSingle":true,"releaseDate":"2017-02-01","trackCount":4,"url":"https://music.apple.com/ru/album/lantern-ep/1440000501"}}
+]}

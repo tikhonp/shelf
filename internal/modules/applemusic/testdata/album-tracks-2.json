@@ -1,0 +1,3 @@
+{"href":"/v1/catalog/ru/albums/1440000000/tracks?offset=2","data":[
+{"id":"1440000003","type":"songs","href":"/v1/catalog/ru/songs/1440000003","attributes":{"albumName":"Low Tide Hymns","genreNames":["Electronic","Music"],"trackNumber":1,"durationInMillis":240400,"releaseDate":"2019-03-01","isrc":"XX0000000003","discNumber":2,"audioTraits":["lossless","lossy-stereo"],"name":"Breakwater","artistName":"Northern Static","url":"https://music.apple.com/ru/album/breakwater/1440000000?i=1440000003"}}
+]}
