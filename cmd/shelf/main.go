@@ -8,6 +8,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -21,6 +22,9 @@ import (
 	"time"
 	_ "time/tzdata" // the alpine image may lack zone files for SHELF_TIMEZONE
 
+	"github.com/tikhonp/shelf/internal/modules/catalog"
+	"github.com/tikhonp/shelf/internal/modules/downloads"
+	"github.com/tikhonp/shelf/internal/modules/fakesource"
 	"github.com/tikhonp/shelf/internal/platform"
 	"github.com/tikhonp/shelf/internal/platform/config"
 	"github.com/tikhonp/shelf/internal/platform/db"
@@ -29,8 +33,13 @@ import (
 )
 
 // modules are the enabled modules, in migration order.
-func modules() []module.Module {
-	return nil
+func modules(cfg *config.Config) []module.Module {
+	dl := downloads.New()
+	ms := []module.Module{dl, catalog.New(dl)}
+	if cfg.DevFakeSource {
+		ms = append(ms, fakesource.New())
+	}
+	return ms
 }
 
 const usage = `Usage:
@@ -38,6 +47,8 @@ const usage = `Usage:
   shelf manage migrate up                 apply pending migrations of every module
   shelf manage migrate down <module>      roll back the last migration of one module
   shelf manage migrate status             list every module's migrations
+  shelf manage download <url> [--format F] [--force]
+                                          queue a download; F is a format ID such as 27 or qobuz:27
   shelf healthcheck                       exit 0 when the running server is healthy, 1 otherwise
   shelf version
 `
@@ -58,7 +69,7 @@ type cli struct {
 	lookup  func(string) (string, bool)
 	stdout  io.Writer
 	stderr  io.Writer
-	modules func() []module.Module
+	modules func(*config.Config) []module.Module
 	// listening, when set, hears the address serve listens on.
 	listening func(net.Addr)
 }
@@ -102,7 +113,7 @@ func (c cli) serve(ctx context.Context) int {
 		log.Warn(w)
 	}
 
-	app, err := platform.Open(cfg, log, c.modules()...)
+	app, err := platform.Open(cfg, log, c.modules(cfg)...)
 	if err != nil {
 		log.Error("start", "error", err)
 		return 1
@@ -188,6 +199,13 @@ func (c cli) manage(ctx context.Context, args []string) int {
 			}
 			return err
 		}
+	case len(args) >= 1 && args[0] == "download":
+		req, err := parseDownload(args[1:])
+		if err != nil {
+			sayf(c.stderr, "%v\n\n%s", err, usage)
+			return 2
+		}
+		cmd = func(app *platform.App, _ *slog.Logger) error { return c.download(ctx, app, req) }
 	default:
 		sayf(c.stderr, "unknown manage command\n\n%s", usage)
 		return 2
@@ -199,7 +217,7 @@ func (c cli) manage(ctx context.Context, args []string) int {
 		return 1
 	}
 	log := slog.New(slog.NewTextHandler(c.stderr, &slog.HandlerOptions{Level: cfg.LogLevel}))
-	app, err := platform.Open(cfg, log, c.modules()...)
+	app, err := platform.Open(cfg, log, c.modules(cfg)...)
 	if err != nil {
 		sayln(c.stderr, err)
 		return 1
@@ -210,6 +228,55 @@ func (c cli) manage(ctx context.Context, args []string) int {
 		return 1
 	}
 	return 0
+}
+
+// parseDownload reads download's arguments: one link, and the flags in any
+// place.
+func parseDownload(args []string) (downloads.QueueRequest, error) {
+	r := downloads.QueueRequest{Origin: downloads.OriginCLI}
+	for i := 0; i < len(args); i++ {
+		switch a := args[i]; {
+		case a == "--force":
+			r.Force = true
+		case a == "--format":
+			if i+1 >= len(args) || args[i+1] == "" {
+				return r, errors.New("--format needs a format ID")
+			}
+			i++
+			r.Format = args[i]
+		case strings.HasPrefix(a, "--format="):
+			r.Format = strings.TrimPrefix(a, "--format=")
+		case strings.HasPrefix(a, "-"):
+			return r, fmt.Errorf("unknown flag %s", a)
+		case r.URL != "":
+			return r, errors.New("download takes one link")
+		default:
+			r.URL = a
+		}
+	}
+	if r.URL == "" {
+		return r, errors.New("download needs a link")
+	}
+	return r, nil
+}
+
+// download queues a download with origin cli. The running server's pool
+// picks it up at its next poll.
+func (c cli) download(ctx context.Context, app *platform.App, r downloads.QueueRequest) error {
+	m, ok := app.Module(downloads.Name)
+	if !ok {
+		return errors.New("the downloads module is not enabled")
+	}
+	d, err := m.(*downloads.Module).Service().Queue(ctx, r)
+	if err != nil {
+		return err
+	}
+	if d.Status == downloads.Skipped {
+		sayf(c.stdout, "Download %d skipped: %s is already in the library at %s. Add --force to download it again.\n", d.ID, d.Ref, d.Folder)
+		return nil
+	}
+	sayf(c.stdout, "Download %d queued: %s in format %s\n", d.ID, d.Ref, d.Format)
+	return nil
 }
 
 // Output to the terminal is best effort.

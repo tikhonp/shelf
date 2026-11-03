@@ -2,13 +2,15 @@
 
 ## Now
 
-Phase 1. Steps 0 and 1a are done. 1a built the shelf skeleton: the trimmed platform from proxier, `serve`, `manage migrate`, `healthcheck` and `version`, a placeholder Vue page, the image and the Forgejo CI workflow. CI passed on its first run and pushed `code.tikhonnnnn.com/tikhon/shelf` with the tags `latest`, `main` and the commit SHA.
+Phase 1. Steps 0, 1a and 1b are done. 1a built the shelf skeleton: the trimmed platform from proxier, `serve`, `manage migrate`, `healthcheck` and `version`, a placeholder Vue page, the image and the Forgejo CI workflow. CI passed on its first run and pushed `code.tikhonnnnn.com/tikhon/shelf` with the tags `latest`, `main` and the commit SHA.
+
+1b built the downloads core: the jobs system, the daily backup and the event hub in the platform, the source types and registry in `internal/source`, and the `downloads`, `catalog` and `fakesource` modules. With `SHELF_DEV_FAKE_SOURCE=true`, shelf searches, resolves and downloads canned items, writes `shelf.txt`, and streams progress and logs. `shelf manage download <url>` queues from the shell.
 
 The Claude Design canvas exists, and its Studio redesign page is the current direction. Before step 1g, its screens and tokens go into [ui/design/](ui/design/).
 
 Step 1c is under way in qobuz-dl-go: its design is done, and steps 1 to 5 of its 11 (goldens and fixtures, the Python compatibility layer, utils and settings, the API client, tags) are done. Its step 6, fake Qobuz, is next. Its `docs/status.md` has the details.
 
-Next: step 1b in shelf, and step 6 in qobuz-dl-go. Neither depends on the other.
+Next: step 6 in qobuz-dl-go, and in shelf 1e or 1f, which need only 1b. 1d waits for qobuz-dl-go.
 
 ## Remotes
 
@@ -23,11 +25,11 @@ Next: step 1b in shelf, and step 6 in qobuz-dl-go. Neither depends on the other.
 | --- | --- | --- |
 | 0 | `CLAUDE.md` and docs in both repos | done |
 | 1a | shelf skeleton | done |
-| 1b | Downloads core | next |
+| 1b | Downloads core | done |
 | 1c | qobuz-dl-go | in progress: steps 1 to 5 of 11 done in that repo |
 | 1d | Qobuz module | after 1b and 1c |
-| 1e | Apple Music module and shelf-wrapper | after 1b |
-| 1f | Navidrome and Telegram | after 1b |
+| 1e | Apple Music module and shelf-wrapper | next, can start |
+| 1f | Navidrome and Telegram | next, can start |
 | 1g | Web UI | after 1b to 1f and the design |
 | 1h | Deployment and cutover | last |
 
@@ -35,6 +37,7 @@ Next: step 1b in shelf, and step 6 in qobuz-dl-go. Neither depends on the other.
 
 ### 2026-11-03
 
+- Step 1b: the downloads core. `make check`, `make lint`, `make web-check` and `docker build .` pass, and a manual run against the fake source downloaded an artist and a failing album over the API. What differs from the contract is in the As built section of [build/1b.md](build/1b.md), and the decisions in [decisions.md](decisions.md).
 - CI passed on its first run, for 1a, and pushed the first image.
 - The project folder is now `~/projects/shelf`, not `~/projects/proj-x`.
 - qobuz-dl-go's step 5, the taggers from `metadata.py`, is done.
@@ -47,7 +50,7 @@ Next: step 1b in shelf, and step 6 in qobuz-dl-go. Neither depends on the other.
 
 ## Notes for the next step
 
-- 1b builds on the 1a platform. The As built section of [build/1a.md](build/1a.md) lists what differs from the contract and what 1b has to add: the first platform migration, the jobs system and the hub in `module.Deps`, and event streams that end when serve stops.
+- The As built section of [build/1b.md](build/1b.md) ends with notes for 1d to 1g. The main ones: a source module must not log in or start goroutines in `Init`, because `manage` opens the platform too; a source registers with `Switch` when its settings are missing; and the bot needs a few more `downloads.Service` methods.
 - The values the old bot runs with in production are in [sources/qobuz.md](sources/qobuz.md), so the Qobuz settings keep parity.
 - 1c ports qobuz-dl 2.5.9. qobuz-dl-go's `docs/port-spec.md` has been checked line by line against the 2.5.9 source; the source still wins where they differ.
 - For 1d: `GetURLInfo` reads `/label/<slug>/download-streaming-albums/<id>` as the ID `download` and doesn't match `/playlists/`. Decide in 1d whether `ParseLink` handles these, as it handles `/interpreter/`.

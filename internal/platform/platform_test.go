@@ -87,14 +87,15 @@ func get(a *platform.App, method, path string) *httptest.ResponseRecorder {
 func TestOptionalModuleInterfacesArePickedUp(t *testing.T) {
 	f := &fake{}
 	a := open(t, f)
-	if !f.inited || f.deps.DB != a.DB || f.deps.Cfg != a.Cfg || !f.migrated {
+	if !f.inited || f.deps.DB != a.DB || f.deps.Cfg != a.Cfg || f.deps.Jobs != a.Jobs || f.deps.Hub != a.Hub ||
+		f.deps.Sources != a.Sources || f.deps.Closing == nil || !f.migrated {
 		t.Errorf("fake = %+v", f)
 	}
 	st, err := a.MigrationStatus(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(st) != 1 || st[0].Module != "fake" || !st[0].Applied {
+	if len(st) != 2 || st[0].Module != platform.Name || st[1].Module != "fake" || !st[1].Applied {
 		t.Errorf("status = %+v", st)
 	}
 	if rec := get(a, http.MethodGet, "/api/fake"); rec.Code != http.StatusOK || rec.Body.String() != "fake" {

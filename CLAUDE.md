@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Music Shelf, short name shelf, manages a Navidrome music library. It downloads releases from Qobuz and Apple Music into the library, searches both catalogs, and keeps a record of every download. One Go binary with one SQLite file and a Vue web UI, deployed on blackberry next to Navidrome behind the sh-main gateway. Docs, code, logs and UI are in English.
 
-State: phase 1. Steps 0 and 1a are done: the docs, and the shelf skeleton with the platform, a placeholder Vue page, the image and CI. It has no modules yet. Step 1c is under way in qobuz-dl-go. `docs/status.md` says what is done and what comes next.
+State: phase 1. Steps 0, 1a and 1b are done: the docs, the shelf skeleton with the platform, a placeholder Vue page, the image and CI, and the downloads core with the jobs system, the source interfaces, and the downloads, catalog and fake source modules. Step 1c is under way in qobuz-dl-go. `docs/status.md` says what is done and what comes next.
 
 ## Read first
 
@@ -44,6 +44,7 @@ make lint         # golangci-lint and govulncheck in Docker
 make web-check    # npm ci, vue-tsc, Vitest and the Vite build
 make dev          # docker compose with air hot reload on :8080
 make manage ARGS="migrate status"   # shelf manage inside the dev container
+make manage ARGS="download https://fake.test/album/album-1"   # with SHELF_DEV_FAKE_SOURCE=true
 make build-image  # code.tikhonnnnn.com/tikhon/shelf:local
 SHELF_DATA_DIR=./data go run ./cmd/shelf serve   # /data can't be created on macOS
 npm --prefix web run dev   # Vite on :5173, with /api sent to :8080
@@ -57,7 +58,9 @@ Before committing: `make check`, `make lint`, `make web-check`, `docker build .`
 
 ```
 cmd/shelf/              serve | manage <command> | healthcheck | version
-internal/platform/      config, obs, db, migrations, httpx, module, web, ui
+internal/platform/      config, obs, db, migrations, httpx, module, web, ui, jobs, backup, hub, testwait
+internal/source/        catalog types, the source interfaces and the registry
+internal/modules/       downloads, catalog, fakesource
 web/                    the Vue app
 docs/                   all project information
 ```
@@ -66,9 +69,7 @@ Later steps add:
 
 ```
 cmd/shelf-wrapper/      supervisor for the wrapper-lite image (1e)
-internal/platform/      jobs, backup, hub (1b)
-internal/source/        catalog types and the source interfaces (1b)
-internal/modules/       downloads, catalog, fakesource (1b), qobuz (1d), applemusic (1e), navidrome, telegram (1f)
+internal/modules/       qobuz (1d), applemusic (1e), navidrome, telegram (1f)
 ```
 
 ## Related repositories

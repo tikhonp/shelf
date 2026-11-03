@@ -2,8 +2,13 @@
 // prefix belong to the platform.
 package migrations
 
-import "io/fs"
+import (
+	"embed"
+	"io/fs"
+)
 
-// FS is the platform's goose migrations. It stays nil until the platform has
-// a table, because go:embed refuses a pattern that matches no file.
-var FS fs.FS
+//go:embed *.sql
+var files embed.FS
+
+// FS is the platform's goose migrations.
+var FS fs.FS = files

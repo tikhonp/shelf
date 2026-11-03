@@ -77,7 +77,7 @@ func TestStreamSendsEvents(t *testing.T) {
 		t.Errorf("LastEventID = %q", lastID)
 	}
 	h := rec.Header()
-	if h.Get("Content-Type") != "text/event-stream" || h.Get("Cache-Control") != "no-cache" || h.Get("X-Accel-Buffering") != "no" {
+	if h.Get("Content-Type") != "text/event-stream" || h.Get("Cache-Control") != "no-store" || h.Get("X-Accel-Buffering") != "no" {
 		t.Errorf("headers = %v", h)
 	}
 	if !rec.Flushed {

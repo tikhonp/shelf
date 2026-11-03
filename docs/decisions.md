@@ -2,6 +2,17 @@
 
 Newest first. A changed decision gets a new entry that names the one it replaces.
 
+## 2026-11-03: step 1b
+
+| Topic | Decision | Why |
+| --- | --- | --- |
+| Job queue | A job request may name its queue. `downloads.download` runs on the queue named after its source, or on `system`. | One job type with its steps, and still one download per source at a time. |
+| Source errors | The step records a source's error in `resolve` or `fetch` on the download, and the job goes on to `finish` and `notify`, which end the download `failed` or `partial`. Only shelf's own errors fail the job. | One path ends every download, and the bot's final message always comes from `notify`. |
+| Notify job | A download that is canceled, or whose job fails, gets a `downloads.notify` job. | Those never reach their own `notify` step. |
+| Switched-off sources | A module may register a source switched off through `source.Switch`. shelf still recognises its links and refuses them by name. | The bot answers "Apple Music is not set up in Shelf" instead of "not from Qobuz or Apple Music". |
+| Downloads list | `/api/downloads` lists top-level downloads; an artist's or label's albums are in its detail. | An artist can have hundreds of albums. |
+| Job subjects | The jobs table has no subject columns. | They served proxier's events and Jobs page; a download points at its job instead. |
+
 ## 2026-11-03: step 1a
 
 | Topic | Decision | Why |

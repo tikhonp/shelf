@@ -1,25 +1,32 @@
 // Package platform builds what every module uses: configuration, the
-// database, migrations and the HTTP listener. The platform is itself a
-// module named "platform", which owns the unprefixed tables.
+// database, migrations, the jobs system, the event hub, the source registry
+// and the HTTP listener. The platform is itself a module named "platform",
+// which owns the unprefixed tables.
 package platform
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
+	"sync"
 
 	"github.com/labstack/echo/v5"
+	"github.com/tikhonp/shelf/internal/platform/backup"
 	"github.com/tikhonp/shelf/internal/platform/config"
 	"github.com/tikhonp/shelf/internal/platform/db"
 	"github.com/tikhonp/shelf/internal/platform/httpx"
+	"github.com/tikhonp/shelf/internal/platform/hub"
+	"github.com/tikhonp/shelf/internal/platform/jobs"
 	"github.com/tikhonp/shelf/internal/platform/migrations"
 	"github.com/tikhonp/shelf/internal/platform/module"
 	"github.com/tikhonp/shelf/internal/platform/obs"
 	"github.com/tikhonp/shelf/internal/platform/ui"
+	"github.com/tikhonp/shelf/internal/source"
 )
 
 // Name is the platform's module name.
@@ -27,19 +34,27 @@ const Name = "platform"
 
 // App is the assembled platform with its modules.
 type App struct {
-	Cfg *config.Config
-	Log *slog.Logger
-	DB  *db.DB
+	Cfg     *config.Config
+	Log     *slog.Logger
+	DB      *db.DB
+	Jobs    *jobs.System
+	Hub     *hub.Hub
+	Sources *source.Registry
+	Backup  *backup.Service
 	// UI is the Vue build that GET and HEAD paths outside /api serve.
 	UI fs.FS
 	// Modules are the platform followed by the registered modules, in the
 	// order their migrations run.
 	Modules []module.Module
+
+	closing   chan struct{}
+	closeOnce sync.Once
 }
 
 // Open builds the platform for modules: it creates the data directory,
-// opens the database and initializes every module. It does not migrate;
-// call Migrate before serving.
+// opens the database, initializes every module, and registers their job
+// types, schedules and sources. It does not migrate; call Migrate before
+// serving.
 func Open(cfg *config.Config, log *slog.Logger, modules ...module.Module) (*App, error) {
 	all := append([]module.Module{core{}}, modules...)
 	if err := module.Validate(all); err != nil {
@@ -52,17 +67,41 @@ func Open(cfg *config.Config, log *slog.Logger, modules ...module.Module) (*App,
 	if err != nil {
 		return nil, err
 	}
-	a := &App{Cfg: cfg, Log: log, DB: d, UI: ui.Dist, Modules: all}
-	deps := module.Deps{Cfg: cfg, Log: log, DB: d}
-	for _, m := range all {
+	a := &App{Cfg: cfg, Log: log, DB: d, UI: ui.Dist, Modules: all,
+		Jobs: jobs.New(d, cfg.TZ, log), Hub: hub.New(), Sources: source.NewRegistry(), closing: make(chan struct{})}
+	a.Backup = backup.New(d, cfg.DataDir, cfg.TZ, log)
+	if err := a.register(); err != nil {
+		_ = d.Close()
+		return nil, err
+	}
+	return a, nil
+}
+
+func (a *App) register() error {
+	types, schedules := a.Jobs.PlatformTypes()
+	errs := []error{
+		a.Jobs.Register(Name, append(types, a.Backup.JobType())...),
+		a.Jobs.RegisterSchedules(Name, append(schedules, a.Backup.Schedule())...),
+	}
+	deps := module.Deps{Cfg: a.Cfg, Log: a.Log, DB: a.DB, Jobs: a.Jobs, Hub: a.Hub, Sources: a.Sources, Closing: a.closing}
+	for _, m := range a.Modules {
 		if in, ok := m.(module.Initializer); ok {
 			if err := in.Init(deps); err != nil {
-				_ = d.Close()
-				return nil, fmt.Errorf("init %s: %w", m.Name(), err)
+				return fmt.Errorf("init %s: %w", m.Name(), err)
 			}
 		}
 	}
-	return a, nil
+	for _, m := range a.Modules {
+		if jd, ok := m.(module.JobDeclarer); ok {
+			errs = append(errs, a.Jobs.Register(m.Name(), jd.JobTypes()...), a.Jobs.RegisterSchedules(m.Name(), jd.Schedules()...))
+		}
+		if sd, ok := m.(module.SourceDeclarer); ok {
+			for _, s := range sd.Sources() {
+				errs = append(errs, a.Sources.Add(s))
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // Module returns a registered module by name.
@@ -104,8 +143,14 @@ func (a *App) MigrationStatus(ctx context.Context) ([]db.MigrationStatus, error)
 	return db.Status(ctx, a.DB, a.migrationSources()...)
 }
 
-// Health backs /healthz. It fails when the database doesn't answer.
-func (a *App) Health(ctx context.Context) error { return a.DB.Ping(ctx) }
+// Health backs /healthz. It fails when the database doesn't answer or a
+// worker pool has stopped.
+func (a *App) Health(ctx context.Context) error {
+	if err := a.DB.Ping(ctx); err != nil {
+		return err
+	}
+	return a.Jobs.Health()
+}
 
 // HTTP builds the HTTP app: /healthz, the /api group with every module's
 // routes, and the UI for every other GET or HEAD.
@@ -137,11 +182,26 @@ func version(c *echo.Context) error {
 	return c.JSON(http.StatusOK, VersionBody{Version: obs.AppVersion})
 }
 
-// Serve runs the HTTP listener until ctx ends and open requests finish. The
-// caller closes the database.
+// Serve runs the HTTP listener and the jobs system until ctx ends. Both stop
+// at once. Open requests drain while running steps get their grace; the
+// jobs system marks what still runs after it interrupted, and it resumes on
+// the next start. The caller closes the database.
 func (a *App) Serve(ctx context.Context, onListen func(net.Addr)) error {
-	return httpx.Run(ctx, a.HTTP(), a.Cfg.HTTPAddr, onListen)
+	// A listener that fails to start stops the jobs too.
+	ctx, stop := context.WithCancel(ctx)
+	defer stop()
+	jobsDone := make(chan error, 1)
+	go func() { jobsDone <- a.Jobs.Start(ctx) }()
+	go func() {
+		<-ctx.Done()
+		a.closeStreams()
+	}()
+	httpErr := httpx.Run(ctx, a.HTTP(), a.Cfg.HTTPAddr, onListen)
+	stop()
+	return errors.Join(httpErr, <-jobsDone)
 }
+
+func (a *App) closeStreams() { a.closeOnce.Do(func() { close(a.closing) }) }
 
 // Close closes the database.
 func (a *App) Close() error { return a.DB.Close() }

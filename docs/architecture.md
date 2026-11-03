@@ -22,9 +22,9 @@ Outside services: the Qobuz API and CDN, the Apple Music catalog API at `amp-api
 | `db`, `dbtest` | One write connection and a read pool on modernc SQLite; temp-file databases for tests. |
 | `migrations` | goose with a version table per module. |
 | `module` | The `Module` interface and the optional interfaces a module declares. |
-| `jobs` | Jobs in SQLite with queues, named steps, leases, resource keys, cancel, retry, logs and resume after a restart. |
+| `jobs` | Jobs in SQLite with queues, named steps, leases, resource keys, cancel, retry, logs and resume after a restart. A request may name its queue, so one job type can run on several. Cancel ends the running step's context. A job at 05:00 deletes finished jobs, failed ones after 90 days and the rest after 30. |
 | `backup` | A daily `VACUUM INTO` copy at 03:30, keeping 14. |
-| `hub` | In-process publish and subscribe, feeding the event streams and the bot. |
+| `hub` | In-process publish and subscribe, feeding the event streams and the bot. A subscriber that falls 64 events behind misses the next ones; publishers never wait. |
 | `httpx`, `web` | Echo v5, middleware, JSON helpers, server-sent events. |
 | `ui` | The embedded Vue build. |
 
@@ -40,7 +40,9 @@ Modules:
 | `telegram` | The bot. It implements the downloads module's notifier port. |
 | `fakesource` | A source with canned data for tests, and for UI work when `SHELF_DEV_FAKE_SOURCE` is on. |
 
-A module implements `Name()` and `Migrations()` and declares the rest through optional interfaces, found by type assertion, as in `proxier/internal/platform/module/module.go`. shelf adds `SourceDeclarer` and `LibraryDeclarer`. Adding a source means one new module and one line in `main`.
+A module implements `Name()` and `Migrations()` and declares the rest through optional interfaces, found by type assertion, as in `proxier/internal/platform/module/module.go`: `Initializer`, `Migrated`, `RouteDeclarer`, `JobDeclarer` and `SourceDeclarer`. `module.Deps` gives a module the config, the logger, the database, the jobs system, the hub, the source registry, and a `Closing` channel that long-lived responses end on. The platform registers job types, schedules and sources after every `Init`. Adding a source means one new module and one line in `main`.
+
+Modules reach each other through ports that `main` wires. The catalog module's `Statuses` port is the downloads module. The downloads module has a `Notifier` port, which 1f fills with the bot, and a `Scanner` port, which 1f fills with Navidrome; both do nothing until then.
 
 ## Source interfaces
 
@@ -58,7 +60,11 @@ type Ref struct {
 type Source interface {
     ID() string
     Name() string
-    Health(ctx context.Context) Health
+    Health(ctx context.Context) Health // from what the source knows, without waiting on the network
+}
+
+type Switch interface {
+    Enabled() bool // false: registered but switched off; shelf still recognises its links
 }
 
 type LinkParser interface {
@@ -67,6 +73,7 @@ type LinkParser interface {
 
 type Searcher interface {
     Search(ctx context.Context, q Query) (Page, error) // q.Kind: album, track, artist or playlist
+    SearchKinds() []Kind
 }
 
 type Resolver interface {
@@ -84,27 +91,32 @@ type Library interface {
 }
 ```
 
-- `Item` carries what the UI and `shelf.txt` show: title, version, artist, year, release date, label, UPC or ISRC, genre, explicit flag, track count, duration, cover URL, the item's page on the source's site, and quality. An album or playlist item has its tracks. An artist item has its discography in sections: albums, EPs and singles, compilations, appears on.
-- `Quality` has the codec, bit depth, sample rate, hi-res and Atmos flags, and the badge text, such as `Hi-Res 24/96`.
-- `Format` has an ID such as `qobuz:27` or `applemusic:atmos`, a label, and a default flag.
-- `DownloadRequest` has the download ID, the ref, the format, the force flag and the source's folder under the music root.
-- `Reporter` receives the planned tracks, track starts, byte counts, finished tracks with their file or error, and log lines.
-- `DownloadResult` lists the release folders and files, relative to the music root, and the tool that wrote them, such as `amdl 0.1.4`.
+- `Item` carries what the UI and `shelf.txt` show: title, version, artist, the album of a track, year, release date, label, UPC or ISRC, genre, explicit flag, track count, duration in seconds, cover URL, the item's page on the source's site, and quality. An album or playlist item has its tracks. An artist or label item has its discography in sections: albums, EPs and singles, compilations, appears on. An unknown item is `source.ErrNotFound`.
+- Items and tracks have a `status` that only shelf fills: `in_library`, `queued`, `running`, `partial` or `failed`, with the download ID and the track counts.
+- `Quality` has the codec, bit depth, sample rate, hi-res and Atmos flags, and the badge text, such as `Hi-Res 24/96`. `Words()` gives `FLAC 24-bit 96 kHz` and `Short()` gives `FLAC 24/96`.
+- `Format` has an ID such as `qobuz:27` or `applemusic:atmos`, a label such as `Max`, a description in words for `shelf.txt`, and a default flag.
+- `DownloadRequest` has the download ID, the ref, the format, the force flag and the music root. The source writes under its own folder there.
+- `Reporter` has `Plan`, `Start`, `Progress` with the bytes written, `Done` with the file, its quality and size, a skipped flag or an error, and `Log`, the download's log. A position, 1 to n in release order, names each track. Several goroutines may call its methods.
+- `Download` returns an error only when the download could not run or its context ended. A failed track goes to `Reporter.Done`.
+- `DownloadResult` lists the release folders and files, relative to the music root, the tool that wrote them, such as `amdl 0.1.4`, and what the catalog calls a track, `track` or `song`.
+- `source.Registry` holds every registered source. `ParseLink` asks all of them, switched on or not, so shelf can refuse a link from a switched-off source by name.
 
 ## Downloads
 
-- `POST /api/downloads`, the bot and `manage` commands all go through `downloads.Service.Queue`.
-- Before queuing, the service looks up `downloaded_items`. A hit creates a `skipped` download unless the request has `force`.
-- A download gets one job of type `downloads.download` on its source's queue. Queues and concurrency: `qobuz` 1, `applemusic` 1, `library` 1, `system` 1.
+- `POST /api/downloads`, the bot and `manage` commands all go through `downloads.Service.Queue`. A format without the source's prefix, such as `27`, is the source's; no format is the source's default.
+- Before queuing, the service looks up `downloaded_items`. A hit creates a `skipped` download unless the request has `force`. It has no job, and takes its title and cover from the item's last download, if any.
+- A download gets one job of type `downloads.download` on its source's queue: the queue named after the source, or `system` for a source without one, such as the fake source. Queues and concurrency: `qobuz` 1, `applemusic` 1, `library` 1, `system` 1.
 - The job's steps:
-  1. `resolve` fetches the item and stores its title, artist, cover and tracks. An artist or label creates one child download per album and ends there.
+  1. `resolve` fetches the item and stores its title, artist, cover and tracks, and keeps the label, release date, UPC, ISRC and link for `shelf.txt` in the job's payload. An artist or label creates one child download per album of every section, once, and ends there.
   2. `fetch` calls the source's `Download`. Progress goes to `download_tracks` at most once a second and to the hub on every change.
-  3. `finish` writes `shelf.txt` into each release folder, records `downloaded_items`, sets the result to `done`, `partial` or `failed`, updates the parent's counts, and enqueues a Navidrome scan.
-  4. `notify` calls the notifier port, which gives a Telegram status message its final text. The `notified` flag stops a repeat after a restart.
+  3. `finish` writes `shelf.txt` into each release folder, records `downloaded_items`, sets the result to `done`, `partial` or `failed`, updates the parent's counts, and asks the `Scanner` port for a scan.
+  4. `notify` calls the notifier port, which gives a Telegram status message its final text. The `notified` flag stops a repeat after a restart. shelf logs a failing call and doesn't retry it; the bot's send queue retries on its own.
+- A source's error in `resolve` or `fetch` fails the download, not the job. The step records it, `fetch` skips the source, and `finish` ends the download `failed`, or `partial` when the source wrote some tracks. Only shelf's own errors, such as a failed database write, fail the job.
 - The resource key `item:<source>:<kind>:<id>` keeps two downloads of one item from running at once.
-- Cancel stops the job's context. Retry starts a new job for the same download and keeps the old job's log.
-- At shutdown the jobs platform marks running jobs `interrupted`. At start they resume from their first unfinished step; sources skip files that are already complete.
-- A parent's status follows its children: running while any child is queued or running, then `done` when all are done, `failed` when all failed, and `partial` otherwise.
+- Cancel ends the running step's context. A queued download ends `canceled` at once, a running one when the source returns. A download that ends canceled, or whose job fails, never reaches its `notify` step, so a `downloads.notify` job on `system` sends the final message instead. Canceling an artist or label cancels its albums.
+- Retry accepts `failed`, `partial` and `canceled` downloads. It starts a new job from `resolve` and keeps the old job and its log. Retry of an artist or label retries its albums that did not end done. To retry an album of an artist, retry the artist.
+- At shutdown the jobs platform gives running steps 3 seconds, then marks them `interrupted`. At start they resume from their first unfinished step; sources skip files that are already complete.
+- A parent's status follows its children: running while any child is queued or running, then `done` when all are done or skipped, `failed` when all failed, `canceled` when all were canceled, and `partial` otherwise. A parent without children ends `done` with the note "nothing to download" in `error`. Its counts are the sums of its children's.
 
 ## Events
 
@@ -112,11 +124,11 @@ The hub carries three kinds of event. `GET /api/events` streams them as server-s
 
 | Event | Fields |
 | --- | --- |
-| `download` | `id`, `parent_id`, `status`, `tracks_done`, `tracks_total`, `tracks_failed`, `current`, `bytes`, `error` |
+| `download` | `id`, `parent_id`, `status`, `tracks_done`, `tracks_total`, `tracks_failed`, `current`, the title of the track being fetched, `bytes`, `error` |
 | `scan` | `scanning`, `count`, `last_scan` |
 | `source` | `id`, `ok`, `message`; for Apple Music also the wrapper state |
 
-Streams send `X-Accel-Buffering: no` and a keepalive comment every 15 seconds. A client that reconnects reloads the lists, so the stream needs no replay. The per-download log stream, `GET /api/downloads/{id}/log`, does resume from `Last-Event-ID`, as proxier's job log does.
+Streams send `Cache-Control: no-store`, `X-Accel-Buffering: no` and a keepalive comment every 15 seconds, and end when serve stops. A client that reconnects reloads the lists, so the stream needs no replay. The per-download log stream, `GET /api/downloads/{id}/log`, sends the latest job's lines as `line` events with `time`, `level`, `step` and `text`, and the line's row ID as the event ID. It resumes after `Last-Event-ID`, or after `?after=` on a fresh connection, as proxier's job log does. When the job has ended and every line is sent, it sends a `done` event with the job's `state`, and the client closes the stream, or `EventSource` would reconnect.
 
 ## HTTP API
 
@@ -124,15 +136,15 @@ JSON in and out. Errors are `{"error": "<message>"}` with a 4xx or 5xx status.
 
 | Route | Purpose |
 | --- | --- |
-| `GET /api/sources` | Modules with capabilities, formats and health. |
-| `GET /api/search?source=&type=&q=&limit=&offset=` | Search one source for albums, tracks, artists or playlists. |
-| `POST /api/resolve` | `{"url"}`: the item behind a pasted link. |
+| `GET /api/sources` | Every source, switched on or not, with `enabled`, `capabilities` (`links`, `search` kinds, `resolve`, `download`), `formats` and `health`. |
+| `GET /api/search?source=&type=&q=&limit=&offset=` | Search one source. `type` is `album`, `track`, `artist` or `playlist`, `limit` 1 to 100 with 20 by default. Answers `{"items", "total", "limit", "offset"}`, each item with its download status. |
+| `POST /api/resolve` | `{"url"}`: the item behind a pasted link, with download statuses. |
 | `GET /api/items/{source}/{kind}/{id}` | An album with tracks, an artist with sections, a playlist with tracks. Each entry has its download status. |
-| `POST /api/downloads` | `{"ref"}` or `{"url"}`, with `format` and `force`. Answers the new download. |
-| `GET /api/downloads?status=&source=&before=&limit=` | Downloads newest first, with cursor paging. |
+| `POST /api/downloads` | `{"ref": {"source", "kind", "id"}}` or `{"url"}`, with `format` and `force`. Answers 201 with the new download. |
+| `GET /api/downloads?status=&source=&before=&limit=` | Top-level downloads newest first; an artist's albums are in its detail. `status` takes a comma-separated list, `limit` 1 to 200 with 50 by default. Answers `{"downloads", "next"}`, where `next` is the `before` of the next page, or null. |
 | `GET /api/downloads/{id}` | One download with its tracks, children and `shelf.txt` path. |
-| `POST /api/downloads/{id}/cancel` | Cancel a queued or running download. |
-| `POST /api/downloads/{id}/retry` | Retry a failed, partial or canceled download. |
+| `POST /api/downloads/{id}/cancel` | Cancel a queued or running download. Answers the download; 409 when it has ended. |
+| `POST /api/downloads/{id}/retry` | Retry a failed, partial or canceled download. Answers the download; 409 for any other. |
 | `GET /api/downloads/{id}/log` | Server-sent log lines. |
 | `GET /api/library/scan`, `POST /api/library/scan` | The Navidrome scan state, or start a scan. |
 | `GET /api/applemusic/wrapper` | The wrapper state for the Status page. |
@@ -144,6 +156,8 @@ JSON in and out. Errors are `{"error": "<message>"}` with a 4xx or 5xx status.
 Every other GET or HEAD path gets the file at that path from the embedded Vue build, or `index.html` when there is no such file, so the Vue router handles it. Files under `/assets/` have hashed names and get `Cache-Control: public, max-age=31536000, immutable`. A missing one is a 404, not `index.html`. The rest of the build gets `no-cache`. Without a build, shelf serves a short "UI not built" page.
 
 An unknown `/api` path answers a JSON 404 for any method. The client sees only an `echo.HTTPError`'s own message. For any other error it gets the status text, and the request log gets the error.
+
+The API answers a download as `{"id", "parent_id", "source", "kind", "item_id", "url", "format", "title", "artist", "cover_url", "status", "error", "tracks_total", "tracks_done", "tracks_failed", "bytes", "folder", "origin", "created_at", "started_at", "finished_at"}`, with null for an unset parent or time. The detail adds `tracks`, `children` and `provenance_path`. A link no source knows, a source that is unknown, switched off or can't do the request, and an unknown format answer 422. A source's own error in search or lookup answers 502 with a short message, and the log gets the error, since it may hold a URL with a token.
 
 ## Security
 

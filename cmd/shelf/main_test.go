@@ -16,6 +16,7 @@ import (
 	"testing/fstest"
 	"time"
 
+	"github.com/tikhonp/shelf/internal/platform/config"
 	"github.com/tikhonp/shelf/internal/platform/db"
 	"github.com/tikhonp/shelf/internal/platform/httpx"
 	"github.com/tikhonp/shelf/internal/platform/module"
@@ -59,7 +60,7 @@ func local(t *testing.T, extra map[string]string) map[string]string {
 }
 
 func testCLI(vars map[string]string, out io.Writer, modules ...module.Module) cli {
-	return cli{lookup: env(vars), stdout: out, stderr: out, modules: func() []module.Module { return modules }}
+	return cli{lookup: env(vars), stdout: out, stderr: out, modules: func(*config.Config) []module.Module { return modules }}
 }
 
 type src struct {
@@ -231,14 +232,15 @@ func TestManageMigrate(t *testing.T) {
 		"00001_a.sql": migration("CREATE TABLE things_a (id INTEGER PRIMARY KEY) STRICT;", "DROP TABLE things_a;"),
 		"00002_b.sql": migration("CREATE TABLE things_b (id INTEGER PRIMARY KEY) STRICT;", "DROP TABLE things_b;"),
 	}}
+	bare := src{"bare", nil}
 	manage := func(args ...string) (int, string) {
 		var out bytes.Buffer
-		code := testCLI(vars, &out, things).run(context.Background(), append([]string{"manage"}, args...))
+		code := testCLI(vars, &out, things, bare).run(context.Background(), append([]string{"manage"}, args...))
 		return code, out.String()
 	}
 
-	if code, out := manage("migrate", "status"); code != 0 ||
-		!regexpMatch(out, `platform\s+-\s+no migrations`) || !regexpMatch(out, `things\s+2\s+pending\s+00002_b.sql`) {
+	if code, out := manage("migrate", "status"); code != 0 || !regexpMatch(out, `platform\s+1\s+pending\s+00001_jobs.sql`) ||
+		!regexpMatch(out, `bare\s+-\s+no migrations`) || !regexpMatch(out, `things\s+2\s+pending\s+00002_b.sql`) {
 		t.Fatalf("status before up: exit %d\n%s", code, out)
 	}
 	if code, out := manage("migrate", "up"); code != 0 {
@@ -251,8 +253,8 @@ func TestManageMigrate(t *testing.T) {
 		!regexpMatch(out, `things\s+1\s+applied\s+00001_a.sql`) || !regexpMatch(out, `things\s+2\s+pending\s+00002_b.sql`) {
 		t.Fatalf("status after down: exit %d\n%s", code, out)
 	}
-	if code, out := manage("migrate", "down", "platform"); code != 1 || !strings.Contains(out, "has no migrations") {
-		t.Errorf("down platform: exit %d\n%s", code, out)
+	if code, out := manage("migrate", "down", "bare"); code != 1 || !strings.Contains(out, "has no migrations") {
+		t.Errorf("down bare: exit %d\n%s", code, out)
 	}
 	if code, out := manage("migrate", "down", "ghost"); code != 1 || !strings.Contains(out, `no module "ghost"`) {
 		t.Errorf("down ghost: exit %d\n%s", code, out)
