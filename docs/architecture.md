@@ -141,18 +141,24 @@ JSON in and out. Errors are `{"error": "<message>"}` with a 4xx or 5xx status.
 | `GET /api/version` | `{"version"}` for the UI. |
 | `GET /healthz` | Liveness for Docker and `shelf healthcheck`. |
 
-Unknown paths outside `/api` return the Vue app's `index.html`. Hashed assets get immutable cache headers.
+Every other GET or HEAD path gets the file at that path from the embedded Vue build, or `index.html` when there is no such file, so the Vue router handles it. Files under `/assets/` have hashed names and get `Cache-Control: public, max-age=31536000, immutable`. A missing one is a 404, not `index.html`. The rest of the build gets `no-cache`. Without a build, shelf serves a short "UI not built" page.
+
+An unknown `/api` path answers a JSON 404 for any method. The client sees only an `echo.HTTPError`'s own message. For any other error it gets the status text, and the request log gets the error.
 
 ## Security
 
 - The gateway asks for basic auth before any request reaches shelf.
-- shelf checks unsafe methods with `http.NewCrossOriginProtection`, limits request bodies to 1 MiB, and sends a CSP that allows only `'self'`, plus images from `static.qobuz.com` and `*.mzstatic.com`.
+- shelf checks unsafe methods with `http.NewCrossOriginProtection` and also trusts `SHELF_PUBLIC_URL`'s origin, because the gateway may rewrite `Host`. It limits request bodies to 1 MiB and sends a CSP that allows only `'self'`, plus images from `static.qobuz.com` and `*.mzstatic.com`, with `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`.
 - Tokens and passwords live only in environment variables, never in the database, logs or `shelf.txt`. The Apple ID password passes through shelf to the supervisor and is not stored by either.
 - The supervisor's control API requires `SHELF_WRAPPER_TOKEN` and is reachable only on the compose network.
 
 ## Configuration
 
 Parsed by hand like `proxier/internal/platform/config/config.go`. Every problem is reported at once, and values are never logged.
+
+An unset variable takes its default. A variable set to an empty value is empty. An empty `SHELF_AMDL_CONFIG` or `SHELF_NAVIDROME_URL` turns Apple Music or scans off despite the default, and an empty value is an error for a variable that needs one, such as `SHELF_TIMEZONE`. `Load` trims every value.
+
+Tokens and passwords are `config.Secret`, which prints, logs and marshals as `[redacted]`. `Reveal()` gives the value to the one place that sends it. `Config` prints and logs as a placeholder whatever the verb, because `SHELF_PROXY_URL` may hold a password. `Warnings()` names valid settings that leave a part unable to work: a Telegram token without users, Navidrome without a user or password, and Apple Music without `SHELF_WRAPPER_TOKEN`.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |

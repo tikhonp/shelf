@@ -1,0 +1,14 @@
+.git
+.env
+.env.*
+compose.yaml
+data/
+music/
+tmp/
+bin/
+docs/
+*.md
+web/node_modules/
+# The web stage's build replaces the placeholder
+internal/platform/ui/dist/*
+!internal/platform/ui/dist/.keep

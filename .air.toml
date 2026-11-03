@@ -1,0 +1,13 @@
+root = "."
+tmp_dir = "/tmp"
+
+[build]
+# /go/bin/shelf is what `make manage` runs inside the container.
+cmd = "go build -o /tmp/shelf ./cmd/shelf && cp /tmp/shelf /go/bin/shelf"
+entrypoint = "/tmp/shelf"
+args_bin = ["serve"]
+# html, js and css are the UI build in internal/platform/ui/dist, which the
+# binary embeds, so `npm --prefix web run build` restarts shelf with it.
+include_ext = ["go", "sql", "html", "js", "css"]
+exclude_regex = ["_test\\.go$"]
+exclude_dir = ["data", "music", "tmp", "bin", "docs", "web", ".git"]
