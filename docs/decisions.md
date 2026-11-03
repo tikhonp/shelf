@@ -2,6 +2,12 @@
 
 Newest first. A changed decision gets a new entry that names the one it replaces.
 
+## 2026-11-03: qobuz-dl-go hosting
+
+| Topic | Decision | Why |
+| --- | --- | --- |
+| qobuz-dl-go hosting | Only on GitHub, `github.com/tikhonp/qobuz-dl-go`, public, with CI on GitHub Actions. Replaces the phase 1 plan's Forgejo repo with a GitHub push mirror. | The user created it there. `go get` fetches the module from GitHub either way. |
+
 ## 2026-11-03: phase 1 plan
 
 | Topic | Decision | Why |

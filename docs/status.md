@@ -2,23 +2,18 @@
 
 ## Now
 
-Phase 1. Step 0 finished on 2026-11-03: `CLAUDE.md` and the docs in shelf and qobuz-dl-go.
+Phase 1. Step 0 finished on 2026-11-03: `CLAUDE.md` and the docs in shelf and qobuz-dl-go, pushed to their remotes.
 
-Waiting on the user:
-
-- The remote repositories below. They become remotes once their URLs arrive.
-- A Claude Design session with [ui/design-brief.md](ui/design-brief.md). Step 1g needs its exported screens.
+Waiting on the user: a Claude Design session with [ui/design-brief.md](ui/design-brief.md). Step 1g needs its exported screens.
 
 Next: step 1a in shelf and step 1c in qobuz-dl-go. Neither depends on the other.
 
-## Remote repositories
+## Remotes
 
-| Repository | Visibility | State |
+| Repo | Origin | Notes |
 | --- | --- | --- |
-| `code.tikhonnnnn.com/tikhon/shelf` | user's choice | to create, with an Actions secret `REGISTRY_TOKEN` that has `write:package` |
-| `github.com/tikhonp/shelf` | user's choice | optional push mirror |
-| `code.tikhonnnnn.com/tikhon/qobuz-dl-go` | public | to create |
-| `github.com/tikhonp/qobuz-dl-go` | public | to create as a push mirror; required, because shelf's Docker build fetches the module from it |
+| shelf | `ssh://git@code.tikhonnnnn.com/tikhon/shelf.git` | Forgejo. The image job in 1a needs the Actions secret `REGISTRY_TOKEN` with `write:package`. |
+| qobuz-dl-go | `git@github.com:tikhonp/qobuz-dl-go.git` | GitHub only, public. CI runs on GitHub Actions. |
 
 ## Steps
 
@@ -40,6 +35,7 @@ Next: step 1a in shelf and step 1c in qobuz-dl-go. Neither depends on the other.
 
 - The phase 1 plan was approved. Its decisions are in [decisions.md](decisions.md).
 - Step 0: both repos initialised on `main`, docs written, one commit each.
+- Remotes added and pushed: shelf on Forgejo, qobuz-dl-go on GitHub only. See [decisions.md](decisions.md).
 
 ## Notes for the next step
 
