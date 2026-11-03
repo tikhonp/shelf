@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Phone · Downloads</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<style>body { margin: 0; }</style>
+</head>
+<body>
+<div class="rs ph desk" style="position: relative; width: 390px; height: 844px; overflow: hidden">
+<section class="win" style="position: absolute; left: 8px; right: 12px; top: 10px; bottom: 96px" aria-labelledby="pd-t">
+<div class="tb">
+<h1 id="pd-t">Downloads</h1>
+<span class="stripes"></span>
+<button type="button" class="wbtn" aria-label="Scan the library now. Last scan 3 minutes ago" title="Scan now"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-14 5.3"></path><path d="M4 12a8 8 0 0 1 14-5.3"></path><path d="M18 3v4h-4"></path><path d="M6 21v-4h4"></path></svg></button>
+</div>
+<div style="flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 12px; padding: 12px 12px 0">
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<div class="panel" style="padding: 8px 10px"><div class="px num" style="font-size: 24px; line-height: 1">1</div><div class="xs t2">running</div></div>
+<div class="panel" style="padding: 8px 10px"><div class="px num" style="font-size: 24px; line-height: 1">2</div><div class="xs t2">queued</div></div>
+<div class="panel" style="padding: 8px 10px"><div class="px num" style="display: flex; align-items: center; gap: 8px; font-size: 24px; line-height: 1"><span class="led bad"></span>1</div><div class="xs t2">failed, 24 h</div></div>
+</div>
+
+<section class="deck" aria-labelledby="pd-deck">
+<div class="deck-top"><span class="led rec blink"></span><h2 id="pd-deck" class="px" style="font-size: 15px; font-weight: 500">Downloading now</h2><span class="stripes" style="height: 11px"></span></div>
+<a href="MS-phone-download.html" style="display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none">
+<span class="cv a-orchard" style="width: 56px; height: 56px"></span>
+<span class="two" style="flex: 1; gap: 2px">
+<span class="ttl"><span class="ell">Glass Orchard</span><span class="ver">Deluxe Edition</span></span>
+<span class="sub" style="display: flex; align-items: center; gap: 8px">Vela Choir <span class="src am">Apple Music</span></span>
+</span>
+<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>
+</a>
+<div class="lcd" role="img" aria-label="3 of 12 tracks done, now track 4, Under the Glasshouse, 2 minutes 41 seconds">
+<div style="display: flex; align-items: baseline; gap: 10px"><span class="lcd-big num" style="font-size: 26px">03/12</span><span class="lcd-l">TRACKS DONE</span><span class="lcd-l num" style="margin-left: auto">02:41</span></div>
+<div class="lcd-l ell">NOW: UNDER THE GLASSHOUSE</div>
+</div>
+<div style="display: flex; align-items: center; gap: 10px">
+<span class="px t2" style="font-size: 11px">Tracks</span>
+<div class="meter" style="flex: 1" role="img" aria-label="3 of 12 tracks done, track 4 downloading"><i class="d"></i><i class="d"></i><i class="d"></i><i class="c"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+</div>
+<div class="deck-keys">
+<a class="key" href="MS-phone-download.html" style="flex: 1">Details</a>
+<button type="button" class="key" style="flex: 1"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15h14L12 6z"></path><path d="M5 19h14"></path></svg>Cancel</button>
+</div>
+</section>
+
+<section aria-labelledby="pd-rack" style="display: flex; flex-direction: column; gap: 8px">
+<h2 id="pd-rack" class="px" style="font-size: 17px">Queue · 2</h2>
+<div class="rack">
+<div class="spine"><span class="cv band a-ferry"></span><span class="no">01</span><span class="two"><span class="ttl" style="font-size: 14px"><span class="ell">Night Ferry</span></span><span class="sub ell">Mira Holt · Qobuz · Max</span></span><button type="button" class="key icon sm" style="width: 44px; height: 44px" aria-label="Cancel Night Ferry"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<div class="spine"><span class="cv band a-hours"></span><span class="no">02</span><span class="two"><span class="ttl" style="font-size: 14px"><span class="ell">Small Hours, Vol. 2</span></span><span class="sub ell">Various Artists · Qobuz · 24/96</span></span><button type="button" class="key icon sm" style="width: 44px; height: 44px" aria-label="Cancel Small Hours, Vol. 2"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+</div>
+</section>
+
+<section aria-labelledby="pd-hist" style="display: flex; flex-direction: column">
+<h2 id="pd-hist" class="px" style="font-size: 17px; padding-bottom: 6px; border-bottom: 2px solid var(--ink)">History</h2>
+
+<div class="row" style="grid-template-columns: 44px minmax(0, 1fr) auto; align-items: start; padding: 10px 0">
+<span class="cv a-lights" style="width: 44px; height: 44px"></span>
+<span class="two" style="gap: 3px">
+<span class="ttl" style="font-size: 14px"><span class="ell">Northern Lights, Southern Static</span></span>
+<span class="sub ell">The Quiet Arcade · Qobuz · 14:05</span>
+<span style="display: flex; align-items: center; gap: 8px; margin-top: 3px; min-width: 0"><span class="pill failed">Failed</span><span class="xs t2 ell">401: token expired</span></span>
+</span>
+<button type="button" class="key icon" aria-label="Retry Northern Lights, Southern Static"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.5-5.8"></path><path d="M4 4v5h5"></path></svg></button>
+</div>
+
+<div class="row" style="grid-template-columns: 44px minmax(0, 1fr) auto; align-items: start; padding: 10px 0">
+<span class="cv a-lantern" style="width: 44px; height: 44px"></span>
+<span class="two" style="gap: 3px">
+<span class="ttl" style="font-size: 14px"><span class="ell">Paper Lanterns</span></span>
+<span class="sub ell">The Quiet Arcade · Apple Music · 13:40</span>
+<span style="display: flex; align-items: center; gap: 8px; margin-top: 3px; min-width: 0"><span class="pill partial">Done with errors</span><span class="xs t2 ell">11 of 12</span></span>
+</span>
+<button type="button" class="key icon" aria-label="Retry Paper Lanterns"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.5-5.8"></path><path d="M4 4v5h5"></path></svg></button>
+</div>
+
+<div class="row" style="grid-template-columns: 44px minmax(0, 1fr) auto; align-items: start; padding: 10px 0">
+<span class="cv a-tide" style="width: 44px; height: 44px"></span>
+<span class="two" style="gap: 3px">
+<span class="ttl" style="font-size: 14px"><span class="ell">Low Tide Hymns</span></span>
+<span class="sub ell">Northern Static · Qobuz · 14:32</span>
+<span style="display: flex; align-items: center; gap: 8px; margin-top: 3px; min-width: 0"><span class="pill done">Done</span><span class="xs t2 ell">@tikhon · FLAC 24/96</span></span>
+</span>
+
+</div>
+
+</section>
+</div>
+</section>
+
+<nav class="dock" aria-label="Main">
+<a href="MS-phone-start.html"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m20 20-4.5-4.5"></path></svg>Search</a>
+<a href="MS-phone-downloads.html" class="on" aria-current="page"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"></rect><circle cx="9" cy="12" r="2"></circle><circle cx="15" cy="12" r="2"></circle><path d="M7 18l1.5-3h7L17 18"></path></svg>Downloads<span class="led run" title="Downloads in progress"></span><span class="sr">, downloads in progress</span></a>
+<a href="MS-phone-status.html"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17a8 8 0 1 1 16 0"></path><path d="M12 17l4-5"></path></svg>Status<span class="led bad" title="Qobuz token expired"></span></a>
+</nav>
+</div>
+<!-- Add ?theme=day to the address to see the Day theme. -->
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>

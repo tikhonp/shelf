@@ -1,0 +1,53 @@
+/* Music Shelf design tokens, split from the canvas stylesheet project/retro.css on 2026-11-04. Every rule applies
+   under the class rs on the root element. Night is the default theme, and adding the class day switches to Day.
+   components.css writes the type scale, spacing, radii and shadows as plain values; README.md lists them. */
+
+.rs {
+  --label: "IBM Plex Sans Condensed", "IBM Plex Sans", ui-sans-serif, sans-serif;
+  --font: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --disp: "Pixelify Sans", ui-monospace, monospace;
+
+  --desk: #14171C;
+  --win: #4A5F7C; --win-hi: #566C8B; --win-2: #3F526C; --field: #0D1015;
+  --title: #171C24; --title-text: #ECE8DF; --title-off: #1C222B;
+  --key: #D9D2BF; --key-hi: #F0EBDD; --key-lo: #C4BBA4; --key-edge: #0A0C10; --key-text: #16191E; --key-hl: rgba(255, 255, 255, .75); --key-sh: rgba(0, 0, 0, .35);
+  --ink: #0A0C10; --line: #5D7290;
+  --text: #F6F3EC; --text-2: #ECEFF3; --text-3: #E8ECF1;
+  --sun: #FFB238; --sun-hi: #FFE0A3; --sun-ink: #1A1206; --sun-text: #FFEAC8; --sun-glow: rgba(255, 178, 56, .55);
+  --lamp: #FBDDB0; --lit-hi: #FFF6E2; --lit-lo: #F0BE7E; --lit-text: #7A3A06; --lit-glow: rgba(255, 190, 110, .5);
+  --green: #5BE38A; --yellow: #FFE15A; --red: #FF5A4E; --cyan: #58E6D9; --grey-lamp: #C9CED6;
+  --sel: #34465E; --focus: #FFE15A;
+  --deck: #2C3139; --plate: #12151A;
+  --lcd: #0D2422; --lcd-text: #7CF5E3; --lcd-glow: rgba(124, 245, 227, .5);
+  --vu-face: #F1E3B8; --vu-ink: #2A2416;
+  --tape: #EADFB8; --tape-ink: #2A2416;
+  --box: #C9A878; --box-ink: #2A2416;
+  --wood: repeating-linear-gradient(91deg, #4E2B18 0 2px, #5E351F 2px 5px, #53301B 5px 8px, #6A3D24 8px 12px, #573220 12px 15px);
+  --scrim: rgba(4, 6, 10, .62);
+  --glow: 1;
+
+  color-scheme: dark;
+}
+
+.rs.day {
+  --desk: #CBC6BC;
+  --win: #7E95B1; --win-hi: #8DA3BE; --win-2: #6F87A4; --field: #FFFDF6;
+  --title: #15181E; --title-text: #F2EEE4; --title-off: #2A2F38;
+  --key: #E2DCCB; --key-hi: #F7F3EA; --key-lo: #CEC5AE; --key-edge: #2F333A; --key-text: #16191E; --key-hl: rgba(255, 255, 255, .9); --key-sh: rgba(40, 40, 50, .3);
+  --ink: #10141B; --line: #6A819D;
+  --text: #0E1218; --text-2: #141A24; --text-3: #161C27;
+  --sun: #E8901A; --sun-hi: #F8C77A; --sun-ink: #1B1F27; --sun-text: #2A1600; --sun-glow: transparent;
+  --lamp: #FBDDB0; --lit-glow: transparent;
+  --sel: #9AAFC7; --focus: #FFFFFF;
+  --wood: repeating-linear-gradient(91deg, #85542F 0 2px, #98663E 2px 5px, #8C5C36 5px 8px, #A57148 8px 12px, #925F38 12px 15px);
+  --deck: #CDD1D7; --plate: #2A2F37;
+  --lcd: #B7C79D; --lcd-text: #1F2B14; --lcd-glow: transparent;
+  --scrim: rgba(30, 26, 18, .35);
+  --glow: 0;
+  color-scheme: light;
+}
+
+/* One side gutter for the desktop: the menubar and the page content line up on it. With the wooden cheeks it starts after the wood. */
+.rs { --gutter: 24px; }
+.rs.console { --gutter: 38px; }

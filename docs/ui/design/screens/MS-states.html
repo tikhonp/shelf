@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · States and dialogs</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<style>body { margin: 0; }</style>
+</head>
+<body>
+<div class="rs desk" style="width: 1440px; height: 1440px; padding: 48px; display: flex; flex-direction: column; gap: 26px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 class="px" style="font-size: 24px">States and dialogs</h1>
+<p class="t2">Phone width. Each display says what happened in a few words; the text under it says what to do.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px 24px; align-items: start">
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Before the first search</p>
+<section class="win"><div class="tb"><h2>Search</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px">
+<label class="field"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m20 20-4.5-4.5"></path></svg><span class="sr">Search</span><input type="search" placeholder="Search or paste a link"></label>
+<div class="lcd" style="align-items: center; text-align: center; min-height: 92px"><div class="lcd-big">READY</div><div class="lcd-l">QOBUZ OK · APPLE MUSIC OK</div></div>
+<p class="t2" style="text-align: center">Type an album, an artist or a track, or paste a link from either app.</p>
+<button type="button" class="key block">Paste a link</button>
+</div></section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Loading</p>
+<section class="win"><div class="tb"><h2>Search</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px">
+<label class="field"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m20 20-4.5-4.5"></path></svg><span class="sr">Search</span><input type="search" value="glass orchard"></label>
+<div class="lcd" style="flex-direction: row; align-items: center; gap: 10px"><span class="led run blink"></span><span class="lcd-l">SEARCHING APPLE MUSIC</span></div>
+<div aria-busy="true" style="display: flex; flex-direction: column; gap: 12px; padding: 4px 2px">
+<span class="sr">Loading results</span>
+<div style="display: flex; gap: 12px; align-items: center"><span class="sk" style="width: 52px; height: 52px"></span><span style="flex: 1; display: flex; flex-direction: column; gap: 8px"><span class="sk" style="width: 80%"></span><span class="sk" style="width: 55%"></span></span></div>
+<div style="display: flex; gap: 12px; align-items: center"><span class="sk" style="width: 52px; height: 52px"></span><span style="flex: 1; display: flex; flex-direction: column; gap: 8px"><span class="sk" style="width: 64%"></span><span class="sk" style="width: 40%"></span></span></div>
+<div style="display: flex; gap: 12px; align-items: center"><span class="sk" style="width: 52px; height: 52px"></span><span style="flex: 1; display: flex; flex-direction: column; gap: 8px"><span class="sk" style="width: 74%"></span><span class="sk" style="width: 50%"></span></span></div>
+</div>
+</div></section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">No results</p>
+<section class="win"><div class="tb"><h2>Search</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px">
+<label class="field"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m20 20-4.5-4.5"></path></svg><span class="sr">Search</span><input type="search" value="northren statik"></label>
+<div class="lcd" style="align-items: center; text-align: center; min-height: 92px"><div class="lcd-big" style="font-size: 30px">NO RESULTS</div><div class="lcd-l">0 ALBUMS ON QOBUZ</div></div>
+<p class="t2" style="text-align: center">Nothing found for “northren statik”. Check the spelling, or look on Apple Music.</p>
+<button type="button" class="key block">Search Apple Music</button>
+</div></section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Link not recognised</p>
+<section class="win"><div class="tb"><h2>Search</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px">
+<label class="field"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"></path><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg><span class="sr">Search</span><input type="search" value="https://example.com/album/123"></label>
+<div class="lcd" style="align-items: center; text-align: center; min-height: 92px"><div class="lcd-big" style="font-size: 30px">UNKNOWN LINK</div><div class="lcd-l">NOT QOBUZ OR APPLE MUSIC</div></div>
+<p class="t2" style="text-align: center">This link is not from Qobuz or Apple Music.</p>
+<button type="button" class="key block">Clear</button>
+</div></section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Source error: Qobuz token expired</p>
+<section class="win"><div class="tb"><h2>Search</h2><span class="stripes"></span><button type="button" class="wbtn txt srcbtn" aria-expanded="true" aria-label="Sources: All sources"><span>All sources</span><span class="lamps" aria-hidden="true"><span class="led bad"></span><span class="led ok"></span></span><svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px">
+<div class="rockers" role="group" aria-label="Sources to search"><button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Qobuz</span><span class="rk-state"><span class="led bad"></span>Token expired</span></span></button><button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Apple Music</span><span class="rk-state"><span class="led ok"></span>On</span></span></button></div>
+<div class="lcd" style="align-items: center; text-align: center; min-height: 92px"><div class="lcd-big" style="font-size: 30px">TOKEN EXPIRED</div><div class="lcd-l">QOBUZ · 401 AT 14:05</div></div>
+<p class="t2" style="text-align: center">Results come from Apple Music only. Qobuz can't search or download until the token is replaced and shelf restarts.</p>
+<a class="key block" href="MS-desk-status.html">How to replace it</a>
+</div></section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Source error: Apple Music signed out</p>
+<section class="win"><div class="tb"><h2>Search</h2><span class="stripes"></span><button type="button" class="wbtn txt srcbtn" aria-expanded="false" aria-label="Sources: All sources"><span>All sources</span><span class="lamps" aria-hidden="true"><span class="led ok"></span><span class="led warn"></span></span><svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px">
+<div class="lcd" style="align-items: center; text-align: center; min-height: 92px"><div class="lcd-big" style="font-size: 30px">SIGNED OUT</div><div class="lcd-l">APPLE MUSIC WRAPPER</div></div>
+<p class="t2" style="text-align: center">Results come from Qobuz only. The wrapper has no Apple ID signed in, so Apple Music can't search or download.</p>
+<a class="key sun block" href="MS-desk-status.html">Sign in</a>
+</div></section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Rate limited</p>
+<section class="win"><div class="tb"><h2>Search</h2><span class="stripes"></span><span class="led warn blink"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px">
+<div class="vu" role="img" aria-label="Wait: 42 seconds left"><div class="vu-face"><svg viewBox="0 0 200 120" aria-hidden="true"><path class="arc" d="M29.29 65.74 A110 110 0 0 1 170.71 65.74"></path><path class="ticks" d="M27.36 63.44 A113 113 0 0 1 172.64 63.44"></path><path class="ticks major" d="M25.76 61.52 A115.5 115.5 0 0 1 174.24 61.52"></path><text class="vn" x="16.4" y="54.4">0</text><text class="vn" x="55.5" y="31.8">15</text><text class="vn" x="100" y="24">30</text><text class="vn" x="144.5" y="31.8">45</text><text class="vn" x="183.6" y="54.4">60</text><g transform="rotate(16 100 150)"><line class="needle-sh" x1="101.5" y1="150" x2="101.5" y2="36"></line><line class="needle" x1="100" y1="150" x2="100" y2="34"></line></g><path class="hub" d="M78 120 A22 22 0 0 1 122 120 Z"></path></svg></div></div>
+<p style="text-align: center; font-weight: 600">Qobuz is slowing us down, try again in a minute</p>
+<p class="t2 sm" style="text-align: center">Downloads already running carry on.</p>
+<button type="button" class="key block">Try again</button>
+</div></section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Artist: Download all, confirm</p>
+<section class="win"><div class="tb"><h2>Download all</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px">
+<h3 style="font-size: 17px; font-weight: 700">Download 12 releases by Northern Static?</h3>
+<div class="lcd" style="gap: 4px"><div class="lcd-l" style="display: flex; justify-content: space-between"><span>ALBUMS</span><span class="num">8</span></div><div class="lcd-l" style="display: flex; justify-content: space-between"><span>EPS AND SINGLES</span><span class="num">4</span></div><div class="lcd-l" style="display: flex; justify-content: space-between"><span>IN LIBRARY, SKIPPED</span><span class="num">2</span></div><div class="lcd-l" style="display: flex; justify-content: space-between"><span>FORMAT</span><span>MAX</span></div></div>
+<p class="t2 sm">Each release becomes its own download, after the 3 already queued.</p>
+<div style="display: flex; gap: 12px"><button type="button" class="key" style="flex: 1">Cancel</button><button type="button" class="key sun" style="flex: 1">Download 12 · Max</button></div>
+</div></section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Sign-in, step 1</p>
+<section class="win"><div class="tb"><h2>Sign in</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px">
+<span class="px t3" style="font-size: 12px">Step 1 of 2 · Apple Music</span>
+<label class="lbl-f">Apple ID<input class="input" type="email" value="name@example.com"></label>
+<label class="lbl-f">Password<input class="input" type="password" value="correct-horse"></label>
+<p class="t2 sm">Shelf passes the password to the wrapper and keeps no copy.</p>
+<div style="display: flex; gap: 12px"><button type="button" class="key" style="flex: 1">Cancel</button><button type="button" class="key sun" style="flex: 1">Sign in</button></div>
+</div></section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Signed in</p>
+<section class="win"><div class="tb"><h2>Sign in</h2><span class="stripes"></span><span class="led ok"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px">
+<div class="lcd" style="align-items: center; text-align: center; min-height: 92px"><div class="lcd-big" style="font-size: 30px">SIGNED IN</div><div class="lcd-l">STOREFRONT RU</div></div>
+<p style="text-align: center; font-weight: 600">Signed in, storefront RU</p>
+<p class="t2 sm" style="text-align: center">Apple Music search and downloads work again.</p>
+<button type="button" class="key sun block">Done</button>
+</div></section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Sign-in failed</p>
+<section class="win"><div class="tb"><h2>Sign in</h2><span class="stripes"></span><span class="led bad"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px">
+<div class="lcd" style="align-items: center; text-align: center; min-height: 92px"><div class="lcd-big" style="font-size: 30px">ERROR</div><div class="lcd-l">SIGN-IN FAILED</div></div>
+<div class="term">auth error: incorrect Apple ID or password</div>
+<div style="display: flex; gap: 12px"><button type="button" class="key" style="flex: 1">Close</button><button type="button" class="key sun" style="flex: 1">Try again</button></div>
+</div></section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">The code timed out</p>
+<section class="win"><div class="tb"><h2>Sign in</h2><span class="stripes"></span><span class="led warn"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px">
+<div class="lcd" style="align-items: center; text-align: center; min-height: 92px"><div class="lcd-big num">0:00</div><div class="lcd-l">CODE TIMED OUT</div></div>
+<p style="text-align: center; font-weight: 600">The code wasn't entered in time. Try again.</p>
+<p class="t2 sm" style="text-align: center">The wrapper waits 60 seconds for the code.</p>
+<div style="display: flex; gap: 12px"><button type="button" class="key" style="flex: 1">Close</button><button type="button" class="key sun" style="flex: 1">Try again</button></div>
+</div></section></div>
+
+</div>
+</div>
+<!-- Add ?theme=day to the address to see the Day theme. -->
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>

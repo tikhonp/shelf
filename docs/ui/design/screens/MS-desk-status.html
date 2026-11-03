@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Desktop · Status with sign-in</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<style>body { margin: 0; }</style>
+</head>
+<body>
+<div class="rs desk console" style="position: relative; min-height: 100vh; display: flex; flex-direction: column">
+<header class="menubar">
+<a class="brand" href="MS-desk-search.html"><span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>Music Shelf</a>
+<nav style="display: flex; gap: 6px" aria-label="Main">
+<a class="mb-item" href="MS-desk-search.html">Search</a>
+<a class="mb-item" href="MS-desk-downloads.html">Downloads<span class="led run" title="Downloads in progress"></span><span class="sr">, downloads in progress</span></a>
+<a class="mb-item on" href="MS-desk-status.html" aria-current="page">Status<span class="led bad" title="2 parts need attention"></span></a>
+</nav>
+<div class="mb-right">
+<span class="t2 sm" style="color: #C9CCD2">Checked 20 s ago</span>
+<button type="button" class="key sm">Check again</button>
+<span class="vfd num">14:32</span>
+</div>
+</header>
+
+<div style="flex: 1; display: flex; flex-direction: column; gap: 16px; padding: 20px var(--gutter) 28px; max-width: 1180px">
+
+<section class="win unit" aria-labelledby="st-q">
+<div class="unit-body">
+<div class="plate"><h2 id="st-q"><span class="led bad"></span>Qobuz</h2><span class="sub">Studio subscription · proxy off</span></div>
+<div class="lcd" style="flex: 0 1 300px; min-height: 72px"><div class="lcd-l">TOKEN EXPIRED</div><div class="lcd-l">401 AT 14:05</div></div>
+<div class="note" style="flex: 1 1 360px; border-color: var(--red)">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<strong class="px" style="font-size: 13px; color: var(--text)">Replace the token</strong>
+<ol class="sub" style="padding-left: 18px; display: flex; flex-direction: column; gap: 2px">
+<li>Sign in at play.qobuz.com in a browser.</li>
+<li>Copy the user auth token from the web player's local storage.</li>
+<li>Put it in <code class="mono" style="color: var(--text)">SHELF_QOBUZ_TOKEN</code> and restart shelf.</li>
+</ol>
+</div>
+</div>
+</div>
+</section>
+
+<section class="win unit" aria-labelledby="st-a">
+<div class="unit-body">
+<div class="plate"><h2 id="st-a"><span class="led warn"></span>Apple Music</h2><span class="sub">The wrapper, for decryption</span></div>
+<div class="lcd" style="flex: 0 1 300px; min-height: 72px"><div class="lcd-l">WRAPPER SIGNED OUT</div><div class="lcd-l">STOREFRONT RU (CONFIG)</div></div>
+<div style="display: flex; gap: 12px; align-items: center">
+<button type="button" class="key sun"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>Sign in</button>
+<button type="button" class="key">Restart</button>
+</div>
+<div class="term" style="flex: 1 1 100%" role="log" aria-label="Wrapper log, last lines">
+<div><span class="ts">09:12:38</span>  service mode started on 0.0.0.0:12340</div>
+<div><span class="ts">09:12:40</span>  <span class="wn">/status lists no region</span></div>
+</div>
+</div>
+</section>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px">
+<section class="win unit" aria-labelledby="st-n">
+<div class="unit-body">
+<div class="plate" style="width: auto"><h2 id="st-n"><span class="led ok"></span>Navidrome</h2><span class="mono t2">http://navidrome:4533</span></div>
+<div class="lcd" style="flex: 1 1 160px"><div class="lcd-l">ONLINE · 38 MS</div><div class="lcd-l">LAST SCAN 3 MIN</div></div>
+<button type="button" class="key">Scan now</button>
+</div>
+</section>
+<section class="win unit" aria-labelledby="st-t">
+<div class="unit-body">
+<div class="plate" style="width: auto"><h2 id="st-t"><span class="led ok"></span>Telegram</h2><span class="sub">@music_shelf_bot · proxy on</span></div>
+<div class="lcd" style="flex: 1 1 160px"><div class="lcd-l">CONNECTED</div><div class="lcd-l">ANSWERS 2 USERS</div></div>
+</div>
+</section>
+</div>
+
+<section class="win unit" aria-labelledby="st-l">
+<div class="unit-body">
+<div class="plate"><h2 id="st-l"><span class="led off"></span>Rate limits</h2><span class="sub">New requests wait when a source asks us to slow down</span></div>
+<div class="lcd" style="flex: 0 1 300px; min-height: 72px">
+<div class="lcd-l" style="display: flex; justify-content: space-between"><span>QOBUZ</span><span>NOT LIMITED</span></div>
+<div class="lcd-l" style="display: flex; justify-content: space-between"><span>APPLE MUSIC</span><span>NOT LIMITED</span></div>
+</div>
+<p class="sub" style="flex: 1 1 200px">Neither source is limiting requests. When one does, new requests wait and the time left shows here.</p>
+</div>
+</section>
+</div>
+
+<div class="scrim">
+<section class="win dlg" role="dialog" aria-modal="true" aria-labelledby="si-t">
+<div class="tb"><h2 id="si-t">Apple Music sign-in</h2><span class="stripes"></span><button type="button" class="wbtn" aria-label="Close"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<div class="dlg-body">
+<span class="px t3" style="font-size: 12px">Step 2 of 2</span>
+<h3 style="font-size: 18px; font-weight: 700">Enter the code sent to your Apple devices</h3>
+<fieldset style="border: 0; margin: 0; padding: 0">
+<legend class="sr">Six-digit code</legend>
+<div class="digits">
+<input class="digit" inputMode="numeric" aria-label="Digit 1" value="4">
+<input class="digit" inputMode="numeric" aria-label="Digit 2" value="8">
+<input class="digit" inputMode="numeric" aria-label="Digit 3" value="1">
+<input class="digit" inputMode="numeric" aria-label="Digit 4" value="9">
+<input class="digit focus" inputMode="numeric" aria-label="Digit 5" value="">
+<input class="digit" inputMode="numeric" aria-label="Digit 6" value="">
+</div>
+</fieldset>
+<div style="display: flex; align-items: center; gap: 12px">
+<span class="vfd num" style="color: var(--yellow)">0:42</span>
+<div class="meter" style="flex: 1" role="img" aria-label="42 of 60 seconds left"><i class="d"></i><i class="d"></i><i class="d"></i><i class="d"></i><i class="d"></i><i class="d"></i><i class="d"></i><i></i><i></i><i></i></div>
+</div>
+<p class="t2 sm">Pasting the whole code into the first box fills all six.</p>
+</div>
+<div class="dlg-actions"><button type="button" class="key">Cancel</button><button type="button" class="key sun off" aria-disabled="true">Confirm</button></div>
+</section>
+</div>
+</div>
+<!-- Add ?theme=day to the address to see the Day theme. -->
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>

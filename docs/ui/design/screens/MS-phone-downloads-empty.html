@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Phone · Downloads, nothing running</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<style>body { margin: 0; }</style>
+</head>
+<body>
+<div class="rs ph desk" style="position: relative; width: 390px; height: 844px; overflow: hidden">
+<div class="stack">
+<section class="win" aria-labelledby="pde-t">
+<div class="tb">
+<h1 id="pde-t">Downloads</h1>
+<span class="stripes"></span>
+<button type="button" class="wbtn" aria-label="Scan the library now. Last scan 3 minutes ago" title="Scan now"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-14 5.3"></path><path d="M4 12a8 8 0 0 1 14-5.3"></path><path d="M18 3v4h-4"></path><path d="M6 21v-4h4"></path></svg></button>
+</div>
+<div class="vscroll" style="gap: 14px; padding: 12px 12px 0">
+<section class="deck" aria-labelledby="pde-deck">
+<div class="deck-top"><span class="led off"></span><h2 id="pde-deck" class="px" style="font-size: 15px; font-weight: 500">Nothing downloading</h2><span class="stripes" style="height: 11px"></span></div>
+<p class="t2">Download an album, a track or a playlist from Search, and it shows here while it runs.</p>
+<a class="key block" href="MS-phone-start.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m20 20-4.5-4.5"></path></svg>Go to Search</a>
+</section>
+<section aria-labelledby="pde-hist" style="display: flex; flex-direction: column">
+<h2 id="pde-hist" class="px" style="font-size: 17px; padding-bottom: 6px; border-bottom: 2px solid var(--ink)">History</h2>
+<div class="row" style="grid-template-columns: 44px minmax(0, 1fr) auto; align-items: start; padding: 10px 0">
+<span class="cv a-orchard" style="width: 44px; height: 44px"></span>
+<span class="two" style="gap: 3px">
+<span class="ttl" style="font-size: 14px"><span class="ell">Glass Orchard</span></span>
+<span class="sub ell">Vela Choir · Apple Music · 14:35</span>
+<span style="display: flex; align-items: center; gap: 8px; margin-top: 3px; min-width: 0"><span class="pill done">Done</span><span class="xs t2 ell">12 tracks · 1.1 GB</span></span>
+</span>
+<span></span>
+</div>
+<div class="row" style="grid-template-columns: 44px minmax(0, 1fr) auto; align-items: start; padding: 10px 0">
+<span class="cv a-ferry" style="width: 44px; height: 44px"></span>
+<span class="two" style="gap: 3px">
+<span class="ttl" style="font-size: 14px"><span class="ell">Night Ferry</span></span>
+<span class="sub ell">Mira Holt · Qobuz · 14:12</span>
+<span style="display: flex; align-items: center; gap: 8px; margin-top: 3px; min-width: 0"><span class="pill done">Done</span><span class="xs t2 ell">9 tracks · 412 MB</span></span>
+</span>
+<span></span>
+</div>
+<div class="row" style="grid-template-columns: 44px minmax(0, 1fr) auto; align-items: start; padding: 10px 0">
+<span class="cv a-lantern" style="width: 44px; height: 44px"></span>
+<span class="two" style="gap: 3px">
+<span class="ttl" style="font-size: 14px"><span class="ell">Paper Lanterns</span></span>
+<span class="sub ell">The Quiet Arcade · Apple Music · 13:40</span>
+<span style="display: flex; align-items: center; gap: 8px; margin-top: 3px; min-width: 0"><span class="pill partial">Done with errors</span><span class="xs t2 ell">11 of 12</span></span>
+</span>
+<button type="button" class="key icon" aria-label="Try again: Paper Lanterns"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.5-5.8"></path><path d="M4 4v5h5"></path></svg></button>
+</div>
+<div class="row" style="grid-template-columns: 44px minmax(0, 1fr) auto; align-items: start; padding: 10px 0">
+<span class="cv a-tide2" style="width: 44px; height: 44px"></span>
+<span class="two" style="gap: 3px">
+<span class="ttl" style="font-size: 14px"><span class="ell">Low Tide Hymns (2024 Remaster)</span></span>
+<span class="sub ell">Northern Static · Qobuz · yesterday</span>
+<span style="display: flex; align-items: center; gap: 8px; margin-top: 3px; min-width: 0"><span class="pill done">Done</span><span class="xs t2 ell">13 tracks · 2.4 GB</span></span>
+</span>
+<span></span>
+</div>
+</section>
+</div>
+</section>
+</div>
+
+<nav class="dock" aria-label="Main">
+<a href="MS-phone-start.html"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m20 20-4.5-4.5"></path></svg>Search</a>
+<a href="MS-phone-downloads.html" class="on" aria-current="page"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"></rect><circle cx="9" cy="12" r="2"></circle><circle cx="15" cy="12" r="2"></circle><path d="M7 18l1.5-3h7L17 18"></path></svg>Downloads</a>
+<a href="MS-phone-status.html"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17a8 8 0 1 1 16 0"></path><path d="M12 17l4-5"></path></svg>Status</a>
+</nav>
+</div>
+<!-- Add ?theme=day to the address to see the Day theme. -->
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Phone · Apple Music sign-in, account</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<style>body { margin: 0; }</style>
+</head>
+<body>
+<div class="rs ph desk" style="position: relative; width: 390px; height: 844px; overflow: hidden">
+<div class="stack">
+<section class="win" aria-labelledby="psi-t">
+<div class="tb">
+<a class="wbtn" href="MS-phone-status.html" aria-label="Back to Status"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></a>
+<h1 id="psi-t">Apple Music sign-in</h1>
+<span class="stripes"></span>
+</div>
+<div class="vscroll" style="gap: 14px; padding: 18px 14px">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<span class="px t3" style="font-size: 12px">Step 1 of 2</span>
+<h2 style="font-size: 20px; font-weight: 700; line-height: 1.25">Sign the wrapper in to an Apple ID</h2>
+<label class="lbl-f">Apple ID<input class="input" type="email" autoComplete="username" value="name@example.com"></label>
+<label class="lbl-f">Password<input class="input" type="password" autoComplete="current-password" value="correct-horse"></label>
+<p class="t2 sm">Shelf passes the password to the wrapper and keeps no copy.</p>
+<button type="button" class="key sun lg block">Continue</button>
+</div>
+<div style="display: none; flex-direction: column; gap: 16px">
+<span class="px t3" style="font-size: 12px">Step 2 of 2</span>
+<h2 style="font-size: 20px; font-weight: 700; line-height: 1.25">Enter the code sent to your Apple devices</h2>
+<fieldset style="border: 0; margin: 0; padding: 0">
+<legend class="sr">Six-digit code</legend>
+<div class="digits" style="justify-content: space-between"><input class="digit" inputMode="numeric" maxLength="1" aria-label="Digit 1" value="4" autoComplete="one-time-code"><input class="digit" inputMode="numeric" maxLength="1" aria-label="Digit 2" value="8"><input class="digit" inputMode="numeric" maxLength="1" aria-label="Digit 3" value="1"><input class="digit" inputMode="numeric" maxLength="1" aria-label="Digit 4" value="9"><input class="digit" inputMode="numeric" maxLength="1" aria-label="Digit 5" value="3"><input class="digit" inputMode="numeric" maxLength="1" aria-label="Digit 6" value="7"></div>
+</fieldset>
+<div style="display: flex; align-items: center; gap: 12px"><span class="vfd num" style="color: var(--yellow)">0:42</span><span class="t2 sm">left to enter the code</span></div>
+<p class="t2 sm">Pasting the whole code into the first box fills all six.</p>
+<button type="button" class="key sun lg block">Confirm</button>
+<button type="button" class="key flat block">Send a new code</button>
+</div>
+<div style="display: none; flex-direction: column; gap: 16px">
+<div class="lcd" style="flex: none; align-items: center; text-align: center; min-height: 92px"><div class="lcd-big" style="font-size: 30px">SIGNED IN</div><div class="lcd-l">STOREFRONT RU</div></div>
+<p class="t2" style="text-align: center">Apple Music can search and download again.</p>
+<a class="key block" href="MS-phone-status.html">Back to Status</a>
+</div>
+</div>
+</section>
+</div>
+
+<nav class="dock" aria-label="Main">
+<a href="MS-phone-start.html"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m20 20-4.5-4.5"></path></svg>Search</a>
+<a href="MS-phone-downloads.html"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"></rect><circle cx="9" cy="12" r="2"></circle><circle cx="15" cy="12" r="2"></circle><path d="M7 18l1.5-3h7L17 18"></path></svg>Downloads<span class="led run" title="Downloads in progress"></span><span class="sr">, downloads in progress</span></a>
+<a href="MS-phone-status.html" class="on" aria-current="page"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17a8 8 0 1 1 16 0"></path><path d="M12 17l4-5"></path></svg>Status<span class="led warn" title="Apple Music needs a sign-in" style="display: inline-block"></span><span class="sr" style="display: inline-block">, apple Music needs a sign-in</span></a>
+</nav>
+</div>
+<!-- Add ?theme=day to the address to see the Day theme. -->
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>

@@ -2,6 +2,21 @@
 
 Newest first. A changed decision gets a new entry that names the one it replaces.
 
+## 2026-11-04: UI design
+
+Made in the Claude Design session. They change what `ui/design-brief.md` and 1g's contract said, and both now match. The screens and rules are in [ui/design/](ui/design/README.md).
+
+| Topic | Decision | Why |
+| --- | --- | --- |
+| Look | The look is a recording studio built around a British mixing console: blue-grey modules, ivory push buttons, red and blue knobs, lamps, small displays. It is only visual, and labels use the glossary. Replaces the brief's neutral chrome with one accent color. | The owner's choice, with usability first: WCAG AA text in both themes and 44px touch targets. |
+| Devices | The UI is phone first for searching and downloading; the desktop uses the same parts with more room. Replaces the brief's "mostly a desktop browser". | The owner's stated priority. |
+| Theme | Night, the dark theme, is the default. A switch turns on Day, and the app remembers the choice. Replaces the brief's and 1g's "follows the system". | The owner's stated priority. |
+| Search sources | Search covers every source that is on, and the results come in one list with the source named on each row. A Sources switch opens one on and off switch per source. Replaces the brief's switch between Qobuz and Apple Music. | More sources may come, and a switch between two would not grow with them. |
+| Shell | The desktop has a menubar and the phone a tab bar. A tab shows one amber lamp while there is something to look at, and never a number. Replaces the brief's left sidebar and the count on Downloads. | The owner asked for a lamp in place of the count. |
+| Notices | Nothing floats over the content. On the phone a notice such as Queued takes its own place between the window and the tab bar. Replaces the brief's toasts in a corner. | The owner said a notice on top of the content doesn't look like a real device. |
+| Source names | Source names are plain text on each row, with no color dot or logo. Replaces the brief's source marker with a dot. | The owner asked for text only. |
+| Lamp colors | Only `ui/design/README.md` explains them; the UI has no legend. | The owner asked for that. |
+
 ## 2026-11-03: step 1b
 
 | Topic | Decision | Why |
