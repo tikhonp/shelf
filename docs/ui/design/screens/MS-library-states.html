@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · States, Night</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="../library.css">
+<style>body { margin: 0; }</style>
+</head>
+<body>
+<div class="rs ph desk" style="box-sizing: border-box; width: 1440px; height: 1500px; padding: 48px; display: flex; flex-direction: column; gap: 26px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 class="px" style="font-size: 24px">Library states</h1>
+<p class="t2">Phone width. On the desktop each one takes the same place in the editor, in the Save bar's position or above the fields. Each display says what happened in a few words, and the text under it says what to do.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px 24px; align-items: start">
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Loading an album</p>
+<section class="win"><div class="tb"><h2>Album</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px" aria-busy="true">
+<div class="lcd" style="flex: none; flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px"><span class="led run blink"></span><span class="lcd-l">READING 11 FILES</span></div>
+<span class="sr">Loading the album</span>
+<div style="display: flex; gap: 12px; align-items: center"><span class="sk" style="width: 72px; height: 72px"></span><span style="flex: 1; display: flex; flex-direction: column; gap: 8px"><span class="sk" style="width: 80%"></span><span class="sk" style="width: 55%"></span></span></div>
+<span class="sk" style="height: 36px"></span><span class="sk" style="height: 36px"></span><span class="sk" style="height: 36px"></span>
+</div></section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">No albums match</p>
+<section class="win"><div class="tb"><h2>Library</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px">
+<label class="field"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m20 20-4.5-4.5"></path></svg><span class="sr">Search the library</span><input type="search" value="northren statik"></label>
+<div class="lcd" style="flex: none; align-items: center; text-align: center; min-height: 92px"><div class="lcd-big" style="font-size: 30px">NO ALBUMS</div><div class="lcd-l">FILTER: HAS ISSUES</div></div>
+<p class="t2" style="text-align: center">Nothing under Has issues matches "northren statik".</p>
+<button type="button" class="key block">Clear filter and search</button>
+</div></section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">First index still running</p>
+<section class="win"><div class="tb"><h2>Library</h2><span class="stripes"></span><span class="led run blink" title="Indexing"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px">
+<div class="lcd" style="flex: none; gap: 4px" role="img" aria-label="412 of about 1,100 albums read"><div style="display: flex; align-items: baseline; gap: 10px"><span class="lcd-big num">412</span><span class="lcd-l">ALBUMS READ</span></div><div class="lcd-l"><span class="ell">NOW: JAZZ/MIRA HOLT</span></div></div>
+<p class="t2" style="text-align: center">shelf is reading the music folder for the first time. Albums appear here as it finds them, and any album can open now.</p>
+</div></section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Saving</p>
+<section class="win"><div class="lib-save" role="status" style="border-top: 0">
+<div class="lcd" style="flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px"><span class="led run blink"></span><span class="lcd-l">SAVING 11 FILES</span></div>
+</div>
+<p class="t2 sm" style="padding: 0 14px 12px">Save runs on the server, so closing the page doesn't stop it.</p>
+</section>
+<p class="px t3" style="font-size: 12px; margin: 18px 0 8px">Saved</p>
+<section class="win"><div class="tb"><span class="led ok"></span><h2>Saved</h2><span class="stripes"></span></div>
+<p class="t2" style="padding: 12px 14px">3 changes on 11 tracks. Navidrome is scanning.</p>
+</section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Conflict: another tool changed a file</p>
+<section class="win"><div class="tb"><span class="led warn"></span><h2>Not saved</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px">
+<div class="lcd" style="flex: none; align-items: center; text-align: center; min-height: 72px"><div class="lcd-big" style="font-size: 26px">FILES CHANGED</div><div class="lcd-l">2 OF 11 SINCE YOU OPENED</div></div>
+<p class="t2">Another tool changed these files after the album opened. shelf wrote nothing. Reload reads the files again and keeps your 3 staged changes.</p>
+<button type="button" class="key sun block">Reload album</button>
+</div></section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Locked: owned by another user</p>
+<section class="win"><div class="tb"><span class="led warn"></span><h2>Not saved</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px">
+<div class="lcd" style="flex: none; align-items: center; text-align: center; min-height: 72px"><div class="lcd-big" style="font-size: 26px">LOCKED</div><div class="lcd-l">3 FILES, UID 1000</div></div>
+<p class="t2">shelf can't write files that belong to another user, so it wrote nothing. Your staged changes stay. Give the folder to UID 10001, then press Save again.</p>
+<code class="mono" style="word-break: break-all">jazz/Mira Holt - Night Ferry/</code>
+</div></section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Busy: a download is in this folder</p>
+<section class="win"><div class="tb"><span class="led warn"></span><h2>Not saved</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px">
+<div class="lcd" style="flex: none; align-items: center; text-align: center; min-height: 72px"><div class="lcd-big" style="font-size: 26px">BUSY</div><div class="lcd-l">DOWNLOAD 418 RUNNING</div></div>
+<p class="t2">A download is writing into this folder. Your staged changes stay. Press Save again when it ends.</p>
+<a class="key block" href="MS-desk-downloads.html">Open the download</a>
+</div></section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Failed save</p>
+<section class="win"><div class="tb"><span class="led bad"></span><h2>Not saved</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px">
+<div class="lcd" style="flex: none; align-items: center; text-align: center; min-height: 72px"><div class="lcd-big" style="font-size: 26px">SAVE FAILED</div><div class="lcd-l">FILES LEFT AS THEY WERE</div></div>
+<div class="term">read-back: 04. Lighthouse Keeper.flac: GENRE differs after write</div>
+<p class="t2">No file changed. Your staged changes stay.</p>
+<button type="button" class="key sun block">Try again</button>
+</div></section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Suggestions unavailable</p>
+<section class="win"><div class="tb"><h2>Editor</h2><span class="stripes"></span></div>
+<div class="note" style="margin: 12px; align-items: center"><span class="led warn"></span><div class="two" style="flex: 1; gap: 2px"><span style="font-weight: 600">MusicBrainz doesn't answer</span><span class="sub">Its suggestions are missing. The others still show.</span></div></div>
+<div class="lib-fields">
+<div class="lf" style="grid-template-columns: 112px minmax(0, 1fr); border-top: 1px solid var(--line)"><span class="lf-l">Genre</span><div class="lf-c"><span class="lf-in"><input class="lib-in mixed" placeholder="Mixed" aria-label="Genre"></span></div><div class="lf-s" style="grid-column: 2; min-height: 0"><button type="button" class="sug"><span class="sug-v">Post-Rock</span><span class="sug-s">Qobuz</span><span class="sug-p">71%</span></button></div></div>
+</div>
+</section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">No suggestions</p>
+<section class="win"><div class="tb"><h2>Editor</h2><span class="stripes"></span></div>
+<div class="lib-fields">
+<div class="lf" style="grid-template-columns: 112px minmax(0, 1fr)"><span class="lf-l">Disc</span><div class="lf-c"><span class="lf-in"><input class="lib-in" value="1" aria-label="Disc"></span></div></div>
+<div class="lf" style="grid-template-columns: 112px minmax(0, 1fr); border-bottom: 0"><span class="lf-l">Recording date</span><div class="lf-c"><span class="lf-in"><input class="lib-in" placeholder="Empty" aria-label="Recording date"></span></div></div>
+</div>
+<p class="t2 sm" style="padding: 8px 14px 12px">A field with no suggestion shows nothing, not a placeholder.</p>
+</section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Navidrome date warning</p>
+<section class="win"><div class="tb"><h2>Editor</h2><span class="stripes"></span></div>
+<div class="lib-fields">
+<div class="lf" style="grid-template-columns: 112px minmax(0, 1fr); border-bottom: 0"><span class="lf-l"><span class="led stg" role="img" aria-label="Staged"></span>Release date</span><div class="lf-c"><span class="lf-in"><input class="lib-in stg" value="2024-05-03" aria-label="Release date"><button type="button" class="lf-rev" aria-label="Revert Release date"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.5-5.8"></path><path d="M4 4v5h5"></path></svg></button></span><span class="lf-was">Was empty</span><p class="lf-note"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 8h.01"></path></svg><span>Navidrome will show 2024 for this album.</span></p></div></div>
+</div>
+</section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Split warning before Save</p>
+<section class="win"><div class="tb"><h2>Editor</h2><span class="stripes"></span></div>
+<div class="lib-fields">
+<div class="lf" style="grid-template-columns: 112px minmax(0, 1fr); border-bottom: 0"><span class="lf-l"><span class="led stg" role="img" aria-label="Staged"></span>Album</span><div class="lf-c"><span class="lf-in"><input class="lib-in stg" value="Signal Fires" aria-label="Album"><button type="button" class="lf-rev" aria-label="Revert Album"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.5-5.8"></path><path d="M4 4v5h5"></path></svg></button></span><span class="lf-was">Was Low Tide Hymns</span><p class="lf-note"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 8h.01"></path></svg><span>Save will split this album in Navidrome.</span></p></div></div>
+</div>
+</section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Read-only field</p>
+<section class="win"><div class="tb"><h2>Editor</h2><span class="stripes"></span></div>
+<div class="lib-fields">
+<div class="lf" style="grid-template-columns: 112px minmax(0, 1fr); border-bottom: 0"><span class="lf-l">Original date</span><div class="lf-c"><span class="lf-in"><input class="lib-in ro" value="1998-02-11" aria-readonly="true" aria-label="Original date, read-only"><span class="lf-lock" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="1.5"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></span></span><p class="lf-note"><span>shelf can't change this date in Picard-tagged M4A files.</span></p></div></div>
+</div>
+</section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Corrupt cover</p>
+<section class="win"><div class="tb"><h2>Issue</h2><span class="stripes"></span></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px">
+<span class="cv lib-cvbad" style="width: 56px; height: 56px" role="img" aria-label="Corrupt cover"></span>
+<span class="two" style="flex: 1; gap: 2px"><span style="font-weight: 600">Corrupt cover</span><span class="sub">The embedded cover can't be read.</span></span>
+<button type="button" class="key sm">Repair</button>
+</div>
+</section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Undo with a conflict</p>
+<section class="win"><div class="tb"><span class="led warn"></span><h2>Undo</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 12px">
+<p style="font-weight: 600">15 of 16 tags restored</p>
+<p class="t2">Track 04 stayed as it was, because GENRE changed after this Save. It now says Jazz, and the undo left it alone.</p>
+</div></section></div>
+
+<div><p class="px t3" style="font-size: 12px; margin-bottom: 8px">Album with no issues</p>
+<section class="win"><div class="tb"><h2>Issues</h2><span class="stripes"></span></div>
+<div class="empty"><h2>No issues</h2><p>This album passes every check.</p></div>
+</section></div>
+
+</div>
+</div>
+<!-- Add ?theme=day to the address to see the Day theme. -->
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>

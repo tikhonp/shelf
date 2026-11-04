@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Desktop · keyboard sheet</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="../library.css">
+<style>body { margin: 0; }</style>
+</head>
+<body>
+<div style="min-height: 100vh; background: #14171C">
+
+
+<div class="rs desk console" style="position: relative; height: 100vh; min-height: 640px; display: flex; flex-direction: column; overflow: hidden">
+<header class="menubar">
+<a class="brand" href="MS-desk-search.html"><span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>Music Shelf</a>
+<nav style="display: flex; gap: 6px" aria-label="Main">
+<a class="mb-item" href="MS-desk-search.html">Search</a>
+<a class="mb-item" href="MS-desk-downloads.html">Downloads<span class="led run" title="Downloads in progress"></span><span class="sr">, downloads in progress</span></a>
+<a class="mb-item on" href="MS-desk-library.html" aria-current="page">Library</a>
+<a class="mb-item" href="MS-desk-status.html">Status</a>
+</nav>
+<div class="mb-right">
+<span class="leds" role="img" aria-label="Qobuz, Apple Music and Navidrome work"><span class="led ok" title="Qobuz works"></span><span class="led ok" title="Apple Music works"></span><span class="led ok" title="Navidrome answers"></span></span>
+<button type="button" class="key sm icon" aria-label="Help" title="Help">?</button>
+<button type="button" class="key sm icon" aria-label="Switch to Day" title="Switch to Day"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"></path><circle cx="12" cy="12" r="4"></circle></svg></button>
+<span class="vfd num">14:32</span>
+</div>
+</header>
+
+<div class="lib-main">
+
+<section class="win" style="flex: 0 0 372px" aria-labelledby="ld-a">
+<div class="tb">
+<h1 id="ld-a">Library</h1>
+<span class="stripes"></span>
+<button type="button" class="wbtn txt" aria-pressed="false">Select</button>
+<button type="button" class="wbtn txt" aria-pressed="false">History</button>
+</div>
+<div style="position: relative; display: flex; gap: 10px; padding: 12px 12px 0">
+<label class="field" style="flex: 1; min-width: 0">
+<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m20 20-4.5-4.5"></path></svg>
+<span class="sr">Search the library</span>
+<input type="search" value="" placeholder="Search">
+<kbd class="px t3" style="padding: 0 8px; font-size: 15px">/</kbd>
+</label>
+<button type="button" class="key srcbtn" style="height: 50px; max-width: 170px" aria-expanded="false" aria-haspopup="menu" aria-label="Filter: All albums"><span class="ell">All albums</span><svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+
+</div>
+<div class="rotary" role="radiogroup" aria-label="Sort by" style="margin-top: 12px; border-bottom: 0">
+<div class="rot-labels">
+<button type="button" role="radio" aria-checked="true"><span class="led"></span>Album</button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>Artist</button>
+<button type="button" class="knob grey" style="--s: 44px; --a: -75deg" aria-label="Change the sort, now Album" title="Press to turn"><i></i></button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>Year</button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>Added</button>
+</div>
+</div>
+<div class="lib-list" role="grid" aria-label="Albums">
+<div class="lib-h" style="border-top: 0"><span class="num">1,099 albums</span>
+
+</div>
+<div class="row thead g-lib" role="row">
+
+<span role="columnheader"><span class="sr">Cover</span></span>
+<span role="columnheader">Album</span>
+<span role="columnheader">Artist</span>
+<span role="columnheader">Year</span>
+<span role="columnheader" class="r">Tracks</span>
+<span role="columnheader">Quality</span>
+<span role="columnheader"><span class="sr">Issues</span></span>
+</div>
+
+<div class="row g-lib" role="row">
+
+<span class="cv a-radio"></span>
+<button type="button" class="lib-open two">
+<span class="ttl"><span class="ell">Coastal Radio</span><span class="ver"></span></span>
+<span class="sub ell lib-n">Northern Static · 2014</span>
+</button>
+<span class="sub ell lib-w">Northern Static</span>
+<span class="t2 num sm lib-w">2014</span>
+<span class="t2 num sm r lib-w">8</span>
+<span class="lib-q"><span class="stk lossy">MP3 320</span><span class="sub num lib-n">8 tracks</span></span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+
+<div class="row g-lib" role="row">
+
+<span class="cv a-orchard"></span>
+<button type="button" class="lib-open two">
+<span class="ttl"><span class="ell">Glass Orchard</span><span class="ver">Deluxe Edition</span></span>
+<span class="sub ell lib-n">Vela Choir · 2025</span>
+</button>
+<span class="sub ell lib-w">Vela Choir</span>
+<span class="t2 num sm lib-w">2025</span>
+<span class="t2 num sm r lib-w">12</span>
+<span class="lib-q"><span class="stk ">Lossless</span><span class="sub num lib-n">12 tracks</span></span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+
+<div class="row g-lib" role="row">
+
+<span class="cv a-harbour"></span>
+<button type="button" class="lib-open two">
+<span class="ttl"><span class="ell">Harbour Lights</span><span class="ver"></span></span>
+<span class="sub ell lib-n">Northern Static · 2016</span>
+</button>
+<span class="sub ell lib-w">Northern Static</span>
+<span class="t2 num sm lib-w">2016</span>
+<span class="t2 num sm r lib-w">9</span>
+<span class="lib-q"><span class="stk ">CD 16/44.1</span><span class="sub num lib-n">9 tracks</span></span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+
+<div class="row g-lib" role="row">
+
+<span class="cv a-halden"></span>
+<button type="button" class="lib-open two">
+<span class="ttl"><span class="ell">Live at Halden</span><span class="ver"></span></span>
+<span class="sub ell lib-n">Northern Static · 2023</span>
+</button>
+<span class="sub ell lib-w">Northern Static</span>
+<span class="t2 num sm lib-w">2023</span>
+<span class="t2 num sm r lib-w">14</span>
+<span class="lib-q"><span class="stk hi">Hi-Res 24/96</span><span class="sub num lib-n">14 tracks</span></span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+
+<div class="row g-lib cur" role="row">
+
+<span class="cv a-tide"></span>
+<button type="button" class="lib-open two">
+<span class="ttl"><span class="ell">Low Tide Hymns</span><span class="ver"></span></span>
+<span class="sub ell lib-n">Northern Static · 2019</span>
+</button>
+<span class="sub ell lib-w">Northern Static</span>
+<span class="t2 num sm lib-w">2019</span>
+<span class="t2 num sm r lib-w">11</span>
+<span class="lib-q"><span class="stk hi">Hi-Res 24/96</span><span class="sub num lib-n">11 tracks</span></span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+
+<div class="row g-lib" role="row">
+
+<span class="cv a-tide2"></span>
+<button type="button" class="lib-open two">
+<span class="ttl"><span class="ell">Low Tide Hymns</span><span class="ver">2024 Remaster</span></span>
+<span class="sub ell lib-n">Northern Static · 2024</span>
+</button>
+<span class="sub ell lib-w">Northern Static</span>
+<span class="t2 num sm lib-w">2024</span>
+<span class="t2 num sm r lib-w">11</span>
+<span class="lib-q"><span class="stk master">Hi-Res 24/192</span><span class="sub num lib-n">11 tracks</span></span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+
+<div class="row g-lib" role="row">
+
+<span class="cv a-ferry"></span>
+<button type="button" class="lib-open two">
+<span class="ttl"><span class="ell">Night Ferry</span><span class="ver"></span></span>
+<span class="sub ell lib-n">Mira Holt · 2020</span>
+</button>
+<span class="sub ell lib-w">Mira Holt</span>
+<span class="t2 num sm lib-w">2020</span>
+<span class="t2 num sm r lib-w">9</span>
+<span class="lib-q"><span class="stk hi">Hi-Res 24/96</span><span class="sub num lib-n">9 tracks</span></span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+
+<div class="row g-lib" role="row">
+
+<span class="cv a-lantern"></span>
+<button type="button" class="lib-open two">
+<span class="ttl"><span class="ell">Paper Lanterns</span><span class="ver"></span></span>
+<span class="sub ell lib-n">The Quiet Arcade · 2023</span>
+</button>
+<span class="sub ell lib-w">The Quiet Arcade</span>
+<span class="t2 num sm lib-w">2023</span>
+<span class="t2 num sm r lib-w">12</span>
+<span class="lib-q"><span class="stk ">CD 16/44.1</span><span class="sub num lib-n">12 tracks</span></span>
+
+</div>
+
+<div class="row g-lib" role="row">
+
+<span class="cv a-rooms"></span>
+<button type="button" class="lib-open two">
+<span class="ttl"><span class="ell">Quiet Rooms</span><span class="ver"></span></span>
+<span class="sub ell lib-n">Mira Holt · 2022</span>
+</button>
+<span class="sub ell lib-w">Mira Holt</span>
+<span class="t2 num sm lib-w">2022</span>
+<span class="t2 num sm r lib-w">10</span>
+<span class="lib-q"><span class="stk ">Lossless</span><span class="sub num lib-n">10 tracks</span></span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+
+<div class="row g-lib" role="row">
+
+<span class="cv a-signal"></span>
+<button type="button" class="lib-open two">
+<span class="ttl"><span class="ell">Signal Fires</span><span class="ver"></span></span>
+<span class="sub ell lib-n">Northern Static · 2017</span>
+</button>
+<span class="sub ell lib-w">Northern Static</span>
+<span class="t2 num sm lib-w">2017</span>
+<span class="t2 num sm r lib-w">5</span>
+<span class="lib-q"><span class="stk hi">Hi-Res 24/96</span><span class="sub num lib-n">5 tracks</span></span>
+
+</div>
+
+<div class="row g-lib" role="row">
+
+<span class="cv a-hours"></span>
+<button type="button" class="lib-open two">
+<span class="ttl"><span class="ell">Small Hours, Vol. 2</span><span class="ver"></span></span>
+<span class="sub ell lib-n">Various Artists · 2018</span>
+</button>
+<span class="sub ell lib-w">Various Artists</span>
+<span class="t2 num sm lib-w">2018</span>
+<span class="t2 num sm r lib-w">16</span>
+<span class="lib-q"><span class="stk hi">Hi-Res 24/96</span><span class="sub num lib-n">16 tracks</span></span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+
+<div class="row g-lib" role="row">
+
+<span class="cv a-weather"></span>
+<button type="button" class="lib-open two">
+<span class="ttl"><span class="ell">Static Weather</span><span class="ver"></span></span>
+<span class="sub ell lib-n">Northern Static · 2021</span>
+</button>
+<span class="sub ell lib-w">Northern Static</span>
+<span class="t2 num sm lib-w">2021</span>
+<span class="t2 num sm r lib-w">10</span>
+<span class="lib-q"><span class="stk hi">Hi-Res 24/96</span><span class="sub num lib-n">10 tracks</span></span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+
+
+</div>
+</section>
+
+
+<button type="button" class="lib-split" aria-label="Resize the album list. Left and right arrows change the width." title="Drag to resize"></button>
+
+
+
+<section class="win" style="flex: 1 1 0" aria-labelledby="ld-e">
+<div class="tb">
+<h2 id="ld-e">Editor</h2>
+<span class="stripes"></span>
+<button type="button" class="rocker mini" role="switch" aria-checked="false"><span class="rk" aria-hidden="true"><span class="rk-case"><span class="rk-paddle"></span></span></span><span class="rk-name">All fields</span></button>
+<button type="button" class="wbtn" aria-label="Close the editor"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div class="lib-head">
+<button type="button" class="lib-cover" aria-label="Open the cover" title="Cover"><span class="cv a-tide"></span></button>
+<div class="two" style="flex: 1; gap: 3px">
+<h3 style="font-size: 19px; font-weight: 700; line-height: 1.2">Low Tide Hymns</h3>
+<span class="sub" style="font-size: 14px">Northern Static</span>
+<span style="margin-top: 5px"><span class="stk hi">Hi-Res 24/96</span></span>
+</div>
+</div>
+
+
+<div style="flex: none; padding: 10px 14px"><div class="lcd lib-scope has-tip"><span class="lcd-l ell tip-t">ALL 11 TRACKS</span></div></div>
+<div class="vscroll">
+
+<div class="lib-h"><span>3 issues</span></div>
+
+<div class="lib-iss">
+<span class="led iss" role="img" aria-label="Open issue"></span>
+<span class="two"><span class="ttl has-tip" style="align-self: flex-start"><span class="tip-t">No RELEASEDATE</span></span><span class="sub">The fix adds the tag and keeps the year Navidrome shows, 2019.</span></span>
+<button type="button" class="key sm">Fix</button>
+</div>
+
+<div class="lib-iss">
+<span class="led iss" role="img" aria-label="Open issue"></span>
+<span class="two"><span class="ttl has-tip" style="align-self: flex-start"><span class="tip-t">Genre differs across tracks</span></span><span class="sub">8 tracks say Post-Rock, and 3 say Ambient.</span></span>
+<button type="button" class="key sm">Fix</button>
+</div>
+
+<div class="lib-iss">
+<span class="led iss" role="img" aria-label="Open issue"></span>
+<span class="two"><span class="ttl has-tip" style="align-self: flex-start"><span class="tip-t">Album Artist tags disagree</span></span><span class="sub">ALBUM ARTIST and ALBUMARTIST differ, so Navidrome would show two album artists.</span></span>
+<button type="button" class="key sm">Fix</button>
+</div>
+
+
+<div class="lib-fields">
+
+
+
+<div class="lf">
+<label class="lf-l has-tip" for="lf-title"><span class="tip-t">Title</span></label>
+<div class="lf-c">
+
+<span class="lf-in"><input id="lf-title" class="lib-in ro" value="" placeholder="Mixed" readonly="readonly"><span class="lf-lock" aria-hidden="true"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1.5"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></span></span>
+
+
+
+
+</div>
+<div class="lf-s"></div>
+</div>
+
+<div class="lf">
+<label class="lf-l has-tip" for="lf-artist"><span class="tip-t">Artist</span></label>
+<div class="lf-c">
+
+<span class="lf-in"><input id="lf-artist" class="lib-in" value="Northern Static" placeholder="Empty"></span>
+
+
+
+
+</div>
+<div class="lf-s"></div>
+</div>
+
+<div class="lf">
+<label class="lf-l has-tip" for="lf-album"><span class="tip-t">Album</span></label>
+<div class="lf-c">
+
+<span class="lf-in"><input id="lf-album" class="lib-in" value="Low Tide Hymns" placeholder="Empty"></span>
+
+
+
+
+</div>
+<div class="lf-s"></div>
+</div>
+
+<div class="lf">
+<label class="lf-l has-tip" for="lf-albumartist"><span class="tip-t">Album Artist</span></label>
+<div class="lf-c">
+
+<span class="lf-in"><input id="lf-albumartist" class="lib-in" value="northern static" placeholder="Empty"></span>
+
+
+
+
+</div>
+<div class="lf-s"><button type="button" class="sug" aria-label="Use Northern Static, from MusicBrainz, Qobuz, 98%"><span class="sug-v">Northern Static</span><span class="sug-s">MusicBrainz, Qobuz</span><span class="sug-p">98%</span></button></div>
+</div>
+
+<div class="lf">
+<label class="lf-l has-tip" for="lf-track"><span class="tip-t">Track</span></label>
+<div class="lf-c">
+
+<span class="lf-in"><input id="lf-track" class="lib-in ro" value="" placeholder="Mixed" readonly="readonly"><span class="lf-lock" aria-hidden="true"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1.5"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></span></span>
+
+
+
+
+</div>
+<div class="lf-s"></div>
+</div>
+
+<div class="lf">
+<label class="lf-l has-tip" for="lf-disc"><span class="tip-t">Disc</span></label>
+<div class="lf-c">
+
+<span class="lf-in"><input id="lf-disc" class="lib-in" value="1" placeholder="Empty"></span>
+
+
+
+
+</div>
+<div class="lf-s"></div>
+</div>
+
+<div class="lf">
+<label class="lf-l has-tip" for="lf-genre"><span class="tip-t">Genre</span></label>
+<div class="lf-c">
+
+
+
+<span class="lf-in"><input id="lf-genre" class="lib-in mixed" value="" placeholder="Mixed" aria-label="Genre, value 1"></span><span class="lf-adds"></span>
+
+
+</div>
+<div class="lf-s"><button type="button" class="sug" aria-label="Use Post-Rock, from Qobuz, 71%"><span class="sug-v">Post-Rock</span><span class="sug-s">Qobuz</span><span class="sug-p">71%</span></button><button type="button" class="sug" aria-label="Use Ambient, from MusicBrainz, 64%"><span class="sug-v">Ambient</span><span class="sug-s">MusicBrainz</span><span class="sug-p">64%</span></button><button type="button" class="sug" aria-label="Use Electronic, from Apple Music, 52%"><span class="sug-v">Electronic</span><span class="sug-s">Apple Music</span><span class="sug-p">52%</span></button></div>
+</div>
+
+<div class="lf">
+<label class="lf-l has-tip" for="lf-release"><span class="tip-t">Release date</span></label>
+<div class="lf-c">
+
+<span class="lf-in"><input id="lf-release" class="lib-in" value="" placeholder="Empty"></span>
+
+
+
+
+</div>
+<div class="lf-s"><button type="button" class="sug" aria-label="Use 2019-03-22, from MusicBrainz, 96%"><span class="sug-v">2019-03-22</span><span class="sug-s">MusicBrainz</span><span class="sug-p">96%</span></button><button type="button" class="sug" aria-label="Use 2024-05-03, from Qobuz, 58%"><span class="sug-v">2024-05-03</span><span class="sug-s">Qobuz</span><span class="sug-p">58%</span></button></div>
+</div>
+
+<div class="lf">
+<label class="lf-l has-tip" for="lf-original"><span class="tip-t">Original date</span></label>
+<div class="lf-c">
+
+<span class="lf-in"><input id="lf-original" class="lib-in" value="2019-03-22" placeholder="Empty"></span>
+
+
+
+
+</div>
+<div class="lf-s"></div>
+</div>
+
+<div class="lf">
+<label class="lf-l has-tip" for="lf-recording"><span class="tip-t">Recording date</span></label>
+<div class="lf-c">
+
+<span class="lf-in"><input id="lf-recording" class="lib-in" value="2019-03-22" placeholder="Empty"></span>
+
+
+
+
+</div>
+<div class="lf-s"></div>
+</div>
+
+<div class="lf">
+<label class="lf-l has-tip" for="lf-compilation"><span class="tip-t">Compilation</span></label>
+<div class="lf-c">
+<div class="lf-flag"><button type="button" id="lf-compilation" class="rocker flat" role="switch" aria-checked="false"><span class="rk" aria-hidden="true"><span class="rk-case"><span class="rk-paddle"></span></span></span><span class="t2">Off</span></button></div>
+
+
+
+
+
+</div>
+<div class="lf-s"></div>
+</div>
+
+
+
+</div>
+</div>
+
+
+
+
+</section>
+
+<button type="button" class="lib-split" aria-label="Resize the track list. Left and right arrows change the width." title="Drag to resize"></button>
+
+<section class="win" style="flex: 0 0 322px" aria-labelledby="ld-t">
+<div class="tb"><h2 id="ld-t">Tracks</h2><span class="stripes"></span><span class="on-tb">All Hi-Res 24/96</span></div>
+<div class="lib-tracks rows" role="grid" aria-label="Tracks">
+<div class="row g-lt all cur" role="row">
+<span></span><span></span>
+<button type="button" class="lib-open ttl"><span class="ell">All 11 tracks</span></button>
+<span class="t2 num sm r">48:12</span>
+</div>
+
+<div class="row g-lt" role="row">
+<button type="button" class="key sm flat icon" aria-label="Play Breakwater"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l12-7z"></path></svg></button>
+<span class="t3 num sm r">1</span>
+<button type="button" class="lib-open ttl"><span class="ell">Breakwater</span></button>
+<span class="t2 num sm r">4:12</span>
+
+</div>
+
+<div class="row g-lt" role="row">
+<button type="button" class="key sm flat icon" aria-label="Play Low Tide Hymn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l12-7z"></path></svg></button>
+<span class="t3 num sm r">2</span>
+<button type="button" class="lib-open ttl"><span class="ell">Low Tide Hymn</span></button>
+<span class="t2 num sm r">5:03</span>
+
+</div>
+
+<div class="row g-lt" role="row">
+<button type="button" class="key sm flat icon" aria-label="Play Salt In The Wiring"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l12-7z"></path></svg></button>
+<span class="t3 num sm r">3</span>
+<button type="button" class="lib-open ttl"><span class="ell">Salt In The Wiring</span></button>
+<span class="t2 num sm r">3:47</span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+
+<div class="row g-lt" role="row">
+<button type="button" class="key sm flat icon" aria-label="Play Lighthouse Keeper"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l12-7z"></path></svg></button>
+<span class="t3 num sm r">4</span>
+<button type="button" class="lib-open ttl"><span class="ell">Lighthouse Keeper</span></button>
+<span class="t2 num sm r">4:55</span>
+
+</div>
+
+<div class="row g-lt" role="row">
+<button type="button" class="key sm flat icon" aria-label="Play The Long Shore"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l12-7z"></path></svg></button>
+<span class="t3 num sm r">5</span>
+<button type="button" class="lib-open ttl"><span class="ell">The Long Shore</span></button>
+<span class="t2 num sm r">6:21</span>
+
+</div>
+
+<div class="row g-lt" role="row">
+<button type="button" class="key sm flat icon" aria-label="Play Undertow"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l12-7z"></path></svg></button>
+<span class="t3 num sm r">6</span>
+<button type="button" class="lib-open ttl"><span class="ell">Undertow</span></button>
+<span class="t2 num sm r">3:58</span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+
+<div class="row g-lt" role="row">
+<button type="button" class="key sm flat icon" aria-label="Play Harbour Bells"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l12-7z"></path></svg></button>
+<span class="t3 num sm r">7</span>
+<button type="button" class="lib-open ttl"><span class="ell">Harbour Bells</span></button>
+<span class="t2 num sm r">4:30</span>
+
+</div>
+
+<div class="row g-lt" role="row">
+<button type="button" class="key sm flat icon" aria-label="Play Grey Water, Green Light"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l12-7z"></path></svg></button>
+<span class="t3 num sm r">8</span>
+<button type="button" class="lib-open ttl"><span class="ell">Grey Water, Green Light</span></button>
+<span class="t2 num sm r">5:12</span>
+
+</div>
+
+<div class="row g-lt" role="row">
+<button type="button" class="key sm flat icon" aria-label="Play Signal Fade"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l12-7z"></path></svg></button>
+<span class="t3 num sm r">9</span>
+<button type="button" class="lib-open ttl"><span class="ell">Signal Fade</span></button>
+<span class="t2 num sm r">3:41</span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+
+<div class="row g-lt" role="row">
+<button type="button" class="key sm flat icon" aria-label="Play Ebb"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l12-7z"></path></svg></button>
+<span class="t3 num sm r">10</span>
+<button type="button" class="lib-open ttl"><span class="ell">Ebb</span></button>
+<span class="t2 num sm r">2:55</span>
+
+</div>
+
+<div class="row g-lt" role="row">
+<button type="button" class="key sm flat icon" aria-label="Play Hymn for the Returning"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l12-7z"></path></svg></button>
+<span class="t3 num sm r">11</span>
+<button type="button" class="lib-open ttl"><span class="ell">Hymn for the Returning</span></button>
+<span class="t2 num sm r">3:38</span>
+
+</div>
+
+</div>
+
+</section>
+
+
+
+
+
+
+
+</div>
+
+
+
+
+
+
+
+
+
+
+<div class="scrim">
+<section class="win dlg" role="dialog" aria-modal="true" aria-labelledby="dk-t" style="max-width: 960px">
+<div class="tb"><h2 id="dk-t">Help</h2><span class="stripes"></span><button type="button" class="wbtn" aria-label="Close"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<div style="padding: 12px 18px 0"><div class="segk" role="radiogroup" aria-label="Help section"><button type="button" role="radio" aria-checked="false">Tagging guide</button><button type="button" role="radio" aria-checked="true">Keyboard</button></div></div>
+<div style="max-height: calc(100vh - 190px); overflow-y: auto; scrollbar-width: thin">
+
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(270px, 100%), 1fr)); gap: 8px 28px; padding: 6px 18px 20px">
+
+<div style="display: flex; flex-direction: column">
+
+<h3 class="px t3" style="font-size: 12px; padding: 10px 0 6px">List</h3>
+
+<div class="kc-row"><span>Move the row cursor</span><span class="kc-keys"><kbd class="kc">↑</kbd><kbd class="kc">↓</kbd></span></div>
+
+<div class="kc-row"><span>Open the album</span><span class="kc-keys"><kbd class="kc">Enter</kbd></span></div>
+
+<div class="kc-row"><span>Search the list</span><span class="kc-keys"><kbd class="kc">/</kbd></span></div>
+
+<div class="kc-row"><span>Open the filter</span><span class="kc-keys"><kbd class="kc">F</kbd></span></div>
+
+<div class="kc-row"><span>Select the row</span><span class="kc-keys"><kbd class="kc">X</kbd></span></div>
+
+
+<h3 class="px t3" style="font-size: 12px; padding: 10px 0 6px">Views</h3>
+
+<div class="kc-row"><span>History</span><span class="kc-keys"><kbd class="kc">H</kbd></span></div>
+
+<div class="kc-row"><span>Bulk run</span><span class="kc-keys"><kbd class="kc">B</kbd></span></div>
+
+<div class="kc-row"><span>Tagging guide</span><span class="kc-keys"><kbd class="kc">G</kbd></span></div>
+
+<div class="kc-row"><span>This sheet</span><span class="kc-keys"><kbd class="kc">?</kbd></span></div>
+
+
+</div>
+
+<div style="display: flex; flex-direction: column">
+
+<h3 class="px t3" style="font-size: 12px; padding: 10px 0 6px">Fields</h3>
+
+<div class="kc-row"><span>Next field</span><span class="kc-keys"><kbd class="kc">Tab</kbd></span></div>
+
+<div class="kc-row"><span>Previous field</span><span class="kc-keys"><kbd class="kc">Shift</kbd><kbd class="kc">Tab</kbd></span></div>
+
+<div class="kc-row"><span>Edit the field</span><span class="kc-keys"><kbd class="kc">Enter</kbd></span></div>
+
+<div class="kc-row"><span>Cancel the edit</span><span class="kc-keys"><kbd class="kc">Esc</kbd></span></div>
+
+<div class="kc-row"><span>Revert the field</span><span class="kc-keys"><kbd class="kc">R</kbd></span></div>
+
+<div class="kc-row"><span>Add a value</span><span class="kc-keys"><kbd class="kc">+</kbd></span></div>
+
+<div class="kc-row"><span>Note on the field</span><span class="kc-keys"><kbd class="kc">N</kbd></span></div>
+
+<div class="kc-row"><span>All fields</span><span class="kc-keys"><kbd class="kc">A</kbd></span></div>
+
+<div class="kc-row"><span>Open the cover</span><span class="kc-keys"><kbd class="kc">C</kbd></span></div>
+
+
+<h3 class="px t3" style="font-size: 12px; padding: 10px 0 6px">Suggestions</h3>
+
+<div class="kc-row"><span>Accept the first, second or third</span><span class="kc-keys"><kbd class="kc">1</kbd><kbd class="kc">2</kbd><kbd class="kc">3</kbd></span></div>
+
+
+</div>
+
+<div style="display: flex; flex-direction: column">
+
+<h3 class="px t3" style="font-size: 12px; padding: 10px 0 6px">Tracks</h3>
+
+<div class="kc-row"><span>Previous or next track</span><span class="kc-keys"><kbd class="kc">[</kbd><kbd class="kc">]</kbd></span></div>
+
+<div class="kc-row"><span>All tracks</span><span class="kc-keys"><kbd class="kc">0</kbd></span></div>
+
+<div class="kc-row"><span>Play or pause</span><span class="kc-keys"><kbd class="kc">Space</kbd></span></div>
+
+<div class="kc-row"><span>Back or forward 10 seconds</span><span class="kc-keys"><kbd class="kc">←</kbd><kbd class="kc">→</kbd></span></div>
+
+
+<h3 class="px t3" style="font-size: 12px; padding: 10px 0 6px">Saving</h3>
+
+<div class="kc-row"><span>Save</span><span class="kc-keys"><kbd class="kc">Ctrl</kbd><kbd class="kc">S</kbd></span></div>
+
+<div class="kc-row"><span>Discard</span><span class="kc-keys"><kbd class="kc">Ctrl</kbd><kbd class="kc">Shift</kbd><kbd class="kc">D</kbd></span></div>
+
+<div class="kc-row"><span>Fix the first open issue</span><span class="kc-keys"><kbd class="kc">I</kbd></span></div>
+
+
+</div>
+
+</div>
+
+</div>
+</section>
+</div>
+
+
+
+</div>
+
+</div>
+<!-- Add ?theme=day to the address to see the Day theme. -->
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>

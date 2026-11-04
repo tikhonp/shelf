@@ -1,0 +1,235 @@
+/* Music Shelf, the Library parts of phase 2. These sit on top of retro.css and use its tokens. A suggestion is a strip of
+   masking tape beside its field, because it is a note and not yet part of the album. UI text never names any of this. */
+
+/* Panels. A divider is as wide as the 20px gap between desktop windows, so resizing keeps the page's spacing. */
+.rs .lib-main { position: relative; flex: 1; min-height: 0; display: flex; align-items: stretch; padding: 20px var(--gutter); }
+.rs .lib-main > .win { min-width: 0; }
+.rs .lib-split { position: relative; flex: none; width: 20px; padding: 0; border: 0; background: none; cursor: col-resize; touch-action: none; }
+.rs .lib-split::before { content: ""; position: absolute; top: 8px; bottom: 8px; left: 9px; width: 2px; border-radius: 1px; background: #07090C; box-shadow: 1px 0 0 rgba(255, 255, 255, .07); }
+.rs .lib-split::after { content: ""; position: absolute; top: calc(50% - 26px); left: 4px; width: 12px; height: 52px; border: 1px solid var(--key-edge); border-radius: 2px; background: repeating-linear-gradient(180deg, rgba(0, 0, 0, .28) 0 1px, transparent 1px 5px), linear-gradient(90deg, var(--key-hi), var(--key) 55%, var(--key-lo)); box-shadow: inset 0 1px 0 var(--key-hl), 1px 2px 3px rgba(0, 0, 0, .45); }
+.rs .lib-split:hover::after { filter: brightness(1.06); }
+.rs .lib-split:focus-visible { outline: none; }
+.rs .lib-split:focus-visible::after { outline: 3px solid var(--focus); outline-offset: 2px; }
+@media (max-width: 1100px) {
+  .rs .lib-main { flex-wrap: wrap; gap: 20px; overflow-y: auto; }
+  .rs .lib-main > .win { flex: 1 1 100% !important; }
+  .rs .lib-split { display: none; }
+}
+
+/* Text on a title bar. Title bars stay dark in both themes, so they can't use --text-3. */
+.rs .tb .on-tb { color: var(--title-text); font-size: 13px; white-space: nowrap; }
+
+/* A title-bar cap that stays latched while its view is open */
+.rs .wbtn.txt[aria-pressed="true"] { background: radial-gradient(ellipse at 50% 40%, var(--lit-hi), var(--lamp) 55%, var(--lit-lo)); color: var(--lit-text); box-shadow: inset 0 1px 0 #fff; transform: translateY(1px); }
+
+/* The whole row opens: the title is the real button and its ::after stretches over the row */
+.rs .lib-open { min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.rs .lib-open::after { content: ""; position: absolute; inset: 0; }
+.rs .lib-open:focus-visible { outline: none; }
+.rs .lib-open:focus-visible::after { outline: 3px solid var(--focus); outline-offset: -3px; }
+.rs .row:has(> .lib-open) { position: relative; }
+.rs .row > .key, .rs .row > .lib-ck { position: relative; z-index: 1; }
+
+/* Album list. Below 640px of panel width the year and the track count move into the second line. */
+.rs .lib-list { container-type: inline-size; flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; border-top: 1px solid var(--ink); }
+.rs .g-lib { grid-template-columns: 46px minmax(0, 1.5fr) minmax(0, 1fr) 46px 52px 132px 12px; }
+.rs .g-lib.pick { grid-template-columns: 22px 46px minmax(0, 1.5fr) minmax(0, 1fr) 46px 52px 132px 12px; }
+.rs .g-lib .lib-n { display: none; }
+/* The cell under Quality. In a narrow panel it also holds the track count, so the artist and year keep the second line. */
+.rs .lib-q { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
+/* A version gives way before the album's name does */
+.rs .g-lib .ver, .rs .lib-prow .ver { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+@container (max-width: 640px) {
+  .rs .g-lib { grid-template-columns: 46px minmax(0, 1fr) auto 12px; }
+  .rs .g-lib.pick { grid-template-columns: 22px 46px minmax(0, 1fr) auto 12px; }
+  .rs .g-lib .lib-w, .rs .thead.g-lib { display: none; }
+  .rs .g-lib .lib-n { display: block; }
+  .rs .lib-q { align-items: flex-end; }
+}
+.rs.compact .g-lib { grid-template-columns: 30px minmax(0, 1.5fr) minmax(0, 1fr) 46px 52px 132px 12px; }
+.rs.compact .g-lib.pick { grid-template-columns: 22px 30px minmax(0, 1.5fr) minmax(0, 1fr) 46px 52px 132px 12px; }
+@container (max-width: 640px) {
+  .rs.compact .g-lib { grid-template-columns: 30px minmax(0, 1fr) auto 12px; }
+  .rs.compact .g-lib.pick { grid-template-columns: 22px 30px minmax(0, 1fr) auto 12px; }
+}
+.rs .lib-prow { grid-template-columns: 62px minmax(0, 1fr) 12px; min-height: 88px; padding: 10px 12px; }
+
+/* Nearly every album starts with an issue, so this lamp is small and steady: no glow and one column, so a long list of
+   them reads as a quiet stripe and a failure elsewhere on the page still stands out. */
+.rs .led.iss { --c: var(--yellow); width: 9px; height: 9px; box-shadow: none; }
+/* A staged edit: amber, because Save is the amber button */
+.rs .led.stg { --c: var(--sun); width: 9px; height: 9px; }
+
+/* A square push button for picking albums, backlit when picked */
+.rs .lib-ck { appearance: none; -webkit-appearance: none; position: relative; flex: none; width: 22px; height: 22px; margin: 0; border: 1px solid var(--key-edge); border-radius: 3px; background: linear-gradient(180deg, var(--key-hi), var(--key) 60%, var(--key-lo)); box-shadow: inset 0 1px 0 var(--key-hl), 0 2px 0 var(--key-edge); cursor: pointer; }
+.rs .lib-ck:checked { background: radial-gradient(ellipse at 50% 40%, var(--lit-hi), var(--lamp) 55%, var(--lit-lo)); box-shadow: inset 0 1px 0 #fff, 0 0 calc(10px * var(--glow)) var(--lit-glow); transform: translateY(2px); }
+.rs .lib-ck:checked::after { content: ""; position: absolute; left: 6px; top: 2px; width: 6px; height: 11px; border: solid var(--lit-text); border-width: 0 2.5px 2.5px 0; transform: rotate(42deg); }
+
+/* A small label bar above a group of rows */
+.rs .lib-h { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 34px; padding: 0 14px; background: var(--win-2); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); font-family: var(--label); font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); }
+.rs .lib-h .low { font-family: var(--font); font-size: 13px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--text-2); }
+
+/* Editor head */
+.rs .lib-head { flex: none; display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-bottom: 1px solid var(--ink); }
+.rs .lib-cover { flex: none; display: block; padding: 0; border: 0; border-radius: 3px; background: none; cursor: pointer; }
+.rs .lib-cover .cv, .rs .lib-art { display: block; width: 84px; height: 84px; border-width: 2px; box-shadow: 3px 3px 0 var(--ink); }
+.rs .lib-cover:hover .cv { filter: brightness(1.08); }
+/* One display says which tracks an edit reaches, the fact that matters most before typing */
+.rs .lcd.lib-scope { flex: none; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 12px; }
+.rs.ph .lcd.lib-scope { position: sticky; top: 8px; z-index: 3; margin: 0 12px 10px; }
+
+/* Issues: a short list with a Fix on each */
+.rs .lib-iss { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; align-items: center; column-gap: 10px; min-height: 44px; padding: 5px 14px; border-bottom: 1px solid var(--line); }
+.rs .lib-iss .ttl { font-size: 14px; }
+.rs .lib-iss .sub { line-height: 1.3; }
+.rs .lib-irow { display: grid; grid-template-columns: 12px minmax(0, 1fr) 18px; align-items: center; column-gap: 10px; width: 100%; min-height: 48px; padding: 0 12px; background: var(--win-2); border: 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); color: var(--text); font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+
+/* Fields. A suggestion sits to the right of its field, and moves under it when the panel gets narrow. */
+.rs .lib-fields { container-type: inline-size; }
+.rs .lf { display: grid; grid-template-columns: 122px minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: 4px 12px; padding: 5px 14px; border-bottom: 1px solid var(--line); }
+.rs .lf.tagrow { grid-template-columns: 214px minmax(0, 1fr); }
+.rs .lf.tagrow .lf-s { grid-column: 2; min-height: 0; }
+.rs .lf-l { display: flex; align-items: center; gap: 6px; min-height: 36px; min-width: 0; font-family: var(--label); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-2); }
+.rs .lf-l.tag { font-family: var(--mono); font-size: 12.5px; font-weight: 500; letter-spacing: 0; text-transform: none; overflow-wrap: anywhere; }
+.rs .lf-c { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.rs .lf-in { position: relative; display: block; }
+.rs .lf-s { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; min-height: 36px; }
+@container (max-width: 500px) {
+  .rs .lf { grid-template-columns: 122px minmax(0, 1fr); }
+  .rs .lf-s { grid-column: 2; min-height: 0; }
+}
+.rs .lib-in { width: 100%; height: 36px; padding: 0 34px 0 10px; background: var(--field); border: 1px solid var(--ink); border-radius: 5px; box-shadow: inset 1px 2px 3px rgba(0, 0, 0, .4); font-size: 14px; color: var(--text); }
+.rs .lib-in::placeholder { color: var(--text-3); }
+.rs.day .lib-in::placeholder { color: #5D6573; }
+/* Mixed: faint hatching, since the field holds several values and shows none of them */
+.rs .lib-in.mixed { background-image: repeating-linear-gradient(135deg, rgba(128, 140, 160, .16) 0 5px, transparent 5px 11px); }
+.rs .lib-in.stg { border-color: var(--sun); box-shadow: inset 1px 2px 3px rgba(0, 0, 0, .4), 0 0 0 1px var(--sun); }
+/* Read-only: no recess, so it can't be mistaken for a field that takes typing */
+.rs .lib-in.ro { background: var(--win-2); border: 1px dashed var(--line); box-shadow: none; color: var(--text-2); }
+.rs .lib-in.ro::placeholder, .rs.day .lib-in.ro::placeholder { color: var(--text-2); }
+.rs .lf-rev { position: absolute; right: 3px; top: 3px; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 3px; background: none; color: var(--text-2); cursor: pointer; }
+.rs .lf-rev:hover { color: var(--text); background: color-mix(in srgb, var(--text) 10%, transparent); }
+.rs .lf-rev svg.i { width: 15px; height: 15px; }
+.rs .lf-lock { position: absolute; right: 9px; top: 10px; color: var(--text-2); }
+.rs .lf-lock svg.i { width: 15px; height: 15px; }
+.rs .lf-was { font-size: 12px; line-height: 1.3; color: var(--text-2); }
+.rs .lf-note { display: flex; align-items: flex-start; gap: 6px; font-size: 13px; line-height: 1.35; color: var(--text-2); }
+.rs .lf-note svg.i { width: 15px; height: 15px; margin-top: 1px; }
+.rs .lf-flag { display: flex; align-items: center; gap: 10px; min-height: 36px; }
+
+/* One input per value on a multi-value tag. Add value stays a plain word, so a row with one value looks like any other. */
+.rs .lf-adds { display: flex; flex-wrap: wrap; gap: 2px 12px; }
+.rs .lf-add { display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 0 4px; border: 0; border-radius: 3px; background: none; color: var(--text-2); font-family: var(--label); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+.rs .lf-add:hover { color: var(--text); }
+.rs.ph .lf-add { min-height: 44px; font-size: 13px; }
+.rs.ph .lf-in .lf-rev { top: 1px; right: 1px; width: 44px; height: 44px; }
+/* A custom tag that the next Save removes */
+.rs .lib-in.gone { color: var(--text-2); text-decoration: line-through; }
+
+/* Suggestions: tape stuck beside the field. Only the ::before is cut to shape, so the focus ring stays whole. */
+.rs .sugs { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.rs .sug { position: relative; z-index: 0; display: inline-flex; flex-wrap: wrap; align-items: center; gap: 1px 8px; max-width: 100%; min-height: 30px; padding: 3px 11px; border: 0; background: none; color: var(--tape-ink); font-size: 13px; line-height: 1.2; text-align: left; cursor: pointer; filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, .3)); }
+.rs .sug::before { content: ""; position: absolute; z-index: -1; inset: 0; background: var(--tape); clip-path: polygon(0 10%, 3% 0, 30% 6%, 62% 0, 97% 5%, 100% 0, 98% 50%, 100% 100%, 70% 94%, 35% 100%, 4% 95%, 0 100%, 2% 50%); }
+.rs .sug:hover::before { background: #F6EDCD; }
+.rs .sug:active { transform: translateY(1px); filter: none; }
+.rs .sug-v { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.rs .sug-s { flex: none; white-space: nowrap; }
+.rs .sug-p { flex: none; font-family: var(--label); font-weight: 700; font-variant-numeric: tabular-nums; }
+.rs.ph .sug { min-height: 44px; padding: 6px 12px; font-size: 14px; }
+.rs .sug.block { display: flex; width: 100%; }
+.rs .sug.block .sug-s { margin-left: auto; }
+.rs.ph .sug.block { min-height: 56px; }
+
+/* A title-bar rocker for one on or off choice, smaller than the source rockers */
+.rs .rocker.mini { flex: none; gap: 7px; min-height: 28px; padding: 0 5px; }
+.rs .rocker.mini .rk-case { width: 15px; height: 26px; padding: 2px; border-radius: 3px; }
+.rs .rocker.mini .rk-name, .rs .rocker[aria-checked="false"].mini .rk-name { font-size: 12px; color: var(--title-text); }
+.rs .rocker.mini:hover { background: rgba(255, 255, 255, .08); }
+.rs .rocker.flat { gap: 10px; min-height: 36px; padding: 0 6px 0 0; }
+.rs .rocker.flat .rk-case { width: 18px; height: 30px; padding: 2px; }
+
+/* Save bar: shown only while something is staged */
+.rs .lib-save { flex: none; display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--win-2); border-top: 1px solid var(--ink); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08); }
+.rs .lib-save .lcd { flex: 1 1 auto; padding: 8px 12px; }
+.rs.ph .lib-save { padding: 8px; border-top: 0; }
+/* A slot taller than Queued: the phase 1 slot animation stops at 140px */
+.rs .stack > .win.slot.tall { animation: none; }
+
+/* Tracks */
+.rs .g-lt { grid-template-columns: 34px 22px minmax(0, 1fr) 40px 12px; min-height: 42px; padding: 3px 12px 3px 6px; column-gap: 8px; }
+.rs .g-lt .ttl { font-size: 14px; font-weight: 500; }
+.rs .g-lt.all .ttl { font-weight: 600; }
+.rs.ph .g-lt { grid-template-columns: 46px 22px minmax(0, 1fr) 40px 12px; min-height: 52px; padding: 3px 12px 3px 2px; }
+.rs .lib-tracks { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+/* The album's one player. It appears when a track plays, so a page with nothing playing stays plain. */
+.rs .lib-player { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; background: var(--deck); border-top: 1px solid var(--ink); }
+.rs .lib-player .lcd { flex: none; gap: 2px; padding: 7px 10px; }
+.rs .lib-player-keys { display: flex; align-items: center; gap: 8px; }
+.rs .lib-scrub { appearance: none; -webkit-appearance: none; flex: 1; min-width: 0; height: 24px; margin: 0; background: transparent; cursor: pointer; }
+.rs .lib-scrub::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: #07090C; box-shadow: 0 1px 0 rgba(255, 255, 255, .12); }
+.rs .lib-scrub::-moz-range-track { height: 4px; border-radius: 2px; background: #07090C; }
+.rs .lib-scrub::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 22px; margin-top: -9px; border: 1px solid var(--key-edge); border-radius: 2px; background: linear-gradient(90deg, var(--key-hi), var(--key) 55%, var(--key-lo)); box-shadow: 1px 2px 3px rgba(0, 0, 0, .45); }
+.rs .lib-scrub::-moz-range-thumb { width: 10px; height: 20px; border: 1px solid var(--key-edge); border-radius: 2px; background: var(--key); }
+
+/* Phone field rows: a field's name and value open its page, and its best suggestion sits under them */
+.rs .pf { display: flex; flex-direction: column; gap: 6px; padding: 6px 12px 8px; border-bottom: 1px solid var(--line); }
+.rs .pf-open { display: grid; grid-template-columns: minmax(0, 1fr) 18px; align-items: center; column-gap: 8px; width: 100%; min-height: 44px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.rs .pf-l { display: flex; align-items: center; gap: 6px; font-family: var(--label); font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text-2); }
+.rs .pf-v { font-size: 16px; font-weight: 500; color: var(--text); }
+.rs .pf-v.none { color: var(--text-2); font-weight: 400; }
+.rs .pf-flag { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 48px; padding: 0; border: 0; border-radius: 0; background: none; color: inherit; cursor: pointer; }
+
+/* Cover dialog */
+.rs .lib-cvbig { display: block; width: 300px; height: 300px; border-width: 2px; border-radius: 4px; box-shadow: 4px 4px 0 var(--ink); }
+.rs .lib-cvbad { display: flex; align-items: center; justify-content: center; background: repeating-linear-gradient(135deg, var(--win-2) 0 12px, var(--plate) 12px 24px); }
+.rs .lib-thumb { display: grid; grid-template-columns: 56px minmax(0, 1fr); align-items: center; gap: 10px; width: 100%; padding: 6px; border: 1px solid var(--ink); border-radius: 5px; background: var(--win-2); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.rs .lib-thumb .cv { width: 56px; height: 56px; }
+.rs .lib-thumb[aria-pressed="true"] { background: radial-gradient(ellipse at 50% 40%, var(--lit-hi), var(--lamp) 55%, var(--lit-lo)); color: var(--lit-text); }
+.rs .lib-thumb[aria-pressed="true"] .sub, .rs .lib-thumb[aria-pressed="true"] .ttl { color: var(--lit-text); }
+
+/* Long-form editor */
+.rs .lib-ta { display: block; width: 100%; height: 320px; padding: 10px 12px; resize: vertical; background: var(--field); border: 1px solid var(--ink); border-radius: 6px; box-shadow: inset 1px 2px 4px rgba(0, 0, 0, .45); font: 15px/1.6 var(--font); color: var(--text); }
+
+/* Keyboard sheet */
+.rs kbd.kc { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 26px; padding: 0 7px; border: 1px solid var(--key-edge); border-radius: 3px; background: linear-gradient(180deg, var(--key-hi), var(--key) 60%, var(--key-lo)); color: var(--key-text); font: 700 13px/1 var(--label); letter-spacing: .04em; box-shadow: inset 0 1px 0 var(--key-hl), 0 2px 0 var(--key-edge); }
+.rs .kc-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 36px; border-bottom: 1px solid var(--line); }
+.rs .kc-keys { display: inline-flex; flex: none; gap: 4px; }
+
+/* History */
+.rs .g-lh { grid-template-columns: 78px minmax(0, 1fr) 96px 150px 96px; }
+.rs .g-ba { grid-template-columns: minmax(0, 150px) minmax(0, 170px) minmax(0, 1fr) minmax(0, 1fr); min-height: 34px; padding: 4px 14px; font-size: 13px; }
+.rs .lib-ba { background: var(--win-2); border-bottom: 1px solid var(--ink); box-shadow: inset 0 2px 4px rgba(0, 0, 0, .25); }
+.rs .lib-ba .row:hover { background: transparent; }
+
+/* Bulk */
+.rs .lib-bank { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); gap: 2px 14px; padding: 8px 10px; background: var(--win-2); border: 1px solid var(--ink); border-radius: 6px; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .35); }
+.rs .lib-bank .rocker { width: 100%; min-height: 56px; }
+.rs .lib-bank .rk-name { font-size: 14px; letter-spacing: .05em; white-space: normal; line-height: 1.15; }
+.rs .lib-bank .rk-state { font-size: 13px; }
+.rs .lib-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.rs .lib-sum .lcd { flex-direction: row; align-items: baseline; gap: 8px; padding: 8px 12px; }
+.rs .lib-sum .lcd-big { font-size: 26px; }
+.rs .g-smp { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, .9fr) minmax(0, .9fr); min-height: 36px; padding: 4px 12px; font-size: 13px; }
+
+/* Four tabs on a 390px phone: Downloads needs the tighter legend to clear its key */
+.rs .dock a { font-size: 12px; letter-spacing: .05em; }
+
+/* Help. Nothing shows until it is asked for: a name gains a dotted underline under the pointer, and its note closes when
+   the pointer leaves. The note uses the title-bar colours, dark in both themes, and lets clicks through. */
+.rs .has-tip { cursor: help; }
+.rs .has-tip:hover .tip-t { text-decoration: underline dotted; text-underline-offset: 3px; }
+.rs .tipbox { position: absolute; z-index: 60; display: flex; flex-direction: column; gap: 4px; width: 320px; padding: 10px 12px; background: var(--title); color: var(--title-text); border: 1px solid var(--ink); border-radius: 6px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 4px 8px 18px rgba(0, 0, 0, .5); font-size: 13px; line-height: 1.4; pointer-events: none; }
+.rs .tip-h { font-family: var(--label); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.rs .tip-m { margin-top: 2px; padding-top: 5px; border-top: 1px solid rgba(255, 255, 255, .16); }
+/* The phone has no hover, so a small cap opens the same note in a slot above the tab bar */
+.rs .wbtn.q { font-family: var(--label); font-size: 15px; font-weight: 700; line-height: 1; }
+.rs .wbtn.q[aria-pressed="true"] { background: radial-gradient(ellipse at 50% 40%, var(--lit-hi), var(--lamp) 55%, var(--lit-lo)); color: var(--lit-text); box-shadow: inset 0 1px 0 #fff; transform: translateY(1px); }
+.rs .smod-h .wbtn.q { margin-left: auto; }
+.rs .lib-note { display: flex; flex-direction: column; gap: 8px; max-height: 200px; padding: 10px 12px; overflow-y: auto; scrollbar-width: none; }
+/* Tagging guide: three columns in the Help sheet, one on the phone */
+.rs .lib-guide { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(270px, 100%), 1fr)); gap: 0 28px; padding: 6px 18px 12px; }
+.rs .lib-guide ul, .rs .lib-guide ol { display: flex; flex-direction: column; gap: 6px; margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.4; color: var(--text-2); }
+.rs.ph .lib-guide { padding: 6px 14px 12px; }
+.rs.ph .lib-guide ul, .rs.ph .lib-guide ol { font-size: 14px; }
+
+@media (prefers-reduced-motion: reduce) { .rs .sug:active { transform: none; } }

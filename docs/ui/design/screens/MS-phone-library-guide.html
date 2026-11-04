@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Phone · tagging guide</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="../library.css">
+<style>body { margin: 0; }</style>
+</head>
+<body>
+<div style="width: 390px; height: 844px">
+
+
+<div class="rs ph desk" style="position: relative; width: 390px; height: 844px; overflow: hidden">
+<div class="stack">
+
+
+
+
+
+
+
+
+
+
+<section class="win" aria-labelledby="lg-t">
+<div class="tb">
+<button type="button" class="wbtn" aria-label="Back"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+<h1 id="lg-t">Tagging guide</h1>
+<span class="stripes"></span>
+</div>
+<div class="vscroll">
+<div class="lib-guide" style="grid-template-columns: minmax(0, 1fr)">
+
+
+<h2 class="px t3" style="font-size: 12px; padding: 12px 0 6px">How Navidrome sees an album</h2>
+
+<ul><li>Navidrome groups music by tags alone, and ignores folder and file names.</li><li>An album holds together when every track has the same Album and Album Artist.</li><li>A multi-disc album stays one album while every disc keeps the same Album.</li></ul>
+
+<h2 class="px t3" style="font-size: 12px; padding: 12px 0 6px">Working through an album</h2>
+<ol><li>Press Fix on each issue. A Fix stages edits and writes nothing.</li><li>Set Album Artist first, on All tracks.</li><li>Take suggestions one by one. Release fields all come from one release, so their IDs can't mix.</li><li>Read the amber fields, then press Save. One Save is one undo step.</li><li>After the scan, check the album in Navidrome under Get Info, Raw Tags.</li></ol>
+
+
+
+
+<h2 class="px t3" style="font-size: 12px; padding: 12px 0 6px">Tags every track needs</h2>
+
+<ul><li>Every track needs Title, Artist, Album, Album Artist and Track. Genre, dates and Disc are optional.</li><li>Set Album Artist even when it matches Artist.</li><li>Replace blanks and values such as Unknown Artist with real ones.</li><li>Keep spelling the same everywhere. A trailing space or different capitals make a duplicate.</li></ul>
+
+<h2 class="px t3" style="font-size: 12px; padding: 12px 0 6px">Several artists</h2>
+
+<ul><li>ARTISTS and ALBUMARTISTS hold one artist per value, and Navidrome never splits them. They are the preferred way.</li><li>ARTIST then stays the display name, such as Alice feat. Bob.</li><li>ARTIST alone gets split on / feat. ft. and ; with spaces around them. AC/DC stays whole, and Foo; Bar breaks.</li></ul>
+
+<h2 class="px t3" style="font-size: 12px; padding: 12px 0 6px">Compilations</h2>
+
+<ul><li>Album Artist is Various Artists, and the compilation flag is on for every track.</li></ul>
+
+
+
+<h2 class="px t3" style="font-size: 12px; padding: 12px 0 6px">Dates</h2>
+
+<ul><li>A date is YYYY, YYYY-MM or YYYY-MM-DD.</li><li>RELEASEDATE is this edition, ORIGINALDATE is the first release, and DATE is the recording date. A plain YEAR counts as the release date.</li><li>While ORIGINALDATE is set and no release date exists, Navidrome reads DATE as the release date.</li></ul>
+
+<h2 class="px t3" style="font-size: 12px; padding: 12px 0 6px">Covers</h2>
+
+<ul><li>A cover of 500x500 to 1000x1000 is plenty. shelf stops embedded art at 1000x1000 and keeps the folder file at full size.</li><li>Navidrome shows the folder cover first, so a cover edit changes both.</li></ul>
+
+
+</div>
+<p class="t2 sm" style="padding: 4px 14px 16px">Based on <a href="https://www.navidrome.org/docs/usage/library/tagging/">Navidrome's tagging guidelines</a>.</p>
+</div>
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+<nav class="dock" aria-label="Main">
+<a href="MS-phone-start.html"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m20 20-4.5-4.5"></path></svg>Search</a>
+<a href="MS-phone-downloads.html"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"></rect><circle cx="9" cy="12" r="2"></circle><circle cx="15" cy="12" r="2"></circle><path d="M7 18l1.5-3h7L17 18"></path></svg>Downloads<span class="led run" title="Downloads in progress"></span><span class="sr">, downloads in progress</span></a>
+<a href="MS-phone-library.html" class="on" aria-current="page"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18"></path><path d="M5 20V6h4v14"></path><path d="M9 20V9h4v11"></path><path d="m15 20 2-14 4 .6-2 13.4"></path></svg>Library</a>
+<a href="MS-phone-status.html"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17a8 8 0 1 1 16 0"></path><path d="M12 17l4-5"></path></svg>Status</a>
+</nav>
+</div>
+
+</div>
+<!-- Add ?theme=day to the address to see the Day theme. -->
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>
