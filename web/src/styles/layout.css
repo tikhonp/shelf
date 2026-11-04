@@ -39,3 +39,12 @@
 .rs .win-scroll { padding: 14px 12px; gap: 14px; }
 .rs .slot-tb { min-height: 46px; }
 .rs .slot-tb h2 { font-size: 16px; }
+
+/* The History table, and the Density preview that copies it. */
+.rs .hist-rows { overflow-x: auto; container-type: inline-size; }
+.rs .g-hist { grid-template-columns: 70px minmax(180px, 1.6fr) minmax(100px, 1fr) 76px 168px 64px 74px 112px; }
+/* A tablet or an open panel leaves too little room, and the panel has what the table drops. */
+@container (max-width: 950px) {
+  .rs .g-hist { grid-template-columns: 70px minmax(120px, 1fr) 150px 112px; }
+  .rs .hist-rows .opt { display: none; }
+}

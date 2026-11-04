@@ -13,6 +13,7 @@ Newest first. A changed decision gets a new entry that names the one it replaces
 | Who asked | Downloads answer `origin_user`. | The brief shows the Telegram user's name, and shelf already stores it. |
 | Error text | Error text on a module is a pale red at night and a dark red by day. | `--red` is about 2:1 there, below the AA the brief asks for. |
 | Notices | A download that ends shows a notice as a per-browser setting: Off, Failures or All, with Failures as the default. A problem stays until dismissed. | The owner asked for it to be configurable. A failure needs a person, and a finished download already shows in its row and the history. Phone and desktop may want different levels. |
+| Density | Tables have a per-browser Density setting on the desktop's Status page, Comfortable or Compact, with Comfortable as the default. The phone has none. | The owner approved the design. A shorter phone row would lose its quality labels. |
 | Fake covers | The fake source's covers are data URLs. | `fake.test` broke the rule of no CSP violations. |
 
 ## 2026-11-04: open issues from the first Qobuz run

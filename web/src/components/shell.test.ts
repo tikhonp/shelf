@@ -8,6 +8,7 @@ import { download, FakeEventSource, list, source, stubApi } from '../testing/api
 import { useDownloads } from '../stores/downloads'
 import { useSources } from '../stores/sources'
 import { useStatus } from '../stores/status'
+import { useSettings } from '../stores/settings'
 import { useTheme } from '../stores/theme'
 
 const scan = { enabled: true, ok: true, message: '', address: 'x', latency_ms: 3, scanning: false, count: 0, last_scan: '' }
@@ -110,4 +111,27 @@ test('Night is the default and the switch is remembered', async () => {
   expect(localStorage.getItem('shelf.theme')).toBe('day')
   setActivePinia(createPinia())
   expect(useTheme().day).toBe(true)
+})
+
+const phoneWindow = () =>
+  vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
+
+test('Compact sets the root class on the desktop, and Status offers the switch', async () => {
+  stubApi(routes())
+  localStorage.setItem('shelf.density', 'compact')
+  const { wrapper } = await mountAt('/status')
+  expect(wrapper.find('.rs').classes()).toContain('compact')
+  expect(wrapper.find('[aria-label="Density"]').exists()).toBe(true)
+  useSettings().density = 'comfortable'
+  await flushPromises()
+  expect(wrapper.find('.rs').classes()).not.toContain('compact')
+})
+
+test('the phone ignores the density and offers no switch', async () => {
+  stubApi(routes())
+  phoneWindow()
+  localStorage.setItem('shelf.density', 'compact')
+  const { wrapper } = await mountAt('/status')
+  expect(wrapper.find('.rs').classes()).not.toContain('compact')
+  expect(wrapper.find('[aria-label="Density"]').exists()).toBe(false)
 })

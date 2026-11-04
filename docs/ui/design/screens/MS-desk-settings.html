@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Desktop · Status, Notices and Density</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<style>body { margin: 0; }</style>
+</head>
+<body>
+<div class="rs desk console" style="position: relative; min-height: 100vh; display: flex; flex-direction: column">
+<header class="menubar">
+<a class="brand" href="MS-desk-search.html"><span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>Music Shelf</a>
+<nav style="display: flex; gap: 6px" aria-label="Main">
+<a class="mb-item" href="MS-desk-search.html">Search</a>
+<a class="mb-item" href="MS-desk-downloads.html">Downloads<span class="led run" title="Downloads in progress"></span><span class="sr">, downloads in progress</span></a>
+<a class="mb-item on" href="MS-desk-settings.html" aria-current="page">Status</a>
+</nav>
+<div class="mb-right">
+<span class="t2 sm" style="color: #C9CCD2">Checked 20 s ago</span>
+<button type="button" class="key sm">Check again</button>
+<span class="vfd num">14:32</span>
+</div>
+</header>
+
+<div style="flex: 1; display: flex; flex-direction: column; gap: 16px; padding: 20px var(--gutter) 28px; max-width: 1180px">
+
+<section class="win unit" aria-labelledby="se-q">
+<div class="unit-body">
+<div class="plate"><h2 id="se-q"><span class="led ok"></span>Qobuz</h2><span class="sub">Studio subscription</span></div>
+<div class="lcd" style="flex: 0 1 300px; min-height: 72px"><div class="lcd-l">TOKEN WORKS</div><div class="lcd-l">LAST REQUEST 14:30</div></div>
+</div>
+</section>
+
+<section class="win unit" aria-labelledby="se-a">
+<div class="unit-body">
+<div class="plate"><h2 id="se-a"><span class="led ok"></span>Apple Music</h2><span class="sub">The wrapper, for decryption</span></div>
+<div class="lcd" style="flex: 0 1 300px; min-height: 72px"><div class="lcd-l">WRAPPER SIGNED IN</div><div class="lcd-l">STOREFRONT RU</div></div>
+<button type="button" class="key">Restart</button>
+</div>
+</section>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px">
+<section class="win unit" aria-labelledby="se-n">
+<div class="unit-body">
+<div class="plate" style="width: auto"><h2 id="se-n"><span class="led ok"></span>Navidrome</h2><span class="mono t2">http://navidrome:4533</span></div>
+<div class="lcd" style="flex: 1 1 160px"><div class="lcd-l">ONLINE · 38 MS</div><div class="lcd-l">LAST SCAN 3 MIN</div></div>
+<button type="button" class="key">Scan now</button>
+</div>
+</section>
+<section class="win unit" aria-labelledby="se-t">
+<div class="unit-body">
+<div class="plate" style="width: auto"><h2 id="se-t"><span class="led ok"></span>Telegram</h2><span class="sub">@music_shelf_bot</span></div>
+<div class="lcd" style="flex: 1 1 160px"><div class="lcd-l">CONNECTED</div><div class="lcd-l">ANSWERS 2 USERS</div></div>
+</div>
+</section>
+</div>
+
+<section class="win unit" aria-labelledby="se-no">
+<div class="unit-body">
+<div class="plate"><h2 id="se-no">Notices</h2><span class="sub">In this browser</span></div>
+<div style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 8px">
+<div class="segk block" role="radiogroup" aria-labelledby="se-no">
+<button type="button" role="radio" aria-checked="false">Off</button>
+<button type="button" role="radio" aria-checked="true">Failures</button>
+<button type="button" role="radio" aria-checked="false">All</button>
+</div>
+<p class="t2 sm">A notice when a download fails or ends with errors.</p>
+</div>
+</div>
+</section>
+
+<section class="win unit" aria-labelledby="se-d">
+<div class="unit-body">
+<div class="plate"><h2 id="se-d">Density</h2><span class="sub">In this browser</span></div>
+<div style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 8px">
+<div class="segk block" role="radiogroup" aria-labelledby="se-d">
+<button type="button" role="radio" aria-checked="true">Comfortable</button>
+<button type="button" role="radio" aria-checked="false">Compact</button>
+</div>
+<p class="t2 sm">Taller rows and larger covers in search results, track lists and History.</p>
+</div>
+<div style="flex: 1 1 100%; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+<span class="px t3" style="font-size: 12px">Preview</span>
+<div class="rows" role="table" aria-label="Preview of History rows" style="border: 1px solid var(--ink); border-radius: 6px; overflow: hidden">
+<div class="row thead g-hist" role="row">
+<span role="columnheader">Finished</span>
+<span role="columnheader">Album</span>
+<span role="columnheader">Source</span>
+<span role="columnheader">Kind</span>
+<span role="columnheader">Result</span>
+<span role="columnheader" class="r">Took</span>
+<span role="columnheader" class="r">Size</span>
+<span role="columnheader"><span class="sr">Actions</span></span>
+</div>
+<div class="row g-hist" role="row">
+<span role="cell" class="t2 num sm">14:32</span>
+<span role="cell" class="two"><span class="ttl" style="font-size: 14px"><span class="ell">Low Tide Hymns</span></span><span class="sub ell">Northern Static</span></span>
+<span role="cell" class="two"><span class="src qz">Qobuz</span><span class="xs t3">@tikhon</span></span>
+<span role="cell" class="t2 sm">Album</span>
+<span role="cell"><span class="pill done">Done</span></span>
+<span role="cell" class="r num t2 sm">1m 48s</span>
+<span role="cell" class="r num t2 sm">612 MB</span>
+<span role="cell" class="r"></span>
+</div>
+<div class="row g-hist" role="row">
+<span role="cell" class="t2 num sm">13:40</span>
+<span role="cell" class="two"><span class="ttl" style="font-size: 14px"><span class="ell">Paper Lanterns</span></span><span class="sub ell">The Quiet Arcade · 11 of 12 tracks</span></span>
+<span role="cell" class="two"><span class="src am">Apple Music</span><span class="xs t3">Web</span></span>
+<span role="cell" class="t2 sm">Album</span>
+<span role="cell"><span class="pill partial">Done with errors</span></span>
+<span role="cell" class="r num t2 sm">3m 10s</span>
+<span role="cell" class="r num t2 sm">486 MB</span>
+<span role="cell" class="r"><button type="button" class="key sm"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.5-5.8"></path><path d="M4 4v5h5"></path></svg>Retry</button></span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+<!-- Add ?theme=day to the address to see the Day theme. -->
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>
