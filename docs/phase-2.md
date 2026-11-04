@@ -104,7 +104,7 @@ Steps 0 to 4 need no screens, so they run while the owner designs.
 | 1. Tag IO | Field and format tables, safe writer, temp sweep, a read-only `shelf manage` view of a file. | Fixture tests pass for every format, with a failure injected at each stage. |
 | 2. Read-only library | Migrations, walk, album API, checks, audio endpoint. | It runs in production without touching files, and its counts match Navidrome's. |
 | 3. Editing backend | `tags` queue, Save, conflicts, working-folder port, history, undo, covers, write probe, a Navidrome contract test, rule and doc changes. The owner runs the chown. | One album saved and undone through the API shows correctly in Navidrome, and the contract test passes. |
-| 4. Suggestions | Local sources, anchor logic, MusicBrainz, catalogs, Cover Art Archive, LRCLIB. | Recorded-answer tests pass, including refused mixed anchors. |
+| 4. Suggestions | Local sources, anchor logic, MusicBrainz, catalogs, Cover Art Archive, LRCLIB. Done on 2026-11-04. | Recorded-answer tests pass, including refused mixed anchors. |
 | 5. UI | After the design: Library tab, editor, suggestions, covers, playback on both widths, then custom fields, history, keyboard and panels on desktop. | The phone and desktop limits hold on a real album. |
 | 6. Bulk and analysis | Batches with preview, `analysis` queue, ReplayGain, AcoustID. Last, so the writer proves itself on single albums first. | A 20-album batch survives an interruption, an undo and the next night's backups. |
 

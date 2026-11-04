@@ -508,3 +508,13 @@ func TestScansOff(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestScanRequestNamesWhoAsked(t *testing.T) {
+	r := newRig(t)
+	if err := r.nav.RequestScanFor(bg, "library"); err != nil {
+		t.Fatal(err)
+	}
+	if list := r.scanJobs(); len(list) != 1 || list[0].CreatedBy != "library" {
+		t.Fatalf("scan jobs %+v", list)
+	}
+}

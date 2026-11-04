@@ -9,7 +9,7 @@ One SQLite file, `/data/shelf.db`, in WAL mode with foreign keys on. Each module
 - `jobs`: one row per job, with its queue, type, resource and coalescing keys, a state of `queued`, `running`, `succeeded`, `failed`, `cancelled` or `interrupted`, payload JSON, attempt counters, lease, timestamps, error and log counters.
 - `job_steps`: each job's named steps and their state.
 - `job_log_lines`: log lines per job. The row ID is the event ID of the log stream. A job keeps its first and last 5,000 lines.
-- `schedules`: run-time state of scheduled jobs: `platform.backup` at 03:30 and `platform.retention` at 05:00.
+- `schedules`: run-time state of scheduled jobs: `platform.backup` at 03:30, `platform.retention` at 05:00 and `library.retention` at 05:15.
 
 The retention job deletes failed jobs after 90 days and other finished jobs after 30, with their steps and log lines. A download keeps its row; its log goes with its job.
 
@@ -93,3 +93,125 @@ Rules:
 - `shelf manage import-qobuz-db` writes rows with `imported = 1`, no `download_id`, and the title and artist the old bot's database knew. See [sources/qobuz.md](sources/qobuz.md).
 - `origin_ref` holds what the bot needs to edit its status message. `status_is_text` marks a status message sent as text, without a cover, whose edits change the text and not a caption. The bot sends the message before it queues, so a download from Telegram has its message from the start. It never holds tokens.
 - Paths are relative to `SHELF_MUSIC_DIR`, so the database stays valid if the mount point changes.
+
+## Library module
+
+`internal/modules/library/migrations/00001_index.sql`. The index is a cache, and a walk can rebuild all of it from the files.
+
+```sql
+CREATE TABLE library_albums (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT, -- never reused, so an old link can't open another album
+    folder    TEXT NOT NULL,                     -- the release folder inside the music folder
+    nd_id     TEXT NOT NULL,                     -- the album's ID in Navidrome
+    title     TEXT NOT NULL,
+    artist    TEXT NOT NULL,
+    year      INTEGER NOT NULL,
+    tracks    INTEGER NOT NULL,
+    quality   TEXT NOT NULL,                     -- the most common track quality, such as 'FLAC 24/96'
+    length_ms INTEGER NOT NULL,
+    size      INTEGER NOT NULL,
+    added_at  TEXT NOT NULL,
+    has_mbid  INTEGER NOT NULL CHECK (has_mbid IN (0, 1)),
+    lamp      INTEGER NOT NULL CHECK (lamp IN (0, 1)), -- an issue that isn't style only
+    issues    TEXT NOT NULL DEFAULT '[]',        -- JSON: [{kind, fields}]
+    kinds     TEXT NOT NULL DEFAULT ',',         -- ',no_cover,split_album,' for the filter
+    search    TEXT NOT NULL,                     -- folded title, artist and folder
+    UNIQUE (folder, nd_id)
+) STRICT;
+CREATE INDEX library_albums_title ON library_albums (title COLLATE NOCASE);
+
+CREATE TABLE library_files (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    path       TEXT NOT NULL UNIQUE,             -- inside the music folder, with slashes
+    album_id   INTEGER REFERENCES library_albums (id) ON DELETE SET NULL,
+    size       INTEGER NOT NULL,
+    mtime_ns   INTEGER NOT NULL,
+    revision   TEXT NOT NULL DEFAULT '',
+    rules      TEXT NOT NULL DEFAULT '',         -- the Navidrome rules the facts were read under
+    version    INTEGER NOT NULL DEFAULT 0,       -- the code's facts version
+    error      TEXT NOT NULL DEFAULT '' CHECK (length(error) <= 1000),
+    first_seen TEXT NOT NULL,
+    facts      TEXT NOT NULL DEFAULT '{}'        -- JSON: what the checks and the list need
+) STRICT;
+CREATE INDEX library_files_album ON library_files (album_id);
+
+CREATE TABLE library_state (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+) STRICT;
+```
+
+Rules:
+
+- `facts` holds what the list and the checks need: the Navidrome album ID, the album and artists as Navidrome shows them, track and disc, the year shown, the compilation flag, the MusicBrainz album ID, whether a picture is embedded, the quality and length, the values of the fields an album should share, and the file's own issues. [tags.md](tags.md) has the checks.
+- A file is read again when its size or mtime changes, or when `rules` or `version` differ from the running ones. A file that can't be read keeps its `error` and no `album_id`.
+- `first_seen` is the file's mtime when the index first saw it. A later read keeps it, so "date added" doesn't move with a retag.
+- An album is one `(folder, nd_id)` pair. Each walk writes every album it found and deletes the rest, and an unchanged pair keeps its row ID. A walk that finds the same albums as the last one writes nothing.
+- `kinds` lists the issue kinds between commas, so the filter matches `,kind,`. `search` is the title, artist and folder, lowercased with typographic quotes and dashes made plain.
+- `library_state` holds one row, `navidrome_config`, with the tag settings last read from Navidrome as JSON.
+
+`internal/modules/library/migrations/00002_changes.sql` holds every tag write. Unlike the index, the files can't rebuild it.
+
+```sql
+CREATE TABLE library_changes (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind        TEXT NOT NULL CHECK (kind IN ('save', 'undo', 'redo')),
+    target      INTEGER REFERENCES library_changes (id) ON DELETE CASCADE, -- the save an undo or redo works on
+    album_id    INTEGER NOT NULL,          -- the index's album row when asked for; no foreign key
+    folder      TEXT NOT NULL,
+    title       TEXT NOT NULL,             -- the album and its artist when asked for
+    artist      TEXT NOT NULL,
+    state       TEXT NOT NULL CHECK (state IN ('queued', 'writing', 'done', 'partial', 'failed')),
+    reason      TEXT NOT NULL DEFAULT '',  -- 'conflict', 'locked', 'busy', 'refused', 'verify', 'interrupted', 'error'
+    error       TEXT NOT NULL DEFAULT '' CHECK (length(error) <= 4100),
+    undone      INTEGER NOT NULL DEFAULT 0 CHECK (undone IN (0, 1)),
+    request     TEXT NOT NULL DEFAULT '{}', -- JSON: the edits as asked
+    conflicts   TEXT NOT NULL DEFAULT '[]', -- JSON: what an undo or redo left alone
+    tags        INTEGER NOT NULL DEFAULT 0, -- keys changed, over all files
+    job_id      INTEGER,
+    created_at  TEXT NOT NULL,
+    finished_at TEXT
+) STRICT;
+
+CREATE TABLE library_change_files (
+    change_id INTEGER NOT NULL REFERENCES library_changes (id) ON DELETE CASCADE,
+    path      TEXT NOT NULL,                -- inside the music folder
+    before    TEXT NOT NULL,                -- JSON: every key and its values
+    after     TEXT NOT NULL,                -- JSON: as planned, then as read back
+    revision  TEXT NOT NULL DEFAULT '',     -- after the write
+    written   INTEGER NOT NULL DEFAULT 0 CHECK (written IN (0, 1)),
+    PRIMARY KEY (change_id, path)
+) STRICT;
+```
+
+- A change moves from `queued` to `writing` when its journal begins, then to `done`, `partial` or `failed` by how many of its files were replaced. A change the checks stopped goes from `queued` to `failed` and has no files.
+- `request` holds the edits with each file's path and revision, because a job's payload stops at 64 KiB. The job's payload names only the change.
+- A file row holds the full tag map before and after, so an undo can restore any key. `after` is the plan until the write ends, then what the file read back.
+- `00003_covers.sql` adds `kind`, `audio` or `cover`, and `cover_before` and `cover_after` to `library_change_files`. An audio file's are the hashes of its front cover, equal when the change left it alone. A `cover` row is a folder's cover file, with `{}` for its tags. An empty hash is no cover. The images live in `/data/library/covers` under their hashes.
+- `00005_cover_descriptions.sql` adds `cover_before_description` and `cover_after_description`, an audio file's front cover description before and after the change. An undo or redo that adds a removed cover back gives it the description from its row. Rows from before the migration have `''`.
+- History has no foreign key to the index, which a walk rebuilds. Paths are relative to the music folder, as in the index.
+- An undo or redo has its save as `target` and lists the keys it left alone in `conflicts`. When it replaces any file, it sets its save's `undone`, to 1 for an undo and 0 for a redo.
+- The `library.retention` job at 05:15 keeps the newest 1,000 saves, and `ON DELETE CASCADE` takes their undos, redos and files with them. Clear history deletes every ended change, except a save whose undo or redo is still to run. The same job removes stored covers no change refers to, except uploads younger than a day.
+
+`00004_lookups.sql` holds what suggestions looked up. The services can answer again, so nothing here is a record.
+
+```sql
+CREATE TABLE library_lookups (
+    url        TEXT PRIMARY KEY,               -- the request
+    status     INTEGER NOT NULL CHECK (status IN (200, 404)),
+    body       TEXT NOT NULL DEFAULT '',
+    fetched_at TEXT NOT NULL
+) STRICT;
+
+CREATE TABLE library_remote (
+    id         TEXT PRIMARY KEY,               -- the first 32 hex digits of the image URL's SHA-256
+    url        TEXT NOT NULL,                  -- the full image
+    preview    TEXT NOT NULL,                  -- a smaller copy, or the same URL
+    created_at TEXT NOT NULL
+) STRICT;
+```
+
+- `library_lookups` keeps answers from MusicBrainz, the Cover Art Archive and LRCLIB. A 200 serves for 30 days and a 404 for one day. No request holds a secret.
+- `library_remote` keeps each cover a suggestion offered, so the editor names an image by ID and shelf fetches only images it found itself. An offer lasts 30 days.
+- The `library.retention` job removes lookups and offers older than 30 days.
+

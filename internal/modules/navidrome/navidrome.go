@@ -50,11 +50,12 @@ type Module struct {
 	DeferFor   time.Duration
 	RetryAfter time.Duration
 
-	cfg  config.Navidrome
-	lib  source.Library
-	jobs *jobs.System
-	hub  *hub.Hub
-	log  *slog.Logger
+	cfg    config.Navidrome
+	lib    source.Library
+	client *Client
+	jobs   *jobs.System
+	hub    *hub.Hub
+	log    *slog.Logger
 	// wake starts following a scan. It holds one signal, so a burst of
 	// wakes follows once.
 	wake chan struct{}
@@ -73,7 +74,8 @@ func (*Module) Migrations() fs.FS { return nil }
 func (m *Module) Init(d module.Deps) error {
 	m.cfg, m.jobs, m.hub, m.log = d.Cfg.Navidrome, d.Jobs, d.Hub, d.Log
 	if m.cfg.Enabled() {
-		m.lib = NewClient(m.cfg.URL, m.cfg.User, m.cfg.Password, &http.Client{Timeout: requestTimeout})
+		m.client = NewClient(m.cfg.URL, m.cfg.User, m.cfg.Password, &http.Client{Timeout: requestTimeout})
+		m.lib = m.client
 	}
 	return nil
 }

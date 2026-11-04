@@ -50,10 +50,10 @@ and `blackberry/shelf-wrapper.env` with the same `SHELF_WRAPPER_TOKEN`. Commit c
 ## Music folder permissions
 
 - shelf runs as `10001:10001` with umask 022, so new folders are 0755 and new files 0644. amdl and ffmpeg inherit the umask, and qobuz-dl-go passes the modes explicitly.
-- shelf writes only into `qobuz/` and `apple-music/`, which belong to 10001. The genre folders keep their mixed owners, so the login user and Picard keep writing there. The login user needs sudo to write into the two source folders.
-- shelf never changes the owner or mode of a file it did not create.
+- Downloads write only into `qobuz/` and `apple-music/`. The tag editor writes in the whole library, so after the one-time chown below, every file and folder belongs to 10001. Until then, a Save in a folder or of a file root owns is refused as locked, and nothing is written. The login user and Picard keep writing in the genre folders, because no file of UID 1000 there lacks world-write. The login user needs sudo to write into the two source folders.
+- shelf never changes the owner or mode of a file it did not create. Besides its own temp files, it deletes only a release folder's `cover.*`, when the owner replaces or deletes a cover, and keeps a copy under `/data/library/covers` for undo.
 - Navidrome has a read-only mount and reads the files because they are world-readable.
-- At startup shelf creates and removes a probe file in each source folder. The Status page reports a folder shelf can't write to or one owned by another UID.
+- At startup shelf creates and removes a probe file in each top folder of the music folder, and each walk of the index counts the files another UID owns. `GET /api/library/index` reports a folder shelf can't write to and its locked files, and the Status page will show them.
 
 This command prints nothing while the source folders are right:
 
@@ -69,6 +69,21 @@ sudo chown -R 10001:10001 "$M/qobuz" "$M/apple-music"
 sudo chmod -R u+rwX,go+rX,go-w "$M/qobuz" "$M/apple-music"
 ```
 
+The tag editor needs the genre folders too, the top folders other than `qobuz` and `apple-music`. This prints them, then anything in them that UID 1000 owns without world-write, which the chown would take from the login user. The second list should be empty:
+
+```sh
+find "$M" -mindepth 1 -maxdepth 1 -type d ! -name qobuz ! -name apple-music ! -name '.*'
+find "$M" -mindepth 1 -maxdepth 1 -type d ! -name qobuz ! -name apple-music ! -name '.*' -exec find {} -uid 1000 ! -perm -0002 \; | head
+```
+
+The chown gives them owner and group 10001. A write keeps a file's group, and shelf can give a file only a group it is in, so a file of group 1000 or root is locked. Modes stay, and the login user keeps access through world-write:
+
+```sh
+sudo find "$M" -mindepth 1 -maxdepth 1 -type d ! -name qobuz ! -name apple-music ! -name '.*' -exec chown -R 10001:10001 {} +
+```
+
+Afterwards `GET /api/library/index` shows `locked: 0` and every folder `writable` once shelf restarts.
+
 ## Backups
 
 - shelf's `backup` job runs at 03:30 in the display time zone. It writes `VACUUM INTO` to a temp file on its own read-only connection, syncs it, and renames it to `/data/backups/shelf-YYYY-MM-DD.db`. It keeps 14.
@@ -76,7 +91,7 @@ sudo chmod -R u+rwX,go+rX,go-w "$M/qobuz" "$M/apple-music"
 
 ## Setting up from scratch
 
-1. Give `qobuz/` and `apple-music/` to 10001 as above.
+1. Give the music folder to 10001 as above: `qobuz/` and `apple-music/`, then the genre folders.
 2. Create shelf's data folder for UID 10001, or Docker creates it as root and shelf can't write: `sudo install -d -o 10001 -g 10001 -m 755 ~/.local/share/swingmusic/shelf`.
 3. Deploy sh-main and start `shelf.yaml`.
 4. Sign `shelf-wrapper` in from the Status page.

@@ -293,6 +293,9 @@ type Reporter interface {
 	Done(position int, r TrackResult)
 	// Log is the download's log, which the UI streams.
 	Log() Logger
+	// Working says the source writes in folder, relative to the music
+	// root, until Download returns. Tag writes keep out of it.
+	Working(folder string)
 }
 
 // Logger writes the download's log.

@@ -58,6 +58,9 @@ type Edit struct {
 // it. Other pictures stay.
 type Cover struct {
 	Data []byte
+	// Description goes with an added cover. A replaced one keeps its own,
+	// because another tool wrote it and the owner didn't ask to change it.
+	Description string
 }
 
 // FileChange is what one file of a write should end with.
@@ -116,6 +119,9 @@ type Writer struct {
 	// fault runs before each stage of each file, so tests can fail or
 	// damage one.
 	fault func(stage, path string) error
+	// groups, when set, replaces the check that shelf may give a file a
+	// group, for tests that can't make a file of another group.
+	groups func(gid int) bool
 }
 
 // NewWriter returns a writer for files this process owns.
@@ -153,6 +159,7 @@ type plan struct {
 type coverOp struct {
 	index int
 	data  []byte // nil removes
+	desc  string
 	mime  string
 }
 
@@ -165,11 +172,7 @@ func (w *Writer) Write(ctx context.Context, ch Change) (res Result, err error) {
 	if err != nil {
 		return Result{}, err
 	}
-	for _, p := range plans {
-		res.Files = append(res.Files, FileResult{
-			Path: p.file.Path, Before: p.file.Tags, After: p.want, Pictures: p.wantPics, Revision: p.file.Revision(),
-		})
-	}
+	res = planned(plans)
 	if len(plans) == 0 {
 		return res, nil
 	}
@@ -252,6 +255,34 @@ func (w *Writer) Write(ctx context.Context, ch Change) (res Result, err error) {
 	return res, nil
 }
 
+// Check runs every check of a write and works out its change, touching no
+// file. The result lists the files that would change, with what each is to
+// end with.
+func (w *Writer) Check(ch Change) (Result, error) {
+	plans, err := w.plan(ch)
+	if err != nil {
+		return Result{}, err
+	}
+	return planned(plans), nil
+}
+
+func planned(plans []plan) Result {
+	var res Result
+	for _, p := range plans {
+		res.Files = append(res.Files, FileResult{
+			Path: p.file.Path, Before: p.file.Tags, After: p.want, Pictures: p.wantPics, Revision: p.file.Revision(),
+		})
+	}
+	return res
+}
+
+func (w *Writer) keepsGroup(gid int) bool {
+	if w.groups != nil {
+		return w.groups(gid)
+	}
+	return canKeepGroup(gid)
+}
+
 func (w *Writer) at(stage, path string) error {
 	if w.fault == nil {
 		return nil
@@ -302,6 +333,11 @@ func (w *Writer) planFile(fc FileChange) (plan, bool, error) {
 		// A rename would split the file from its other names.
 		if links > 1 {
 			return p, false, fmt.Errorf("%w: the file has %d hard links", ErrRefused, links)
+		}
+		// The copy must end with the file's group, and shelf can give a
+		// file only a group it is in.
+		if !w.keepsGroup(gid) {
+			return p, false, fmt.Errorf("%w: its group %d isn't one of shelf's", ErrLocked, gid)
 		}
 		p.gid = gid
 	}
@@ -460,15 +496,20 @@ func planCover(f File, c *Cover) (*coverOp, []Picture, error) {
 	if f.Format.flac && len(c.Data) > flacPictureMax {
 		return nil, nil, fmt.Errorf("%w: FLAC holds pictures up to 16 MiB", ErrRefused)
 	}
-	pic := Picture{Type: frontCover, MIME: mime}
-	if f.Format.mp4 {
-		pic.Type = ""
+	pic := Picture{Type: frontCover, Description: c.Description, MIME: mime}
+	if front >= 0 {
+		pic.Description = pics[front].Description
 	}
+	if f.Format.mp4 {
+		pic.Type, pic.Description = "", ""
+	}
+	op := &coverOp{index: front, data: c.Data, desc: pic.Description, mime: mime}
 	if front < 0 {
-		return &coverOp{index: len(pics), data: c.Data, mime: mime}, append(pics, pic), nil
+		op.index = len(pics)
+		return op, append(pics, pic), nil
 	}
 	pics[front] = pic
-	return &coverOp{index: front, data: c.Data, mime: mime}, pics, nil
+	return op, pics, nil
 }
 
 // stage writes and verifies one file's temp copy.
@@ -519,7 +560,7 @@ func (w *Writer) stage(ctx context.Context, p *plan) error {
 		if err := w.at(stageCover, p.tmp); err != nil {
 			return err
 		}
-		if err := writeImage(p.tmp, c.data, c.index, c.mime); err != nil {
+		if err := writeImage(p.tmp, c.data, c.index, c.desc, c.mime); err != nil {
 			return err
 		}
 	}

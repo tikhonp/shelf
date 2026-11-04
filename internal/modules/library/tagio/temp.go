@@ -33,6 +33,17 @@ func createTemp(dir string) (*os.File, error) {
 	return nil, errors.New("no free temp name")
 }
 
+// Probe creates a temp file in dir and removes it, to learn whether shelf
+// can write there.
+func Probe(dir string) error {
+	f, err := createTemp(dir)
+	if err != nil {
+		return err
+	}
+	_ = f.Close()
+	return os.Remove(f.Name())
+}
+
 // IsTemp reports whether name is one of shelf's temp files.
 func IsTemp(name string) bool {
 	rest, ok := strings.CutPrefix(name, tempPrefix)

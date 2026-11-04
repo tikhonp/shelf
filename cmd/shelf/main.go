@@ -27,6 +27,7 @@ import (
 	"github.com/tikhonp/shelf/internal/modules/downloads"
 	"github.com/tikhonp/shelf/internal/modules/fakesource"
 	"github.com/tikhonp/shelf/internal/modules/library"
+	"github.com/tikhonp/shelf/internal/modules/library/tagio"
 	"github.com/tikhonp/shelf/internal/modules/navidrome"
 	"github.com/tikhonp/shelf/internal/modules/qobuz"
 	"github.com/tikhonp/shelf/internal/modules/telegram"
@@ -38,19 +39,60 @@ import (
 )
 
 // modules are the enabled modules, in migration order. main wires their
-// ports here: the bot and Navidrome are the downloads module's notifier and
-// scanner.
+// ports here: the bot is the downloads module's notifier, Navidrome and the
+// library index both hear when downloads end, Navidrome's tag settings
+// reach the library, and the library's writes keep out of the folders
+// downloads work in and ask Navidrome for a scan.
 func modules(cfg *config.Config) []module.Module {
 	dl := downloads.New()
 	nav := navidrome.New()
+	lib := library.New()
 	bot := telegram.New(dl.Service())
-	dl.Service().SetScanner(nav)
+	dl.Service().SetScanner(scanners{nav, lib})
 	dl.Service().SetNotifier(bot)
-	ms := []module.Module{dl, catalog.New(dl), nav, bot, qobuz.New(dl.Service()), applemusic.New(), library.New()}
+	lib.SetBusy(dl.Service().Busy)
+	if cfg.Navidrome.Enabled() {
+		lib.SetConfig(navidromeConfig(nav))
+		lib.SetScanner(func(ctx context.Context) error { return nav.RequestScanFor(ctx, "library") })
+	}
+	ms := []module.Module{dl, catalog.New(dl), nav, bot, qobuz.New(dl.Service()), applemusic.New(), lib}
 	if cfg.DevFakeSource {
 		ms = append(ms, fakesource.New())
 	}
 	return ms
+}
+
+// scanners passes a finished download to each of them.
+type scanners []downloads.Scanner
+
+func (ss scanners) RequestScan(ctx context.Context) error {
+	var errs []error
+	for _, s := range ss {
+		errs = append(errs, s.RequestScan(ctx))
+	}
+	return errors.Join(errs...)
+}
+
+// navidromeConfig hands the navidrome module's settings to the library in
+// the library's own types.
+func navidromeConfig(nav *navidrome.Module) library.ConfigReader {
+	return func(ctx context.Context) (tagio.NavidromeConfig, error) {
+		c, err := nav.Config(ctx)
+		if err != nil {
+			return tagio.NavidromeConfig{}, err
+		}
+		out := tagio.NavidromeConfig{
+			ArtistSplitExceptions: c.ArtistSplitExceptions, ArtistJoiner: c.ArtistJoiner,
+			GenreSeparators: c.GenreSeparators, AlbumPID: c.AlbumPID, CoverArtPriority: c.CoverArtPriority,
+		}
+		if len(c.Tags) > 0 {
+			out.Tags = make(map[string]tagio.TagConfig, len(c.Tags))
+			for k, v := range c.Tags {
+				out.Tags[k] = tagio.TagConfig(v)
+			}
+		}
+		return out, nil
+	}
 }
 
 const usage = `Usage:

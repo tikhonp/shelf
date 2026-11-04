@@ -4,6 +4,7 @@ package tagio
 
 import (
 	"os"
+	"slices"
 	"syscall"
 )
 
@@ -32,4 +33,21 @@ func keepGroup(f *os.File, gid int) error {
 		return nil
 	}
 	return f.Chown(-1, gid)
+}
+
+// canKeepGroup reports whether this process may give a file group gid:
+// root may give any, and others only their own groups.
+func canKeepGroup(gid int) bool {
+	if os.Geteuid() == 0 || gid == os.Getegid() {
+		return true
+	}
+	groups, err := os.Getgroups()
+	return err == nil && slices.Contains(groups, gid)
+}
+
+// Locked reports whether shelf, running as uid, can't replace a file:
+// another user owns it, or its group isn't one of shelf's.
+func Locked(fi os.FileInfo, uid int) bool {
+	u, gid, _, ok := owner(fi)
+	return ok && (u != uid || !canKeepGroup(gid))
 }

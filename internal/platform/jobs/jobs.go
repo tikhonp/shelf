@@ -31,10 +31,12 @@ const (
 	QueueAppleMusic Queue = "applemusic"
 	QueueLibrary    Queue = "library"
 	QueueSystem     Queue = "system"
+	// QueueTags takes every tag write, one at a time.
+	QueueTags Queue = "tags"
 )
 
 // Concurrency is how many jobs each queue runs at once.
-var Concurrency = map[Queue]int{QueueQobuz: 1, QueueAppleMusic: 1, QueueLibrary: 1, QueueSystem: 1}
+var Concurrency = map[Queue]int{QueueQobuz: 1, QueueAppleMusic: 1, QueueLibrary: 1, QueueSystem: 1, QueueTags: 1}
 
 // State is where a job is in its life.
 type State string
