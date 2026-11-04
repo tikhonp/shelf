@@ -152,7 +152,7 @@ States:
 2. When wrapper-lite logs `Enter your 2FA code`, the state becomes `awaiting_code` with a deadline 60 seconds later. wrapper-lite polls for `2fa.txt` every 3 seconds and gives up after 60.
 3. `POST /v1/code` writes the code to a temporary file in `/app/rootfs/data`, sets mode 0600, and renames it to `2fa.txt`, so wrapper-lite never reads half of it. The state goes back to `signing_in`. wrapper-lite logs `Code file detected! Logging in...` and deletes the file.
 4. `login complete, exiting` and exit code 0 mean success. The launcher exits 0 however the sign-in ends, so the line decides. The supervisor starts service mode, and the state becomes `running` once `/status` lists a region.
-5. Otherwise the supervisor records the last line whose message starts with `auth error`, `server message`, `2FA code timeout` or `auth failed`, or else "the sign-in did not finish" with the exit code, sets `error`, and starts service mode again. wrapper-lite's lines start with the time and a level padded to five letters, `[INFO ]`, which the supervisor strips before it compares.
+5. Otherwise the supervisor records the last line whose message starts with `auth error`, `server message`, `2FA code timeout` or `auth failed`, or else "the sign-in did not finish" with the exit code, sets `error`, and starts service mode again. An `auth error` never replaces a `server message`, because Apple's message is readable and the `auth error` after it can be only a code. wrapper-lite's lines start with the time and a level padded to five letters, `[INFO ]`, which the supervisor strips before it compares.
 
 The shelf UI drives this through `/api/applemusic/wrapper/*`. Neither shelf nor the supervisor stores the Apple ID password, and neither logs it.
 
