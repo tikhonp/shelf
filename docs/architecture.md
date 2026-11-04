@@ -40,7 +40,7 @@ Modules:
 | `navidrome` | The library port: scans and their state. It also reads Navidrome's tag settings for the library module. |
 | `telegram` | The bot. It implements the downloads module's notifier port. |
 | `fakesource` | A source with canned data for tests, and for UI work when `SHELF_DEV_FAKE_SOURCE` is on. |
-| `library` | The tag editor of phase 2, built in steps. Its `tagio` package reads tags as Navidrome does and writes them through verified temp copies. The module sweeps leftover temp files at start, keeps an index of the music folder with its albums and checks, saves edits through the `library.write` job, suggests values from names, `shelf.txt`, MusicBrainz, the catalogs, LRCLIB and AcoustID, runs fixes and ReplayGain over many albums, and serves `/api/library` and the audio for the player. Its `musicbrainz` package also reads the Cover Art Archive, `lrclib` reads lyrics, `loudness` measures tracks with ffmpeg, and `acoustid` fingerprints audio. [tags.md](tags.md) describes it. |
+| `library` | The tag editor. Its `tagio` package reads tags as Navidrome does and writes them through verified temp copies. The module sweeps leftover temp files at start, keeps an index of the music folder with its albums and checks, saves edits through the `library.write` job, suggests values from names, `shelf.txt`, MusicBrainz, the catalogs, LRCLIB and AcoustID, runs fixes and ReplayGain over many albums, and serves `/api/library` and the audio for the player. Its `musicbrainz` package also reads the Cover Art Archive, `lrclib` reads lyrics, `loudness` measures tracks with ffmpeg, and `acoustid` fingerprints audio. [tags.md](tags.md) describes it. |
 
 A module implements `Name()` and `Migrations()` and declares the rest through optional interfaces, found by type assertion, as in `proxier/internal/platform/module/module.go`: `Initializer`, `Migrated`, `RouteDeclarer`, `BodyLimiter`, `JobDeclarer`, `SourceDeclarer` and `Runner`. Only serve calls a `Runner`'s `Run`, which holds work that lasts as long as the server, such as the bot's long polling. `manage` opens the platform too, so `Init` never logs in or reaches the network. The platform logs a `Run` that fails, and the server goes on without it. `module.Deps` gives a module the config, the logger, the database, the jobs system, the hub, the source registry, and a `Closing` channel that long-lived responses end on. The platform registers job types, schedules and sources after every `Init`. Adding a source means one new module and one line in `main`.
 
@@ -140,7 +140,7 @@ The navidrome module's `navidrome.Client` is the `Library`. It calls Navidrome's
 
 ## Events
 
-The hub carries five kinds of event. `GET /api/events` streams them as server-sent events, and the bot subscribes to `download`.
+The hub carries seven kinds of event. `GET /api/events` streams them as server-sent events, and the bot subscribes to `download`.
 
 | Event | Fields |
 | --- | --- |
@@ -201,7 +201,7 @@ JSON in and out. Errors are `{"error": "<message>"}` with a 4xx or 5xx status.
 | `GET /api/applemusic/wrapper` | The wrapper state for the Status page: `{"state", "storefront", "since", "error", "code_deadline"}`. 503 when the wrapper doesn't answer. |
 | `POST /api/applemusic/wrapper/login`, `/code`, `/restart` | Sign-in and restart, passed to the supervisor. Its 409 and 400 answers come through with their message; 502 when it refuses shelf's token. 422 when Apple Music is not set up. |
 | `GET /api/applemusic/wrapper/log?after=` | The wrapper's kept log lines after a line number, for the Status page's log tail: `{"lines": [{"n", "time", "text"}]}`. |
-| `GET /api/events` | Server-sent `download`, `scan`, `source`, `library` and `change` events. |
+| `GET /api/events` | Server-sent events of every kind under [Events](#events). |
 | `GET /api/version` | `{"version"}` for the UI. |
 | `GET /healthz` | Liveness for Docker and `shelf healthcheck`. |
 

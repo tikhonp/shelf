@@ -11,7 +11,7 @@ State: phases 1 and 2 are done, and shelf runs in production on blackberry. `doc
 - `docs/status.md`, then `docs/README.md`, the map of the docs.
 - `docs/architecture.md`, `docs/data-model.md`, and the doc of the part you touch.
 - `docs/decisions.md` before changing how something works.
-- For the UI: `docs/ui/design/README.md` and its screens, then `docs/ui/design-brief.md`. The design wins where they differ.
+- For the UI: `docs/ui/design/README.md` and its screens.
 
 ## Rules for all code
 

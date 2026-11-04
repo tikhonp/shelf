@@ -1,6 +1,6 @@
 # Tags
 
-How shelf reads and writes the tags in audio files, and how it indexes, checks and saves the library. Navidrome is the test of every write. shelf follows its mappings, and a write that reads back right but shows wrong in Navidrome has failed. The code is the library module, `internal/modules/library`, with tag IO in its `tagio` package. Phase 2 builds the editor in steps, and this doc grows with them. [phase-2.md](phase-2.md) has the plan.
+How shelf reads and writes the tags in audio files, and how it indexes, checks and saves the library. Navidrome is the test of every write. shelf follows its mappings, and a write that reads back right but shows wrong in Navidrome has failed. The code is the library module, `internal/modules/library`, with tag IO in its `tagio` package.
 
 ## Fields
 
@@ -49,6 +49,8 @@ One rule covers every write. `tagio.Writer` runs one write at a time over the fi
 A failure before the renames removes every temp file and changes nothing. A rename that fails after others succeeded ends with `ErrPartial`. Each file is whole, old or new, and the result says which. When a folder fsync fails, every file is already written, and the write returns the error.
 
 At start the library module removes temp files a crash left. It walks the music folder, skips dot folders, and deletes only regular files with the temp name that shelf's UID owns. A folder it can't read is logged and skipped.
+
+**Write probe.** At start, shelf creates and removes a temp file in each top folder of the music folder. `GET /api/library/index` lists the top folders with `writable` and the reason when not. Each walk counts the files shelf can't write, because another UID owns them or their group isn't one of shelf's, as `locked`, per folder and in all. The probe runs once a start, because it moves each folder's mtime.
 
 ## Saving
 
@@ -147,8 +149,6 @@ A run's ReplayGain measures each track with one ffmpeg `ebur128` decode, on the 
 - **Results.** `library_gains` keeps each measure by the hash of the audio, the same hash a write checks, which a retag doesn't move. So a run cut off or asked for again decodes nothing twice, and a second run on the same audio writes nothing.
 - **Failure.** A file ffmpeg can't measure skips its album, because an album gain needs every track.
 
-**Write probe.** At start, shelf creates and removes a temp file in each top folder of the music folder. `GET /api/library/index` lists the top folders with `writable` and the reason when not. Each walk counts the files shelf can't write, because another UID owns them or their group isn't one of shelf's, as `locked`, per folder and in all. The probe runs once a start, because it moves each folder's mtime.
-
 ## Suggestions
 
 A suggestion is a value for a field, shown beside it with its source and a confidence. `GET /api/library/albums/{id}/suggestions` answers an album's suggestions. The editor asks for them after it opens the album, so a slow service never holds the album up. Nothing is written until the owner accepts a suggestion and saves it.
@@ -244,6 +244,15 @@ The Library tab holds staged edits in the browser, per album, so opening another
 - **Artists.** A multi-value `ARTISTS` wins. Otherwise Navidrome splits a single `ARTIST` by the field's separators, or by the mappings' artist separators, skipping the split exceptions. Album artists work the same way, and without any they are the track's artists, or Various Artists on a compilation. The display name joins the tag's values with the joiner.
 - **Dates.** With an original date, no release date, and a date no earlier than the original, Navidrome shows the original date and reads the date as the release date. Otherwise it shows the date, then the original date, then the release date.
 - **Album ID.** shelf hashes the spec, `musicbrainz_albumid|albumartistid,album,albumversion,releasedate` by default, as Navidrome does. It takes the first alternative with any value and puts the library ID 1 in front. shelf supports `album_legacy` too. The tests hold IDs that a real Navidrome 0.64.2 computed.
+
+What Navidrome 0.64.2 does with shelf's writes, measured on copies of real albums:
+
+- A retag in place keeps a track's ID, star, rating, plays and playlists.
+- A new album ID, from a rename or new MusicBrainz IDs, takes the album's star, rating and plays along, and an undo brings the old ID back. A scan between the two halves of a rename ends the same.
+- Rewriting every file of an album through temp files keeps its place in Recently Added.
+- Navidrome skips dot files, so it never sees a temp copy. TagLib finds the format by content, so a temp name needs no extension.
+- `cover.*` beats embedded art, and a track without embedded art shows the album's cover. An `.lrc` file beside a track hides its embedded lyrics.
+- The watcher shows a retag about 6 seconds after the write, with no scan request.
 
 ## Index
 
