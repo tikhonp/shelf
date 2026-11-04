@@ -26,6 +26,7 @@ import (
 	"github.com/tikhonp/shelf/internal/modules/catalog"
 	"github.com/tikhonp/shelf/internal/modules/downloads"
 	"github.com/tikhonp/shelf/internal/modules/fakesource"
+	"github.com/tikhonp/shelf/internal/modules/library"
 	"github.com/tikhonp/shelf/internal/modules/navidrome"
 	"github.com/tikhonp/shelf/internal/modules/qobuz"
 	"github.com/tikhonp/shelf/internal/modules/telegram"
@@ -45,7 +46,7 @@ func modules(cfg *config.Config) []module.Module {
 	bot := telegram.New(dl.Service())
 	dl.Service().SetScanner(nav)
 	dl.Service().SetNotifier(bot)
-	ms := []module.Module{dl, catalog.New(dl), nav, bot, qobuz.New(dl.Service()), applemusic.New()}
+	ms := []module.Module{dl, catalog.New(dl), nav, bot, qobuz.New(dl.Service()), applemusic.New(), library.New()}
 	if cfg.DevFakeSource {
 		ms = append(ms, fakesource.New())
 	}
@@ -60,6 +61,7 @@ const usage = `Usage:
   shelf manage download <url> [--format F] [--force]
                                           queue a download; F is a format ID such as 27 or qobuz:27
   shelf manage import-qobuz-db <path>     add the old bot's qobuz_dl.db to the download history
+  shelf manage tags <file>                show an audio file's tags as Navidrome reads them, without changing it
   shelf healthcheck                       exit 0 when the running server is healthy, 1 otherwise
   shelf version
 `
@@ -190,6 +192,15 @@ func (c cli) healthcheck(ctx context.Context) int {
 const healthTimeout = 3 * time.Second
 
 func (c cli) manage(ctx context.Context, args []string) int {
+	// tags only reads one file, so it opens neither the configuration nor
+	// the database.
+	if len(args) == 2 && args[0] == "tags" {
+		if err := printTags(c.stdout, args[1]); err != nil {
+			sayln(c.stderr, err)
+			return 1
+		}
+		return 0
+	}
 	var cmd func(*platform.App, *config.Config, *slog.Logger) error
 	switch {
 	case len(args) == 2 && args[0] == "migrate" && args[1] == "up":
