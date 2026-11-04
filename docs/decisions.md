@@ -92,7 +92,7 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 
 ## Tags
 
-Phase 2 is being built. Step 1, tag IO and the safe writer, and step 2, the read-only library, are built, and step 3, the editing backend, is under way. [tags.md](tags.md) describes them. The rows under Deployment stay in force until the editing backend ships.
+Phase 2 is being built. Step 1, tag IO and the safe writer, and step 2, the read-only library, are built, and step 3, the editing backend, is under way. [tags.md](tags.md) describes them.
 
 | Decision | Why |
 | --- | --- |
@@ -144,6 +144,7 @@ Phase 2 is being built. Step 1, tag IO and the safe writer, and step 2, the read
 | The cover store under `/data` keeps uploads and every cover a change replaces, named by hash, in any format. | Undo needs the old bytes, and a damaged cover is still the one to put back. |
 | shelf scales embedded covers down with its own area average, in the image's own format. | Downscaling needs only the standard library, so shelf takes on no new dependency for it. |
 | `bad_cover` is found when an album opens, by ffmpeg. Repair stages a cover and writes nothing. | The walk reads no picture bytes. A Fix only stages edits for review. |
+| The contract test runs in Linux containers that share a Docker volume. | On a Mac, Docker Desktop's file sharing showed Navidrome stale mtimes, and two runs of the same writes gave different results. |
 | Modules raise a route's body limit through `module.BodyLimiter`. | The platform's 1 MiB limit runs before routing would let a route raise it. |
 | The write probe runs once at start, in each top folder of the music folder. | Each probe moves the folder's mtime, which Navidrome's watcher hears. |
 | A change cut off while it wrote is settled from its files: one that holds the planned tags was replaced. | The renames run back to back, so a crash leaves each file old or new, and the read tells which. |
@@ -173,6 +174,8 @@ Run on 2026-11-04 on blackberry in the shelf image as UID 10001, on 25 albums co
 | Broken files | Empty, garbage and damaged-header files return an error, with no panic. A half-truncated file reads and writes without one. |
 | AcoustID | Alpine's `chromaprint` ships `fpcalc`. |
 
+`make contract` repeats the retag, rename, undo, split, date and cover scenarios against `deluan/navidrome:latest`. On 2026-11-04 it passed on 0.64.2, and found that an album that lost a track in a quick scan keeps its old `songCount`, while `getAlbum` lists the right songs.
+
 Not tested: that `RELEASEDATE` copying `YEAR`'s exact value keeps an album ID, which follows from the persistent ID code, which step 3 covers. Check 13 read `/api/config/` with production's account on 2026-11-04.
 
 ## Deployment
@@ -183,4 +186,4 @@ Not tested: that `RELEASEDATE` copying `YEAR`'s exact value keeps an album ID, w
 | shelf-wrapper has its own data folder and `--device-info`. | wrapper-lite derives the device ID from the Apple ID, and `apple-music-wrapper` used the same account. |
 | Neither `shelf` nor `shelf-wrapper` updates nightly. Both are pulled together by hand. | They share the control API's types. |
 | shelf's data lives in `${SWINGMUSIC_DATA}/shelf` and `${SWINGMUSIC_DATA}/shelf-wrapper`, and the swingmusic backup copies all of it. A restore starts from a daily copy. | The owner's choice, like the other music services. One task that copies everything is easier to keep right. |
-| Only `qobuz/` and `apple-music/` belong to 10001. The genre folders keep their mixed owners. | shelf writes only there, and the login user and Picard keep writing elsewhere. |
+| `qobuz/` and `apple-music/` belong to 10001, and the genre folders too after one chown of their owner only. Downloads write only into the two source folders. | The tag editor writes in the whole library. A chown that keeps modes and groups takes no access from the login user or Picard. |
