@@ -31,7 +31,7 @@ Apple Music only, through the API, on images from `d54a2f9`. Qobuz, Navidrome an
 
 | Check | Result |
 | --- | --- |
-| 2 | The code step and the right code passed. The code sent after 60 seconds is not run yet. |
+| 2 | Passed through the API, not the Status card. The code step and the right code signed in. With no code, the state became `error` with `2FA code timeout (60s), aborting login` after 60 seconds, and a late code got a 409. A wrong password and the timeout both left the old session working: the wrapper went back to `running`. |
 | 3 | Passed for all four kinds and the album, artist and playlist panels. |
 | 5 | Album, song, album with `?i=`, playlist and artist passed. Music video and station links failed, with the generic error, then passed on `e95e5ad`. |
 | 6 | Cancel, retry and a restart during a download passed, and the restart went on with 2 tracks skipped and 10 downloaded. A cancel left the current track `running`, and on `e95e5ad` it went back to `pending`. |
