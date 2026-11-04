@@ -213,8 +213,8 @@ Tokens and passwords are `config.Secret`, which prints, logs and marshals as `[r
 | `SHELF_AMDL_CONFIG` | `/config/amdl.yaml` | Base amdl config. Empty disables Apple Music. |
 | `SHELF_AMDL_TIMEOUT` | `2h` | Limit per amdl run. |
 | `SHELF_APPLE_DIR` | `apple-music` | Folder under the music root. |
-| `SHELF_WRAPPER_URL` | `http://apple-music-wrapper:12340` | wrapper-lite API, for amdl and the storefront. |
-| `SHELF_WRAPPER_CONTROL_URL` | `http://apple-music-wrapper:12341` | Supervisor control API. |
+| `SHELF_WRAPPER_URL` | `http://shelf-wrapper:12340` | wrapper-lite API, for amdl and the storefront. |
+| `SHELF_WRAPPER_CONTROL_URL` | `http://shelf-wrapper:12341` | Supervisor control API. |
 | `SHELF_WRAPPER_TOKEN` | | Shared with shelf-wrapper. |
 | `SHELF_NAVIDROME_URL` | `http://navidrome:4533` | Empty disables scans. |
 | `SHELF_NAVIDROME_USER`, `SHELF_NAVIDROME_PASSWORD` | | An admin account. |

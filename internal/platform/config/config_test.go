@@ -41,8 +41,8 @@ func TestConfigDefaults(t *testing.T) {
 	}
 	a := c.Apple
 	if !a.Enabled() || a.AMDLConfig != "/config/amdl.yaml" || a.AMDLTimeout != 2*time.Hour || a.Dir != "apple-music" ||
-		a.WrapperURL.String() != "http://apple-music-wrapper:12340" ||
-		a.WrapperControlURL.String() != "http://apple-music-wrapper:12341" || a.WrapperToken != "" {
+		a.WrapperURL.String() != "http://shelf-wrapper:12340" ||
+		a.WrapperControlURL.String() != "http://shelf-wrapper:12341" || a.WrapperToken != "" {
 		t.Errorf("Apple = %+v", a)
 	}
 	n := c.Navidrome

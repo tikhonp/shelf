@@ -125,8 +125,8 @@ func Load(lookup func(string) (string, bool)) (*Config, error) {
 			AMDLConfig:        p.str("SHELF_AMDL_CONFIG", "/config/amdl.yaml"),
 			AMDLTimeout:       p.duration("SHELF_AMDL_TIMEOUT", 2*time.Hour, true),
 			Dir:               p.folder("SHELF_APPLE_DIR", "apple-music"),
-			WrapperURL:        p.requiredURL("SHELF_WRAPPER_URL", "http://apple-music-wrapper:12340"),
-			WrapperControlURL: p.requiredURL("SHELF_WRAPPER_CONTROL_URL", "http://apple-music-wrapper:12341"),
+			WrapperURL:        p.requiredURL("SHELF_WRAPPER_URL", "http://shelf-wrapper:12340"),
+			WrapperControlURL: p.requiredURL("SHELF_WRAPPER_CONTROL_URL", "http://shelf-wrapper:12341"),
 			WrapperToken:      Secret(p.str("SHELF_WRAPPER_TOKEN", "")),
 		},
 		Navidrome: Navidrome{
