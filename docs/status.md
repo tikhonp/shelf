@@ -4,13 +4,11 @@ Phases 1 and 2 are done, and shelf runs in production on blackberry. [vision.md]
 
 - **Downloads.** The web UI at `shelf.music.tikhonnnnn.com` and the bot `@music_shelf_bot` search and download from Qobuz, through qobuz-dl-go `v0.1.0`, and from Apple Music, through amdl and shelf-wrapper. Navidrome scans after downloads. shelf imported the old bot's 169 downloads.
 - **Tags.** The Library tab edits every tag in the library, with suggestions, checks and fixes, covers, playback, history with undo, and bulk runs with ReplayGain and AcoustID. [tags.md](tags.md) describes it. `make contract` passes against Navidrome 0.64.2.
-- **Delete.** The Library tab deletes an album's release folder and has Navidrome forget its tracks, as [tags.md](tags.md#deleting) describes. `make contract` covers it, and it isn't deployed yet.
+- **Delete.** The Library tab deletes an album's release folder and has Navidrome forget its tracks, as [tags.md](tags.md#deleting) describes. `make contract` covers it.
 
-Checks 1 to 16 in [manual-checklist.md](manual-checklist.md) passed in production, the last on 2026-11-05.
+Every check in [manual-checklist.md](manual-checklist.md) passed in production, the last on 2026-11-05.
 
 ## Open
-
-- Deploy Delete and run check 17. The deploy applies migration `00007_deletes.sql`, which builds `library_changes` again, so take a backup copy of `/data/shelf.db` first.
 
 - Status's Library part doesn't say whether MusicBrainz answers, because the API has no such check.
 
