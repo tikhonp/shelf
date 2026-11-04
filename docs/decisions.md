@@ -92,7 +92,7 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 
 ## Tags
 
-Planned for phase 2 and not built yet. The rows under Deployment stay in force until the editing backend ships.
+Phase 2 is being built. Step 1, tag IO and the safe writer, is done, and [tags.md](tags.md) describes it. The rows under Deployment stay in force until the editing backend ships.
 
 | Decision | Why |
 | --- | --- |
@@ -120,6 +120,12 @@ Planned for phase 2 and not built yet. The rows under Deployment stay in force u
 | `.mp4` files are never audio to shelf. | The 10 in the library are amdl's animated artwork, and Navidrome skips them. |
 | All fields groups tags by whether Navidrome reads them: Standard holds the ones it reads, Extended the rest. | 28 of the library's 89 keys, such as `ENSEMBLE` and `UPC`, never reach Navidrome. The owner should see that before editing one. |
 | A ReplayGain run writes track and album values to -18 LUFS with one ffmpeg `ebur128` decode per track, and pools the loudness blocks for album gain. | Pooled blocks gave -21.21 LUFS where one continuous decode gave -21.2. The whole library takes about 12 hours on one CPU. No file has album gain today, and on the album tested the 2,443 existing track gains differ from `ebur128` by 0.5 to 1.2 dB, so a run replaces them. |
+| The field table is Navidrome's `mappings.yaml`, copied unchanged with a header naming the release. Format tables add the raw atoms TagLib renames, such as M4A's `©day` as `DATE`. | Navidrome reads by these aliases, so a copy can't drift from them. A newer release is a new copy and a diff to read. |
+| A temp copy is `.shelf-tmp-<16 hex>` beside its file, and the sweep at start deletes only regular files with that name that shelf's UID owns, outside dot folders. | Navidrome skips dot files, a rename stays in one folder, and the name can't match anyone else's file. |
+| The writer refuses symlinks and files with more than one hard link, and gives a temp copy the original's mode and group. | A rename would replace the link and split the hard link. The census found neither in the library. |
+| MP3 writes gain an ID3v1 copy of the tags. | TagLib's save adds one, and go-taglib has no option to stop it. The read-back and Navidrome's view are unchanged, and the library has no MP3 files. |
+| A WMA file with two pictures can't be written. | TagLib reorders WMA pictures on save, and the read-back refuses a moved picture. The library has no WMA files. |
+| Tests that check audio through ffmpeg skip where ffmpeg is missing. The FLAC tests never need it. | The image and the dev machines have ffmpeg. CI's runner may not. |
 | A bulk run has no nightly limit. Its preview shows the files and GB touched, and the owner sizes each run. | Nothing runs by itself. The HDD backup recopies each changed file and keeps no history, and the remote one keeps overwritten files for 30 days. |
 
 ### Evidence from step 0
