@@ -17,7 +17,7 @@ Files keep the old tools' folder and file names, so Navidrome, Picard and AudioM
 
 ## Phase 2: tags
 
-Being built, as [status.md](status.md) says. shelf gets a Library tab with a full tag editor, so tagging no longer needs Picard:
+Done, as [status.md](status.md) says. shelf has a Library tab with a full tag editor, so tagging no longer needs Picard:
 
 - The editor reads and writes every tag in the library, with custom fields, covers, lyrics and in-browser playback.
 - Suggestions sit beside the tag fields, from the file and folder names, MusicBrainz, Qobuz, Apple Music, LRCLIB and AcoustID.
