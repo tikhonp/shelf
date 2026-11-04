@@ -57,7 +57,7 @@ The look is a recording studio built around a British mixing console: blue-grey 
 - The phone comes first for search and download. The desktop uses the same parts with more room.
 - Night is the default theme. Day is a switch, and the app keeps the choice in `localStorage`.
 - Each element shows one thing. A compact view of a download shows the cover, a display with tracks done and the current track, and one lamp per track. Only the detail view adds a picture, the disc being cut.
-- Notifications never cover content. On the phone a notification such as Queued takes its own slot between the window and the tab bar, and the window gets shorter.
+- Notifications never cover content. On the phone a notification such as Queued takes its own slot between the window and the tab bar, and the window gets shorter. On the desktop a result or a refusal takes the top of the side column, and Queued shows only in the row and the queue.
 - Search covers every source by default and puts the results in one list, with the source named in plain text on each row.
 
 ## Root classes
@@ -167,6 +167,7 @@ Quality labels look like masking tape. The words always name the quality, and th
 - Names, numbers and dates are sample data.
 - Each screen shows its board's first state. On the canvas the boards are interactive: knobs turn, rows open panels, Download all asks and confirms, and the Sources switch opens.
 - The phone's theme switch is on Status, because the phone has no menubar.
+- Notices when a download ends are new. They use the Queued slot with a green, yellow or red lamp, and a Notices switch on Status sets which ones show.
 - Error text on a module is a pale red at night and a dark red by day, not `--red`, which is about 2:1 there. Lamps and pills keep `--red`.
 - Status has no Rate limits module, and the Qobuz card has no last request time, because the API has neither.
 - A running track says Downloading, without a percentage, because the API has no per-track progress.

@@ -39,7 +39,7 @@ async function confirm() {
   const text = `${count(n, 'release')} by ${props.item.title}`
   const sub = [label.value, before].filter(Boolean).join(' · ')
   if (phone.value) {
-    downloads.notice = { title: 'Queued', text, sub, cover: props.item.cover_url ?? '', round: true, failed: false }
+    downloads.notice = { title: 'Queued', text, sub, cover: props.item.cover_url ?? '', round: true, lamp: '', to: '/downloads' }
     emit('close')
   } else {
     downloads.notice = null

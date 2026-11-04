@@ -7,6 +7,7 @@ import DownloadDeck from '../components/DownloadDeck.vue'
 import DownloadPanel from '../components/DownloadPanel.vue'
 import HistoryList from '../components/HistoryList.vue'
 import Icon from '../components/Icon.vue'
+import NoticeSlot from '../components/NoticeSlot.vue'
 import QueueShelf from '../components/QueueShelf.vue'
 import { useNow } from '../lib/clock'
 import { isTyping, moved } from '../lib/cursor'
@@ -77,6 +78,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', key))
         <p v-if="scanWords" class="t3 sm center">{{ scanWords }}</p>
       </div>
     </section>
+    <NoticeSlot />
   </div>
   <div v-else class="page">
     <div class="page-main col dl-main">
@@ -92,7 +94,8 @@ onBeforeUnmount(() => document.removeEventListener('keydown', key))
         <div v-if="downloads.historyNext !== null" class="more-row"><button type="button" class="key" @click="downloads.loadMore()">Load more</button></div>
       </section>
     </div>
-    <aside v-if="id || downloads.queued.length" class="page-side">
+    <aside v-if="id || downloads.queued.length || downloads.deskNotice" class="page-side">
+      <NoticeSlot />
       <DownloadPanel v-if="id" :id="id" @close="close" />
       <section v-else-if="downloads.queued.length" class="win" aria-label="Queue">
         <div class="tb"><h2>Queue · {{ downloads.queued.length }}</h2><span class="stripes"></span></div>

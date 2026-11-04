@@ -45,7 +45,8 @@ Next: 1h, deployment and cutover.
 
 ### 2026-11-04
 
-- Step 1g: the web UI. `make check`, `make lint`, `make web-check` and `docker build .` pass, with 108 Vitest tests. The manual lines ran in headless Chrome against the binary with the fake source: real downloads, Retry, the log and Download all, with stubbed lists for the running screens and stubbed answers for sign-in and the rate-limit wait. The console showed no CSP violation, and seven widths from 320 to 1920 pixels stay inside the window. A real phone, real covers and a real wrapper wait for 1h. See the As built section of [build/1g.md](build/1g.md).
+- Step 1g: the web UI. `make check`, `make lint`, `make web-check` and `docker build .` pass, with 130 Vitest tests. The manual lines ran in headless Chrome against the binary with the fake source: real downloads, Retry, the log and Download all, with stubbed lists for the running screens and stubbed answers for sign-in and the rate-limit wait. The console showed no CSP violation, and seven widths from 320 to 1920 pixels stay inside the window. A real phone, real covers and a real wrapper wait for 1h. See the As built section of [build/1g.md](build/1g.md).
+- Notices when a download ends are a setting on Status: Off, Failures or All, per browser, with Failures as the default. The desktop got a notice slot, which also shows a refused download for the first time. See [build/1g.md](build/1g.md).
 - The first of those runs inherited `SHELF_QOBUZ_TOKEN` from the shell, so it logged in to the owner's Qobuz account and sent a few searches. It queued no download, and the token reached no file of the run. Later runs unset the variable.
 - The supervisor now keeps Apple's readable `server message` when an `auth error` follows it. `/api/search` and `/api/items` answer 429 for a rate-limited source, and downloads answer `origin_user`.
 - Step 1e, staging run on blackberry: In Rainbows downloaded through `shelf-staging`, 10 of 10 tracks, and the Apple Music parts of checks 3, 5, 6, 7, 10 and 11 of [manual-checklist.md](manual-checklist.md) ran. The run found two bugs: music video and station links got the generic error from the API, and a cancel left amdl's current track `running`. Both are fixed, and a second run on `e95e5ad` passed them. See the As built section of [build/1e.md](build/1e.md).
@@ -82,4 +83,4 @@ Next: 1h, deployment and cutover.
 - The As built section of [build/1d.md](build/1d.md) ends with notes for 1g and 1h: what the Status page reads of the Qobuz source, the 503 a search can answer, and what the import prints during the cutover.
 - MP3 files still differ byte for byte between runs, and that stays. See [decisions.md](decisions.md).
 - The As built section of [build/1g.md](build/1g.md) ends with notes for 1h: check the sign-in dialog and the covers on the real deployment with a phone and a tablet, and unset `SHELF_QOBUZ_TOKEN` for a local run with only the fake source.
-- Two choices for the owner, listed there: table densities, and notices when a download finishes or fails.
+- One choice left for the owner: table densities.

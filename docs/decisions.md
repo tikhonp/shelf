@@ -12,6 +12,7 @@ Newest first. A changed decision gets a new entry that names the one it replaces
 | Rate limits | A source wraps `source.ErrRateLimited`, and search and lookups answer 429 with a readable message. Status has no Rate limits module. | Apple Music knew it was limited and the API hid that. Nothing reports a limit before a call hits one, so a module could only say "not limited" without knowing. |
 | Who asked | Downloads answer `origin_user`. | The brief shows the Telegram user's name, and shelf already stores it. |
 | Error text | Error text on a module is a pale red at night and a dark red by day. | `--red` is about 2:1 there, below the AA the brief asks for. |
+| Notices | A download that ends shows a notice as a per-browser setting: Off, Failures or All, with Failures as the default. A problem stays until dismissed. | The owner asked for it to be configurable. A failure needs a person, and a finished download already shows in its row and the history. Phone and desktop may want different levels. |
 | Fake covers | The fake source's covers are data URLs. | `fake.test` broke the rule of no CSP violations. |
 
 ## 2026-11-04: open issues from the first Qobuz run

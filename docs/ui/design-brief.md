@@ -27,7 +27,7 @@ Music Shelf is a self-hosted web app for one person who grows a personal music l
 - Desktop: a menubar across the top with Search, Downloads and Status. Library will join as the first item in a later phase.
 - Phone: a tab bar at the bottom with the same items.
 - A tab shows one amber lamp while there is something to look at: Downloads while downloads run or wait, Status while a part needs attention. Tabs never show a number.
-- Notices never cover the content. On the phone a notice such as Queued takes its own place between the window and the tab bar, and the window gets shorter. On the desktop the row's status and the queue show it.
+- Notices never cover the content. On the phone a notice such as Queued takes its own place between the window and the tab bar, and the window gets shorter. On the desktop the row's status and the queue show Queued, and a download's result or a refusal takes the top of the side column.
 
 ## Search
 
@@ -116,7 +116,8 @@ The design session left these out, and step 1g decided each one.
 
 - Built: the Compilations and Appears on groups of the artist panel, and on the desktop an artist download as one row that opens into its albums. The phone shows the albums in the download panel.
 - Left out, because the API has no such field: a playlist's description.
-- Left out, for the owner to decide: compact and comfortable table densities, and notices when a download finishes or fails.
+- Built as a setting: notices when a download finishes or fails, with Off, Failures and All on Status.
+- Left out, for the owner to decide: compact and comfortable table densities.
 
 ## Sample data
 

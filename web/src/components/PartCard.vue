@@ -2,13 +2,13 @@
 import { usePhone } from '../lib/viewport'
 
 // One part on the Status page: a module on the phone, a rack unit on the desktop.
-defineProps<{ name: string; lamp: string; note?: string; lines: string[]; last?: boolean }>()
+defineProps<{ name: string; lamp?: string; note?: string; lines: string[]; last?: boolean }>()
 const phone = usePhone()
 </script>
 
 <template>
   <section v-if="phone" class="smod" :class="{ last }" :aria-label="name">
-    <div class="smod-h"><span class="led" :class="lamp"></span><h2>{{ name }}</h2><span v-if="note" class="sub">{{ note }}</span></div>
+    <div class="smod-h"><span v-if="lamp" class="led" :class="lamp"></span><h2>{{ name }}</h2><span v-if="note" class="sub">{{ note }}</span></div>
     <div v-if="lines.length" class="lcd"><div v-for="l in lines" :key="l" class="lcd-l">{{ l }}</div></div>
     <slot name="text" />
     <div v-if="$slots.keys" class="smod-keys"><slot name="keys" /></div>
@@ -16,7 +16,7 @@ const phone = usePhone()
   </section>
   <section v-else class="win unit" :aria-label="name">
     <div class="unit-body">
-      <div class="plate"><h2><span class="led" :class="lamp"></span>{{ name }}</h2><span v-if="note" class="sub">{{ note }}</span></div>
+      <div class="plate"><h2><span v-if="lamp" class="led" :class="lamp"></span>{{ name }}</h2><span v-if="note" class="sub">{{ note }}</span></div>
       <div v-if="lines.length" class="lcd facts"><div v-for="l in lines" :key="l" class="lcd-l">{{ l }}</div></div>
       <slot name="text" />
       <div v-if="$slots.keys" class="line g12"><slot name="keys" /></div>
