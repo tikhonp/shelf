@@ -52,14 +52,14 @@ type Status struct {
 	Rules string `json:"rules"`
 	Error string `json:"error"`
 	// Locked counts the files shelf can't write because another user owns
-	// them.
+	// them or their group isn't one of shelf's.
 	Locked int `json:"locked"`
 	// Folders are the music folder's top folders.
 	Folders []FolderState `json:"folders"`
 }
 
 // FolderState is one top folder, with whether the probe at start could
-// write in it and how many of its files another user owns.
+// write in it and how many of its files are locked.
 type FolderState struct {
 	Name     string `json:"name"`
 	Writable bool   `json:"writable"`
@@ -211,7 +211,7 @@ func (ix *index) run(ctx context.Context) error {
 	}
 	locked := map[string]int{}
 	for _, e := range entries {
-		if uid, ok := tagio.Owner(e.info); ok && uid != ix.uid {
+		if tagio.Locked(e.info, ix.uid) {
 			top, _, _ := strings.Cut(e.rel, "/")
 			locked[top]++
 		}

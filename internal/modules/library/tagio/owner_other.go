@@ -10,5 +10,6 @@ func writableDir(string) bool                                 { return true }
 func keepGroup(*os.File, int) error                           { return nil }
 func canKeepGroup(int) bool                                   { return true }
 
-// Owner gives a file's owner, when the system has one.
-func Owner(os.FileInfo) (uid int, ok bool) { return 0, false }
+// Locked reports whether shelf can't replace a file. Without owners, no
+// file is.
+func Locked(os.FileInfo, int) bool { return false }

@@ -96,7 +96,7 @@ The history lists the saves newest first, `GET /api/library/history?before=&limi
 - **Clear history.** `DELETE /api/library/history` deletes every change that has ended, except a save whose undo or redo is still to run. It answers `{"deleted"}`.
 - **Retention.** A `library.retention` job at 05:15 keeps the newest 1,000 saves. Each save takes its undos and redos with it. The job then removes stored covers no change refers to, except uploads younger than a day.
 
-**Write probe.** At start, shelf creates and removes a temp file in each top folder of the music folder. `GET /api/library/index` lists the top folders with `writable` and the reason when not. Each walk counts the files another UID owns, which shelf can't write, as `locked`, per folder and in all. The probe runs once a start, because it moves each folder's mtime.
+**Write probe.** At start, shelf creates and removes a temp file in each top folder of the music folder. `GET /api/library/index` lists the top folders with `writable` and the reason when not. Each walk counts the files shelf can't write, because another UID owns them or their group isn't one of shelf's, as `locked`, per folder and in all. The probe runs once a start, because it moves each folder's mtime.
 
 ## Navidrome's view
 
