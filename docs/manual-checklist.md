@@ -41,13 +41,25 @@ Apple Music only, through the API, on images from `d54a2f9`. Qobuz, Navidrome an
 
 ### 2026-11-04, production on blackberry
 
-shelf and shelf-wrapper from `be76a2d`, run from `shelf.yaml` beside the old pipeline. Claude read the results through the API behind the gateway, except for the checks the owner ran.
+shelf and shelf-wrapper run from `shelf.yaml` beside the old pipeline: `114f699` for Blue Lines and Mezzanine, `be76a2d` from 11:41 UTC on. Claude ran its checks through the API behind the gateway and over SSH on blackberry, except for the checks the owner ran.
 
 | Check | Result |
 | --- | --- |
 | 1 | Passed. Qobuz is healthy with the Studio label, Apple Music says `Signed in, storefront RU`, Navidrome answers in 9 ms with 11385 songs, and the bot is connected as `@music_shelf_bot` with 2 users. |
 | 2 | Passed, run by the owner from the Status card. The timeout part passed on staging. |
-| 4 | Partly run. Blue Lines from Qobuz at 27 and Mezzanine from Apple Music in ALAC both ended `done`, 9 of 9 and 11 of 11, one after the other rather than at the same time. Navidrome scanned at 11:34:14, 31 seconds after Mezzanine finished. The comparison with the old tools' output is still to run. |
-| 9 | The owner saw the bot answer. Its separate lines are still to run. |
+| 3 | Passed on both sources for albums, tracks, artists and playlists, and for the album, artist and playlist panels of Portishead. |
+| 4 | Passed. Third from Qobuz at 27 and Portishead from Apple Music in ALAC started at 12:01:19 together and ended `done`, 11 of 11 each. The event stream carried 164 progress events. shelf's scan started at 12:02:14, 30 seconds after the second finished; Navidrome's own folder watcher had scanned at 12:01:50. The comparison used two albums the old tools wrote: Blue Lines against Highway 61 Revisited, and Mezzanine against Camel's Mirage. Folder and file names follow the same patterns, and the tags are the same fields. The old Qobuz files also carry `TOTALDISCS` and `TOTALTRACKS`. The old Apple Music files have upper-case field names, no embedded cover and no `.lrc` files, while shelf embeds the cover and saves `.lrc` as its amdl config says. 1d showed byte-for-byte parity for Qobuz. |
+| 5 | Passed. Every Qobuz form listed resolved for album, track, playlist, artist and label, and so did every Apple Music form. The music video link got `Music videos and stations are not supported yet.`, and a foreign link got `link not from a known source`. |
+| 6 | Passed on Wish You Were Here 50, 30 tracks. A cancel after 3 tracks left 27 `pending` and none `running`. Retry went on, and `docker restart shelf` during it resumed the download. It ended `done` with 21 tracks downloaded and 9 skipped, 30 files and no temp files. |
+| 7 | Passed on Third: skipped without force, `done` with 11 skipped with force, and after deleting `04 - The Rip.flac` only that track downloaded. |
+| 8 | Passed. Highway 61 Revisited, downloaded by the old bot on 2026-10-16, shows `in_library` in search and is skipped when queued. Its folder is untouched. |
+| 9 | Accepted by the owner without a separate run of every line. The logs show one bot download, Protection, which ended `done`. The owner chose to fix any failure later. |
+| 10 | Passed. Every new folder has `shelf.txt` with the right IDs and links. Third's holds one block for each of downloads 5, 8 and 9, and the skip without force added none. |
+| 11 | Passed. New folders are 0755 and files 0644, all owned by 10001:10001. Navidrome went from 11385 to 11417 songs, the 32 tracks of Protection, Third and Portishead. |
+| 12 | Waits for the next mornings. |
 
-The extra checks in [build/1h.md](build/1h.md): the owner checked that the `find` on `qobuz/` and `apple-music/` prints nothing and that the tunnel is healthy. The vhost answers 401 without basic auth.
+The extra checks in [build/1h.md](build/1h.md): the owner checked that the `find` on `qobuz/` and `apple-music/` prints nothing and that the tunnel is healthy. The vhost answers 401 without basic auth. The owner skipped the download through `music-download-bot`.
+
+The owner checked the UI on a phone and a tablet. Claude then ran headless Chrome against the live UI at 320, 390 and 820 pixels wide, Night and Day, on Search with results, Downloads, a download, Status and the sign-in dialog. No page scrolls sideways, no image fails to load, the console shows no error, and the dialog fits each screen.
+
+Qobuz delivered Wish You Were Here 50 at 24/96, while its search badge says 24/192. The folder name and `shelf.txt` follow what was delivered.
