@@ -192,3 +192,25 @@ CREATE TABLE library_change_files (
 - An undo or redo has its save as `target` and lists the keys it left alone in `conflicts`. When it replaces any file, it sets its save's `undone`, to 1 for an undo and 0 for a redo.
 - The `library.retention` job at 05:15 keeps the newest 1,000 saves, and `ON DELETE CASCADE` takes their undos, redos and files with them. Clear history deletes every ended change, except a save whose undo or redo is still to run. The same job removes stored covers no change refers to, except uploads younger than a day.
 
+`00004_lookups.sql` holds what suggestions looked up. The services can answer again, so nothing here is a record.
+
+```sql
+CREATE TABLE library_lookups (
+    url        TEXT PRIMARY KEY,               -- the request
+    status     INTEGER NOT NULL CHECK (status IN (200, 404)),
+    body       TEXT NOT NULL DEFAULT '',
+    fetched_at TEXT NOT NULL
+) STRICT;
+
+CREATE TABLE library_remote (
+    id         TEXT PRIMARY KEY,               -- the first 32 hex digits of the image URL's SHA-256
+    url        TEXT NOT NULL,                  -- the full image
+    preview    TEXT NOT NULL,                  -- a smaller copy, or the same URL
+    created_at TEXT NOT NULL
+) STRICT;
+```
+
+- `library_lookups` keeps answers from MusicBrainz, the Cover Art Archive and LRCLIB. A 200 serves for 30 days and a 404 for one day. No request holds a secret.
+- `library_remote` keeps each cover a suggestion offered, so the editor names an image by ID and shelf fetches only images it found itself. An offer lasts 30 days.
+- The `library.retention` job removes lookups and offers older than 30 days.
+

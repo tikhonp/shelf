@@ -356,6 +356,13 @@ func (m *Module) retain(ctx context.Context, r *jobs.Run) error {
 	if removed > 0 {
 		r.Log().Info("Removed %d covers no change needs", removed)
 	}
+	if err != nil {
+		return err
+	}
+	old, err := m.store.trimLookups(ctx, time.Now())
+	if old > 0 {
+		r.Log().Info("Removed %d old lookups", old)
+	}
 	return err
 }
 

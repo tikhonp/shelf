@@ -111,6 +111,10 @@ Use these words in code, UI, docs and conversation.
 
 **Check.** A test of an album against Navidrome's tagging guide. What a check finds is an issue.
 
+**Suggestion.** A value for a tag field from a file or folder name, other tracks, `shelf.txt`, MusicBrainz, a source or LRCLIB, shown beside the field with its source and confidence. _Avoid_: hint, recommendation.
+
+**Anchor.** The one MusicBrainz release an album's release fields come from. _Avoid_: match, for the release.
+
 **Change.** One tag write and its record: a Save, or the undo or redo of one. _Avoid_: edit, for the record.
 
 **Status message.** The Telegram message the bot edits while one download moves.

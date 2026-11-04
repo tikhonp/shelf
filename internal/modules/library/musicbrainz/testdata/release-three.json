@@ -1,0 +1,123 @@
+{
+  "id": "55555555-5555-4555-8555-555555555555",
+  "title": "Blue",
+  "status": "Official",
+  "date": "1971-06-22",
+  "country": "US",
+  "barcode": "075992203823",
+  "asin": "B000002KD5",
+  "quality": "normal",
+  "text-representation": {
+    "language": "eng",
+    "script": "Latn"
+  },
+  "artist-credit": [
+    {
+      "name": "Joni Mitchell",
+      "joinphrase": "",
+      "artist": {
+        "id": "aaaaaaaa-0000-4000-8000-000000000001",
+        "name": "Joni Mitchell",
+        "sort-name": "Mitchell, Joni"
+      }
+    }
+  ],
+  "label-info": [
+    {
+      "catalog-number": "MS 2038",
+      "label": {
+        "id": "cccccccc-0000-4000-8000-000000000001",
+        "name": "Reprise Records"
+      }
+    }
+  ],
+  "release-group": {
+    "id": "22222222-2222-4222-8222-222222222222",
+    "title": "Blue",
+    "primary-type": "Album",
+    "secondary-types": [],
+    "first-release-date": "1971-06-22"
+  },
+  "genres": [
+    {
+      "name": "folk",
+      "count": 6
+    },
+    {
+      "name": "singer-songwriter",
+      "count": 2
+    }
+  ],
+  "media": [
+    {
+      "position": 1,
+      "format": "CD",
+      "title": "",
+      "track-count": 3,
+      "tracks": [
+        {
+          "id": "33333333-0000-4000-8000-000000000001",
+          "position": 1,
+          "number": "1",
+          "title": "All I Want",
+          "length": 520,
+          "recording": {
+            "id": "44444444-0000-4000-8000-000000000001",
+            "title": "All I Want",
+            "length": 520,
+            "isrcs": [
+              "USRE10000001"
+            ]
+          }
+        },
+        {
+          "id": "33333333-0000-4000-8000-000000000002",
+          "position": 2,
+          "number": "2",
+          "title": "My Old Man",
+          "length": 480,
+          "artist-credit": [
+            {
+              "name": "Joni Mitchell",
+              "joinphrase": " & ",
+              "artist": {
+                "id": "aaaaaaaa-0000-4000-8000-000000000001",
+                "name": "Joni Mitchell",
+                "sort-name": "Mitchell, Joni"
+              }
+            },
+            {
+              "name": "James Taylor",
+              "joinphrase": "",
+              "artist": {
+                "id": "aaaaaaaa-0000-4000-8000-000000000002",
+                "name": "James Taylor",
+                "sort-name": "Taylor, James"
+              }
+            }
+          ],
+          "recording": {
+            "id": "44444444-0000-4000-8000-000000000002",
+            "title": "My Old Man",
+            "length": 480,
+            "isrcs": [
+              "USRE10000002"
+            ]
+          }
+        },
+        {
+          "id": "33333333-0000-4000-8000-000000000003",
+          "position": 3,
+          "number": "3",
+          "title": "Little Green",
+          "length": 500,
+          "recording": {
+            "id": "44444444-0000-4000-8000-000000000003",
+            "title": "Little Green",
+            "length": 500
+          }
+        }
+      ]
+    }
+  ]
+}

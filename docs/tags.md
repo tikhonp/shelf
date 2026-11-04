@@ -98,6 +98,66 @@ The history lists the saves newest first, `GET /api/library/history?before=&limi
 
 **Write probe.** At start, shelf creates and removes a temp file in each top folder of the music folder. `GET /api/library/index` lists the top folders with `writable` and the reason when not. Each walk counts the files shelf can't write, because another UID owns them or their group isn't one of shelf's, as `locked`, per folder and in all. The probe runs once a start, because it moves each folder's mtime.
 
+## Suggestions
+
+A suggestion is a value for a field, shown beside it with its source and a confidence. `GET /api/library/albums/{id}/suggestions` answers an album's suggestions. The editor asks for them after it opens the album, so a slow service never holds the album up. Nothing is written until the owner accepts a suggestion and saves it.
+
+The answer is `{"anchor", "album", "tracks", "covers", "notes", "unavailable"}`:
+
+- `album` lists the album's suggestions, and `tracks` lists `{"id", "suggestions"}` per track. Each suggestion is `{"field", "values", "source", "sources", "confidence", "anchor"}`. A fill has `tracks` in place of `values`: one accept gives every track its own value, as a release's track IDs need.
+- `covers` lists `{"image", "source", "confidence", "anchor"}`. `GET /api/library/remote/{image}` serves a preview through shelf, so the CSP stays as it is. `POST /api/library/remote/{image}/cover` fetches the full image and stores it as an upload, which a Save names as the cover. shelf fetches only images a suggestion offered, and an offer lasts 30 days.
+- `notes` say where Navidrome shows something else. An `.lrc` file beside a track hides its embedded lyrics.
+- `unavailable` lists `{"source", "message"}` for each service that didn't answer. The other suggestions still come.
+
+A field shows its three best suggestions. A suggestion that every track already holds is left out.
+
+### Sources
+
+| Source | What it suggests | Base confidence |
+| --- | --- | --- |
+| File name | Track, disc and title from names such as `01 - Title`, `01. Title` and `1-02 Title`, and the artist from `01 Artist - Title` when the track has none. A disc folder such as `CD 2` gives the disc. Only where the track lacks the field. | track 60%, disc 50%, title 45%, artist 35% |
+| Folder | Album and album artist from names such as `Artist - Album (1959) [24B-96kHz]`, or the album from the folder and the artist from the folder above it. Only where no track has the field. | album 50%, album artist 40% |
+| Other tracks | Where the tracks differ on a field they should share, each value some of them hold. | 40%, plus up to 50% by the share of tracks that hold it |
+| `shelf.txt` | The latest album block's title, artist, label, release date and UPC, and each track's ISRC by its file name. | 85% |
+| MusicBrainz | Every field of the anchor release: titles, artists with sort names and IDs, dates, label, catalogue number, barcode, country, status, type, script, genre, and the compilation flag on a Various Artists release. A classical album also gets each track's composer and work. | the anchor's |
+| Cover Art Archive | The anchor release's front cover. | the anchor's |
+| Catalogs | Every source that can search and read albums, by name, such as Qobuz and Apple Music: album, version, album artist, release date, label, UPC, genre, cover, and each track's title with its version, artist and ISRC. | 85% for the album `shelf.txt` names, else 35% plus up to 45% by the search's match |
+| LRCLIB | Lyrics, synced before plain. | synced 70%, plain 65% |
+
+File and folder names are cut and cleaned copies of the tags, so they only fill gaps.
+
+**Confidence.** Sources that give the same value combine: 1 − (1 − p1)(1 − p2)…, so agreement raises it. A source counts once per value, with its best p. A match's lengths scale its p, as [The anchor](#the-anchor) says. The answer shows 1% to 99%, since no hint is certain, and names the most confident source first.
+
+**Lyrics.** `GET /api/library/tracks/{id}/suggestions` answers one track's lyrics as `{"suggestions", "unavailable"}`. The editor asks when it opens a track's lyrics. LRCLIB can take seconds a track, and a call for every track on every album opening would hold the album's suggestions up.
+
+**Catalogs.** shelf reaches them through `source.Searcher` and `source.Resolver`, and names no source. A catalog reads the album its own `shelf.txt` block names, else searches for the album artist and the album. A hit must have the album's number of tracks and a title and artist close enough: the share of words they have in common, title 60% and artist 40%, must reach 70%. Its tracks pair with the album's in order, and their lengths pass the anchor's threshold, with a second of slack for whole seconds. A source that can't answer now reports its own reason under `unavailable`.
+
+### The anchor
+
+Every MusicBrainz suggestion comes from one release, the anchor. Accepting fields one at a time could otherwise mix IDs from two releases. The answer's `anchor` is `{"id", "by", "title", "artist", "date", "country", "tracks", "url", "matched", "reason"}`, and shelf looks for it in this order:
+
+1. `staged`: an ID or a MusicBrainz link the owner pasted into the album ID field, sent as `?anchor=`. 97%.
+2. `files`: the MusicBrainz album ID most of the tracks hold. 95%.
+3. `barcode`: a search for the album's barcode. 90%.
+4. `isrc`: a recording search for up to three of the album's ISRCs, with the release most of them share first. 60%, plus up to 30% by the share of codes that agree.
+5. `search`: a search for the album and the album artist, of releases MusicBrainz scores at 60 or more. 40%, plus up to 40% by its score.
+
+AcoustID comes after these in step 6.
+
+**Matching.** A release must have the album's number of tracks. The tracks pair by disc and track number, else in order, and each length must be within 10 seconds of the release's, with 3 seconds or less on average. A release that passes is `matched`, and the average difference scales its p from 100% down to 85% at 3 seconds. A release found by search, barcode or ISRC must pass, and shelf reads up to three of each kind, skipping hits whose track count differs. A release named by ID, staged or in the files, stays the anchor even when it fails, since the owner or the files chose it. It then suggests nothing, and `reason` says why, such as "The release has 12 tracks and the album 10."
+
+**Strategies.** shelf searches for a compilation without its album artist, since MusicBrainz credits each track's artists instead. A compilation has the album artist Various Artists or the compilation flag. It searches for a classical album without its album artist too, since MusicBrainz credits the performers. A classical album has "classical" in a genre or its top folder, and shelf reads its release with the works, for composers. An album with the word "live" in its title or folder, or a `live` release type, is searched only among live releases.
+
+**Release fields** name one release: the MusicBrainz IDs, barcode, catalogue number, label, country, status, type, release date, ASIN, script, and disc and track totals. Each shows one value. That is the anchor's while it is matched, and catalogs that agree raise its confidence. Without a matched anchor it is the most confident value. A release field from the anchor carries its ID in `anchor`. The track, recording and artist IDs come only as fills of every track.
+
+**Save.** An accepted release field goes back in the Save with its `anchor`, and typed values carry none. A Save refuses, with 422, edits that name two anchors. It also refuses a track that would end with a MusicBrainz album ID other than the anchor's, because the release's fields would sit beside another release's IDs. Accepting the anchor's album ID with them fixes that.
+
+### Lookups
+
+- **MusicBrainz** answers one request a second from each client. One limiter in shelf holds every call to that, and a bulk caller lets the editor's calls go first. After a 503, shelf asks again 2 and then 4 seconds later. Every call names shelf, its version and `SHELF_PUBLIC_URL` in the User-Agent, as MusicBrainz asks.
+- **Cache.** shelf stores answers from MusicBrainz, the Cover Art Archive and LRCLIB in `library_lookups` by request. A found answer serves for 30 days and a "not found" for a day. shelf stores no other answer. The `library.retention` job removes old answers and old offers.
+- **Time.** An album's lookups stop after 40 seconds, and shelf lists a service still busy then as not answering.
+
 ## Navidrome's view
 
 `tagio.Rules` reads a file the way Navidrome 0.64.2's scanner does, and every check and every album uses that view. The rules start from `mappings.yaml` and apply the owner's Navidrome settings, which the navidrome module reads from `GET /api/config/` with the admin login: the `Tags` changes, `Scanner.ArtistSplitExceptions`, `Scanner.ArtistJoiner`, the old `Scanner.GenreSeparators`, `PID.Album` and `CoverArtPriority`. shelf keeps the last answer, so a start while Navidrome is down uses it, and with none it uses Navidrome's defaults. The rules have an ID, and the index reads a file again when it read the file under other rules.
@@ -216,5 +276,15 @@ Navidrome keeps the old `songCount` of an album that lost a track in a quick sca
 | Navidrome's view after a retag, a rename, an undo, a split, the date fix and a cover | `TestNavidromeContract`, with `make contract` |
 | A download's folders are busy while its source writes, and folders inside them; folders outside the music folder are ignored | `TestBusyWhileTheSourceWrites`, `TestWorkingFolderOutsideTheMusicFolder` |
 | Qobuz's work folder and both names it ends with; Apple Music's whole folder | `TestDownloadResult` in `qobuz`, `TestDownloadAlbum` in `applemusic` |
+| The files' release: release fields with one value and the anchor, catalogs that agree, track ID fills, held values left out, covers, the `.lrc` note, stored answers | `TestSuggestionsFromTheFilesRelease` |
+| Anchors by barcode, ISRC and search, with a compilation and a live album; a staged link; a files ID that fails the threshold or names no release; a bad anchor | `TestAnchorWays` |
+| A classical album searched without its artist, read with works, with composers | `TestClassicalSuggestsComposers` |
+| File and folder names, other tracks, `shelf.txt` and the catalog it names | `TestLocalSuggestions`, `TestParseNames` |
+| Services that fail, a source's own reason, nothing stored | `TestSuggestionsWhenServicesFail` |
+| Lyrics per track, held lyrics, LRCLIB down | `TestLyrics` |
+| Cover previews and uploads through shelf, an unknown or broken image, retention | `TestRemoteCovers` |
+| Two anchors in a Save; an anchor beside another release's album ID, also on a track left out | `TestSaveRefusesTwoReleases` |
+| Agreement, one count per source, release fields held to one value, three per field | `TestMerge` |
+| The client's cache, retries and decoding; links; the limiter's spacing and the editor going first | `TestReleaseAndCache`, `TestShapes`, `TestParseRelease`, `TestLimiterSpacesCalls`, `TestLimiterLetsTheEditorGoFirst` in `musicbrainz`, `TestGet` in `lrclib` |
 
-The fixtures in `tagio/testdata` are half a second of a sine per format, written by `testdata/make.sh`. Tests that need ffmpeg skip where it isn't installed.
+The fixtures in `tagio/testdata` are half a second of a sine per format, written by `testdata/make.sh`. Tests that need ffmpeg skip where it isn't installed. `musicbrainz/testdata` holds answers in MusicBrainz's and the Cover Art Archive's shapes, written by hand with made-up IDs.

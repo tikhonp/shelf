@@ -16,6 +16,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v5"
+	"github.com/tikhonp/shelf/internal/modules/library/musicbrainz"
 	"github.com/tikhonp/shelf/internal/modules/library/tagio"
 	"github.com/tikhonp/shelf/internal/platform/db"
 	"github.com/tikhonp/shelf/internal/platform/jobs"
@@ -68,6 +69,9 @@ type editJSON struct {
 	Field  string   `json:"field,omitempty"`
 	Key    string   `json:"key,omitempty"`
 	Values []string `json:"values"`
+	// Anchor is the MusicBrainz release an accepted suggestion of a release
+	// field came from. A typed value has none.
+	Anchor string `json:"anchor,omitempty"`
 }
 
 func (e editJSON) edit() tagio.Edit {
@@ -110,6 +114,10 @@ func (m *Module) save(c *echo.Context) error {
 	}
 	if edits > maxEdits {
 		return echo.NewHTTPError(http.StatusBadRequest, "a save holds up to "+strconv.Itoa(maxEdits)+" edits")
+	}
+	anchor, msg := saveAnchor(b)
+	if msg != "" {
+		return c.JSON(http.StatusUnprocessableEntity, refusal{Error: msg, Reason: ReasonRefused})
 	}
 	ctx := c.Request().Context()
 	row, err := m.store.album(ctx, id)
@@ -156,6 +164,12 @@ func (m *Module) save(c *echo.Context) error {
 	if len(planned.Files) == 0 && len(stored.Folder) == 0 {
 		return c.JSON(http.StatusUnprocessableEntity, refusal{Error: "nothing to change", Reason: ReasonRefused})
 	}
+	if anchor != "" {
+		if t := m.otherRelease(files, planned, anchor); t != 0 {
+			return c.JSON(http.StatusUnprocessableEntity, refusal{Track: t, Reason: ReasonRefused,
+				Error: "These suggestions come from another MusicBrainz release than the album ID the tracks would keep. Accept that release's album ID too."})
+		}
+	}
 	warns, err := m.identity(ctx, []albumFiles{{row, files}}, planned)
 	if err != nil {
 		return err
@@ -173,6 +187,48 @@ func (m *Module) save(c *echo.Context) error {
 		return err
 	}
 	return c.JSON(http.StatusAccepted, m.changeJSON(ctx, cr))
+}
+
+// saveAnchor is the one release a Save's suggestions came from. Two
+// releases in one Save would leave the album with IDs from both. The
+// message says why a Save can't have one.
+func saveAnchor(b saveBody) (anchor, msg string) {
+	for _, t := range b.Tracks {
+		for _, e := range t.Edits {
+			switch {
+			case e.Anchor == "" || e.Anchor == anchor:
+			case !musicbrainz.IsID(e.Anchor):
+				return "", "anchor " + strconv.Quote(e.Anchor) + " is not a MusicBrainz ID"
+			case anchor != "":
+				return "", "These suggestions come from two MusicBrainz releases. Save them one release at a time."
+			default:
+				anchor = e.Anchor
+			}
+		}
+	}
+	return anchor, ""
+}
+
+// otherRelease finds a track that would end with a MusicBrainz album ID
+// other than the anchor's, so the anchor's release fields would sit beside
+// another release's IDs. Tracks without the ID are fine.
+func (m *Module) otherRelease(files []*file, planned tagio.Result, anchor string) int64 {
+	rules := m.currentRules()
+	after := map[string]string{}
+	for _, pf := range planned.Files {
+		v := rules.View(tagio.File{Path: pf.Path, Format: tagio.FormatOf(pf.Path), Tags: pf.After}, m.rel(pf.Path))
+		after[m.rel(pf.Path)] = v.First("musicbrainz_albumid")
+	}
+	for _, f := range files {
+		id, ok := after[f.Path]
+		if !ok {
+			id = f.Facts.MBAlbumID
+		}
+		if id != "" && id != anchor {
+			return f.ID
+		}
+	}
+	return 0
 }
 
 // planCover adds a cover edit to a Save: a front cover for the tracks and
