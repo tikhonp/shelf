@@ -81,6 +81,7 @@ Planned for phase 2. A tag editor for everything in the music folder. It changes
 - Save cover alone writes the cover at once as its own undo step, and staged tag edits keep waiting. Apply to album and Delete stage for the next Save.
 - A corrupt cover shows as an issue with Repair.
 - A cover edit changes the embedded cover and the folder's `cover.*`, and the dialog says so in one line.
+- When other albums share the folder, a cover edit asks first and says how many albums it reaches, because Navidrome shows the folder's cover for all of them.
 
 ### Issues
 
@@ -90,7 +91,7 @@ Planned for phase 2. A tag editor for everything in the music folder. It changes
 
 ### History, desktop only
 
-- A timeline of Saves, newest first: when, which album or run, and how many tags changed. A row opens to before and after values.
+- A timeline of Saves, newest first: when, which album or run, and how many tags changed or that the cover changed. A row opens to before and after values.
 - Undo and Redo on any row, in any order. A field that changed since then is left alone and listed as a conflict.
 - Clear history, which asks first.
 

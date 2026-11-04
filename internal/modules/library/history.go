@@ -19,15 +19,17 @@ type changeJSON struct {
 	// AlbumID is the album the change's files belong to now. A Save that
 	// changes the album's Navidrome ID gives it a new row after the next
 	// walk.
-	AlbumID   int64          `json:"album_id"`
-	Folder    string         `json:"folder"`
-	Title     string         `json:"title"`
-	Artist    string         `json:"artist"`
-	State     string         `json:"state"`
-	Reason    string         `json:"reason"`
-	Error     string         `json:"error"`
-	Undone    bool           `json:"undone"`
-	Tags      int            `json:"tags"`
+	AlbumID int64  `json:"album_id"`
+	Folder  string `json:"folder"`
+	Title   string `json:"title"`
+	Artist  string `json:"artist"`
+	State   string `json:"state"`
+	Reason  string `json:"reason"`
+	Error   string `json:"error"`
+	Undone  bool   `json:"undone"`
+	Tags    int    `json:"tags"`
+	// Cover says the change writes a cover, which Tags doesn't count.
+	Cover     bool           `json:"cover"`
 	Conflicts []conflictJSON `json:"conflicts"`
 	JobID     *int64         `json:"job_id"`
 	CreatedAt string         `json:"created_at"`
@@ -49,9 +51,13 @@ type changeFileJSON struct {
 	TrackID int64  `json:"track_id"`
 	Path    string `json:"path"`
 	// Kind is "audio", or "cover" for a folder's cover file.
-	Kind    string          `json:"kind"`
-	Written bool            `json:"written"`
-	Keys    []keyChangeJSON `json:"keys"`
+	Kind    string `json:"kind"`
+	Written bool   `json:"written"`
+	// Revision is an audio file's revision after the change. Edits staged
+	// before Save cover alone go out with it, so a change another tool made
+	// since still conflicts.
+	Revision string          `json:"revision"`
+	Keys     []keyChangeJSON `json:"keys"`
 	// CoverBefore and CoverAfter are cover IDs under /api/library/covers,
 	// "" for none. They are equal when the change left the cover alone.
 	CoverBefore string `json:"cover_before"`
@@ -78,9 +84,12 @@ func (m *Module) changeJSON(ctx context.Context, c changeRow) changeJSON {
 		j.Conflicts = []conflictJSON{}
 	}
 	var sc storedChange
-	if json.Unmarshal([]byte(c.Request), &sc) == nil && len(sc.Files) > 0 {
-		if id, err := m.store.albumOf(ctx, sc.Files[0].Path); err == nil && id != 0 {
-			j.AlbumID = id
+	if json.Unmarshal([]byte(c.Request), &sc) == nil {
+		j.Cover = sc.changesCover()
+		if len(sc.Files) > 0 {
+			if id, err := m.store.albumOf(ctx, sc.Files[0].Path); err == nil && id != 0 {
+				j.AlbumID = id
+			}
 		}
 	}
 	return j
@@ -113,7 +122,7 @@ func (m *Module) getChange(c *echo.Context) error {
 	out := m.changeJSON(ctx, row)
 	out.Files = []changeFileJSON{}
 	for _, f := range files {
-		fj := changeFileJSON{Path: f.Path, Kind: f.Kind, Written: f.Written, Keys: diffKeys(f.Before, f.After),
+		fj := changeFileJSON{Path: f.Path, Kind: f.Kind, Written: f.Written, Revision: f.Revision, Keys: diffKeys(f.Before, f.After),
 			CoverBefore: f.CoverBefore, CoverAfter: f.CoverAfter}
 		if tf, err := m.store.fileByPath(ctx, f.Path); err == nil {
 			fj.TrackID = tf

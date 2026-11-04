@@ -174,12 +174,26 @@ func (a *album) hasCover(images map[string][]string, r *tagio.Rules) bool {
 }
 
 // folders are the album's release folder and every folder a track is in.
-func (a *album) folders() []string {
-	out := []string{a.Folder}
-	for _, f := range a.Files {
-		if d := path.Dir(f.Path); !slices.Contains(out, d) {
-			out = append(out, d)
+func (a *album) folders() []string { return albumFolders(a.Folder, pathsOf(a.Files)) }
+
+// albumFolders are a release folder and the folders of its tracks, in the
+// order Navidrome looks through them for an album's cover: the release
+// folder, then the disc folders by name.
+func albumFolders(release string, paths []string) []string {
+	var discs []string
+	for _, p := range paths {
+		if d := path.Dir(p); d != release && !slices.Contains(discs, d) {
+			discs = append(discs, d)
 		}
+	}
+	slices.Sort(discs)
+	return append([]string{release}, discs...)
+}
+
+func pathsOf(files []*file) []string {
+	out := make([]string, len(files))
+	for i, f := range files {
+		out[i] = f.Path
 	}
 	return out
 }

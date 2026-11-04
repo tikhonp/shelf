@@ -257,8 +257,8 @@ func (m *Module) judge(ctx context.Context, b []byte) error {
 	return err
 }
 
-// albumCovers are an album's pictures: its folder's cover files, then each
-// different embedded front cover, by where they came from.
+// albumCovers are an album's pictures: the cover files of its folders, then
+// each different embedded front cover, by where they came from.
 func (m *Module) albumCovers(folder string, paths []string) (from []string, pics [][]byte) {
 	seen := map[string]bool{}
 	add := func(src string, b []byte) {
@@ -267,10 +267,12 @@ func (m *Module) albumCovers(folder string, paths []string) (from []string, pics
 			from, pics = append(from, src), append(pics, b)
 		}
 	}
-	for _, name := range m.folderCovers(folder) {
-		rel := path.Join(folder, name)
-		if b, err := os.ReadFile(m.abs(rel)); err == nil {
-			add(rel, b)
+	for _, dir := range albumFolders(folder, paths) {
+		for _, name := range m.folderCovers(dir) {
+			rel := path.Join(dir, name)
+			if b, err := os.ReadFile(m.abs(rel)); err == nil {
+				add(rel, b)
+			}
 		}
 	}
 	slices.Sort(paths)
@@ -319,11 +321,7 @@ func (m *Module) repair(c *echo.Context) error {
 	if err != nil {
 		return err
 	}
-	paths := make([]string, len(files))
-	for i, f := range files {
-		paths[i] = f.Path
-	}
-	_, pics := m.albumCovers(row.Folder, paths)
+	_, pics := m.albumCovers(row.Folder, pathsOf(files))
 	var good, bad []byte
 	for _, b := range pics {
 		switch err := m.judge(ctx, b); {
@@ -374,7 +372,14 @@ func (m *Module) reencode(ctx context.Context, b []byte) ([]byte, error) {
 // coverName matches the cover files a cover edit replaces.
 var coverName = regexp.MustCompile(`(?i)^cover\.(jpe?g|png|gif|webp|bmp|avif)$`)
 
-// folderCovers lists the cover files of a release folder, by name.
+// damaged reports whether ffmpeg can't decode a file. A missing ffmpeg
+// judges nothing damaged.
+func (m *Module) damaged(ctx context.Context, rel string) bool {
+	b, err := os.ReadFile(m.abs(rel))
+	return err == nil && errors.Is(m.judge(ctx, b), errCorrupt)
+}
+
+// folderCovers lists the cover files of a folder, by name.
 func (m *Module) folderCovers(folder string) []string {
 	entries, err := os.ReadDir(m.abs(folder))
 	if err != nil {
@@ -460,21 +465,24 @@ func (m *Module) albumCover(c *echo.Context) error {
 // shownCover is the cover Navidrome shows for an album, or nil.
 func (m *Module) shownCover(folder string, files []*file) []byte {
 	rules := m.currentRules()
-	names := m.folderImageNames(folder)
+	paths := pathsOf(files)
+	dirs := albumFolders(folder, paths)
+	names := map[string][]string{}
+	for _, dir := range dirs {
+		names[dir] = m.folderImageNames(dir)
+	}
 	for _, p := range rules.CoverNames() {
-		for _, name := range names {
-			if ok, _ := path.Match(p, strings.ToLower(name)); ok {
-				if b, err := os.ReadFile(m.abs(path.Join(folder, name))); err == nil {
-					return b
+		for _, dir := range dirs {
+			for _, name := range names[dir] {
+				if ok, _ := path.Match(p, strings.ToLower(name)); ok {
+					if b, err := os.ReadFile(m.abs(path.Join(dir, name))); err == nil {
+						return b
+					}
 				}
 			}
 		}
 	}
 	if rules.EmbeddedCovers() {
-		paths := make([]string, len(files))
-		for i, f := range files {
-			paths[i] = f.Path
-		}
 		slices.Sort(paths)
 		for _, p := range paths {
 			if b, err := tagio.FrontCover(m.abs(p)); err == nil && b != nil {
