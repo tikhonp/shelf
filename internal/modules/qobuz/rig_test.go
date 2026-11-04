@@ -178,6 +178,7 @@ type recorder struct {
 	written map[int]int64
 	dones   map[int][]source.TrackResult
 	lines   []string
+	working []string
 	// onStart, when set, runs at each Start, outside the lock.
 	onStart func()
 }
@@ -214,6 +215,12 @@ func (r *recorder) Done(pos int, t source.TrackResult) {
 }
 
 func (r *recorder) Log() source.Logger { return (*recLog)(r) }
+
+func (r *recorder) Working(f string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.working = append(r.working, f)
+}
 
 // last is how a track ended, as a download's table would hold it after
 // every Done: a later call keeps the path of an earlier one.

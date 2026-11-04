@@ -21,7 +21,7 @@ State: phase 1 is done, and shelf runs in production on blackberry. `docs/status
 - A source is a module that implements the interfaces in `internal/source`. Code outside that module never knows which source it talks to.
 - Nothing slow or remote happens inside a database transaction. Read, act, then write.
 - Schema changes go only into new goose migrations. Tables are STRICT. Stored times are UTC text.
-- The music folder belongs to UID 10001. shelf runs as that user with umask 022, never changes the owner or mode of a file it did not create, and deletes only its own temp files.
+- The music folder belongs to UID 10001. shelf runs as that user with umask 022, never changes the owner or mode of a file it did not create, and deletes only its own temp files and, when the owner replaces or deletes a cover, a folder's `cover.*`.
 - Secrets never reach logs, job logs, `shelf.txt` or API answers. That covers the Qobuz token, the Telegram token, the Navidrome password, the wrapper token, and Apple ID passwords and codes.
 - Comments say why, not what. Match the surrounding code.
 - There is no error reporting service. Errors are logged with slog.
@@ -46,6 +46,7 @@ make manage ARGS="migrate status"   # shelf manage inside the dev container
 make manage ARGS="download https://fake.test/album/album-1"   # with SHELF_DEV_FAKE_SOURCE=true
 make manage ARGS="import-qobuz-db /path/to/qobuz_dl.db"   # the old bot's history
 make manage ARGS="tags /music/qobuz/Album/01.flac"   # one file's tags as Navidrome reads them
+make contract     # shelf's writes against a scratch Navidrome, in Linux containers
 make build-image  # code.tikhonnnnn.com/tikhon/shelf:local
 make build-wrapper-image  # code.tikhonnnnn.com/tikhon/shelf-wrapper:local, amd64 under emulation on a Mac
 SHELF_DATA_DIR=./data go run ./cmd/shelf serve   # /data can't be created on macOS; the shell's SHELF_QOBUZ_TOKEN reaches it
@@ -66,6 +67,7 @@ internal/source/        catalog types, the source interfaces and the registry
 internal/wrapperapi/    the control API's types, shared by shelf and shelf-wrapper
 internal/modules/       downloads, catalog, fakesource, navidrome, telegram, qobuz, applemusic, library
 web/                    the Vue app
+scripts/                contract.sh, which make contract runs
 docs/                   all project information
 ```
 
@@ -104,5 +106,15 @@ Use these words in code, UI, docs and conversation.
 **Sign-in.** Logging the wrapper into an Apple ID, including the 2FA code step. _Avoid_: login, in the UI.
 
 **Scan.** The Navidrome library scan that shelf starts after downloads.
+
+**Index.** shelf's own record of the music folder, read the way Navidrome reads it. A walk brings it up to date. _Avoid_: scan, for the index.
+
+**Check.** A test of an album against Navidrome's tagging guide. What a check finds is an issue.
+
+**Suggestion.** A value for a tag field from a file or folder name, other tracks, `shelf.txt`, MusicBrainz, a source or LRCLIB, shown beside the field with its source and confidence. _Avoid_: hint, recommendation.
+
+**Anchor.** The one MusicBrainz release an album's release fields come from. _Avoid_: match, for the release.
+
+**Change.** One tag write and its record: a Save, or the undo or redo of one. _Avoid_: edit, for the record.
 
 **Status message.** The Telegram message the bot edits while one download moves.

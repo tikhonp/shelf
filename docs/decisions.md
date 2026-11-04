@@ -92,7 +92,7 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 
 ## Tags
 
-Phase 2 is being built. Step 1, tag IO and the safe writer, is done, and [tags.md](tags.md) describes it. The rows under Deployment stay in force until the editing backend ships.
+Phase 2 is being built. Steps 1 to 4 are built: tag IO and the safe writer, the read-only library, the editing backend, and suggestions. [tags.md](tags.md) describes them.
 
 | Decision | Why |
 | --- | --- |
@@ -101,7 +101,7 @@ Phase 2 is being built. Step 1, tag IO and the safe writer, is done, and [tags.m
 | Suggestions are hints beside tag fields, with no album card, Apply step or release picker. | The owner asked for a radically simple interface. |
 | MusicBrainz IDs and other hidden tags are plain fields behind an All fields switch. Nothing is written unless accepted. | The owner's choice. |
 | The server picks one anchor release per album. Release-scoped fields show only its values, and Save refuses suggestions from two anchors. | Accepting fields one at a time could otherwise mix IDs from two releases. |
-| shelf edits the whole library, after one chown of the five genre folders to 10001 that keeps their modes. | shelf can't write 184 album folders there, which are root's with mode 0755, or 73 files, which are root's with mode 0644. No file owned by UID 1000 lacks world-write, so nobody loses access. |
+| shelf edits the whole library, after one chown of the five genre folders to 10001:10001 that keeps their modes. | shelf can't write 184 album folders there, which are root's with mode 0755, or 73 files, which are root's with mode 0644. No file owned by UID 1000 lacks world-write, so nobody loses access. |
 | Nothing changes after a download on its own. | The owner's choice. |
 | shelf never renames or moves a file. | The owner's choice. It also avoids Navidrome's limit that retagging and moving can't share a scan. |
 | Checks and fixes exist, and only the owner starts them, on one album or on many. | The owner's choice. |
@@ -131,7 +131,43 @@ Phase 2 is being built. Step 1, tag IO and the safe writer, is done, and [tags.m
 | MP3 writes gain an ID3v1 copy of the tags. | TagLib's save adds one, and go-taglib has no option to stop it. The read-back and Navidrome's view are unchanged, and the library has no MP3 files. |
 | A WMA file with two pictures can't be written. | TagLib reorders WMA pictures on save, and the read-back refuses a moved picture. The library has no WMA files. |
 | Tests that check audio through ffmpeg skip where ffmpeg is missing. The FLAC tests never need it. | The image and the dev machines have ffmpeg. CI's runner may not. |
+| The index groups files by Navidrome album ID inside a release folder, computing the ID as Navidrome 0.64.2 does under the owner's settings. A disc folder such as `CD 2` belongs to the folder above. | Navidrome's grouping is the measure, and the step is done when the counts match. A real Navidrome computed the test IDs. Grouping inside a folder keeps playlist folders and single tracks apart. |
+| The navidrome module reads Navidrome's tag settings from `GET /api/config/` at each walk, and shelf keeps the last answer. New settings make the index read every file again. | The owner's split rules and album ID spec decide what Navidrome shows. Reading them needs no TOML parsing and no new mount. |
+| shelf judges an artist split by the MusicBrainz artist IDs. Their number must match the number of artists Navidrome splits. Without IDs there is no check. | The IDs are the only evidence of the intended artists that shelf has offline. |
+| The index walks at start, every 15 minutes, after each finished download and on request. An opened album always reads its files again. | A walk reads only changed files, and the editor never works from what the index read. |
+| The index keeps facts, about 1 KB a file, and no tags. | An opened album reads its files anyway. Tags with lyrics would make the database, and its 14 daily copies, many times larger. |
+| An `.ndignore` with no pattern skips its folder, as in Navidrome. One with patterns is logged and its folder indexed. | shelf doesn't match Navidrome's patterns, and a missed ignore shows as a count that differs. |
+| The audio endpoint serves the file as it is. A transcode for browsers that can't play a format comes with the player in step 5. | Browsers play FLAC. The UI knows what it can play, and the library has 13 M4A files. |
+| A Save is checked against the files when it is asked for, runs as a `library.write` job, and is checked again there. The job's payload names only the change, whose row holds the edits. | The editor learns of a conflict at once, a phone that drops its connection can't cut a write off, and payloads stop at 64 KiB. |
+| A Save that splits, merges or renames album artists answers 409 until its `confirm` names each of them. | A confirmation given for one warning can't let another through. |
+| A source names each folder it writes in through `source.Reporter.Working`. Qobuz names its work folder and both names it ends with, and Apple Music names its whole folder. | `downloads.folder` is written only after a download, Qobuz renames the album folder while it runs, and amdl names its folders only when it ends. |
+| Undo and redo work key by key from the full tag maps a save stored. A key goes back only while it holds what the save wrote. | Another tool's later edit is the owner's newer intent, and full maps restore keys the save added or removed. |
+| The MusicBrainz release IDs undo and redo as one group. | Restoring some of them could leave a file with IDs from two releases. |
+| An undo or redo is checked and confirmed as a Save is. | Putting tracks back moves stars between Navidrome albums too. |
+| The history keeps the newest 1,000 saves, trimmed at 05:15. Clear history keeps a save whose undo or redo is still to run. | The plan's limit. Deleting such a save would delete its queued undo through the foreign key. |
+| A cover edit names every track, and its cover files are written only after every audio file was replaced, the new file before the old ones go. | It may change each file, and a failure never leaves the folder without a cover. |
+| The cover store under `/data` keeps uploads and every cover a change replaces, named by hash, in any format. | Undo needs the old bytes, and a damaged cover is still the one to put back. |
+| shelf scales embedded covers down with its own area average, in the image's own format. | Downscaling needs only the standard library, so shelf takes on no new dependency for it. |
+| `bad_cover` is found when an album opens, by ffmpeg. Repair stages a cover and writes nothing. | The walk reads no picture bytes. A Fix only stages edits for review. |
+| The contract test runs in Linux containers that share a Docker volume. | On a Mac, Docker Desktop's file sharing showed Navidrome stale mtimes, and two runs of the same writes gave different results. |
+| Modules raise a route's body limit through `module.BodyLimiter`. | The platform's 1 MiB limit runs before routing would let a route raise it. |
+| The write probe runs once at start, in each top folder of the music folder. | Each probe moves the folder's mtime, which Navidrome's watcher hears. |
+| A change cut off while it wrote is settled from its files: one that holds the planned tags was replaced. | The renames run back to back, so a crash leaves each file old or new, and the read tells which. |
 | A bulk run has no nightly limit. Its preview shows the files and GB touched, and the owner sizes each run. | Nothing runs by itself. The HDD backup recopies each changed file and keeps no history, and the remote one keeps overwritten files for 30 days. |
+| A pasted release ID is the anchor ahead of the one in the files, then barcode, ISRC and search. | The plan listed the files first, but pasting an ID is how the owner moves the album to another release, and the files still name the old one until the Save. |
+| A release named by ID, pasted or in the files, stays the anchor when it fails the threshold, and then suggests nothing. A release found by barcode, ISRC or search must pass. | The owner or the files chose the first. Searching for another release would offer IDs the files don't name. |
+| A release passes with the album's number of tracks, each within 10 seconds of the release's length and 3 seconds on average. | Editions differ by tracks or by seconds of silence, and a remaster within a second or two is still the same tracklist. |
+| A Save refuses edits that name two anchors, and a track that would keep another release's album ID beside the anchor's fields. Only release fields carry an anchor, and typed values never do. | Release fields are what mixes two releases. A title from another edition mixes nothing, so it needs no rule. |
+| Without a matched anchor, a release field shows the most confident value, from a catalog or `shelf.txt`. | 12% of tracks have no MusicBrainz ID, and a catalog's label and UPC still help there. |
+| Confidence is 1 − (1 − p1)(1 − p2)… over the sources that give a value, each with a base p from a table in [tags.md](tags.md#sources), shown from 1% to 99%. | A documented formula the owner can check, in which agreement raises confidence. |
+| File and folder names suggest a field only where the tracks lack it. | Names are cut and cleaned copies of the tags, so where a tag exists a name only offers a worse version. |
+| A catalog reads the album its own `shelf.txt` block names, and searches otherwise. | The download's ID is certain, and a search can find another edition. |
+| Lyrics are asked per track, when the editor opens them, not with the album. | On 2026-11-04 LRCLIB answered 503 or timed out after 15 seconds on 8 of 10 tracks, which held the album's other suggestions for 30 seconds. One opening also shouldn't make 20 calls to a free service. |
+| shelf stores a lookup for 30 days, a "not found" for a day, and a failure not at all. | Releases change little, new ones appear daily, and the next opening should try a failed service again. |
+| Suggested covers reach the editor through `/api/library/remote/{id}`, by an ID shelf gave out. | The CSP stays `'self'`, and shelf never fetches a URL the browser chose. |
+| MusicBrainz tests use answers written by hand in the API's shape, with made-up IDs. The client read real answers once on 2026-11-04 to check the shapes. | MusicBrainz answered "busy" while the tests were written, and made-up IDs can't be mistaken for real data. |
+| The ISRC way uses a recording search by `isrc:`, not the ISRC lookup. | The lookup's JSON leaves out releases, even with `inc=releases`. |
+| Suggestions don't use `SHELF_PROXY_URL`. | MusicBrainz, the Cover Art Archive and LRCLIB need no account and serve every country. |
 
 ### Evidence from step 0
 
@@ -157,7 +193,9 @@ Run on 2026-11-04 on blackberry in the shelf image as UID 10001, on 25 albums co
 | Broken files | Empty, garbage and damaged-header files return an error, with no panic. A half-truncated file reads and writes without one. |
 | AcoustID | Alpine's `chromaprint` ships `fpcalc`. |
 
-Not tested: that `RELEASEDATE` copying `YEAR`'s exact value keeps an album ID, which follows from the persistent ID code, and `/api/config/` with production's account. Step 3 covers both.
+`make contract` repeats the retag, rename, undo, split, date and cover scenarios against `deluan/navidrome:latest`. On 2026-11-04 it passed on 0.64.2, and found that an album that lost a track in a quick scan keeps its old `songCount`, while `getAlbum` lists the right songs.
+
+Not tested: that `RELEASEDATE` copying `YEAR`'s exact value keeps an album ID, which follows from the persistent ID code, which step 3 covers. Check 13 read `/api/config/` with production's account on 2026-11-04.
 
 ## Deployment
 
@@ -167,4 +205,4 @@ Not tested: that `RELEASEDATE` copying `YEAR`'s exact value keeps an album ID, w
 | shelf-wrapper has its own data folder and `--device-info`. | wrapper-lite derives the device ID from the Apple ID, and `apple-music-wrapper` used the same account. |
 | Neither `shelf` nor `shelf-wrapper` updates nightly. Both are pulled together by hand. | They share the control API's types. |
 | shelf's data lives in `${SWINGMUSIC_DATA}/shelf` and `${SWINGMUSIC_DATA}/shelf-wrapper`, and the swingmusic backup copies all of it. A restore starts from a daily copy. | The owner's choice, like the other music services. One task that copies everything is easier to keep right. |
-| Only `qobuz/` and `apple-music/` belong to 10001. The genre folders keep their mixed owners. | shelf writes only there, and the login user and Picard keep writing elsewhere. |
+| `qobuz/` and `apple-music/` belong to 10001:10001, and the genre folders too after one chown that keeps their modes. Downloads write only into the two source folders. | The tag editor writes in the whole library. A write keeps each file's group, and shelf can give a file only one of its own groups: the first real Save failed on group 1000. Nothing in the genre folders relies on group-write without world-write, so the chown takes no access from the login user or Picard. |

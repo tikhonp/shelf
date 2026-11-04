@@ -1,7 +1,7 @@
 # <branch>-<sha7>, as CI sets it
 APP_VERSION := $(shell b=$$(git rev-parse --abbrev-ref HEAD 2>/dev/null) && c=$$(git rev-parse --short=7 HEAD 2>/dev/null) && echo "$$b-$$c" || echo dev)
 
-.PHONY: check test lint web-check dev manage build-image build-wrapper-image icons
+.PHONY: check test lint web-check contract dev manage build-image build-wrapper-image icons
 
 # CI passes GOTESTFLAGS=-timeout=30m, because its runner is slower than a laptop.
 GOTESTFLAGS ?=
@@ -13,6 +13,7 @@ RACEFLAGS = -race -gcflags='modernc.org/...=-race=false'
 check:
 	@out=$$(gofmt -l cmd internal); if [ -n "$$out" ]; then echo "unformatted:"; echo "$$out"; exit 1; fi
 	go vet ./...
+	go vet -tags contract ./internal/modules/library
 	$(MAKE) test
 
 test:
@@ -28,6 +29,12 @@ web-check:
 	npm --prefix web run typecheck
 	npm --prefix web test
 	npm --prefix web run build
+
+# The Navidrome contract test: shelf's writes against a scratch Navidrome,
+# judged by what Navidrome shows. SHELF_CONTRACT_IMAGE picks the image,
+# deluan/navidrome:latest by default, as production runs.
+contract:
+	./scripts/contract.sh
 
 # The development stack with air hot reload on :8080. .env is optional; see
 # .env.example.

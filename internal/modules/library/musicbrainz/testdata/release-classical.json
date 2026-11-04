@@ -1,0 +1,24 @@
+{
+  "id": "66666666-6666-4666-8666-666666666666",
+  "title": "Goldberg Variations",
+  "status": "Official",
+  "date": "1982",
+  "country": "XW",
+  "barcode": "",
+  "artist-credit": [{"name": "Glenn Gould", "joinphrase": "", "artist": {"id": "aaaaaaaa-0000-4000-8000-000000000010", "name": "Glenn Gould", "sort-name": "Gould, Glenn"}}],
+  "label-info": [{"catalog-number": "[none]", "label": {"name": "CBS Masterworks"}}],
+  "release-group": {"id": "77777777-7777-4777-8777-777777777777", "primary-type": "Album", "secondary-types": [], "first-release-date": "1982"},
+  "media": [{
+    "position": 1, "format": "Digital Media",
+    "tracks": [
+      {"id": "88888888-0000-4000-8000-000000000001", "position": 1, "number": "1", "title": "Aria", "length": 500,
+       "recording": {"id": "99999999-0000-4000-8000-000000000001", "title": "Aria", "length": 500, "relations": [
+         {"type": "performance", "target-type": "work", "work": {"id": "bbbbbbbb-0000-4000-8000-000000000001", "title": "Goldberg-Variationen, BWV 988: Aria", "relations": [
+           {"type": "composer", "target-type": "artist", "artist": {"id": "aaaaaaaa-0000-4000-8000-000000000020", "name": "Johann Sebastian Bach"}}]}}]}},
+      {"id": "88888888-0000-4000-8000-000000000002", "position": 2, "number": "2", "title": "Variatio 1", "length": 500,
+       "recording": {"id": "99999999-0000-4000-8000-000000000002", "title": "Variatio 1", "length": 500, "relations": [
+         {"type": "performance", "target-type": "work", "work": {"id": "bbbbbbbb-0000-4000-8000-000000000002", "title": "Goldberg-Variationen, BWV 988: Variatio 1", "relations": [
+           {"type": "composer", "target-type": "artist", "artist": {"id": "aaaaaaaa-0000-4000-8000-000000000020", "name": "Johann Sebastian Bach"}}]}}]}}
+    ]
+  }]
+}

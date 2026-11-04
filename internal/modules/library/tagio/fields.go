@@ -32,6 +32,8 @@ type Field struct {
 	Type string
 	// Split holds the separators Navidrome splits a single value on.
 	Split []string
+	// MaxLength is where Navidrome cuts a value, or 0 for its default.
+	MaxLength int
 }
 
 //go:embed mappings.yaml
@@ -52,7 +54,8 @@ var keys = map[string]string{
 }
 
 // fields holds every field of mappings.yaml in its order, main first.
-var fields, fieldByName = mustLoadFields(mappingsYAML)
+// artistSplit holds its separators for an artist tag with one value.
+var fields, fieldByName, artistSplit = mustLoadFields(mappingsYAML)
 
 // Fields lists every field Navidrome reads, main fields first.
 func Fields() []Field { return slices.Clone(fields) }
@@ -64,14 +67,15 @@ func FieldByName(name string) (Field, bool) {
 }
 
 type mapping struct {
-	Aliases []string `yaml:"aliases"`
-	Album   bool     `yaml:"album"`
-	Type    string   `yaml:"type"`
-	Split   []string `yaml:"split"`
+	Aliases   []string `yaml:"aliases"`
+	Album     bool     `yaml:"album"`
+	Type      string   `yaml:"type"`
+	Split     []string `yaml:"split"`
+	MaxLength int      `yaml:"maxLength"`
 }
 
-func mustLoadFields(b []byte) ([]Field, map[string]Field) {
-	fs, err := loadFields(b)
+func mustLoadFields(b []byte) ([]Field, map[string]Field, []string) {
+	fs, artists, err := loadFields(b)
 	if err != nil {
 		panic(err)
 	}
@@ -79,16 +83,17 @@ func mustLoadFields(b []byte) ([]Field, map[string]Field) {
 	for _, f := range fs {
 		by[f.Name] = f
 	}
-	return fs, by
+	return fs, by, artists
 }
 
-func loadFields(b []byte) ([]Field, error) {
+func loadFields(b []byte) ([]Field, []string, error) {
 	var doc struct {
+		Artists    mapping   `yaml:"artists"`
 		Main       yaml.Node `yaml:"main"`
 		Additional yaml.Node `yaml:"additional"`
 	}
 	if err := yaml.Unmarshal(b, &doc); err != nil {
-		return nil, fmt.Errorf("mappings.yaml: %w", err)
+		return nil, nil, fmt.Errorf("mappings.yaml: %w", err)
 	}
 	var out []Field
 	for _, part := range []struct {
@@ -99,12 +104,12 @@ func loadFields(b []byte) ([]Field, error) {
 		// file's order, which a Go map would lose.
 		n := part.node.Content
 		if len(n)%2 != 0 {
-			return nil, fmt.Errorf("mappings.yaml: odd mapping")
+			return nil, nil, fmt.Errorf("mappings.yaml: odd mapping")
 		}
 		for i := 0; i < len(n); i += 2 {
 			var m mapping
 			if err := n[i+1].Decode(&m); err != nil {
-				return nil, fmt.Errorf("mappings.yaml: %s: %w", n[i].Value, err)
+				return nil, nil, fmt.Errorf("mappings.yaml: %s: %w", n[i].Value, err)
 			}
 			name := n[i].Value
 			key, ok := keys[name]
@@ -113,14 +118,14 @@ func loadFields(b []byte) ([]Field, error) {
 			}
 			out = append(out, Field{
 				Name: name, Key: key, Aliases: lower(m.Aliases), Main: part.main,
-				Album: m.Album, Type: m.Type, Split: m.Split,
+				Album: m.Album, Type: m.Type, Split: m.Split, MaxLength: m.MaxLength,
 			})
 		}
 	}
 	if len(out) == 0 {
-		return nil, fmt.Errorf("mappings.yaml: no fields")
+		return nil, nil, fmt.Errorf("mappings.yaml: no fields")
 	}
-	return out, nil
+	return out, doc.Artists.Split, nil
 }
 
 func lower(ss []string) []string {

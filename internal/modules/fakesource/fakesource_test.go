@@ -78,6 +78,7 @@ func (r *rep) Plan([]source.Track) {}
 func (r *rep) Start(int)           {}
 func (r *rep) Progress(int, int64) {}
 func (r *rep) Log() source.Logger  { return nopLog{} }
+func (r *rep) Working(string)      {}
 func (r *rep) Done(p int, res source.TrackResult) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
