@@ -182,7 +182,11 @@ func TestItemsCarryStatus(t *testing.T) {
 		t.Fatalf("%+v", page.Items)
 	}
 	// A pasted link resolves to the same answer.
-	rec := x.do(http.MethodPost, "/api/resolve", map[string]string{"url": "https://fake.test/album/album-2"})
+	rec := x.do(http.MethodPost, "/api/resolve", map[string]string{"url": "https://fake.test/video/v-1"})
+	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), source.RefusedLinkText) {
+		t.Fatalf("refused link: %d %s", rec.Code, rec.Body)
+	}
+	rec = x.do(http.MethodPost, "/api/resolve", map[string]string{"url": "https://fake.test/album/album-2"})
 	if r := decode[source.Item](t, rec); r.Ref.ID != "album-2" || r.Status == nil || r.Status.State != "queued" {
 		t.Fatalf("%+v", r)
 	}

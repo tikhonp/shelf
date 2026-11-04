@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -59,6 +60,17 @@ func TestQueueByLink(t *testing.T) {
 	}
 	rec := r.do(http.MethodPost, "/api/downloads", map[string]any{"url": "https://fake.test/album/album-9"})
 	if rec.Code != http.StatusCreated {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestQueueRefusedLink(t *testing.T) {
+	r := newRig(t)
+	if _, err := r.svc.Queue(bg, QueueRequest{URL: "https://fake.test/video/v-1", Origin: OriginWeb}); !errors.Is(err, ErrRefusedLink) {
+		t.Fatalf("err = %v", err)
+	}
+	rec := r.do(http.MethodPost, "/api/downloads", map[string]any{"url": "https://fake.test/station/s-1"})
+	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), source.RefusedLinkText) {
 		t.Fatalf("%d %s", rec.Code, rec.Body)
 	}
 }

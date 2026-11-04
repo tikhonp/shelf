@@ -100,10 +100,13 @@ type LinkParser interface {
 
 // LinkRefuser is a LinkParser that also knows links of its own that shelf
 // can't download yet, such as music videos and stations. ParseLink doesn't
-// claim them; RefuseLink does, so the bot can say why.
+// claim them; RefuseLink does, so the bot and the API can say why.
 type LinkRefuser interface {
 	RefuseLink(raw string) bool
 }
+
+// RefusedLinkText is the answer to a link a LinkRefuser knows.
+const RefusedLinkText = "Music videos and stations are not supported yet."
 
 // Searcher searches the source's catalog.
 type Searcher interface {

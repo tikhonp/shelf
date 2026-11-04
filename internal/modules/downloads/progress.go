@@ -251,5 +251,20 @@ func (p *progress) Done(pos int, r source.TrackResult) {
 	p.changedLocked()
 }
 
+// cutOff puts back to pending the tracks a canceled or stopped step left
+// running. A source whose tool was killed never reports them to Done.
+func (p *progress) cutOff() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for pos, t := range p.tracks {
+		if t.Status == "running" {
+			t.Status, t.Error = "pending", ""
+			p.dirty[pos] = true
+		}
+	}
+	p.current = ""
+	p.changedLocked()
+}
+
 // Log is the job's log.
 func (p *progress) Log() source.Logger { return p.log }

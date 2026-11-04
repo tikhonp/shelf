@@ -286,6 +286,9 @@ func (s *Service) fetch(ctx context.Context, r *jobs.Run) error {
 	res, derr := dl.Download(ctx, source.DownloadRequest{
 		DownloadID: d.ID, Ref: d.Ref, Format: d.Format, Force: d.Force, MusicDir: s.cfg.MusicDir,
 	}, pr)
+	if ctx.Err() != nil {
+		pr.cutOff()
+	}
 	if err := stop(); err != nil {
 		return err
 	}

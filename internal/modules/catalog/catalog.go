@@ -207,6 +207,9 @@ func (m *Module) resolve(c *echo.Context) error {
 	}
 	ref, s, ok := m.sources.ParseLink(strings.TrimSpace(b.URL))
 	if !ok {
+		if _, refused := m.sources.RefusedLink(strings.TrimSpace(b.URL)); refused {
+			return echo.NewHTTPError(http.StatusUnprocessableEntity, source.RefusedLinkText)
+		}
 		return echo.NewHTTPError(http.StatusUnprocessableEntity, "link not from a known source")
 	}
 	return m.answerItem(c, s, ref)

@@ -248,6 +248,51 @@ func TestFailureBeforeACancelStays(t *testing.T) {
 	}
 }
 
+func TestCutOffTrackGoesBackToPending(t *testing.T) {
+	r := newRig(t)
+	d := r.queue(QueueRequest{Ref: album("album-1")})
+	ctx, cancel := context.WithCancel(bg)
+	defer cancel()
+	p := newProgress(ctx, r.svc, d, nil, nopLog{})
+	p.Plan([]source.Track{{ID: "a", Position: 1, Title: "One"}, {ID: "b", Position: 2, Title: "Two"}, {ID: "c", Position: 3, Title: "Three"}})
+	p.Start(1)
+	p.Done(1, source.TrackResult{})
+	p.Start(2)
+	cancel()
+	p.cutOff()
+	if p.tracks[1].Status != "done" || p.tracks[2].Status != "pending" || p.tracks[3].Status != "pending" {
+		t.Fatalf("%+v, %+v, %+v", p.tracks[1], p.tracks[2], p.tracks[3])
+	}
+	if !p.dirty[2] {
+		t.Fatal("the track's new status would never reach the database")
+	}
+}
+
+// amdl dies with its context, so the track it was on never reaches Done. The
+// fake's -slow albums stop the same way.
+func TestCancelLeavesNoTrackRunning(t *testing.T) {
+	r := newRig(t)
+	reached := make(chan struct{})
+	r.src.Hook = func(_ context.Context, _ source.Ref, pos int) error {
+		if pos == 2 {
+			close(reached)
+		}
+		return nil
+	}
+	r.start()
+	d := r.queue(QueueRequest{Ref: album("album-4-slow")})
+	<-reached
+	if err := r.svc.Cancel(bg, d.ID, "web"); err != nil {
+		t.Fatal(err)
+	}
+	r.waitStatus(d.ID, Canceled)
+	r.h.Drain()
+	det := r.get(d.ID)
+	if det.Tracks[0].Status != "done" || det.Tracks[1].Status != "pending" || det.TracksFailed != 0 {
+		t.Fatalf("%+v", det)
+	}
+}
+
 func TestRetryFailed(t *testing.T) {
 	r := newRig(t)
 	var fail atomic.Bool

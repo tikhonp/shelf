@@ -155,9 +155,9 @@ JSON in and out. Errors are `{"error": "<message>"}` with a 4xx or 5xx status.
 | --- | --- |
 | `GET /api/sources` | Every source, switched on or not, with `enabled`, `capabilities` (`links`, `search` kinds, `resolve`, `download`), `formats` and `health`. |
 | `GET /api/search?source=&type=&q=&limit=&offset=` | Search one source. `type` is `album`, `track`, `artist` or `playlist`, `limit` 1 to 100 with 20 by default. Answers `{"items", "total", "limit", "offset"}`, each item with its download status. |
-| `POST /api/resolve` | `{"url"}`: the item behind a pasted link, with download statuses. |
+| `POST /api/resolve` | `{"url"}`: the item behind a pasted link, with download statuses. 422 for a link no source knows, or with the refusal text for a music video or station link. |
 | `GET /api/items/{source}/{kind}/{id}` | An album with tracks, an artist with sections, a playlist with tracks. Each entry has its download status. |
-| `POST /api/downloads` | `{"ref": {"source", "kind", "id"}}` or `{"url"}`, with `format` and `force`. Answers 201 with the new download. |
+| `POST /api/downloads` | `{"ref": {"source", "kind", "id"}}` or `{"url"}`, with `format` and `force`. Answers 201 with the new download, or 422 as `/api/resolve` does for a link. |
 | `GET /api/downloads?status=&source=&before=&limit=` | Top-level downloads newest first; an artist's albums are in its detail. `status` takes a comma-separated list, `limit` 1 to 200 with 50 by default. Answers `{"downloads", "next"}`, where `next` is the `before` of the next page, or null. |
 | `GET /api/downloads/{id}` | One download with its tracks, children and `shelf.txt` path. |
 | `POST /api/downloads/{id}/cancel` | Cancel a queued or running download. Answers the download; 409 when it has ended. |

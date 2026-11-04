@@ -53,7 +53,7 @@ Artwork URLs are templates with `{w}x{h}`. The client fills them at 600x600; the
 - `/<storefront>/playlist/<slug>/pl.<id>` as a playlist
 - `/<storefront>/artist/<slug>/<id>` as an artist
 
-Music video and station links are refused with "Music videos and stations are not supported yet.": the module implements `source.LinkRefuser` for them, and `ParseLink` leaves them.
+Music video and station links are refused with "Music videos and stations are not supported yet.": the module implements `source.LinkRefuser` for them, and `ParseLink` leaves them. The bot, `/api/resolve` and `POST /api/downloads` all answer with that text.
 
 amdl gets `https://music.apple.com/<account storefront>/album/<id>`, `/song/<id>` or `/playlist/<id>`, so it reads the catalog the account can play.
 
