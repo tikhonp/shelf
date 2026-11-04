@@ -10,7 +10,7 @@ On blackberry the genre folders belong to `10001:10001` since 2026-11-04, and ch
 
 Step 4 is built. `GET /api/library/albums/{id}/suggestions` suggests values from file and folder names, other tracks, `shelf.txt`, MusicBrainz with the Cover Art Archive, and every catalog, each with its source and a confidence. One MusicBrainz release anchors an album's release fields. shelf finds it by a pasted ID, the files' ID, barcode, ISRC or search, and a Save refuses suggestions from two releases. Lyrics come per track from LRCLIB. shelf stores answers for 30 days and calls MusicBrainz at most once a second. On 2026-11-04 a live run found Blue's release by search, with its cover, and LRCLIB's lyrics for its first tracks.
 
-Step 5 is built. The Library tab has the album list, the editor with suggestions, issues and Fixes, covers, the player and the Save states at both widths, and All fields, the long-form editor, History, the Help sheet, the keys and the resizable panels on the desktop. Status has a Library part, and a finished download has a button that opens its album. [tags.md](tags.md#the-editor) says how the editor works. shelf ran it on a scratch music folder in Chrome at 1440, 1050, 760 and 390 pixels, and each write was read back from the files. It hasn't run on a real album or a real phone yet. Step 5 is done when it has, which is check 15 of [manual-checklist.md](manual-checklist.md). Status doesn't say whether MusicBrainz answers, because the API has no such check yet.
+Step 5 is built. The Library tab has the album list, the editor with suggestions, issues and Fixes, covers, the player and the Save states at both widths, and All fields, the long-form editor, History, the Help sheet, the keys and the resizable panels on the desktop. Status has a Library part, and a finished download has a button that opens its album. [tags.md](tags.md#the-editor) says how the editor works. shelf ran it on a scratch music folder in Chrome at 1440, 1050, 760 and 390 pixels, and each write was read back from the files. Check 15 of [manual-checklist.md](manual-checklist.md) ran in part on 2026-11-04, on real albums and an emulated phone. It found two bugs, an undo from History that asks and the phone album's track list, and both are fixed. Step 5 is done when the check's transcode step and a real phone behind basic auth pass. Status doesn't say whether MusicBrainz answers, because the API has no such check yet.
 
 | Step | What | State |
 | --- | --- | --- |
@@ -19,7 +19,7 @@ Step 5 is built. The Library tab has the album list, the editor with suggestions
 | 2 | Read-only library: index, album API, checks, audio | done |
 | 3 | Editing backend: Save, history, undo, covers. The owner runs the chown here. | built; check 14's backup step is left |
 | 4 | Suggestions | done |
-| 5 | Web UI: Library tab, editor, suggestions, covers, playback, All fields, History, keyboard, panels | built; check 15 is left |
+| 5 | Web UI: Library tab, editor, suggestions, covers, playback, All fields, History, keyboard, panels | built; check 15 is left in part |
 | 6 | Bulk runs, ReplayGain and AcoustID | |
 
 Steps 1 to 4 needed no screens, so they ran while the owner designed. Step 0's results are in [decisions.md](decisions.md).
