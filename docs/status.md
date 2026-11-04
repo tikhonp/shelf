@@ -18,9 +18,7 @@ Steps 1 to 4 need no screens, so they can run while the owner designs. Step 0's 
 
 ## Open
 
-- The owner removes the old pipeline's data, `${SWINGMUSIC_DATA}/music-downloader-bot` and `${SWINGMUSIC_DATA}/apple-music-lite-data`.
-- The checklist run left Third, Portishead and Wish You Were Here 50 in the library.
-- The wrapper-lite pin moved to `0f06738`, which fixes `/key` failing after 1024 calls. The owner deploys `shelf` and `shelf-wrapper` and runs one Apple Music download to check it.
+- The wrapper-lite pin `0f06738`, which fixes `/key` failing after 1024 calls, is deployed. One Apple Music download still has to confirm the fix.
 
 ## Remotes
 
@@ -35,3 +33,4 @@ Steps 1 to 4 need no screens, so they can run while the owner designs. Step 0's 
 - A wrapper signed in to the owner's Apple ID needs its own data folder and `--device-info`.
 - Unset `SHELF_QOBUZ_TOKEN` for a local run with only the fake source, or it logs in to the owner's Qobuz account.
 - Files in the music folder belong to UID 10001. Delete test downloads from inside the shelf container.
+- Third, Portishead and Wish You Were Here 50 came from the checklist run, and the owner keeps them in the library.

@@ -108,7 +108,7 @@ A playlist track that `Has` skips writes no file, as in Python. That also covers
 
 ## Import of the old bot's history
 
-`shelf manage import-qobuz-db <path>` reads the old bot's `qobuz_dl.db`, which is `/data/qobuz_dl.db` in the old container and `${SWINGMUSIC_DATA}/music-downloader-bot/qobuz_dl.db` on the host. It opens the file read only, so a read-only mount works. Each album and track row of its `downloads` table becomes a `downloaded_items` row with `source = 'qobuz'`, `kind` from `media_type`, `item_id` from `id`, `quality` from `file_format`, `bit_depth` and `sampling_rate`, `path` from `saved_path`, and `imported = 1`. `at` is the time of the import, because the old table has no time.
+`shelf manage import-qobuz-db <path>` reads the old bot's `qobuz_dl.db`, which was `/data/qobuz_dl.db` in the old container. Production has imported it, and the host no longer keeps the file. The command opens the file read only, so a read-only mount works. Each album and track row of its `downloads` table becomes a `downloaded_items` row with `source = 'qobuz'`, `kind` from `media_type`, `item_id` from `id`, `quality` from `file_format`, `bit_depth` and `sampling_rate`, `path` from `saved_path`, and `imported = 1`. `at` is the time of the import, because the old table has no time.
 
 - The old container mounted `music/qobuz` at `/downloads`, so `/downloads/<folder>` becomes `<SHELF_QOBUZ_DIR>/<folder>`. A path under the music root becomes relative to it. Any other path stays as it is and is logged.
 - Rows of other kinds are skipped and counted.
