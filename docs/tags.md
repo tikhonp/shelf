@@ -71,6 +71,17 @@ At start the library module removes temp files a crash left. It walks the music 
 
 **Interrupted writes.** A stop between a change's journal and its end leaves it `writing`. At start, and when the job resumes, shelf reads each of its files: one that holds the planned tags was replaced. The change ends `done`, `partial` or `failed` by that count, with the reason `interrupted`.
 
+## History
+
+The history lists the saves newest first, `GET /api/library/history?before=&limit=`, each with its `undone` flag. `POST /api/library/changes/{id}/undo` and `/redo` work on a save, in any order, as often as the owner likes.
+
+- **What goes back.** shelf reads each file the save replaced. A key the save changed goes back to its old value only while it holds the value the save wrote. A redo works the other way. A key that already holds the value it would go back to is left as it is. Any other value is a conflict, which stays and is listed on the undo or redo as `{"path", "key"}`.
+- **Release IDs.** The MusicBrainz album, release group, album artist, release track and disc IDs go back together or not at all. A conflict on one of them, in any file, leaves all of them in every file and lists them as conflicts, so a file never ends with IDs from two releases.
+- **Refusals.** A save that wrote nothing, an undo of an undone save and a redo of one that isn't undone answer 409. So does an undo or redo while another of the same save is still to run. One whose every key changed since answers 409 with `reason: conflict` and its conflicts.
+- **The write.** An undo or redo is a change of its own, of kind `undo` or `redo`, with the save as its `target`. It is checked and confirmed as a Save is, because putting tracks back can merge or split albums in Navidrome too, and its body takes the same `confirm`. It writes raw keys through the same `library.write` job. When it replaces any file, the save's `undone` flag follows it.
+- **Clear history.** `DELETE /api/library/history` deletes every change that has ended, except a save whose undo or redo is still to run. It answers `{"deleted"}`.
+- **Retention.** A `library.retention` job at 05:15 keeps the newest 1,000 saves. Each save takes its undos and redos with it.
+
 **Write probe.** At start, shelf creates and removes a temp file in each top folder of the music folder. `GET /api/library/index` lists the top folders with `writable` and the reason when not. Each walk counts the files another UID owns, which shelf can't write, as `locked`, per folder and in all. The probe runs once a start, because it moves each folder's mtime.
 
 ## Navidrome's view
@@ -160,6 +171,11 @@ Each check is a kind that the filter menu offers. Guide kinds are style only and
 | A file another tool changes between the check and the job | `TestSaveSeesAChangeBeforeItsJob` |
 | Interrupted changes settled as done, partial and failed, at start and by a resumed job, and only once | `TestInterruptedChangeIsSettled` |
 | The probe in each top folder, a folder shelf can't write, files another UID owns | `TestProbeAndLockedFiles` |
+| Undo and redo in turn restore every key, added and removed ones too, and move the save's flag; the refusals | `TestUndoAndRedo` |
+| A key another tool changed since stays as a conflict; a redo with nothing left to redo | `TestUndoLeavesWhatChangedSince` |
+| A conflict on one release ID keeps every release ID in every file | `TestUndoKeepsReleaseIDsTogether` |
+| An undo that merges tracks back asks first | `TestUndoAsksBeforeNavidromeMovesAStar` |
+| History pages, retention, a second undo while one waits, Clear history keeping a save whose undo waits | `TestHistory` |
 | A download's folders are busy while its source writes, and folders inside them; folders outside the music folder are ignored | `TestBusyWhileTheSourceWrites`, `TestWorkingFolderOutsideTheMusicFolder` |
 | Qobuz's work folder and both names it ends with; Apple Music's whole folder | `TestDownloadResult` in `qobuz`, `TestDownloadAlbum` in `applemusic` |
 

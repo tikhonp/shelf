@@ -126,10 +126,13 @@ func (s store) changeFiles(ctx context.Context, id int64) ([]changeFile, error) 
 
 // insertChange stores a new change in tx and gives it its ID.
 func (s store) insertChange(ctx context.Context, tx *sqlx.Tx, c *changeRow) error {
+	if c.Conflicts == "" {
+		c.Conflicts = "[]"
+	}
 	return tx.GetContext(ctx, &c.ID, `INSERT INTO library_changes
-		(kind, target, album_id, folder, title, artist, state, request, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-		c.Kind, c.Target, c.AlbumID, c.Folder, c.Title, c.Artist, c.State, c.Request, c.CreatedAt)
+		(kind, target, album_id, folder, title, artist, state, request, conflicts, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+		c.Kind, c.Target, c.AlbumID, c.Folder, c.Title, c.Artist, c.State, c.Request, c.Conflicts, c.CreatedAt)
 }
 
 // writingChanges are the changes a stop cut off between their first and
