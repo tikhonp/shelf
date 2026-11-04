@@ -1,36 +1,41 @@
 <script setup lang="ts">
-import { onBeforeUnmount, watch } from 'vue'
+import { computed, onBeforeUnmount, watch } from 'vue'
 import { RouterLink } from 'vue-router'
+import { usePhone } from '../lib/viewport'
 import { useDownloads } from '../stores/downloads'
 import Cover from './Cover.vue'
 import Icon from './Icon.vue'
 
 const shownFor = 8000
+const phone = usePhone()
 const downloads = useDownloads()
+const notice = computed(() => (phone.value ? downloads.notice : downloads.deskNotice))
 let timer: ReturnType<typeof setTimeout> | undefined
 
+// A problem waits for a person. Anything else goes by itself.
 watch(
   () => downloads.notice,
   (n) => {
     clearTimeout(timer)
-    if (n) timer = setTimeout(() => (downloads.notice = null), shownFor)
+    if (n && n.lamp !== 'bad' && n.lamp !== 'warn') timer = setTimeout(() => (downloads.notice = null), shownFor)
   },
+  { immediate: true },
 )
 onBeforeUnmount(() => clearTimeout(timer))
 </script>
 
 <template>
-  <div v-if="downloads.notice" class="win slot" role="status">
+  <div v-if="notice" class="win slot" role="status">
     <div class="tb slot-tb">
-      <span class="led" :class="{ bad: downloads.notice.failed }"></span>
-      <h2>{{ downloads.notice.title }}</h2>
+      <span class="led" :class="notice.lamp"></span>
+      <h2>{{ notice.title }}</h2>
       <span class="stripes"></span>
       <button type="button" class="wbtn" aria-label="Dismiss" @click="downloads.notice = null"><Icon name="close" /></button>
     </div>
     <div class="line g12 body">
-      <Cover :url="downloads.notice.cover" :size="42" :round="downloads.notice.round" />
-      <div class="two grow"><span class="ell bold">{{ downloads.notice.text }}</span><span class="sub">{{ downloads.notice.sub }}</span></div>
-      <RouterLink v-if="!downloads.notice.failed" class="key sm" to="/downloads">View</RouterLink>
+      <Cover :url="notice.cover" :size="42" :round="notice.round" />
+      <div class="two grow"><span class="ell bold">{{ notice.text }}</span><span class="sub ell">{{ notice.sub }}</span></div>
+      <RouterLink v-if="notice.to" class="key sm" :to="notice.to">View</RouterLink>
     </div>
   </div>
 </template>

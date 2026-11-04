@@ -3,6 +3,8 @@ import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Source, WrapperState } from '../api/types'
 import Icon from '../components/Icon.vue'
+import NoticeChoice from '../components/NoticeChoice.vue'
+import NoticeSlot from '../components/NoticeSlot.vue'
 import PartCard from '../components/PartCard.vue'
 import SignIn from '../components/SignIn.vue'
 import WrapperLog from '../components/WrapperLog.vue'
@@ -119,6 +121,7 @@ const lines = (s: Source) => [s.enabled ? (s.health.ok ? 'WORKS' : (s.health.mes
           <template v-if="status.scan?.enabled" #keys><button type="button" class="key" :disabled="status.scan.scanning" @click="status.startScan()">Scan now</button></template>
         </PartCard>
         <PartCard name="Telegram" :lamp="telegramLamp" :note="status.telegram?.username ? `@${status.telegram.username}` : ''" :lines="telegramLines" />
+        <NoticeChoice />
         <section class="smod last" aria-label="Theme">
           <div class="smod-h"><h2>Theme</h2></div>
           <div class="segk block" role="radiogroup" aria-label="Theme">
@@ -128,8 +131,10 @@ const lines = (s: Source) => [s.enabled ? (s.health.ok ? 'WORKS' : (s.health.mes
         </section>
       </div>
     </section>
+    <NoticeSlot />
   </div>
   <div v-else class="col g16 desk-col">
+    <NoticeSlot />
     <PartCard v-if="qobuz" name="Qobuz" :lamp="sourceLamp(qobuz)" :note="qobuzNote" :lines="qobuzLines">
       <template v-if="!qobuz.health.ok" #text>
         <div class="note replace">
@@ -158,6 +163,7 @@ const lines = (s: Source) => [s.enabled ? (s.health.ok ? 'WORKS' : (s.health.mes
       </PartCard>
       <PartCard name="Telegram" :lamp="telegramLamp" :note="status.telegram?.username ? `@${status.telegram.username}` : ''" :lines="telegramLines" />
     </div>
+    <NoticeChoice />
     <SignIn v-if="signingIn" @close="closeSignIn" />
   </div>
 </template>

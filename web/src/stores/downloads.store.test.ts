@@ -1,11 +1,16 @@
+import { flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import type { DownloadEvent } from '../api/types'
+import type { Download, DownloadEvent, DownloadStatus } from '../api/types'
 import { download, list, Reply, source, stubApi } from '../testing/api'
 import { useDownloads } from './downloads'
+import { useSettings, type NoticeLevel } from './settings'
 import { useSources } from './sources'
 
-beforeEach(() => setActivePinia(createPinia()))
+beforeEach(() => {
+  localStorage.clear()
+  setActivePinia(createPinia())
+})
 afterEach(() => {
   vi.unstubAllGlobals()
   vi.useRealTimers()
@@ -132,14 +137,16 @@ test('a skipped download says it is in the library', async () => {
   stubApi({ '/api/downloads': new Reply(201, download(2, { status: 'skipped' })) })
   const s = useDownloads()
   await s.queue({ source: 'qobuz', kind: 'album', id: 'album-2' })
-  expect(s.notice).toMatchObject({ title: 'Already in the library', failed: false })
+  expect(s.notice).toMatchObject({ title: 'Already in the library', lamp: '' })
+  expect(s.deskNotice).toBeNull()
 })
 
 test('a refused download says why', async () => {
   stubApi({ '/api/downloads': new Reply(422, { error: 'unknown or disabled source' }) })
   const s = useDownloads()
   expect(await s.queue({ source: 'x', kind: 'album', id: '1' }, { title: 'Album' })).toBeNull()
-  expect(s.notice).toMatchObject({ failed: true, sub: 'unknown or disabled source' })
+  expect(s.notice).toMatchObject({ lamp: 'bad', to: null, sub: 'unknown or disabled source' })
+  expect(s.deskNotice).toEqual(s.notice)
 })
 
 test('what this page saw of a download beats what the search answered', async () => {
@@ -175,4 +182,91 @@ test('an open download reads its tracks again, at most once a second', async () 
   s.applyEvent(event(1))
   await vi.advanceTimersByTimeAsync(1100)
   expect(reads()).toBe(2)
+})
+
+// ended loads one running download, then has it end as `status`.
+async function ended(level: NoticeLevel, status: DownloadStatus, over: Partial<Download> = {}) {
+  useSettings().notices = level
+  const final = download(1, { status, tracks_done: 11, tracks_total: 12, error: status === 'failed' ? 'Qobuz returned 401' : '', ...over })
+  stubApi({ ...lists([download(1, { status: 'running' })]), '/api/downloads/1': { ...final, tracks: [], children: [], provenance_path: '' } })
+  const s = useDownloads()
+  await s.load()
+  s.applyEvent(event(1, { status, parent_id: final.parent_id }))
+  await flushPromises()
+  return s
+}
+
+test.each<[NoticeLevel, DownloadStatus, string | null]>([
+  ['off', 'done', null],
+  ['off', 'failed', null],
+  ['off', 'partial', null],
+  ['failures', 'done', null],
+  ['failures', 'failed', 'Failed'],
+  ['failures', 'partial', 'Done with errors'],
+  ['all', 'done', 'Downloaded'],
+  ['all', 'failed', 'Failed'],
+  ['all', 'partial', 'Done with errors'],
+  ['all', 'canceled', null],
+  ['all', 'skipped', null],
+])('with notices at %s, a download ending %s shows %s', async (level, status, title) => {
+  const s = await ended(level, status)
+  expect(s.notice?.title ?? null).toBe(title)
+})
+
+test('a notice says why and links to its download', async () => {
+  expect((await ended('failures', 'failed')).notice).toMatchObject({ text: 'Album 1', sub: 'Qobuz returned 401', lamp: 'bad', to: '/downloads/1' })
+})
+
+test('a partial download counts its tracks', async () => {
+  expect((await ended('failures', 'partial')).notice).toMatchObject({ sub: '11 of 12 tracks', lamp: 'warn' })
+})
+
+test('a result reaches the desktop', async () => {
+  expect((await ended('all', 'done')).deskNotice).toMatchObject({ title: 'Downloaded', lamp: 'ok' })
+})
+
+test('reading lists that hold ended downloads shows no notice', async () => {
+  useSettings().notices = 'all'
+  stubApi(lists([], [download(1, { status: 'failed' }), download(2, { status: 'done' })]))
+  const s = useDownloads()
+  await s.load()
+  expect(s.notice).toBeNull()
+})
+
+test('a repeated final event shows no second notice', async () => {
+  const s = await ended('all', 'failed')
+  s.notice = null
+  s.applyEvent(event(1, { status: 'failed' }))
+  await flushPromises()
+  expect(s.notice).toBeNull()
+})
+
+test('a retry that ends shows a notice again', async () => {
+  const s = await ended('failures', 'failed')
+  s.notice = null
+  s.applyEvent(event(1, { status: 'running' }))
+  s.applyEvent(event(1, { status: 'failed' }))
+  await flushPromises()
+  expect(useDownloads().notice?.title).toBe('Failed')
+})
+
+test('a download from the bot that this page never listed still shows', async () => {
+  useSettings().notices = 'failures'
+  stubApi({ ...lists([]), '/api/downloads/9': { ...download(9, { status: 'failed', error: 'no' }), tracks: [], children: [], provenance_path: '' } })
+  const s = useDownloads()
+  await s.load()
+  s.applyEvent(event(9, { status: 'failed' }))
+  s.applyEvent(event(9, { status: 'failed' }))
+  await flushPromises()
+  expect(s.notice).toMatchObject({ title: 'Failed', text: 'Album 9' })
+})
+
+test('an album of an artist shows no notice of its own', async () => {
+  useSettings().notices = 'all'
+  stubApi(lists([]))
+  const s = useDownloads()
+  await s.load()
+  s.applyEvent(event(5, { parent_id: 4, status: 'failed' }))
+  await flushPromises()
+  expect(s.notice).toBeNull()
 })

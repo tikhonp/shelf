@@ -94,7 +94,8 @@ onBeforeUnmount(() => document.removeEventListener('keydown', key))
   </div>
   <div v-else class="page">
     <SearchWindow ref="win" v-model:cursor="cursor" :narrow="!!openRef" @go="go" @open="open" @artist="findArtist" @type="setType" />
-    <aside v-if="openRef || downloads.busy" class="page-side">
+    <aside v-if="openRef || downloads.busy || downloads.deskNotice" class="page-side">
+      <NoticeSlot />
       <ItemPanel v-if="openRef" :item-ref="openRef" @close="closePanel" @open="open" />
       <template v-else>
         <section v-if="downloads.running.length" class="win" aria-label="Current download">
