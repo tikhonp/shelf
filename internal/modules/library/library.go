@@ -49,6 +49,9 @@ type Module struct {
 	HTTP   *http.Client
 	// Prints identifies audio. It stays nil without an AcoustID key.
 	Prints *acoustid.Client
+	// DeleteWait is how long a delete waits between looks at Navidrome's
+	// missing files. Tests change it.
+	DeleteWait time.Duration
 	// afterSlice runs when a run's slice ends. Tests stop a run with it.
 	afterSlice func()
 
@@ -71,11 +74,13 @@ type Module struct {
 	rules  *tagio.Rules
 	busy   func(dir string) bool
 	scan   func(ctx context.Context) error
+	nav    *Navidrome
+	forget func(ctx context.Context, folder string) (int64, error)
 }
 
 // New returns the module.
 func New() *Module {
-	return &Module{Every: IndexEvery, FFmpeg: "ffmpeg", kick: make(chan struct{}, 1), rules: tagio.DefaultRules()}
+	return &Module{Every: IndexEvery, DeleteWait: DeleteWait, FFmpeg: "ffmpeg", kick: make(chan struct{}, 1), rules: tagio.DefaultRules()}
 }
 
 func (*Module) Name() string { return Name }

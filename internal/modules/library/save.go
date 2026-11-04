@@ -352,6 +352,11 @@ func (m *Module) sharedCover(ctx context.Context, row albumRow, stored storedCha
 
 // queueChange stores a change and its write job together.
 func (m *Module) queueChange(ctx context.Context, cr *changeRow, by string) error {
+	return m.queueJob(ctx, cr, by, WriteJob)
+}
+
+// queueJob stores a change and its job of type job together.
+func (m *Module) queueJob(ctx context.Context, cr *changeRow, by, job string) error {
 	err := m.store.db.Write(ctx, func(tx *sqlx.Tx) error {
 		if cr.Target != nil {
 			// Two undos of one save would each check the files as they were.
@@ -364,10 +369,21 @@ func (m *Module) queueChange(ctx context.Context, cr *changeRow, by string) erro
 				return errReversing
 			}
 		}
+		if cr.Kind == KindDelete {
+			// A second delete would find the folder gone and fail.
+			var n int
+			if err := tx.GetContext(ctx, &n, `SELECT count(*) FROM library_changes WHERE kind = ? AND folder = ? AND state IN (?, ?)`,
+				KindDelete, cr.Folder, StateQueued, StateWriting); err != nil {
+				return err
+			}
+			if n > 0 {
+				return errDeleting
+			}
+		}
 		if err := m.store.insertChange(ctx, tx, cr); err != nil {
 			return err
 		}
-		e, err := m.jobs.Enqueue(ctx, tx, jobs.Request{Type: WriteJob, Payload: writePayload{Change: cr.ID}, CreatedBy: by})
+		e, err := m.jobs.Enqueue(ctx, tx, jobs.Request{Type: job, Payload: writePayload{Change: cr.ID}, CreatedBy: by})
 		if err != nil {
 			return err
 		}
@@ -503,6 +519,9 @@ func (m *Module) JobTypes() []jobs.Type {
 	return []jobs.Type{{
 		Name: WriteJob, Queue: jobs.QueueTags, MaxAttempts: 1,
 		Steps: []jobs.Step{{Name: "write", Run: m.write}},
+	}, {
+		Name: DeleteJob, Queue: jobs.QueueTags, MaxAttempts: 1,
+		Steps: []jobs.Step{{Name: "delete", Run: m.deleteStep}, {Name: "navidrome", Run: m.navidromeStep}},
 	}, {
 		Name: RunJob, Queue: jobs.QueueTags, MaxAttempts: 1, OnFailed: m.runFailed, OnCancelled: m.runCancelled,
 		Steps: []jobs.Step{{Name: "album", Run: m.runSlice}},

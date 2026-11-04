@@ -143,7 +143,7 @@ const actions: Record<string, () => void> = {
 
 // The desktop has a key for every action, and the phone has none.
 function onKey(e: KeyboardEvent) {
-  if (phone.value || editor.asks) return
+  if (phone.value || editor.asks || editor.deleting) return
   const a = libraryAction(e)
   if (!a) return
   // A key must not act on what an open dialog hides.
@@ -193,7 +193,17 @@ function moveTracks(d: number) {
   keep('library.tracks', tracksW.value)
 }
 const widths = computed(() => ({ '--list-w': `${listW.value}px`, '--tracks-w': `${tracksW.value}px` }))
-const saveSlot = computed(() => editor.staged > 0 || !!editor.saving || !!editor.outcome)
+const saveSlot = computed(() => editor.staged > 0 || !!editor.saving || !!editor.deleting || !!editor.outcome)
+
+// A deleted album has no page left, so the list takes its place.
+watch(
+  () => editor.gone,
+  (gone) => {
+    if (gone === null) return
+    editor.gone = null
+    if (gone === id.value) void router.push({ name: 'library' })
+  },
+)
 </script>
 
 <template>

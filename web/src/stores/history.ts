@@ -72,9 +72,9 @@ export const useHistory = defineStore('history', () => {
   function applyChange(c: LibraryChange) {
     const save = running.value[c.id]
     if (c.state === 'queued' || c.state === 'writing') return
-    // A run nobody here started ends in the list too.
+    // A run nobody here started ends in the list too, and so does a delete.
     if (save === undefined) {
-      if (c.run) void load()
+      if (c.run || c.kind === 'delete') void load()
       return
     }
     const { [c.id]: _, ...rest } = running.value

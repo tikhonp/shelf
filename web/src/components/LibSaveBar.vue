@@ -11,9 +11,25 @@ const status = useStatus()
 const out = computed(() => editor.outcome)
 const reason = computed(() => out.value?.reason ?? '')
 
-const big = computed(() => ({ conflict: 'FILES CHANGED', locked: 'LOCKED', busy: 'BUSY' })[reason.value] ?? 'SAVE FAILED')
-const small = computed(() => ({ conflict: 'SINCE YOU OPENED', locked: 'OWNED BY ANOTHER USER', busy: 'A DOWNLOAD IS RUNNING' })[reason.value] ?? 'SEE BELOW')
+const deleting = computed(() => !!out.value?.deleting)
+const big = computed(() => ({ conflict: deleting.value ? 'FOLDER CHANGED' : 'FILES CHANGED', locked: 'LOCKED', busy: 'BUSY', partial: 'PARTLY DELETED' })[reason.value] ?? (deleting.value ? 'DELETE FAILED' : 'SAVE FAILED'))
+const small = computed(() => ({ conflict: 'SINCE YOU OPENED', locked: 'OWNED BY ANOTHER USER', busy: 'A DOWNLOAD IS RUNNING', partial: 'SEE BELOW' })[reason.value] ?? 'SEE BELOW')
+const deleteWords = computed(() => {
+  switch (reason.value) {
+    case 'conflict':
+      return 'The folder changed or went away after the album opened, so shelf deleted nothing.'
+    case 'locked':
+      return "shelf can't delete files or folders that belong to another user, so it deleted nothing. Give the folder to UID 10001, then press Delete again."
+    case 'busy':
+      return 'A download is writing into this folder, so shelf deleted nothing. Press Delete again when it ends.'
+    case 'partial':
+      return 'shelf deleted some of the folder and stopped at a file it could not remove. Press Delete again for the rest.'
+    default:
+      return 'shelf deleted nothing.'
+  }
+})
 const words = computed(() => {
+  if (deleting.value) return deleteWords.value
   switch (reason.value) {
     case 'conflict':
       return 'Another tool changed these files after the album opened. shelf wrote nothing. Reload reads the files again and keeps your staged changes.'
@@ -38,15 +54,19 @@ const close = () => (editor.outcome = null)
   <div v-if="editor.saving" class="lib-save" role="status">
     <div class="lcd row-lcd"><span class="led run blink"></span><span class="lcd-l">SAVING {{ editor.readable.length }} FILES</span></div>
   </div>
+  <div v-else-if="editor.deleting" class="lib-save" role="status">
+    <div class="lcd row-lcd"><span class="led run blink"></span><span class="lcd-l">DELETING {{ editor.deleting.deleted?.files ?? 0 }} FILES</span></div>
+  </div>
   <div v-else-if="out && !out.ok" class="not-saved" role="alert">
-    <div class="tb"><span class="led" :class="reason === 'conflict' || reason === 'locked' || reason === 'busy' ? 'warn' : 'bad'"></span><h3>Not saved</h3><span class="stripes"></span><button type="button" class="wbtn" aria-label="Close" @click="close"><Icon name="close" /></button></div>
+    <div class="tb"><span class="led" :class="reason === 'conflict' || reason === 'locked' || reason === 'busy' ? 'warn' : 'bad'"></span><h3>{{ deleting ? (reason === 'partial' ? 'Partly deleted' : 'Not deleted') : 'Not saved' }}</h3><span class="stripes"></span><button type="button" class="wbtn" aria-label="Close" @click="close"><Icon name="close" /></button></div>
     <div class="ns-body">
       <div class="lcd lcd-state ns-lcd"><div class="lcd-big">{{ big }}</div><div class="lcd-l">{{ small }}</div></div>
       <div v-if="!['conflict', 'locked', 'busy'].includes(reason) && out.message" class="term">{{ out.message }}</div>
       <p v-else-if="out.message && reason !== 'conflict'" class="t2 sm">{{ out.message }}</p>
       <p class="t2">{{ words }}</p>
-      <button v-if="reason === 'conflict'" type="button" class="key sun block" @click="editor.reload()">Reload album</button>
-      <RouterLink v-else-if="reason === 'busy'" class="key block" to="/downloads">Open the download</RouterLink>
+      <RouterLink v-if="reason === 'busy'" class="key block" to="/downloads">Open the download</RouterLink>
+      <template v-else-if="deleting"></template>
+      <button v-else-if="reason === 'conflict'" type="button" class="key sun block" @click="editor.reload()">Reload album</button>
       <button v-else-if="reason !== 'locked'" type="button" class="key sun block" @click="editor.save()">Try again</button>
     </div>
   </div>

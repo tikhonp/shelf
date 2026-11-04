@@ -1,4 +1,5 @@
-import type { ChangeFile } from '../api/types'
+import type { ChangeFile, LibraryChange } from '../api/types'
+import { count, size } from './format'
 
 export interface HistoryLine {
   track: string
@@ -36,5 +37,33 @@ export function historyLines(files: ChangeFile[], run = false): HistoryLine[] {
   if (audio.some((f) => f.cover_before !== f.cover_after) || files.some((f) => f.kind === 'cover')) {
     lines.push({ track: 'All tracks', key: 'Cover', before: '', after: 'Changed' })
   }
+  return lines
+}
+
+export interface DeletedLine {
+  label: string
+  value: string
+}
+
+const navidromeWords: Record<string, string> = {
+  waiting: 'Waiting for its scan',
+  purges: 'Forgets missing files by itself',
+  none: "Its scan marked no track missing. Remove the tracks on Navidrome's Missing Files page.",
+  failed: "Didn't answer. Remove the tracks on Navidrome's Missing Files page.",
+  off: 'Not set up in shelf',
+}
+
+// deletedLines says what a delete removed, for its History row.
+export function deletedLines(c: LibraryChange): DeletedLine[] {
+  const d = c.deleted
+  if (!d) return []
+  const lines: DeletedLine[] = [
+    { label: 'Folder', value: c.folder },
+    { label: 'Files', value: `${count(d.files, 'file')}, ${size(d.bytes)}` },
+  ]
+  if (d.albums.length > 0) lines.push({ label: 'Also', value: d.albums.map((a) => `${a.title} by ${a.artist}`).join('; ') })
+  if (d.forgot > 0) lines.push({ label: 'Downloads', value: d.forgot === 1 ? '1 item downloads again' : `${d.forgot} items download again` })
+  const nav = d.navidrome === 'removed' ? `Forgot ${count(d.navidrome_tracks, 'track')}` : navidromeWords[d.navidrome]
+  if (nav) lines.push({ label: 'Navidrome', value: nav })
   return lines
 }

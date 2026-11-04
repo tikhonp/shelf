@@ -364,3 +364,33 @@ func TestDownloadedAt(t *testing.T) {
 		t.Fatalf("at %v, %v", at, err)
 	}
 }
+
+// A deleted folder's items download again, and the folders beside it keep
+// theirs, even one whose name starts the same.
+func TestForgetADeletedFolder(t *testing.T) {
+	r := newRig(t)
+	rows := []Downloaded{
+		{Ref: album("album-1"), Path: "qobuz/Album"},
+		{Ref: source.Ref{Source: "fake", Kind: source.KindTrack, ID: "track-1"}, Path: "qobuz/Album/CD 2"},
+		{Ref: album("album-2"), Path: "qobuz/Album Two"},
+		{Ref: album("album-3"), Path: "qobuz/Other"},
+	}
+	if _, err := r.svc.ImportDownloaded(bg, rows); err != nil {
+		t.Fatal(err)
+	}
+	n, err := r.svc.Forget(bg, "qobuz/Album")
+	if err != nil || n != 2 {
+		t.Fatalf("forgot %d: %v", n, err)
+	}
+	for i, want := range []bool{false, false, true, true} {
+		if got, _ := r.svc.IsDownloaded(bg, rows[i].Ref); got != want {
+			t.Errorf("%s: downloaded %v, want %v", rows[i].Path, got, want)
+		}
+	}
+	if d := r.queue(QueueRequest{Ref: album("album-1")}); d.Status == Skipped {
+		t.Errorf("the deleted album was skipped: %+v", d)
+	}
+	if n, _ := r.svc.Forget(bg, "."); n != 0 {
+		t.Errorf("the music folder itself forgot %d", n)
+	}
+}

@@ -25,7 +25,7 @@ shelf has a Library tab with a full tag editor, so tagging no longer needs Picar
 - History keeps every Save, and any Save can be undone, after a restart too.
 - ReplayGain runs in the background.
 
-shelf changes tags and covers only, and never renames or moves a file. Nothing changes after a download on its own.
+shelf changes tags and covers, deletes a release folder when the owner asks, and never renames or moves a file. Nothing changes after a download on its own.
 
 ## Later
 

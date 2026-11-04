@@ -52,7 +52,7 @@ and `blackberry/shelf-wrapper.env` with the same `SHELF_WRAPPER_TOKEN`. Commit c
 
 - shelf runs as `10001:10001` with umask 022, so new folders are 0755 and new files 0644. amdl and ffmpeg inherit the umask, and qobuz-dl-go passes the modes explicitly.
 - Downloads write only into `qobuz/` and `apple-music/`. The tag editor writes in the whole library, so after the chown below every file and folder belongs to 10001. shelf refuses a Save of a file another UID or group owns as locked, and writes nothing. The login user and Picard keep writing in the genre folders, because no file of UID 1000 there lacks world-write. The login user needs sudo to write into the two source folders.
-- shelf never changes the owner or mode of a file it did not create. Besides its own temp files, it deletes only a release folder's `cover.*`, when the owner replaces or deletes a cover, and keeps a copy under `/data/library/covers` for undo.
+- shelf never changes the owner or mode of a file it did not create. Besides its own temp files, it deletes a release folder's `cover.*` when the owner replaces or deletes a cover, keeping a copy under `/data/library/covers` for undo, and a whole release folder the owner deletes from the Library tab, when 10001 owns everything in it. A deleted folder has no copy, so only the backups can bring it back.
 - Navidrome has a read-only mount and reads the files because they are world-readable.
 - At startup shelf creates and removes a probe file in each top folder of the music folder, and each walk of the index counts the files another UID owns. `GET /api/library/index` reports a folder shelf can't write to and its locked files.
 

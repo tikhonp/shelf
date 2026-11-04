@@ -1,6 +1,6 @@
 # Tags
 
-How shelf reads and writes the tags in audio files, and how it indexes, checks and saves the library. Navidrome is the test of every write. shelf follows its mappings, and a write that reads back right but shows wrong in Navidrome has failed. The code is the library module, `internal/modules/library`, with tag IO in its `tagio` package.
+How shelf reads and writes the tags in audio files, and how it indexes, checks and saves the library and deletes from it. Navidrome is the test of every write. shelf follows its mappings, and a write that reads back right but shows wrong in Navidrome has failed. The code is the library module, `internal/modules/library`, with tag IO in its `tagio` package.
 
 ## Fields
 
@@ -93,14 +93,27 @@ A cover edit is part of a Save: `"cover": {"upload"}` puts an uploaded image in 
 
 ## History
 
-The history lists the saves newest first, `GET /api/library/history?before=&limit=`, each with its `undone` and `cover` flags. `POST /api/library/changes/{id}/undo` and `/redo` work on a save, in any order, as often as the owner likes.
+The history lists the saves and deletes newest first, `GET /api/library/history?before=&limit=`, each with its `undone` and `cover` flags. A delete has no undo or redo. `POST /api/library/changes/{id}/undo` and `/redo` work on a save, in any order, as often as the owner likes.
 
 - **What goes back.** shelf reads each file the save replaced. A key the save changed goes back to its old value only while it holds the value the save wrote. A redo works the other way. A key that already holds the value it would go back to is left as it is. Any other value is a conflict, which stays and is listed on the undo or redo as `{"path", "key"}`.
 - **Release IDs.** The MusicBrainz album, release group, album artist, release track and disc IDs go back together or not at all. A conflict on one of them, in any file, leaves all of them in every file and lists them as conflicts, so a file never ends with IDs from two releases.
 - **Refusals.** A save that wrote nothing, an undo of an undone save and a redo of one that isn't undone answer 409. So does an undo or redo while another of the same save is still to run. One whose every key changed since answers 409 with `reason: conflict` and its conflicts.
 - **The write.** An undo or redo is a change of its own, of kind `undo` or `redo`, with the save as its `target`. It is checked and confirmed as a Save is, because putting tracks back can merge or split albums in Navidrome too, and its body takes the same `confirm`. It writes raw keys through the same `library.write` job. When it replaces any file, the save's `undone` flag follows it.
 - **Clear history.** `DELETE /api/library/history` deletes every change that has ended, except a save whose undo or redo is still to run. It answers `{"deleted"}`.
-- **Retention.** A `library.retention` job at 05:15 keeps the newest 1,000 saves. Each save takes its undos and redos with it. The job then removes stored covers no change refers to, except uploads younger than a day.
+- **Retention.** A `library.retention` job at 05:15 keeps the newest 1,000 saves and deletes. Each save takes its undos and redos with it. The job then removes stored covers no change refers to, except uploads younger than a day.
+
+## Deleting
+
+`POST /api/library/albums/{id}/delete` removes the album's release folder from the disk with everything in it: disc folders, covers, `shelf.txt`, lyrics and any other file. Nothing brings it back. The Delete key sits in the Editor's title bar on the desktop and in the album's title bar on the phone.
+
+1. **Check now.** The folder must sit inside a top folder, so shelf answers 422 for `qobuz` or `rock` itself. shelf's UID must own every file and folder in it, every folder in it and the folder above it must be writable, and no download may work in it. A file of another UID or a folder shelf can't write answers 409 `locked`, a download 409 `busy`, and a folder that is gone 409 `conflict`. Nothing is touched.
+2. **Confirm.** Every delete answers 409 with `reason: confirm` until `confirm` names `delete`, whose message gives the file count and the size, and says Navidrome forgets the album with its star, rating, plays and place in playlists. When the folder holds other albums, beside the album or in folders under it, it also asks `shared_folder` and names up to three of them.
+3. **Queue.** The delete is a change of kind `delete`, in the history like a Save, with a `library.delete` job on the `tags` queue, so it waits for a write that runs. A second delete of the folder while one waits answers 409.
+4. **Delete.** The job checks the folder again and removes it. A delete the checks stop ends `failed` with the reason, a failure part way ends `partial` with what is left, and a stop part way goes on when the job resumes. The start's settling of cut-off writes leaves deletes to their job.
+5. **After.** The index walks, and the downloads module forgets the downloaded items in the folder and under it, so a request for one of them downloads it again. The downloads keep their rows.
+6. **Navidrome.** Navidrome keeps a track whose file is gone as missing, with its star and plays, until an admin removes it. Its API removes only tracks its scan has marked missing. So the job asks Navidrome for a scan, waits 30 seconds, and lists the missing tracks under the folder with `GET /api/missing?path=`. It removes those with `DELETE /api/missing/?id=`, a hundred at a time, and Navidrome then drops the empty album. Until any show, it looks again every 30 seconds, ten times in all. `path` is a `LIKE` prefix in Navidrome, so shelf removes only tracks whose path starts with the folder. When Navidrome's `Scanner.PurgeMissing` is `always`, its own scans remove them and shelf leaves them.
+
+The change's `deleted` holds `{"files", "bytes", "albums", "forgot", "navidrome", "navidrome_tracks"}`. `navidrome` is `waiting`, then `removed` with the count, `purges`, `none` when no track showed as missing in time, `failed` when Navidrome didn't answer, or `off` without Navidrome. With `none` or `failed`, Navidrome's Missing Files page removes the tracks. History opens a delete to these lines in place of the tags.
 
 ## Bulk runs
 
@@ -297,6 +310,7 @@ After each step the test runs a quick scan, as production asks for, and holds ev
 6. The `RELEASEDATE` fix's pair on an album under the legacy date rule keeps the year shown.
 7. A new cover is the one Navidrome serves.
 8. A run's date fix keeps the album's year and star, Navidrome reports the run's ReplayGain on each song, and the run's undo brings the old gain and the album ID back.
+9. A delete removes its folder, and Navidrome forgets its tracks and the album, with no missing track left under the folder.
 
 Navidrome keeps the old `songCount` of an album that lost a track in a quick scan, though `getAlbum` lists the right songs. The test counts the songs.
 
@@ -347,6 +361,17 @@ The test's container installs Alpine's ffmpeg, the one production has, because a
 | An opened album read again after another tool's retag, and its split seen from the folder's other album | `TestOpenedAlbumIsReadAgain`, `TestOpenedAlbumSeesItsSplit` |
 | Audio with its type and ranges; a file swapped for a symlink; an unknown track | `TestAudio` |
 | Run sweeps, walks at start, after a download and on request | `TestRunSweepsWalksAndHearsDownloads` |
+| A delete asks, removes the folder with its disc folder, cover and `shelf.txt`, leaves the folder beside it, has the downloads forget it, waits for Navidrome's scan and has it forget the tracks; History shows it, and it has no undo or redo | `TestDeleteRemovesTheFolder` |
+| Other albums in the folder and under it are named and asked for, and a folder whose name starts the same stays; without Navidrome | `TestDeleteAsksForTheAlbumsItTakes` |
+| An unknown album, a top folder, a busy folder, a folder shelf can't write and one above it, a second delete, a folder gone before the job | `TestDeleteRefuses` |
+| Navidrome that purges by itself, never marks the tracks missing, or doesn't answer | `TestDeleteNavidromeOutcomes` |
+| A delete cut off part way is left alone at start and finished by its job | `TestDeleteCutOffGoesOn` |
+| The migration that adds deletes keeps every change, file, run and undo, the foreign keys and the ID sequence, and its down migration drops only the deletes | `TestDeleteMigrationKeepsTheHistory` |
+| Navidrome's missing tracks under a folder removed, a `LIKE` match beside it kept, nothing missing yet, `PurgeMissing` set to `always`, Navidrome not set up | `TestRemoveMissing` in `navidrome` |
+| A deleted folder's downloaded items and those under it forgotten, a folder whose name starts the same kept, the music folder itself refused | `TestForgetADeletedFolder` in `downloads` |
+| A delete's History lines | `web/src/lib/history.test.ts` |
+| Delete's confirm and its kinds, another change's event, leaving the album, a refusal, a partial delete | `web/src/stores/editor.store.test.ts` |
+| Delete's dialog, its progress and the list after it | `web/src/components/library.test.ts` |
 | A Save writes every track, stores before and after, asks for a scan and a walk, and follows the album's new ID | `TestSaveWritesTheAlbum` |
 | Bad bodies, another album's track, a conflict, an unknown field, nothing to change, too many edits, a busy folder, a locked folder | `TestSaveRefuses` |
 | Split, merge, album artist renames and their confirmations; an `ALBUMARTIST` edit under `ALBUMARTISTS`; a whole-album change that asks nothing | `TestSaveAsksBeforeNavidromeMovesAStar` |
@@ -371,7 +396,7 @@ The test's container installs Alpine's ffmpeg, the one production has, because a
 | An interrupted change's cover files settled by their hash | `TestInterruptedCoverIsSettled` |
 | The store keeps covers the history needs and young uploads | `TestCoverStoreSweep` |
 | A route's own body limit, and the 1 MiB limit everywhere else | `TestRouteBodyLimit` |
-| Navidrome's view after a retag, a rename, an undo, a split, the date fix and a cover; a disc album's cover, disc art and Delete; a cover reaching the album that shares its folder | `TestNavidromeContract`, with `make contract` |
+| Navidrome's view after a retag, a rename, an undo, a split, the date fix and a cover; a disc album's cover, disc art and Delete; a cover reaching the album that shares its folder; a deleted album | `TestNavidromeContract`, with `make contract` |
 | A download's folders are busy while its source writes, and folders inside them; folders outside the music folder are ignored | `TestBusyWhileTheSourceWrites`, `TestWorkingFolderOutsideTheMusicFolder` |
 | Qobuz's work folder and both names it ends with; Apple Music's whole folder | `TestDownloadResult` in `qobuz`, `TestDownloadAlbum` in `applemusic` |
 | An MP3 stream for a format the browser refuses; a file ffmpeg can't read | `TestAudioTranscode` |

@@ -13,6 +13,8 @@ export interface StagedCover extends CoverEdit {
 // Outcome is how the last Save ended, for the states under the editor.
 export interface Outcome {
   ok: boolean
+  // deleting says the outcome is a Delete's, not a Save's.
+  deleting?: boolean
   reason: string
   message: string
   // changes and tracks say what a Save held, as the Save bar counted it.
@@ -43,6 +45,9 @@ export const useEditor = defineStore('editor', () => {
   // held keeps staged edits per album, so opening another album loses none.
   const held = ref<Record<number, Held>>({})
   const saving = ref<LibraryChange | null>(null)
+  const deleting = ref<LibraryChange | null>(null)
+  // gone is an album a Delete removed, and the page leaves it.
+  const gone = ref<number | null>(null)
   const outcome = ref<Outcome | null>(null)
   const asks = ref<SaveWarning[] | null>(null)
   // askKey is the dialog's confirm key, because an undo or redo uses the dialog too.
@@ -188,7 +193,42 @@ export const useEditor = defineStore('editor', () => {
     await send(saveBody(readable.value, {}, confirm, { upload }), (c) => saveCoverAlone(upload, c))
   }
 
-  const failure = (reason: string, message: string): Outcome => ({ ok: false, reason, message, changes: 0, tracks: 0, cover: false })
+  const failure = (reason: string, message: string, del = false): Outcome => ({ ok: false, deleting: del, reason, message, changes: 0, tracks: 0, cover: false })
+
+  // remove deletes the album's release folder, once the owner confirms.
+  async function remove(confirm: string[] = []) {
+    if (!album.value) return
+    outcome.value = null
+    try {
+      deleting.value = await post<LibraryChange>(`/api/library/albums/${album.value.id}/delete`, { confirm })
+      asks.value = null
+      pending = null
+    } catch (err) {
+      const refusal = err instanceof ApiError ? (err.body as SaveRefusal | undefined) : undefined
+      if (refusal?.reason === 'confirm') {
+        ask(refusal.confirm ?? [], remove, 'Delete')
+        return
+      }
+      asks.value = null
+      outcome.value = failure(refusal?.reason ?? 'error', errorText(err), true)
+    }
+  }
+
+  function settleDelete(c: LibraryChange) {
+    deleting.value = null
+    void useLibrary().load()
+    if (c.state === 'failed') {
+      outcome.value = failure(c.reason, c.error, true)
+      return
+    }
+    if (c.state === 'partial') {
+      outcome.value = failure('partial', c.error, true)
+      return
+    }
+    const { [c.album_id]: _, ...rest } = held.value
+    held.value = rest
+    gone.value = c.album_id
+  }
 
   function ask(warnings: SaveWarning[], again: (confirm: string[]) => Promise<void>, key = 'Save anyway') {
     asks.value = warnings
@@ -273,6 +313,11 @@ export const useEditor = defineStore('editor', () => {
   }
 
   function applyChange(c: LibraryChange) {
+    if (deleting.value?.id === c.id) {
+      deleting.value = c
+      if (terminal(c)) settleDelete(c)
+      return
+    }
     if (saving.value?.id !== c.id) return
     saving.value = c
     if (terminal(c)) void settle(c)
@@ -280,14 +325,15 @@ export const useEditor = defineStore('editor', () => {
 
   // The event stream has no replay, so a reconnect asks about a running Save.
   async function recheck() {
-    if (!saving.value) return
-    applyChange(await get<LibraryChange>(`/api/library/changes/${saving.value.id}`))
+    const c = saving.value ?? deleting.value
+    if (!c) return
+    applyChange(await get<LibraryChange>(`/api/library/changes/${c.id}`))
   }
 
   return {
-    album, loading, error, trackId, cursor, noteOn, suggestions, suggesting, suggestError, saving, outcome, asks, askKey, coverRev,
+    album, loading, error, trackId, cursor, noteOn, suggestions, suggesting, suggestError, saving, deleting, gone, outcome, asks, askKey, coverRev,
     stage, cover, tracks, readable, selected, scope, staged, coverUrl,
     open, close, reload, loadSuggestions, suggestionsChanged, edit, drop, add, take, stageCover, discard, fixable, applyFix,
-    save, saveCoverAlone, ask, confirmAsks, cancelAsks, applyChange, recheck, follow, afterReverse,
+    save, saveCoverAlone, remove, ask, confirmAsks, cancelAsks, applyChange, recheck, follow, afterReverse,
   }
 })

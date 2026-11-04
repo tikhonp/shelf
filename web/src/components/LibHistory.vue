@@ -3,7 +3,7 @@ import { onMounted, ref } from 'vue'
 import type { LibraryChange } from '../api/types'
 import { useNow } from '../lib/clock'
 import { count, finishedAt } from '../lib/format'
-import { historyLines } from '../lib/history'
+import { deletedLines, historyLines } from '../lib/history'
 import { runSub, runTitle } from '../lib/bulk'
 import { useHistory } from '../stores/history'
 import Icon from './Icon.vue'
@@ -21,11 +21,17 @@ function toggle(c: LibraryChange) {
   if (openId.value !== null && !history.details[c.id]) void history.open(c.id)
 }
 const busy = (c: LibraryChange) => Object.values(history.running).includes(c.id)
-const what = (c: LibraryChange) => (c.tags > 0 ? c.tags : c.cover ? 'Cover' : 0)
+const what = (c: LibraryChange) => (c.kind === 'delete' ? '' : c.tags > 0 ? c.tags : c.cover ? 'Cover' : 0)
 const lines = (c: LibraryChange) => historyLines(history.details[c.id]?.files ?? [], !!c.run)
-const stateWord = (c: LibraryChange) => (c.undone ? 'Undone' : c.state === 'done' ? 'Saved' : c.state === 'partial' ? 'Partial' : c.state === 'failed' ? 'Failed' : 'Saving')
+const stateWord = (c: LibraryChange) => {
+  if (c.undone) return 'Undone'
+  if (c.state === 'partial') return 'Partial'
+  if (c.state === 'failed') return 'Failed'
+  if (c.kind === 'delete') return c.state === 'done' ? 'Deleted' : 'Deleting'
+  return c.state === 'done' ? 'Saved' : 'Saving'
+}
 const stateClass = (c: LibraryChange) => (c.undone ? 'canceled' : c.state === 'done' ? 'done' : c.state === 'partial' ? 'partial' : c.state === 'failed' ? 'failed' : 'running')
-const reversible = (c: LibraryChange) => c.state === 'done' || c.state === 'partial'
+const reversible = (c: LibraryChange) => c.kind !== 'delete' && (c.state === 'done' || c.state === 'partial')
 
 async function clear() {
   await history.clear()
@@ -59,13 +65,17 @@ async function clear() {
       <template v-for="c in history.changes" :key="c.id">
         <div class="row g-lh" :class="{ cur: openId === c.id }" role="row">
           <span role="cell" class="t2 num sm">{{ finishedAt(c.created_at, now) }}</span>
-          <button type="button" class="lib-open two" :aria-expanded="openId === c.id" @click="toggle(c)"><span class="ttl"><span class="ell">{{ c.run ? runTitle(c.run.fixes) : c.title }}</span></span><span class="sub ell">{{ c.run ? runSub(c.run) : c.artist }}</span></button>
+          <button type="button" class="lib-open two" :aria-expanded="openId === c.id" @click="toggle(c)"><span class="ttl"><span class="ell">{{ c.run ? runTitle(c.run.fixes) : c.kind === 'delete' ? `Deleted: ${c.title}` : c.title }}</span></span><span class="sub ell">{{ c.run ? runSub(c.run) : c.artist }}</span></button>
           <span role="cell" class="num sm r">{{ what(c) }}</span>
           <span role="cell"><span class="pill" :class="stateClass(c)">{{ stateWord(c) }}</span></span>
           <button v-if="reversible(c)" type="button" class="key sm r" :disabled="busy(c)" @click="history.reverse(c)">{{ c.undone ? 'Redo' : 'Undo' }}</button>
         </div>
         <p v-if="history.conflicts[c.id]" class="conflict t2" role="status">{{ count(history.conflicts[c.id]!.length, 'field') }} changed since then and stayed: {{ [...new Set(history.conflicts[c.id]!.map((x) => x.key))].join(', ') }}.</p>
-        <div v-if="openId === c.id" class="lib-ba">
+        <div v-if="openId === c.id && c.kind === 'delete'" class="lib-ba">
+          <div v-for="l in deletedLines(c)" :key="l.label" class="row g-del"><span class="t2">{{ l.label }}</span><span class="ell">{{ l.value }}</span></div>
+          <p v-if="c.error" class="t2 del-err">{{ c.error }}</p>
+        </div>
+        <div v-else-if="openId === c.id" class="lib-ba">
           <div class="row thead g-ba flat"><span>Track</span><span>Tag</span><span>Before</span><span>After</span></div>
           <div v-for="l in lines(c)" :key="l.track + l.key + l.before" class="row g-ba"><span class="t2 ell">{{ l.track }}</span><span class="mono ell tag">{{ l.key }}</span><span class="t2 ell">{{ l.before || 'Empty' }}</span><span class="ell bold">{{ l.after || 'Empty' }}</span></div>
         </div>
@@ -82,4 +92,6 @@ async function clear() {
 .rs .flat { position: static; }
 .rs .tag { font-size: 12.5px; }
 .rs .conflict { padding: 8px 14px; border-bottom: 1px solid var(--line); }
+.rs .g-del { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; align-items: center; min-height: 34px; padding: 4px 14px; font-size: 13px; }
+.rs .del-err { padding: 8px 14px; }
 </style>

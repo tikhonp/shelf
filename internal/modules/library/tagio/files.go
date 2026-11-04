@@ -132,3 +132,7 @@ func RemoveFile(path string, uid int) error {
 	}
 	return syncDir(filepath.Dir(path))
 }
+
+// WritableDir reports whether this process may add and remove entries in
+// dir.
+func WritableDir(dir string) bool { return writableDir(dir) }

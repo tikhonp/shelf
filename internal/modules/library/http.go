@@ -27,6 +27,7 @@ func (m *Module) routes(api *echo.Group) {
 	api.GET("/library/albums/:id", m.get)
 	api.GET("/library/tracks/:id/audio", m.audio)
 	api.POST("/library/albums/:id/save", m.save)
+	api.POST("/library/albums/:id/delete", m.deleteAlbum)
 	api.GET("/library/changes/:id", m.getChange)
 	api.POST("/library/changes/:id/undo", m.undo)
 	api.POST("/library/changes/:id/redo", m.redo)

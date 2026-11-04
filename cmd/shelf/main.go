@@ -42,7 +42,8 @@ import (
 // ports here: the bot is the downloads module's notifier, Navidrome and the
 // library index both hear when downloads end, Navidrome's tag settings
 // reach the library, and the library's writes keep out of the folders
-// downloads work in and ask Navidrome for a scan.
+// downloads work in and ask Navidrome for a scan. A deleted folder's
+// downloads are forgotten, and Navidrome forgets its tracks.
 func modules(cfg *config.Config) []module.Module {
 	dl := downloads.New()
 	nav := navidrome.New()
@@ -51,9 +52,20 @@ func modules(cfg *config.Config) []module.Module {
 	dl.Service().SetScanner(scanners{nav, lib})
 	dl.Service().SetNotifier(bot)
 	lib.SetBusy(dl.Service().Busy)
+	lib.SetForget(dl.Service().Forget)
 	if cfg.Navidrome.Enabled() {
 		lib.SetConfig(navidromeConfig(nav))
 		lib.SetScanner(func(ctx context.Context) error { return nav.RequestScanFor(ctx, "library") })
+		lib.SetNavidrome(library.Navidrome{
+			ScanNow: func(ctx context.Context) error {
+				_, err := nav.ScanNow(ctx, "library")
+				return err
+			},
+			RemoveMissing: func(ctx context.Context, folder string) (int, bool, error) {
+				r, err := nav.RemoveMissing(ctx, folder)
+				return r.Removed, r.Purges, err
+			},
+		})
 	}
 	ms := []module.Module{dl, catalog.New(dl), nav, bot, qobuz.New(dl.Service()), applemusic.New(), lib}
 	if cfg.DevFakeSource {

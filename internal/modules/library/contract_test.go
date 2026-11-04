@@ -15,6 +15,7 @@ package library
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
@@ -31,6 +32,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	navidromemod "github.com/tikhonp/shelf/internal/modules/navidrome"
+	"github.com/tikhonp/shelf/internal/platform/config"
 )
 
 // navidromeImage is the image the run uses. SHELF_CONTRACT_IMAGE picks
@@ -486,6 +490,35 @@ func TestNavidromeContract(t *testing.T) {
 		if g := s.ReplayGain; g.TrackGain != -6 || g.AlbumGain != 0 {
 			t.Errorf("after a run's undo Navidrome has %+v", g)
 		}
+	}
+
+	// A delete removes the folder, and Navidrome forgets its tracks once its
+	// scan marked them missing, so the album leaves Navidrome too.
+	base, err := url.Parse(nd.base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := navidromemod.NewClient(base, ndUser, config.Secret(ndPassword), http.DefaultClient)
+	r.m.DeleteWait = 200 * time.Millisecond
+	r.m.SetNavidrome(Navidrome{
+		ScanNow: func(context.Context) error { nd.scan(); return nil },
+		RemoveMissing: func(ctx context.Context, folder string) (int, bool, error) {
+			got, err := client.RemoveMissing(ctx, folder)
+			return got.Removed, got.Purges, err
+		},
+	})
+	gone := ours[name]
+	del := r.deleteAlbum(gone.ID, ConfirmDelete)
+	r.drain()
+	if del = r.change(del.ID); del.State != StateDone || del.Deleted.Navidrome != NavidromeRemoved || del.Deleted.NavidromeTracks != 2 {
+		t.Fatalf("delete %+v %+v", del, del.Deleted)
+	}
+	reindex()
+	if _, ok := check("after a delete")[name]; ok {
+		t.Errorf("Navidrome still has %s", name)
+	}
+	if got, err := client.RemoveMissing(bg, "jazz/Else"); err != nil || got.Removed != 0 {
+		t.Errorf("Navidrome still lists missing tracks: %+v, %v", got, err)
 	}
 
 	if _, err := os.Stat(p1); err != nil {

@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { flushPromises } from '@vue/test-utils'
-import type { LibraryAlbumDetail, LibraryChange, LibraryTrack } from '../api/types'
+import type { DeletedFolder, LibraryAlbumDetail, LibraryChange, LibraryTrack } from '../api/types'
 import { Reply, stubApi } from '../testing/api'
 import { useEditor } from './editor'
 
@@ -177,4 +177,47 @@ test('a reconnect asks about a running Save', async () => {
   await flushPromises()
   expect(e.saving).toBeNull()
   expect(e.outcome?.ok).toBe(true)
+})
+
+const deleted: DeletedFolder = { files: 2, bytes: 2, albums: [], forgot: 0, navidrome: 'waiting', navidrome_tracks: 0 }
+
+test('Delete always asks, sends the kinds back, and leaves the album once its folder is gone', async () => {
+  let n = 0
+  const warnings = [
+    { kind: 'delete', message: 'This deletes 2 files.' },
+    { kind: 'shared_folder', message: 'Another album goes too.' },
+  ]
+  const { e, calls } = await opened({
+    '/api/library/albums/7/delete': () => (n++ === 0 ? new Reply(409, { error: 'confirm', reason: 'confirm', confirm: warnings }) : change({ id: 5, kind: 'delete', deleted })),
+  })
+  e.edit('album', ['Y'])
+  await e.remove()
+  expect(e.asks).toEqual(warnings)
+  expect(e.askKey).toBe('Delete')
+  expect(e.deleting).toBeNull()
+  await e.confirmAsks()
+  expect(body(calls, '/api/library/albums/7/delete')[1].confirm).toEqual(['delete', 'shared_folder'])
+  expect(e.deleting?.id).toBe(5)
+  // Another change's event leaves the delete waiting.
+  e.applyChange(change({ id: 9, state: 'done' }))
+  expect(e.deleting?.id).toBe(5)
+  e.applyChange(change({ id: 5, kind: 'delete', state: 'done', deleted }))
+  await flushPromises()
+  expect(e.deleting).toBeNull()
+  expect(e.gone).toBe(7)
+  expect(e.outcome).toBeNull()
+})
+
+test('a Delete shelf refuses or that fails keeps the album and says why', async () => {
+  const { e } = await opened({ '/api/library/albums/7/delete': new Reply(409, { error: 'folk/Blue: locked', reason: 'locked' }) })
+  await e.remove(['delete'])
+  expect(e.outcome).toMatchObject({ ok: false, deleting: true, reason: 'locked' })
+  expect(e.gone).toBeNull()
+
+  const again = await opened({ '/api/library/albums/7/delete': change({ id: 6, kind: 'delete', deleted }) })
+  await again.e.remove(['delete'])
+  again.e.applyChange(change({ id: 6, kind: 'delete', state: 'partial', error: 'folk/Blue/1.flac: permission denied', deleted }))
+  await flushPromises()
+  expect(again.e.outcome).toMatchObject({ ok: false, deleting: true, reason: 'partial' })
+  expect(again.e.gone).toBeNull()
 })

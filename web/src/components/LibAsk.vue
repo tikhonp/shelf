@@ -13,6 +13,8 @@ const titles: Record<string, string> = {
 }
 const title = computed(() => {
   const w = editor.asks ?? []
+  if (w.some((x) => x.kind === 'shared_folder')) return 'Delete these albums?'
+  if (w.some((x) => x.kind === 'delete')) return 'Delete this album?'
   return w.length === 1 ? (titles[w[0]!.kind] ?? 'Save anyway?') : 'Save anyway?'
 })
 </script>
