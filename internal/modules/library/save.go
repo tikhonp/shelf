@@ -72,6 +72,8 @@ type refusal struct {
 	Reason  string    `json:"reason"`
 	Track   int64     `json:"track,omitempty"`
 	Confirm []warning `json:"confirm,omitempty"`
+	// Conflicts are the keys an undo or redo can't restore.
+	Conflicts []conflictJSON `json:"conflicts,omitempty"`
 }
 
 // save checks a Save against the files as they are now, asks for the
@@ -135,18 +137,12 @@ func (m *Module) save(c *echo.Context) error {
 	if len(planned.Files) == 0 {
 		return c.JSON(http.StatusUnprocessableEntity, refusal{Error: "nothing to change", Reason: ReasonRefused})
 	}
-	warns, err := m.identity(ctx, row, files, planned)
+	warns, err := m.identity(ctx, []albumFiles{{row, files}}, planned)
 	if err != nil {
 		return err
 	}
-	var missing []warning
-	for _, w := range warns {
-		if !slices.Contains(b.Confirm, w.Kind) {
-			missing = append(missing, w)
-		}
-	}
-	if missing != nil {
-		return c.JSON(http.StatusConflict, refusal{Error: "confirm what Navidrome will do", Reason: "confirm", Confirm: missing})
+	if ok, err := confirmed(c, warns, b.Confirm); !ok {
+		return err
 	}
 	req, err := json.Marshal(stored)
 	if err != nil {
@@ -163,6 +159,17 @@ func (m *Module) save(c *echo.Context) error {
 // queueChange stores a change and its write job together.
 func (m *Module) queueChange(ctx context.Context, cr *changeRow, by string) error {
 	err := m.store.db.Write(ctx, func(tx *sqlx.Tx) error {
+		if cr.Target != nil {
+			// Two undos of one save would each check the files as they were.
+			var n int
+			if err := tx.GetContext(ctx, &n, `SELECT count(*) FROM library_changes WHERE target = ? AND state IN (?, ?)`,
+				*cr.Target, StateQueued, StateWriting); err != nil {
+				return err
+			}
+			if n > 0 {
+				return errReversing
+			}
+		}
 		if err := m.store.insertChange(ctx, tx, cr); err != nil {
 			return err
 		}
@@ -200,54 +207,86 @@ func (m *Module) refuse(c *echo.Context, err error, trackOf map[string]int64) er
 	return c.JSON(status, out)
 }
 
-// identity finds what a Save does to the album in Navidrome. A star and a
-// rating belong to an album ID and an artist name, so moving some tracks,
+// albumFiles is an album of the index with its files, as a write starts.
+type albumFiles struct {
+	row   albumRow
+	files []*file
+}
+
+// identity finds what a write does to its albums in Navidrome. A star and
+// a rating belong to an album ID and an artist name, so moving some tracks,
 // merging into another album and renaming an album artist each lose or
 // move one. A whole-album change keeps them under the new ID.
-func (m *Module) identity(ctx context.Context, row albumRow, files []*file, planned tagio.Result) ([]warning, error) {
+func (m *Module) identity(ctx context.Context, albums []albumFiles, planned tagio.Result) ([]warning, error) {
 	rules := m.currentRules()
-	after := map[string]string{}
-	for _, f := range files {
-		after[f.Path] = f.Facts.AlbumID
-	}
+	ends := map[string]string{}
 	var before, now []string
 	for _, pf := range planned.Files {
 		rel := m.rel(pf.Path)
 		ft := tagio.FormatOf(pf.Path)
 		was := rules.View(tagio.File{Path: pf.Path, Format: ft, Tags: pf.Before}, rel)
 		will := rules.View(tagio.File{Path: pf.Path, Format: ft, Tags: pf.After}, rel)
-		after[rel] = will.AlbumID()
+		ends[rel] = will.AlbumID()
 		before = appendNew(before, was.AlbumArtists()...)
 		now = appendNew(now, will.AlbumArtists()...)
 	}
-	var ids []string
-	for _, id := range after {
-		ids = appendNew(ids, id)
-	}
 	var out []warning
-	if len(ids) > 1 {
-		out = append(out, warning{Kind: ConfirmSplit, Message: fmt.Sprintf(
-			"Navidrome will show these tracks as %d albums. The album's star and rating go with the tracks that move, and an undo leaves them on neither album.", len(ids))})
+	add := func(w warning) {
+		if !slices.ContainsFunc(out, func(o warning) bool { return o.Kind == w.Kind }) {
+			out = append(out, w)
+		}
 	}
-	for _, id := range ids {
-		if id == row.NDID {
-			continue
+	for _, a := range albums {
+		var ids []string
+		for _, f := range a.files {
+			id, ok := ends[f.Path]
+			if !ok {
+				id = f.Facts.AlbumID
+			}
+			ids = appendNew(ids, id)
 		}
-		taken, err := m.store.albumIDTaken(ctx, id, row.ID)
-		if err != nil {
-			return nil, err
+		if len(ids) > 1 {
+			add(warning{Kind: ConfirmSplit, Message: fmt.Sprintf(
+				"Navidrome will show these tracks as %d albums. The album's star and rating go with the tracks that move, and an undo leaves them on neither album.", len(ids))})
 		}
-		if taken {
-			out = append(out, warning{Kind: ConfirmMerge, Message: "Navidrome will merge these tracks into another album. If both albums have a star or a rating, this album's is lost."})
-			break
+		for _, id := range ids {
+			if id == a.row.NDID {
+				continue
+			}
+			taken, err := m.store.albumIDTaken(ctx, id, a.row.ID)
+			if err != nil {
+				return nil, err
+			}
+			if taken {
+				add(warning{Kind: ConfirmMerge, Message: "Navidrome will merge these tracks into another album. If both albums have a star or a rating, this album's is lost."})
+			}
 		}
 	}
 	slices.Sort(before)
 	slices.Sort(now)
 	if !slices.Equal(before, now) {
-		out = append(out, warning{Kind: ConfirmArtist, Message: "This renames the album artist in Navidrome. The old name keeps its star and rating, and an undo brings them back."})
+		add(warning{Kind: ConfirmArtist, Message: "This renames the album artist in Navidrome. The old name keeps its star and rating, and an undo brings them back."})
 	}
+	slices.SortStableFunc(out, func(a, b warning) int {
+		order := []string{ConfirmSplit, ConfirmMerge, ConfirmArtist}
+		return slices.Index(order, a.Kind) - slices.Index(order, b.Kind)
+	})
 	return out, nil
+}
+
+// confirmed answers 409 with the warnings a request didn't confirm, or
+// reports that it confirmed them all.
+func confirmed(c *echo.Context, warns []warning, confirm []string) (bool, error) {
+	var missing []warning
+	for _, w := range warns {
+		if !slices.Contains(confirm, w.Kind) {
+			missing = append(missing, w)
+		}
+	}
+	if missing == nil {
+		return true, nil
+	}
+	return false, c.JSON(http.StatusConflict, refusal{Error: "confirm what Navidrome will do", Reason: "confirm", Confirm: missing})
 }
 
 func appendNew(ss []string, vs ...string) []string {
@@ -270,11 +309,18 @@ func (m *Module) JobTypes() []jobs.Type {
 	return []jobs.Type{{
 		Name: WriteJob, Queue: jobs.QueueTags, MaxAttempts: 1,
 		Steps: []jobs.Step{{Name: "write", Run: m.write}},
+	}, {
+		Name: RetentionJob, Queue: jobs.QueueSystem, MaxAttempts: 1, Quiet: true,
+		Steps: []jobs.Step{{Name: "trim", Run: m.retain}},
 	}}
 }
 
-// Schedules: none yet.
-func (*Module) Schedules() []jobs.Schedule { return nil }
+// Schedules trims the history at 05:15, after the platform's own retention.
+func (*Module) Schedules() []jobs.Schedule {
+	return []jobs.Schedule{{Name: RetentionJob, At: "05:15", Request: func(context.Context) (jobs.Request, error) {
+		return jobs.Request{Type: RetentionJob}, nil
+	}}}
+}
 
 // write runs a queued change. A change a stop cut off is settled from the
 // files. A write that the checks stopped fails its change, not the job.

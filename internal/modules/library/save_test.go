@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -24,7 +25,7 @@ import (
 	"go.senan.xyz/taglib"
 )
 
-// startJobs runs the rig's jobs until the test ends.
+// startJobs runs the rig's jobs until stopJobs or the end of the test.
 func (r *rig) startJobs() {
 	r.t.Helper()
 	ctx, cancel := context.WithCancel(bg)
@@ -35,7 +36,9 @@ func (r *rig) startJobs() {
 			r.t.Errorf("jobs: %v", err)
 		}
 	}()
-	r.t.Cleanup(func() { cancel(); <-done })
+	var once sync.Once
+	r.stopJobs = func() { once.Do(func() { cancel(); <-done }) }
+	r.t.Cleanup(r.stopJobs)
 }
 
 // drain waits until no job runs or waits.

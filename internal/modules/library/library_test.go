@@ -36,7 +36,8 @@ type rig struct {
 	m      *Module
 	hub    *hub.Hub
 	// sys runs the module's jobs once startJobs is called.
-	sys *jobs.System
+	sys      *jobs.System
+	stopJobs func()
 }
 
 func newRig(t *testing.T) *rig {

@@ -9,7 +9,7 @@ One SQLite file, `/data/shelf.db`, in WAL mode with foreign keys on. Each module
 - `jobs`: one row per job, with its queue, type, resource and coalescing keys, a state of `queued`, `running`, `succeeded`, `failed`, `cancelled` or `interrupted`, payload JSON, attempt counters, lease, timestamps, error and log counters.
 - `job_steps`: each job's named steps and their state.
 - `job_log_lines`: log lines per job. The row ID is the event ID of the log stream. A job keeps its first and last 5,000 lines.
-- `schedules`: run-time state of scheduled jobs: `platform.backup` at 03:30 and `platform.retention` at 05:00.
+- `schedules`: run-time state of scheduled jobs: `platform.backup` at 03:30, `platform.retention` at 05:00 and `library.retention` at 05:15.
 
 The retention job deletes failed jobs after 90 days and other finished jobs after 30, with their steps and log lines. A download keeps its row; its log goes with its job.
 
@@ -188,4 +188,6 @@ CREATE TABLE library_change_files (
 - `request` holds the edits with each file's path and revision, because a job's payload stops at 64 KiB. The job's payload names only the change.
 - A file row holds the full tag map before and after, so an undo can restore any key. `after` is the plan until the write ends, then what the file read back.
 - History has no foreign key to the index, which a walk rebuilds. Paths are relative to the music folder, as in the index.
+- An undo or redo has its save as `target` and lists the keys it left alone in `conflicts`. When it replaces any file, it sets its save's `undone`, to 1 for an undo and 0 for a redo.
+- The `library.retention` job at 05:15 keeps the newest 1,000 saves, and `ON DELETE CASCADE` takes their undos, redos and files with them. Clear history deletes every ended change, except a save whose undo or redo is still to run.
 
