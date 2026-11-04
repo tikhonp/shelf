@@ -117,7 +117,7 @@ The design session left these out, and step 1g decided each one.
 - Built: the Compilations and Appears on groups of the artist panel, and on the desktop an artist download as one row that opens into its albums. The phone shows the albums in the download panel.
 - Left out, because the API has no such field: a playlist's description.
 - Built as a setting: notices when a download finishes or fails, with Off, Failures and All on Status.
-- Left out, for the owner to decide: compact and comfortable table densities.
+- Built as a setting: compact and comfortable table densities, on the desktop only, with Comfortable as the default.
 
 ## Sample data
 

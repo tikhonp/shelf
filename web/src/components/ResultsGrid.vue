@@ -72,4 +72,5 @@ watch(
 <style scoped>
 .rs .rows { overflow-x: auto; }
 .rs .g-res-n { grid-template-columns: 46px minmax(140px, 1fr) 130px 124px 46px; }
+.rs.compact .g-res-n { grid-template-columns: 30px minmax(140px, 1fr) 130px 124px 46px; }
 </style>

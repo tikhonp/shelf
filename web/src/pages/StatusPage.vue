@@ -3,6 +3,7 @@ import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Source, WrapperState } from '../api/types'
 import Icon from '../components/Icon.vue'
+import DensityChoice from '../components/DensityChoice.vue'
 import NoticeChoice from '../components/NoticeChoice.vue'
 import NoticeSlot from '../components/NoticeSlot.vue'
 import PartCard from '../components/PartCard.vue'
@@ -164,6 +165,7 @@ const lines = (s: Source) => [s.enabled ? (s.health.ok ? 'WORKS' : (s.health.mes
       <PartCard name="Telegram" :lamp="telegramLamp" :note="status.telegram?.username ? `@${status.telegram.username}` : ''" :lines="telegramLines" />
     </div>
     <NoticeChoice />
+    <DensityChoice />
     <SignIn v-if="signingIn" @close="closeSignIn" />
   </div>
 </template>

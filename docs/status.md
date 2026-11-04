@@ -83,4 +83,3 @@ Next: 1h, deployment and cutover.
 - The As built section of [build/1d.md](build/1d.md) ends with notes for 1g and 1h: what the Status page reads of the Qobuz source, the 503 a search can answer, and what the import prints during the cutover.
 - MP3 files still differ byte for byte between runs, and that stays. See [decisions.md](decisions.md).
 - The As built section of [build/1g.md](build/1g.md) ends with notes for 1h: check the sign-in dialog and the covers on the real deployment with a phone and a tablet, and unset `SHELF_QOBUZ_TOKEN` for a local run with only the fake source.
-- One choice left for the owner: table densities.

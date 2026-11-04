@@ -66,7 +66,7 @@ watch(
     </div>
   </div>
 
-  <div v-else ref="root" class="rows scroll" role="table" aria-label="History">
+  <div v-else ref="root" class="rows hist-rows" role="table" aria-label="History">
     <div class="row thead g-hist" role="row">
       <span role="columnheader">Finished</span><span role="columnheader">Title</span><span role="columnheader" class="opt">Source</span><span role="columnheader" class="opt">Kind</span>
       <span role="columnheader">Result</span><span role="columnheader" class="r opt">Took</span><span role="columnheader" class="r opt">Size</span><span role="columnheader"><span class="sr">Actions</span></span>
@@ -99,13 +99,6 @@ watch(
 </template>
 
 <style scoped>
-.rs .scroll { overflow-x: auto; container-type: inline-size; }
-.rs .g-hist { grid-template-columns: 70px minmax(180px, 1.6fr) minmax(100px, 1fr) 76px 168px 64px 74px 112px; }
-/* A tablet or an open panel leaves too little room, and the panel has what the table drops. */
-@container (max-width: 950px) {
-  .rs .g-hist { grid-template-columns: 70px minmax(120px, 1fr) 150px 112px; }
-  .rs .opt { display: none; }
-}
 .rs .click { cursor: pointer; }
 .rs .small { font-size: 14px; }
 .rs .ph-row { grid-template-columns: 44px minmax(0, 1fr) auto; align-items: start; padding: 10px 0; }

@@ -42,6 +42,8 @@ The two CSS files are the canvas stylesheet `project/retro.css`, cut in two. Eac
 | `MS-desk-link` | A pasted Apple Music link in place of the results | `/search` |
 | `MS-desk-downloads` | Current download, queue and history, with one download open | `/downloads/:id` |
 | `MS-desk-status` | Status with the sign-in dialog at the code step | `/status` |
+| `MS-desk-settings` | Status with every part working, and the Notices and Density switches | `/status` |
+| `MS-desk-search-compact`, `MS-desk-downloads-compact` | Search and Downloads with compact rows | `/search`, `/downloads/:id` |
 
 ### Other pages
 
@@ -70,6 +72,7 @@ The app's root element carries `rs` and these classes:
 | `ph` | Phone layout: taller title bars, 46px buttons, 56px menu rows. |
 | `desk` | The brushed console background. Both layouts use it. |
 | `console` | Desktop only. Adds the wooden sides and widens the side gutter from 24px to 38px. |
+| `compact` | Desktop only. The Compact density: 40px rows instead of 58px, 36px track rows instead of 44px, and 30px covers instead of 46px. Without it the rows are Comfortable. |
 
 The canvas sets `ph` per board. The app applies the same rules through a media query below 720px of width. The canvas draws only 390px and 1440px frames, so 720px is a proposal to check in 1g.
 
@@ -150,6 +153,7 @@ Quality labels look like masking tape. The words always name the quality, and th
 - The columns follow the type. Albums show cover, album, tracks, length, quality, status, download and link. Track rows leave out the count. Artists show a round picture and the number of releases, and an open button takes the place of download. Playlists show tracks, length and quality. While a panel is open, the grid drops tracks, length and link (`.g-res-n`).
 - Download on a row uses the default format, and the caret next to it picks another one.
 - A phone row has the cover, two or three lines and one 46px button. The button queues the item in the default format and then shows its state.
+- The Density switch on the desktop's Status page sets how tall the rows are in search results, track lists and History. A preview of two History rows under the switch shows the choice. Compact keeps each row's second line. The phone has no switch, because a shorter row there would lose its quality labels.
 - Search shows the first page from each source in one list. The window title counts what is shown, such as "14 of 31 albums", and Load more fetches the next page.
 
 ## Accessibility
@@ -168,6 +172,8 @@ Quality labels look like masking tape. The words always name the quality, and th
 - Each screen shows its board's first state. On the canvas the boards are interactive: knobs turn, rows open panels, Download all asks and confirms, and the Sources switch opens.
 - The phone's theme switch is on Status, because the phone has no menubar.
 - Notices when a download ends are new. They use the Queued slot with a green, yellow or red lamp, and a Notices switch on Status sets which ones show.
+- The Density preview can't be clicked in the app, and its table says Title and Web, the words of the real History.
+- Compact rows also cover the lists in the app's download panel.
 - Error text on a module is a pale red at night and a dark red by day, not `--red`, which is about 2:1 there. Lamps and pills keep `--red`.
 - Status has no Rate limits module, and the Qobuz card has no last request time, because the API has neither.
 - A running track says Downloading, without a percentage, because the API has no per-track progress.

@@ -8,6 +8,7 @@ import { usePhone } from '../lib/viewport'
 import { useDownloads } from '../stores/downloads'
 import { useEvents } from '../stores/events'
 import { useSources } from '../stores/sources'
+import { useSettings } from '../stores/settings'
 import { useStatus } from '../stores/status'
 import { useTheme } from '../stores/theme'
 import Icon, { type IconName } from './Icon.vue'
@@ -20,6 +21,7 @@ const downloads = useDownloads()
 const status = useStatus()
 const events = useEvents()
 const theme = useTheme()
+const settings = useSettings()
 
 const tabs: { to: string; label: string; icon: IconName }[] = [
   { to: '/search', label: 'Search', icon: 'search' },
@@ -61,7 +63,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="rs desk" :class="{ day: theme.day, console: !phone, 'shell-phone': phone, 'shell-desk': !phone }">
+  <div class="rs desk" :class="{ day: theme.day, console: !phone, compact: !phone && settings.density === 'compact', 'shell-phone': phone, 'shell-desk': !phone }">
     <header v-if="!phone" class="menubar">
       <RouterLink class="brand" to="/search"><span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>Music Shelf</RouterLink>
       <nav class="tabs" aria-label="Main">
