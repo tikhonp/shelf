@@ -202,8 +202,10 @@ The canvas boards are `project/Lib-*.dc.html`, styled by `project/retro.css` and
 - The album list shows every column in a wide panel. Below 640px of panel width, the year moves into the row's second line and the track count sits under the quality label.
 - A display above the fields says which tracks an edit reaches, `ALL 11 TRACKS` or `TRACK 03 ONLY`. The track list starts with an All 11 tracks row, which is the way back from a selected track.
 - A staged field has an amber edge, a line with its old value, and a Revert button. Revert drops that one edit, so a Fix can be reviewed field by field.
-- Title, Track and ISRC are read-only at All tracks, with a dashed edge and a lock, and accept typing once a track is selected. On the phone the Title and Track rows don't open, and ISRC isn't shown.
-- A multi-value tag has one input per value, a remove button on each when there are two or more, and a plain Add value button (`.lf-add`). A single-value field looks the same as before.
+- A tag that belongs to a single track is read-only at All tracks, with a dashed edge and a lock, and accepts typing once a track is selected. That covers Title, Track, ISRC, the track IDs, track gain and lyrics. On the phone the Title and Track rows don't open, and the other tags aren't shown.
+- A per-track ID keeps its suggestion at All tracks, because one press fills every track with its own ID.
+- A multi-value tag has one input per value, a remove button on each when there are two or more, and a plain Add value button (`.lf-add`). A single-value field looks the same as before. Pressing a suggestion on a multi-value tag adds it as another value.
+- Delete in the cover dialog stages, like Apply to album. Save cover alone is the one action that writes at once.
 - An added custom field shows the same staged look as other edits. A deleted one stays in its row, struck through, until Save.
 - All fields is a small rocker in the Editor's title bar. On the phone, the same rocker pattern sets Compilation, and All fields doesn't exist.
 - The Save bar sits at the foot of the Editor on the desktop. On the phone it takes a slot above the tab bar, and so does the player. The desktop player sits at the foot of the track list. Both players appear only while a track plays.
