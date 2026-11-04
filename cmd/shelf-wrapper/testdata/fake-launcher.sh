@@ -38,6 +38,12 @@ if [ "$mode" = login ]; then
       say ERROR "login failed"
       exit 0
       ;;
+    server)
+      say WARN "server message: Your Apple ID or password was incorrect."
+      say WARN "auth error: code=2076505080, message=iTunesStoreErrorCategory"
+      say ERROR "login failed"
+      exit 0
+      ;;
     code)
       say INFO "credentialHandler: {title: Sign In, message: , 2FA: true}"
       say WARN "Enter your 2FA code into /data/2fa.txt"

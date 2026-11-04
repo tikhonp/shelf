@@ -439,10 +439,28 @@ const (
 	lineAskCode       = "Enter your 2FA code"
 	lineGotCode       = "Code file detected"
 	lineComplete      = "login complete, exiting"
+	lineAuthError     = "auth error"
+	lineServerMessage = "server message"
 )
 
 // failurePrefixes start the lines that say why a sign-in failed.
-var failurePrefixes = []string{"auth error", "server message", "2FA code timeout", "auth failed"}
+var failurePrefixes = []string{lineAuthError, lineServerMessage, "2FA code timeout", "auth failed"}
+
+// keepFailure returns the line to show for a failed sign-in, of the one kept
+// so far and the new line msg. The last failure line wins, except that an
+// auth error never replaces a server message: Apple's message is readable, and
+// the auth error after it can be only a code.
+func keepFailure(kept, msg string) string {
+	if strings.HasPrefix(kept, lineServerMessage) && strings.HasPrefix(msg, lineAuthError) {
+		return kept
+	}
+	for _, pre := range failurePrefixes {
+		if strings.HasPrefix(msg, pre) {
+			return msg
+		}
+	}
+	return kept
+}
 
 // signIn runs wrapper-lite's login mode with service mode stopped, then
 // leaves the state for the next service run.
@@ -479,11 +497,7 @@ func (s *Supervisor) signIn(ctx context.Context, req wrapperapi.LoginRequest) {
 		case strings.Contains(msg, lineComplete):
 			complete = true
 		}
-		for _, pre := range failurePrefixes {
-			if strings.HasPrefix(msg, pre) {
-				failure = msg
-			}
-		}
+		failure = keepFailure(failure, msg)
 	})
 	if err != nil {
 		s.loginFailed("can't start wrapper-lite: " + err.Error())

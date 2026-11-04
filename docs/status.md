@@ -72,8 +72,7 @@ Next: 1g, the web UI.
 
 ## Notes for the next step
 
-- The staging containers on blackberry are gone. Their folder, `${SWINGMUSIC_DATA}/shelf-staging`, goes with the commit that drops `shelf-staging.yaml` from sh-blackberry and `blackberry/shelf-staging.env` from sh-secrets. `docker compose down` stops the whole node, so remove one service with `docker compose rm -sf <service>`.
-- For 1g's sign-in dialog: a failed sign-in's `error` clears within about 20 seconds when the wrapper has an old session, because a region clears it, so the dialog has to keep the message it saw. For a wrong password the supervisor reports `auth error: code=2076505080, message=iTunesStoreErrorCategory`, though Apple's readable `server message` comes one line earlier. Make the supervisor prefer that line.
+- For 1g's sign-in dialog: a failed sign-in's `error` clears within about 20 seconds when the wrapper has an old session, because a region clears it, so the dialog has to keep the message it saw.
 - Sign in only a wrapper with its own data folder and its own `--device-info`: wrapper-lite's device ID comes from the Apple ID.
 - The As built sections of [build/1b.md](build/1b.md) and [build/1f.md](build/1f.md) end with notes for the later steps. The main ones: a source module logs in and starts goroutines in `Run` from `module.Runner`, never in `Init`, because `manage` opens the platform too; a source registers with `Switch` when its settings are missing; Apple Music implements `source.LinkRefuser` for music videos and stations; and the Status page reads `/api/telegram` and the health fields of `/api/library/scan`.
 - The As built section of [build/1d.md](build/1d.md) ends with notes for 1g and 1h: what the Status page reads of the Qobuz source, the 503 a search can answer, and what the import prints during the cutover.

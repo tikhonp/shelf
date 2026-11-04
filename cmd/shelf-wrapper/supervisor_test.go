@@ -426,6 +426,33 @@ func TestLoginFailure(t *testing.T) {
 	}
 }
 
+func TestLoginServerMessage(t *testing.T) {
+	r := newRig(t, "FAKE_LOGIN=server").run()
+	r.waitState(wrapperapi.SignedOut)
+	r.login("me@example.com", "wrong")
+	st := r.waitState(wrapperapi.Error)
+	if st.Error != "server message: Your Apple ID or password was incorrect." {
+		t.Fatalf("%q", st.Error)
+	}
+}
+
+func TestKeepFailure(t *testing.T) {
+	const server, auth, timeout = "server message: wrong password", "auth error: code=1", "2FA code timeout (60s), aborting login"
+	for _, tc := range []struct{ kept, msg, want string }{
+		{"", "login failed", ""},
+		{"", auth, auth},
+		{auth, server, server},
+		{server, auth, server},
+		{server, timeout, timeout},
+		{auth, "auth error: code=2", "auth error: code=2"},
+		{server, "login failed", server},
+	} {
+		if got := keepFailure(tc.kept, tc.msg); got != tc.want {
+			t.Errorf("keepFailure(%q, %q) = %q, want %q", tc.kept, tc.msg, got, tc.want)
+		}
+	}
+}
+
 func TestLoginCodeTimeout(t *testing.T) {
 	r := newRig(t, "FAKE_WAIT=3").run()
 	r.waitState(wrapperapi.SignedOut)
