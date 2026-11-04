@@ -6,6 +6,7 @@ import { ago, clock } from '../lib/format'
 import { sourceLamp } from '../lib/lamps'
 import { usePhone } from '../lib/viewport'
 import { useDownloads } from '../stores/downloads'
+import { useBulk } from '../stores/bulk'
 import { useHelp } from '../stores/help'
 import { useEvents } from '../stores/events'
 import { useSources } from '../stores/sources'
@@ -24,6 +25,7 @@ const events = useEvents()
 const theme = useTheme()
 const settings = useSettings()
 const help = useHelp()
+const bulk = useBulk()
 
 const tabs: { to: string; label: string; icon: IconName }[] = [
   { to: '/search', label: 'Search', icon: 'search' },
@@ -37,6 +39,7 @@ const isOn = (to: string) => route.path.startsWith(to)
 function lampFor(to: string): string {
   if (to === '/downloads') return downloads.busy ? 'downloads in progress' : ''
   if (to === '/status') return status.attention.join(', ')
+  if (to === '/library') return bulk.working ? 'bulk run in progress' : ''
   return ''
 }
 
@@ -61,7 +64,7 @@ const lampWords = computed(() => lamps.value.map((l) => l.title).join(', '))
 
 onMounted(() => {
   events.connect()
-  void Promise.allSettled([downloads.load(), status.check()])
+  void Promise.allSettled([downloads.load(), status.check(), bulk.check()])
 })
 </script>
 

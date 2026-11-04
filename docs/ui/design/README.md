@@ -252,7 +252,10 @@ Help never shows on a screen at rest, and the design adds no helper text beside 
 - Below 1100 pixels each stacked panel stops at the window's height and scrolls by itself, so the Save bar stays in view.
 - A lossy file shows its codec, such as MP3, because the index has no bitrate. A lossless one that is neither CD nor Hi-Res says Lossless.
 - The list has no version beside the album's name, because the list API has none.
-- Select, the bulk preview, the bulk run and the `X` and `B` keys wait for step 6, so the screens show them and the app doesn't yet. History's second column says Album until runs exist.
+- The bulk preview's rockers all start off, where the screen shows one on, so a run does only what the owner chose. A rocker whose fix reaches no selected album is disabled.
+- A fix in the bank has its issue's name, such as Various Artists without the compilation flag.
+- After a run ends, the panel says how it went in place of the note about Saves, and the title bar has a close button in place of the lamp.
+- The meter shows one lamp per album up to 40, and lamps share albums past that.
 - The cover dialog shows no size for the current cover, because the API has none.
 - On the phone the cover dialog is the desktop's dialog in a narrower window. The canvas has no phone board for it.
 - Status's Library part has no line on whether MusicBrainz answers, because the API has no such check.

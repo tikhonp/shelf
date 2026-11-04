@@ -3,12 +3,12 @@ import { isTyping } from './cursor'
 export type LibraryAction =
   | 'search' | 'filter' | 'history' | 'guide' | 'keys' | 'all-fields' | 'cover' | 'revert' | 'add-value' | 'note'
   | 'suggest-1' | 'suggest-2' | 'suggest-3' | 'track-prev' | 'track-next' | 'track-all' | 'play' | 'back' | 'forward'
-  | 'save' | 'discard' | 'fix' | 'leave' | 'edit' | 'row-up' | 'row-down' | 'open'
+  | 'save' | 'discard' | 'fix' | 'leave' | 'edit' | 'row-up' | 'row-down' | 'open' | 'select-row' | 'bulk'
 
 const plain: Record<string, LibraryAction> = {
   '/': 'search', f: 'filter', h: 'history', g: 'guide', '?': 'keys', a: 'all-fields', c: 'cover', r: 'revert', '+': 'add-value', n: 'note',
   '1': 'suggest-1', '2': 'suggest-2', '3': 'suggest-3', '[': 'track-prev', ']': 'track-next', '0': 'track-all', ' ': 'play',
-  ArrowLeft: 'back', ArrowRight: 'forward', ArrowUp: 'row-up', ArrowDown: 'row-down', i: 'fix', Enter: 'edit',
+  ArrowLeft: 'back', ArrowRight: 'forward', ArrowUp: 'row-up', ArrowDown: 'row-down', i: 'fix', Enter: 'edit', x: 'select-row', b: 'bulk',
 }
 
 // libraryAction reads a key press. While a field has focus only Save, Discard and
@@ -28,11 +28,13 @@ export const keyGroups: { name: string; keys: { what: string; keys: string[] }[]
   { name: 'List', keys: [
     { what: 'Move the row cursor', keys: ['↑', '↓'] },
     { what: 'Open the album', keys: ['Enter'] },
+    { what: 'Select the row', keys: ['X'] },
     { what: 'Search the list', keys: ['/'] },
     { what: 'Open the filter', keys: ['F'] },
   ] },
   { name: 'Views', keys: [
     { what: 'History', keys: ['H'] },
+    { what: 'Bulk run', keys: ['B'] },
     { what: 'Tagging guide', keys: ['G'] },
     { what: 'This sheet', keys: ['?'] },
   ] },

@@ -250,11 +250,14 @@ func (m *Module) retry(c *echo.Context) error {
 	return c.JSON(http.StatusOK, toJSON(d))
 }
 
-// events streams the hub's download, scan, source, library and change
-// events. A client that reconnects reloads what it shows, so nothing is
-// replayed.
+// eventTopics are the hub topics the web app hears. A module that publishes on
+// a new topic adds it here, or the event goes nowhere.
+var eventTopics = []string{Topic, "scan", "source", "library", "change", "run", "suggestions"}
+
+// events streams the hub's events to the web app. A client that reconnects
+// reloads what it shows, so nothing is replayed.
 func (m *Module) events(c *echo.Context) error {
-	ch, stop := m.svc.hub.Subscribe(Topic, "scan", "source", "library", "change")
+	ch, stop := m.svc.hub.Subscribe(eventTopics...)
 	defer stop()
 	st, err := web.OpenStream(c)
 	if err != nil {

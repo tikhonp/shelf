@@ -127,6 +127,15 @@ func ffmpegHash(ctx context.Context, ffmpeg, path string) (string, error) {
 	return sum, nil
 }
 
+// AudioHash names a file's audio, which no tag write changes: the same check
+// a write makes.
+func AudioHash(ctx context.Context, ffmpeg, path string) (string, error) {
+	if FormatOf(path).flac {
+		return flacHash(path)
+	}
+	return ffmpegHash(ctx, ffmpeg, path)
+}
+
 func firstLine(s string) string {
 	sc := bufio.NewScanner(strings.NewReader(s))
 	if sc.Scan() {

@@ -55,7 +55,14 @@ func (r *rig) drain() {
 		}
 		time.Sleep(5 * time.Millisecond)
 	}
-	r.t.Fatal("jobs did not end")
+	var left []struct {
+		ID    int64  `db:"id"`
+		Type  string `db:"type"`
+		State string `db:"state"`
+		Err   string `db:"error"`
+	}
+	_ = r.m.store.db.R.Select(&left, `SELECT id, type, state, coalesce(error, '') AS error FROM jobs WHERE state IN ('queued', 'running', 'interrupted')`)
+	r.t.Fatalf("jobs did not end: %+v", left)
 }
 
 func (r *rig) post(path string, body any) *httptest.ResponseRecorder {

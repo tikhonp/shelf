@@ -132,6 +132,11 @@ export const useEditor = defineStore('editor', () => {
     }
   }
 
+  // A fingerprint job has news of an album, which matters only while it's open.
+  function suggestionsChanged(id: number) {
+    if (album.value?.id === id) void loadSuggestions()
+  }
+
   const edit = (target: Target, values: string[]) => hold({ stage: stageEdit(stage.value, scope.value, target, values) })
   const drop = (target: Target) => hold({ stage: revert(stage.value, scope.value, target) })
   const add = (target: Target, value: string) => hold({ stage: addValue(stage.value, scope.value, target, value) })
@@ -275,7 +280,7 @@ export const useEditor = defineStore('editor', () => {
   return {
     album, loading, error, trackId, cursor, noteOn, suggestions, suggesting, suggestError, saving, outcome, asks, coverRev,
     stage, cover, tracks, readable, selected, scope, staged, coverUrl,
-    open, close, reload, loadSuggestions, edit, drop, add, take, stageCover, discard, fixable, applyFix,
+    open, close, reload, loadSuggestions, suggestionsChanged, edit, drop, add, take, stageCover, discard, fixable, applyFix,
     save, saveCoverAlone, confirmAsks, cancelAsks, applyChange, recheck, follow, afterReverse,
   }
 })

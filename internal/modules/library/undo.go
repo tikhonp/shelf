@@ -182,12 +182,21 @@ func (m *Module) reverseSave(c *echo.Context, kind string) error {
 		return err
 	}
 	switch {
+	case save.Parent != nil:
+		return echo.NewHTTPError(http.StatusConflict, "this save is part of a run, and a run undoes as one step")
 	case save.State != StateDone && save.State != StatePartial:
 		return echo.NewHTTPError(http.StatusConflict, "this save wrote nothing")
 	case kind == KindUndo && save.Undone:
 		return echo.NewHTTPError(http.StatusConflict, "this save is undone already")
 	case kind == KindRedo && !save.Undone:
 		return echo.NewHTTPError(http.StatusConflict, "this save isn't undone")
+	}
+	isRun, err := m.store.isRun(ctx, id)
+	if err != nil {
+		return err
+	}
+	if isRun {
+		return m.reverseRun(c, save, kind)
 	}
 	files, err := m.store.changeFiles(ctx, id)
 	if err != nil {
@@ -305,7 +314,7 @@ func (m *Module) clearHistory(c *echo.Context) error {
 }
 
 func (s store) saves(ctx context.Context, before int64, limit int) ([]changeRow, error) {
-	q := `SELECT ` + changeCols + ` FROM library_changes WHERE kind = 'save'`
+	q := `SELECT ` + changeCols + ` FROM library_changes WHERE kind = 'save' AND parent IS NULL`
 	args := []any{}
 	if before > 0 {
 		q += ` AND id < ?`
@@ -322,7 +331,8 @@ func (s store) saves(ctx context.Context, before int64, limit int) ([]changeRow,
 func (s store) trim(ctx context.Context, keep int) (int64, error) {
 	var n int64
 	err := s.db.Write(ctx, func(tx *sqlx.Tx) error {
-		cond := `state NOT IN ('queued', 'writing') AND NOT EXISTS (SELECT 1 FROM library_changes x
+		// A run's album changes go with its head.
+		cond := `parent IS NULL AND state NOT IN ('queued', 'writing') AND NOT EXISTS (SELECT 1 FROM library_changes x
 			WHERE x.target = library_changes.id AND x.state IN ('queued', 'writing'))`
 		var res interface{ RowsAffected() (int64, error) }
 		var err error
@@ -330,7 +340,7 @@ func (s store) trim(ctx context.Context, keep int) (int64, error) {
 			res, err = tx.ExecContext(ctx, `DELETE FROM library_changes WHERE `+cond)
 		} else {
 			res, err = tx.ExecContext(ctx, `DELETE FROM library_changes WHERE kind = 'save' AND `+cond+` AND id < (
-				SELECT id FROM library_changes WHERE kind = 'save' ORDER BY id DESC LIMIT 1 OFFSET ?)`, keep-1)
+				SELECT id FROM library_changes WHERE kind = 'save' AND parent IS NULL ORDER BY id DESC LIMIT 1 OFFSET ?)`, keep-1)
 		}
 		if err != nil {
 			return err

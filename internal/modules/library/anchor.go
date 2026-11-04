@@ -23,12 +23,14 @@ const (
 	byBarcode = "barcode"
 	byISRC    = "isrc"
 	bySearch  = "search"
+	byPrint   = "acoustid"
 
 	pStaged  = 0.97
 	pFiles   = 0.95
 	pBarcode = 0.9
 	pISRC    = 0.6 // plus up to 0.3 by the share of codes that agree
 	pSearch  = 0.4 // plus up to 0.4 by the search's score
+	pPrint   = 0.5 // plus up to 0.35 by the share of tracks that agree
 )
 
 // The threshold a release must pass to anchor an album: the same number
@@ -193,7 +195,12 @@ func (m *Module) findAnchor(ctx context.Context, s *subject, staged string) (*an
 			return a, nil
 		}
 	}
-	return nil, errors.Join(errs...)
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
+	}
+	// Audio is the last resort, and only once the text lookups have really
+	// found nothing.
+	return try(byPrint, m.printed(ctx, s)), nil
 }
 
 // byISRC asks for the releases of a few of the album's codes and tries

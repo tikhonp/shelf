@@ -40,7 +40,7 @@ Modules:
 | `navidrome` | The library port: scans and their state. It also reads Navidrome's tag settings for the library module. |
 | `telegram` | The bot. It implements the downloads module's notifier port. |
 | `fakesource` | A source with canned data for tests, and for UI work when `SHELF_DEV_FAKE_SOURCE` is on. |
-| `library` | The tag editor of phase 2, built in steps. Its `tagio` package reads tags as Navidrome does and writes them through verified temp copies. The module sweeps leftover temp files at start, keeps an index of the music folder with its albums and checks, saves edits through the `library.write` job, suggests values from names, `shelf.txt`, MusicBrainz, the catalogs and LRCLIB, and serves `/api/library` and the audio for the player. Its `musicbrainz` package also reads the Cover Art Archive, and `lrclib` reads lyrics. [tags.md](tags.md) describes it. |
+| `library` | The tag editor of phase 2, built in steps. Its `tagio` package reads tags as Navidrome does and writes them through verified temp copies. The module sweeps leftover temp files at start, keeps an index of the music folder with its albums and checks, saves edits through the `library.write` job, suggests values from names, `shelf.txt`, MusicBrainz, the catalogs, LRCLIB and AcoustID, runs fixes and ReplayGain over many albums, and serves `/api/library` and the audio for the player. Its `musicbrainz` package also reads the Cover Art Archive, `lrclib` reads lyrics, `loudness` measures tracks with ffmpeg, and `acoustid` fingerprints audio. [tags.md](tags.md) describes it. |
 
 A module implements `Name()` and `Migrations()` and declares the rest through optional interfaces, found by type assertion, as in `proxier/internal/platform/module/module.go`: `Initializer`, `Migrated`, `RouteDeclarer`, `BodyLimiter`, `JobDeclarer`, `SourceDeclarer` and `Runner`. Only serve calls a `Runner`'s `Run`, which holds work that lasts as long as the server, such as the bot's long polling. `manage` opens the platform too, so `Init` never logs in or reaches the network. The platform logs a `Run` that fails, and the server goes on without it. `module.Deps` gives a module the config, the logger, the database, the jobs system, the hub, the source registry, and a `Closing` channel that long-lived responses end on. The platform registers job types, schedules and sources after every `Init`. Adding a source means one new module and one line in `main`.
 
@@ -148,7 +148,9 @@ The hub carries five kinds of event. `GET /api/events` streams them as server-se
 | `scan` | `scanning`, `count`, `last_scan` |
 | `source` | `id`, `ok`, `message`; for Apple Music also `wrapper`, the wrapper state, null when it doesn't answer |
 | `library` | The index's status, as `GET /api/library/index` answers it, when a walk starts, every 200 files it reads, and when it ends |
-| `change` | A tag write as `GET /api/library/changes/{id}` answers it, without `files`, when it is queued and when it ends |
+| `change` | A tag write as `GET /api/library/changes/{id}` answers it, without `files`, when it is queued and when it ends. A run's albums send none, and the run sends one when it ends. |
+| `run` | A bulk run as `GET /api/library/runs/{id}` answers it, as each album starts and ends |
+| `suggestions` | `{"album"}`, when a fingerprint job has found something to ask for |
 
 Streams send `Cache-Control: no-store`, `X-Accel-Buffering: no` and a keepalive comment every 15 seconds, and end when serve stops. A client that reconnects reloads the lists, so the stream needs no replay. The per-download log stream, `GET /api/downloads/{id}/log`, sends the latest job's lines as `line` events with `time`, `level`, `step` and `text`, and the line's row ID as the event ID. It resumes after `Last-Event-ID`, or after `?after=` on a fresh connection, as proxier's job log does. When the job has ended and every line is sent, it sends a `done` event with the job's `state`, and the client closes the stream, or `EventSource` would reconnect.
 
@@ -182,13 +184,18 @@ JSON in and out. Errors are `{"error": "<message>"}` with a 4xx or 5xx status.
 | `GET /api/library/albums/{id}/cover` | The cover Navidrome shows for the album. 404 when it has none. |
 | `POST /api/library/albums/{id}/cover/repair` | Answers 201 with an upload to stage in place of a damaged cover, or 422. Writes nothing. |
 | `POST /api/library/albums/{id}/save` | `{"tracks": [{"id", "revision", "edits": [{"field" or "key", "values", "anchor"}]}], "cover": {"upload", "delete", "every_track"}, "confirm"}`, with `cover` and `anchor` optional. `anchor` is the release an accepted suggestion came from. Answers 202 with the queued change. 409 with `{"error", "reason", "track"}` for a conflict, a locked file or a busy folder, and with `reason: confirm` and `confirm: [{"kind", "message"}]` until `confirm` names each Navidrome change that moves a star. 422 for an edit a file can't take, a Save that changes nothing, or suggestions from two releases. [tags.md](tags.md#saving) has the rules. |
-| `GET /api/library/albums/{id}/suggestions?anchor=` | The album's suggestions: `{"anchor", "album", "tracks", "covers", "notes", "unavailable"}`. `anchor` takes a MusicBrainz release ID or link pasted into the album ID field, and answers 400 for anything else. [tags.md](tags.md#suggestions) has the rules. |
+| `GET /api/library/albums/{id}/suggestions?anchor=` | The album's suggestions: `{"anchor", "album", "tracks", "covers", "notes", "unavailable", "fingerprinting"}`. `anchor` takes a MusicBrainz release ID or link pasted into the album ID field, and answers 400 for anything else. [tags.md](tags.md#suggestions) has the rules. |
 | `GET /api/library/tracks/{id}/suggestions` | One track's lyrics from LRCLIB: `{"suggestions", "unavailable"}`. |
 | `GET /api/library/remote/{id}` | The preview of a cover a suggestion offered, fetched through shelf. 404 for an image no suggestion offered, 502 when its host fails. |
 | `POST /api/library/remote/{id}/cover` | Fetch an offered cover in full and store it as an upload. Answers 201 as `POST /api/library/covers` does. |
+| `POST /api/library/runs/preview` | `{"selection", "fixes"}`. What a run would touch: `{"selected", "fixes", "albums", "files", "bytes", "samples"}`. 400 for a fix a run doesn't offer or an unknown filter. |
+| `POST /api/library/runs` | `{"selection", "fixes"}`. Start a run and answer 202 with its progress. 400 with no fix, 422 when no selected album has anything to fix, 409 while another run works. |
+| `GET /api/library/runs/current` | `{"run"}`: the run that works, or null. |
+| `GET /api/library/runs/{id}` | One run's progress. 404 for no such run. |
+| `POST /api/library/runs/{id}/cancel` | Stop a run after the album it is writing. Answers 202 with its progress; 409 when it has ended. |
 | `GET /api/library/history?before=&limit=` | Saves newest first, as changes without `files`. `limit` 1 to 200 with 50 by default. Answers `{"changes", "next"}`. |
 | `DELETE /api/library/history` | Delete every change that has ended, except a save whose undo or redo is still to run. Answers `{"deleted"}`. |
-| `POST /api/library/changes/{id}/undo`, `/redo` | `{"confirm"}`, optional. Queue the undo or redo of a save and answer 202 with it, listing the keys it leaves as `conflicts`. 409 for a save that wrote nothing, is undone already or isn't, has an undo or redo still to run, or whose every key changed since, and for confirmations as with a Save. [tags.md](tags.md#history) has the rules. |
+| `POST /api/library/changes/{id}/undo`, `/redo` | `{"confirm"}`, optional. Queue the undo or redo of a save and answer 202 with it, listing the keys it leaves as `conflicts`. On a run it queues a run of the same kind, and on an album of a run it answers 409. 409 for a save that wrote nothing, is undone already or isn't, has an undo or redo still to run, or whose every key changed since, and for confirmations as with a Save. [tags.md](tags.md#history) has the rules. |
 | `GET /api/library/changes/{id}` | One change: `{"id", "kind", "target", "album_id", "folder", "title", "artist", "state", "reason", "error", "undone", "tags", "conflicts", "job_id", "created_at", "finished_at", "files"}`, each file as `{"track_id", "path", "kind", "written", "keys": [{"key", "before", "after"}], "cover_before", "cover_after"}`. |
 | `GET /api/telegram` | The bot for the Status page: `{"enabled", "connected", "username", "users"}`. |
 | `GET /api/applemusic/wrapper` | The wrapper state for the Status page: `{"state", "storefront", "since", "error", "code_deadline"}`. 503 when the wrapper doesn't answer. |
@@ -248,6 +255,7 @@ Tokens and passwords are `config.Secret`, which prints, logs and marshals as `[r
 | `SHELF_TELEGRAM_TOKEN` | | Empty disables the bot. |
 | `SHELF_TELEGRAM_USERS` | | Comma-separated user IDs the bot answers. |
 | `SHELF_TELEGRAM_USE_PROXY` | `false` | Send Telegram traffic through the proxy. |
+| `SHELF_ACOUSTID_KEY` | empty | The AcoustID application key. Empty leaves AcoustID out of the suggestions. |
 | `SHELF_DEV_FAKE_SOURCE` | `false` | Register the fake source, for UI work without accounts. |
 | `SHELF_LOG_LEVEL` | `info` | slog level. |
 

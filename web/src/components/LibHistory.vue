@@ -4,6 +4,7 @@ import type { LibraryChange } from '../api/types'
 import { useNow } from '../lib/clock'
 import { count, finishedAt } from '../lib/format'
 import { historyLines } from '../lib/history'
+import { runSub, runTitle } from '../lib/bulk'
 import { useHistory } from '../stores/history'
 import Icon from './Icon.vue'
 
@@ -21,7 +22,7 @@ function toggle(c: LibraryChange) {
 }
 const busy = (c: LibraryChange) => Object.values(history.running).includes(c.id)
 const what = (c: LibraryChange) => (c.tags > 0 ? c.tags : c.cover ? 'Cover' : 0)
-const lines = (c: LibraryChange) => historyLines(history.details[c.id]?.files ?? [])
+const lines = (c: LibraryChange) => historyLines(history.details[c.id]?.files ?? [], !!c.run)
 const stateWord = (c: LibraryChange) => (c.undone ? 'Undone' : c.state === 'done' ? 'Saved' : c.state === 'partial' ? 'Partial' : c.state === 'failed' ? 'Failed' : 'Saving')
 const stateClass = (c: LibraryChange) => (c.undone ? 'canceled' : c.state === 'done' ? 'done' : c.state === 'partial' ? 'partial' : c.state === 'failed' ? 'failed' : 'running')
 const reversible = (c: LibraryChange) => c.state === 'done' || c.state === 'partial'
@@ -50,7 +51,7 @@ async function clear() {
     <div v-else class="rows list" role="table" aria-label="History">
       <div class="row thead g-lh" role="row">
         <span role="columnheader">When</span>
-        <span role="columnheader">Album</span>
+        <span role="columnheader">Album or run</span>
         <span role="columnheader" class="r">Tags</span>
         <span role="columnheader">State</span>
         <span role="columnheader"><span class="sr">Actions</span></span>
@@ -58,7 +59,7 @@ async function clear() {
       <template v-for="c in history.changes" :key="c.id">
         <div class="row g-lh" :class="{ cur: openId === c.id }" role="row">
           <span role="cell" class="t2 num sm">{{ finishedAt(c.created_at, now) }}</span>
-          <button type="button" class="lib-open two" :aria-expanded="openId === c.id" @click="toggle(c)"><span class="ttl"><span class="ell">{{ c.title }}</span></span><span class="sub ell">{{ c.artist }}</span></button>
+          <button type="button" class="lib-open two" :aria-expanded="openId === c.id" @click="toggle(c)"><span class="ttl"><span class="ell">{{ c.run ? runTitle(c.run.fixes) : c.title }}</span></span><span class="sub ell">{{ c.run ? runSub(c.run) : c.artist }}</span></button>
           <span role="cell" class="num sm r">{{ what(c) }}</span>
           <span role="cell"><span class="pill" :class="stateClass(c)">{{ stateWord(c) }}</span></span>
           <button v-if="reversible(c)" type="button" class="key sm r" :disabled="busy(c)" @click="history.reverse(c)">{{ c.undone ? 'Redo' : 'Undo' }}</button>

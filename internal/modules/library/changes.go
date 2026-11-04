@@ -37,6 +37,7 @@ const (
 	ReasonRefused     = "refused"
 	ReasonVerify      = "verify"
 	ReasonInterrupted = "interrupted"
+	ReasonCancelled   = "cancelled"
 	ReasonError       = "error"
 )
 
@@ -48,6 +49,7 @@ type changeRow struct {
 	ID         int64   `db:"id"`
 	Kind       string  `db:"kind"`
 	Target     *int64  `db:"target"`
+	Parent     *int64  `db:"parent"`
 	AlbumID    int64   `db:"album_id"`
 	Folder     string  `db:"folder"`
 	Title      string  `db:"title"`
@@ -64,7 +66,7 @@ type changeRow struct {
 	FinishedAt db.Time `db:"finished_at"`
 }
 
-const changeCols = `id, kind, target, album_id, folder, title, artist, state, reason, error, undone, request,
+const changeCols = `id, kind, target, parent, album_id, folder, title, artist, state, reason, error, undone, request,
 	conflicts, tags, job_id, created_at, finished_at`
 
 // The kinds of a change's file.
@@ -184,16 +186,17 @@ func (s store) insertChange(ctx context.Context, tx *sqlx.Tx, c *changeRow) erro
 		c.Conflicts = "[]"
 	}
 	return tx.GetContext(ctx, &c.ID, `INSERT INTO library_changes
-		(kind, target, album_id, folder, title, artist, state, request, conflicts, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-		c.Kind, c.Target, c.AlbumID, c.Folder, c.Title, c.Artist, c.State, c.Request, c.Conflicts, c.CreatedAt)
+		(kind, target, parent, album_id, folder, title, artist, state, request, conflicts, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+		c.Kind, c.Target, c.Parent, c.AlbumID, c.Folder, c.Title, c.Artist, c.State, c.Request, c.Conflicts, c.CreatedAt)
 }
 
 // writingChanges are the changes a stop cut off between their first and
-// last write.
+// last write. A run's head has no files, and its job carries on by itself.
 func (s store) writingChanges(ctx context.Context) ([]changeRow, error) {
 	var rows []changeRow
-	err := s.db.R.SelectContext(ctx, &rows, `SELECT `+changeCols+` FROM library_changes WHERE state = ?`, StateWriting)
+	err := s.db.R.SelectContext(ctx, &rows, `SELECT `+changeCols+` FROM library_changes WHERE state = ?
+		AND id NOT IN (SELECT change_id FROM library_runs)`, StateWriting)
 	return rows, err
 }
 

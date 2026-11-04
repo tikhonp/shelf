@@ -113,7 +113,7 @@ Phase 2 is being built. Steps 1 to 4 are built: tag IO and the safe writer, the 
 | After Save cover alone, the editor takes each file's new revision from the change, not from reopening the album. | The write moves the revisions of staged edits. Reopening would also accept a change another tool made in between. |
 | A cover edit that changes a cover file asks first when other albums share the release folder. Its undo and redo ask nothing. | The owner's choice. Navidrome 0.64.2 shows a folder's cover for every album in it, so a Delete on one album took the cover off the other. |
 | A replace leaves a disc folder's `cover.*`, unless ffmpeg can't decode it. Delete removes them all. | Navidrome 0.64.2 serves that file as the disc's art, and the release folder's cover outranks it for the album. After a Delete that missed them, Navidrome fell back to the first disc's cover. A damaged one left behind would keep `bad_cover` open after a repair. |
-| The web app works out each Fix from the tracks and the suggestions. | An issue names a kind and its fields, and a Fix only stages edits for review, so the server has nothing to decide. Bulk runs in step 6 need the same rules on the server, and may move them there. |
+| The web app works out each Fix from the tracks and the suggestions. | An issue names a kind and its fields, and a Fix only stages edits for review, so the server has nothing to decide. Bulk runs have their own copy of the rules on the server, without the suggestions. |
 | Staged edits live in the browser per album and don't survive a reload of the page. | The owner edits one album at a time, and a server-side draft needs its own conflict rules. |
 | All fields edits the field when its key is the one a main row shows, and a raw key otherwise. | Two rows must never stage two edits on one tag. |
 | Only Extended rows have a delete button. Emptying a Standard tag removes it. | The design shows a delete only on custom tags. |
@@ -164,6 +164,17 @@ Phase 2 is being built. Steps 1 to 4 are built: tag IO and the safe writer, the 
 | Modules raise a route's body limit through `module.BodyLimiter`. | The platform's 1 MiB limit runs before routing would let a route raise it. |
 | The write probe runs once at start, in each top folder of the music folder. | Each probe moves the folder's mtime, which Navidrome's watcher hears. |
 | A change cut off while it wrote is settled from its files: one that holds the planned tags was replaced. | The renames run back to back, so a crash leaves each file old or new, and the read tells which. |
+| A run is a change at the head with a child change per album. | History, retention and undo already work on changes, so a run stays one row and one undo step. A single change over all albums would need temp copies of the whole selection at once. |
+| A run's fixes use only what the files hold, and ask no service. | Nobody reads each album before it writes. A wrong MusicBrainz match on an unread album is worse than a tag left alone, and the preview can show what will happen. |
+| A run leaves a tie in `values_differ` alone, and doesn't offer `missing_tag`, `two_releases` or `artist_split`. | No rule can tell which value is right, and those three Fixes are only suggestions. |
+| A run skips what a Save would ask about: a split, a merge, an album artist rename. | The brief says Start asks nothing more, and each of these can lose a star or a rating. The owner settles them one album at a time. |
+| One run works at a time. | Two would take turns on the `tags` queue and double the wait of a Save. |
+| A run plans each album when its turn comes, not at Start. | A run can take hours, and files change meanwhile. Planning late means no revision goes stale in between. |
+| A run asks for one walk and one scan when it ends. | One per album would keep Navidrome scanning for hours. The 15-minute walk still runs. |
+| ReplayGain's analysis works ahead of the writes on its own job, and stores results by the hash of the audio. | A decode takes far longer than a write, and a 12-hour run can be cut off. A retag keeps the hash, so nothing decodes twice. |
+| A track keeps its loudness blocks as a histogram in 0.1 LU bins. | Whole blocks take 12 KB a track. Bins move a result by under 0.01 LU, and the album's gain still needs the blocks. |
+| AcoustID runs as a job when the text lookups found nothing, and the editor asks again when it ends. | `fpcalc` takes seconds a track, and an album must open at once. It stays off without `SHELF_ACOUSTID_KEY`. |
+| A deferred job takes in a follow-up that coalesced while it ran. | Defer puts a job back to never having started, and only one such job may hold a coalescing key. The requeue failed on the index, and left the job `running` with nothing behind it. |
 | A bulk run has no nightly limit. Its preview shows the files and GB touched, and the owner sizes each run. | Nothing runs by itself. The HDD backup recopies each changed file and keeps no history, and the remote one keeps overwritten files for 30 days. |
 | A pasted release ID is the anchor ahead of the one in the files, then barcode, ISRC and search. | The plan listed the files first, but pasting an ID is how the owner moves the album to another release, and the files still name the old one until the Save. |
 | A release named by ID, pasted or in the files, stays the anchor when it fails the threshold, and then suggests nothing. A release found by barcode, ISRC or search must pass. | The owner or the files chose the first. Searching for another release would offer IDs the files don't name. |
@@ -202,7 +213,7 @@ Run on 2026-11-04 on blackberry in the shelf image as UID 10001, on 25 albums co
 | Config | `GET /api/config/` returns the split rules, exceptions, persistent ID specs and priorities to an admin. Without the trailing slash it is a 404. |
 | Census | 89 keys in 11,457 files, read in 26 seconds with no errors or lost keys. No file has two pictures, and no file is a hard link or a symlink. The longest file name is 187 bytes. |
 | Broken files | Empty, garbage and damaged-header files return an error, with no panic. A half-truncated file reads and writes without one. |
-| AcoustID | Alpine's `chromaprint` ships `fpcalc`. |
+| AcoustID | Alpine's `chromaprint` ships `fpcalc`. On 2026-11-04 `alpine:3.22` installed fpcalc 1.5.1 and ffmpeg 6.1.2. |
 
 `make contract` repeats the retag, rename, undo, split, date and cover scenarios against `deluan/navidrome:latest`. On 2026-11-04 it passed on 0.64.2, and found that an album that lost a track in a quick scan keeps its old `songCount`, while `getAlbum` lists the right songs.
 

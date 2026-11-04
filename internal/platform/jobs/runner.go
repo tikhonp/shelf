@@ -373,6 +373,11 @@ func (s *System) requeue(ctx context.Context, run *Run, step string, cause error
 			state, s.now(), cut(cause.Error(), maxErrorChars), run.info.ID, step); err != nil {
 			return err
 		}
+		if uncounted {
+			if err := s.absorb(ctx, tx, run); err != nil {
+				return err
+			}
+		}
 		_, err := tx.ExecContext(ctx, `
 			UPDATE jobs SET state = 'queued', run_after = ?, lease_until = NULL, boot_id = '',
 				attempt = attempt - ?, error = ?, error_step = ?
@@ -383,6 +388,44 @@ func (s *System) requeue(ctx context.Context, run *Run, step string, cause error
 	if err != nil && !errors.Is(err, errLost) {
 		s.log.Error("jobs: requeue", "id", run.info.ID, "error", err)
 	}
+}
+
+// absorb takes in a follow-up that coalesced while this job ran. A deferred
+// job goes back to never having started, and only one such job may hold a
+// coalescing key. It does the follow-up's work when it runs again.
+func (s *System) absorb(ctx context.Context, tx *sqlx.Tx, run *Run) error {
+	var twin struct {
+		ID      int64  `db:"id"`
+		Payload string `db:"payload"`
+	}
+	err := tx.GetContext(ctx, &twin, `
+		SELECT t.id, t.payload FROM jobs t JOIN jobs j ON j.id = ?
+		WHERE t.type = j.type AND t.coalescing_key = j.coalescing_key AND j.coalescing_key != ''
+		  AND t.state = 'queued' AND t.attempt = 0 AND t.id != j.id`, run.info.ID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	t, _ := s.typeOf(run.info.Type)
+	merge := t.Merge
+	if merge == nil {
+		merge = mergeObjects
+	}
+	var own string
+	if err := tx.GetContext(ctx, &own, `SELECT payload FROM jobs WHERE id = ?`, run.info.ID); err != nil {
+		return err
+	}
+	merged, err := merge(json.RawMessage(own), json.RawMessage(twin.Payload))
+	if err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE jobs SET payload = ?, merged = merged + 1 WHERE id = ?`, string(merged), run.info.ID); err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `DELETE FROM jobs WHERE id = ?`, twin.ID)
+	return err
 }
 
 func (s *System) finishSucceeded(ctx context.Context, run *Run) {

@@ -33,10 +33,13 @@ const (
 	QueueSystem     Queue = "system"
 	// QueueTags takes every tag write, one at a time.
 	QueueTags Queue = "tags"
+	// QueueAnalysis takes ReplayGain and fingerprints, which decode audio for
+	// hours and must not hold back a write.
+	QueueAnalysis Queue = "analysis"
 )
 
 // Concurrency is how many jobs each queue runs at once.
-var Concurrency = map[Queue]int{QueueQobuz: 1, QueueAppleMusic: 1, QueueLibrary: 1, QueueSystem: 1, QueueTags: 1}
+var Concurrency = map[Queue]int{QueueQobuz: 1, QueueAppleMusic: 1, QueueLibrary: 1, QueueSystem: 1, QueueTags: 1, QueueAnalysis: 1}
 
 // State is where a job is in its life.
 type State string

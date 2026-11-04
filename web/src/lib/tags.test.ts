@@ -10,7 +10,7 @@ function track(id: number, tags: Record<string, string[]>, standard: TagKey[] = 
   }
 }
 const sug = (over: Partial<Suggestion>): Suggestion => ({ field: 'genre', source: 'Qobuz', sources: ['Qobuz'], confidence: 70, ...over })
-const answer = (album: Suggestion[], tracks: Suggestions['tracks'] = []): Suggestions => ({ anchor: null, album, tracks, covers: [], notes: [], unavailable: [] })
+const answer = (album: Suggestion[], tracks: Suggestions['tracks'] = []): Suggestions => ({ anchor: null, album, tracks, covers: [], notes: [], unavailable: [], fingerprinting: false })
 
 test('a field whose tracks differ is mixed, and a staged edit keeps what it was', () => {
   const ts = [track(1, { genre: ['Rock'] }), track(2, { genre: ['Jazz'] })]

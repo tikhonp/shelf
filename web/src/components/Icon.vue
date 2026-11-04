@@ -10,6 +10,7 @@ const shapes = {
   check: ['m5 12 4.5 4.5L19 7'],
   paste: ['M8 3h8v4H8z', 'M16 5h3v16H5V5h3'],
   close: ['M6 6l12 12M18 6 6 18'],
+  stop: ['M6 6h12v12H6z'],
   chevron: ['m6 9 6 6 6-6'],
   next: ['m9 6 6 6-6 6'],
   back: ['m15 6-6 6 6 6'],

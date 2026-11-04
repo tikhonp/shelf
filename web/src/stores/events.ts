@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { DownloadEvent, LibraryChange, LibraryIndex, ScanEvent, SourceEvent } from '../api/types'
+import type { DownloadEvent, LibraryChange, LibraryIndex, RunProgress, ScanEvent, SourceEvent } from '../api/types'
+import { useBulk } from './bulk'
 import { useDownloads } from './downloads'
 import { useEditor } from './editor'
 import { useHistory } from './history'
@@ -17,7 +18,7 @@ export const useEvents = defineStore('events', () => {
   function reload() {
     const downloads = useDownloads()
     const status = useStatus()
-    return Promise.allSettled([downloads.load(), status.check(), useEditor().recheck()])
+    return Promise.allSettled([downloads.load(), status.check(), useEditor().recheck(), useBulk().check()])
   }
 
   // A page kept for the back button would hold its stream, and browsers allow
@@ -53,6 +54,8 @@ export const useEvents = defineStore('events', () => {
       useEditor().applyChange(c)
       useHistory().applyChange(c)
     })
+    stream.addEventListener('run', (m) => useBulk().applyRun(read<RunProgress>(m)))
+    stream.addEventListener('suggestions', (m) => useEditor().suggestionsChanged(read<{ album: number }>(m).album))
     stream.addEventListener('source', (m) => {
       const e = read<SourceEvent>(m)
       useSources().applyEvent(e)

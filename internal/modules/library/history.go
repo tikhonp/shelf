@@ -37,6 +37,8 @@ type changeJSON struct {
 	FinishedAt *string `json:"finished_at"`
 	// Files are in the detail only.
 	Files []changeFileJSON `json:"files,omitempty"`
+	// Run says this row is a bulk run, whose Tags count all its albums.
+	Run *runSummaryJSON `json:"run,omitempty"`
 }
 
 // conflictJSON is a key an undo or redo left alone, because the file no
@@ -92,6 +94,11 @@ func (m *Module) changeJSON(ctx context.Context, c changeRow) changeJSON {
 			}
 		}
 	}
+	if run, err := m.store.runSummary(ctx, c.ID); err != nil {
+		m.log.Error("library: read a run", "run", c.ID, "error", err)
+	} else {
+		j.Run = run
+	}
 	return j
 }
 
@@ -115,11 +122,16 @@ func (m *Module) getChange(c *echo.Context) error {
 	if err != nil {
 		return err
 	}
-	files, err := m.store.changeFiles(ctx, id)
+	out := m.changeJSON(ctx, row)
+	var files []changeFile
+	if out.Run != nil {
+		files, err = m.runFiles(ctx, id)
+	} else {
+		files, err = m.store.changeFiles(ctx, id)
+	}
 	if err != nil {
 		return err
 	}
-	out := m.changeJSON(ctx, row)
 	out.Files = []changeFileJSON{}
 	for _, f := range files {
 		fj := changeFileJSON{Path: f.Path, Kind: f.Kind, Written: f.Written, Revision: f.Revision, Keys: diffKeys(f.Before, f.After),

@@ -334,6 +334,9 @@ export interface Suggestions {
   covers: CoverSuggestion[]
   notes: { track?: number; field: string; message: string }[]
   unavailable: { source: string; message: string }[]
+  // fingerprinting says a job is identifying the album by its audio. A
+  // suggestions event follows.
+  fingerprinting: boolean
 }
 
 export interface CoverUpload {
@@ -381,6 +384,70 @@ export interface LibraryChange {
   created_at: string
   finished_at: string | null
   files?: ChangeFile[]
+  // run says this row is a bulk run, and its tags count all its albums.
+  run?: RunSummary
+}
+
+export interface RunSummary {
+  fixes: string[]
+  albums: number
+  files: number
+  skipped: number
+  failed: number
+}
+
+export interface RunSelection {
+  albums?: number[]
+  all?: boolean
+  q?: string
+  filter?: string
+  folder?: string
+  except?: number[]
+}
+
+export interface RunSample {
+  album: string
+  key: string
+  before: string
+  after: string
+}
+
+export interface RunPreview {
+  selected: number
+  fixes: { fix: string; albums: number }[]
+  albums: number
+  files: number
+  bytes: number
+  samples: RunSample[]
+}
+
+export interface RunLine {
+  at: string
+  album: string
+  state: 'done' | 'skipped' | 'failed'
+  fixes: number
+  files: number
+  message: string
+}
+
+export interface RunProgress {
+  id: number
+  kind: 'save' | 'undo' | 'redo'
+  fixes: string[]
+  state: ChangeState
+  reason: string
+  error: string
+  cancelling: boolean
+  total: number
+  done: number
+  skipped: number
+  failed: number
+  files: number
+  now: string
+  now_state: '' | 'writing' | 'analyzing'
+  log: RunLine[]
+  created_at: string
+  finished_at: string | null
 }
 
 export interface SaveWarning {

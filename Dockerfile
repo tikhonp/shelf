@@ -97,9 +97,10 @@ CMD []
 
 # prod: the runtime image, and the last stage, so `docker build .` builds it.
 # amdl and the Qobuz segmented fallback call ffmpeg. amdl is the upstream
-# static binary, the one that runs in production today.
+# static binary, the one that runs in production today. chromaprint ships
+# fpcalc, which the library's AcoustID lookups call.
 FROM alpine:3.22 AS prod
-RUN apk add --no-cache ca-certificates ffmpeg tzdata
+RUN apk add --no-cache ca-certificates chromaprint ffmpeg tzdata
 COPY --from=ghcr.io/zhaarey/apple-music-downloader:0.1.4 /usr/local/bin/amdl /usr/local/bin/amdl
 COPY --from=build /out/shelf /usr/local/bin/shelf
 COPY --from=build --chown=10001:10001 /out/data /data

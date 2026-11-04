@@ -8,11 +8,14 @@ export interface HistoryLine {
 }
 
 const name = (path: string) => path.split('/').pop() ?? path
+// A run reaches many albums, and each has its 01.flac.
+const deepName = (path: string) => path.split('/').slice(-2).join('/')
 const shown = (values: string[]) => values.join(', ')
 
 // historyLines turns a change's files into the before and after table. A key
 // that changed the same way in every audio file is one All tracks line.
-export function historyLines(files: ChangeFile[]): HistoryLine[] {
+export function historyLines(files: ChangeFile[], run = false): HistoryLine[] {
+  const label = run ? deepName : name
   const audio = files.filter((f) => f.kind === 'audio')
   const groups = new Map<string, { key: string; before: string; after: string; paths: string[] }>()
   for (const f of audio) {
@@ -28,7 +31,7 @@ export function historyLines(files: ChangeFile[]): HistoryLine[] {
   const lines: HistoryLine[] = []
   for (const g of groups.values()) {
     if (g.paths.length === audio.length && audio.length > 1) lines.push({ track: 'All tracks', key: g.key, before: g.before, after: g.after })
-    else for (const p of g.paths) lines.push({ track: name(p), key: g.key, before: g.before, after: g.after })
+    else for (const p of g.paths) lines.push({ track: label(p), key: g.key, before: g.before, after: g.after })
   }
   if (audio.some((f) => f.cover_before !== f.cover_after) || files.some((f) => f.kind === 'cover')) {
     lines.push({ track: 'All tracks', key: 'Cover', before: '', after: 'Changed' })
