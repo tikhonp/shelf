@@ -116,6 +116,9 @@ type Writer struct {
 	// fault runs before each stage of each file, so tests can fail or
 	// damage one.
 	fault func(stage, path string) error
+	// groups, when set, replaces the check that shelf may give a file a
+	// group, for tests that can't make a file of another group.
+	groups func(gid int) bool
 }
 
 // NewWriter returns a writer for files this process owns.
@@ -269,6 +272,13 @@ func planned(plans []plan) Result {
 	return res
 }
 
+func (w *Writer) keepsGroup(gid int) bool {
+	if w.groups != nil {
+		return w.groups(gid)
+	}
+	return canKeepGroup(gid)
+}
+
 func (w *Writer) at(stage, path string) error {
 	if w.fault == nil {
 		return nil
@@ -319,6 +329,11 @@ func (w *Writer) planFile(fc FileChange) (plan, bool, error) {
 		// A rename would split the file from its other names.
 		if links > 1 {
 			return p, false, fmt.Errorf("%w: the file has %d hard links", ErrRefused, links)
+		}
+		// The copy must end with the file's group, and shelf can give a
+		// file only a group it is in.
+		if !w.keepsGroup(gid) {
+			return p, false, fmt.Errorf("%w: its group %d isn't one of shelf's", ErrLocked, gid)
 		}
 		p.gid = gid
 	}

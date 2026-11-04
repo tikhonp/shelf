@@ -38,7 +38,7 @@ A file's revision is its size, its mtime in nanoseconds, and the first 16 hex di
 
 One rule covers every write. `tagio.Writer` runs one write at a time over the files of one album:
 
-1. **Check every file.** The path must be absolute, with a known extension. It must be a regular file, not a symlink, and have one link, because a rename would split a hard link. shelf's UID, 10001 in production, must own it and be able to write its folder, or the file is locked. A folder a download is working in, or one inside it, is busy. A revision that differs from the file's is a conflict, and so is an empty one. Any of these stops the write before a file is touched.
+1. **Check every file.** The path must be absolute, with a known extension. It must be a regular file, not a symlink, and have one link, because a rename would split a hard link. shelf's UID, 10001 in production, must own it and be able to write its folder, and the file's group must be one of shelf's, since the copy keeps it. Otherwise the file is locked. A folder a download is working in, or one inside it, is busy. A revision that differs from the file's is a conflict, and so is an empty one. Any of these stops the write before a file is touched.
 2. **Work out the change.** A field edit changes every key of the file that feeds the field, or adds the field's key when none does. Navidrome takes the first alias of a single value and merges the aliases of a multi-value tag, so a stale `ALBUM ARTIST` beside `ALBUMARTIST` would add a second album artist. An edit with no values removes every key that feeds the field. A raw key edit changes that key. An edit that changes nothing drops out, and a file left with nothing to change isn't rewritten.
 3. **Refuse what can't be written.** That covers an unknown field, an edit that names both a field and a key or neither, an empty value, a value with a vertical tab or NUL, a key with a tab, vertical tab, NUL or `=`, since go-taglib uses those as separators, two edits of one key, a read-only key, a cover that isn't JPEG or PNG, and a FLAC cover over 16 MiB, which TagLib drops without an error. M4A's two dates share `DATE`, so editing both in one write is refused.
 4. **Journal.** The write is recorded with each file's tags before and after, before any file is touched. The journal gets its own copy of the result. It is the change's row in `library_changes`, as [Saving](#saving) describes.
@@ -161,7 +161,7 @@ Navidrome keeps the old `songCount` of an album that lost a track in a quick sca
 | Removing a field removes every alias; a new `musicbrainz_trackid` is `MUSICBRAINZ_RELEASETRACKID` | `TestWriteAddsAndRemoves` |
 | A change to nothing rewrites nothing; a file listed twice is refused | `TestWriteNothingToChange` |
 | Conflicts, bad paths, bad edits, bad values, two edits of one key, a cover that isn't an image | `TestWriteRefuses` |
-| Another owner, a read-only folder, a busy folder, a hard link, a symlink | `TestWriteLockedAndBusy` |
+| Another owner, another group, a read-only folder, a busy folder, a hard link, a symlink | `TestWriteLockedAndBusy` |
 | WMA: multi-value, custom field, a dropped key, two pictures | `TestWriteWMALimits` |
 | M4A's read-only atoms and its shared `DATE` | `TestResolveM4AReadOnly` |
 | Covers added, replaced and removed in FLAC and M4A; a back cover kept | `TestWriteCovers` |

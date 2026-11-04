@@ -4,6 +4,7 @@ package tagio
 
 import (
 	"os"
+	"slices"
 	"syscall"
 )
 
@@ -32,6 +33,16 @@ func keepGroup(f *os.File, gid int) error {
 		return nil
 	}
 	return f.Chown(-1, gid)
+}
+
+// canKeepGroup reports whether this process may give a file group gid:
+// root may give any, and others only their own groups.
+func canKeepGroup(gid int) bool {
+	if os.Geteuid() == 0 || gid == os.Getegid() {
+		return true
+	}
+	groups, err := os.Getgroups()
+	return err == nil && slices.Contains(groups, gid)
 }
 
 // Owner gives a file's owner, when the system has one.

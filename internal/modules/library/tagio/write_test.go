@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -241,6 +242,17 @@ func TestWriteLockedAndBusy(t *testing.T) {
 	w.UID = os.Getuid() + 1
 	if _, err := w.Write(ctx, change(edit(t, p, set("title", "x")))); !errors.Is(err, ErrLocked) {
 		t.Errorf("another owner's file: %v", err)
+	}
+
+	// shelf may give a copy only a group it is in, so a file of another
+	// group is locked before anything is copied.
+	w, _ = writer(t)
+	w.groups = func(int) bool { return false }
+	if _, err := w.Check(change(edit(t, p, set("title", "x")))); !errors.Is(err, ErrLocked) || !strings.Contains(err.Error(), "group") {
+		t.Errorf("another group's file: %v", err)
+	}
+	if entries, _ := os.ReadDir(dir); len(entries) != 1 {
+		t.Errorf("the check left %v", entries)
 	}
 
 	w, _ = writer(t)
