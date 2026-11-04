@@ -73,7 +73,7 @@ RUN --mount=type=cache,target=/go/pkg/mod/ \
 # `docker buildx imagetools inspect ghcr.io/tikhonp/wrapper-lite:latest`.
 # tini is PID 1, so it reaps the wrapper-lite processes a SIGKILL orphans,
 # and passes Docker's SIGTERM to the supervisor.
-FROM ghcr.io/tikhonp/wrapper-lite@sha256:d6a49555e7640c79e33b497ac8f5de86f1e0b9d5f3f856a480fea0f928f87728 AS wrapper
+FROM ghcr.io/tikhonp/wrapper-lite@sha256:b711e40347d5364935e72ab2ddd9907e00c7775b12ed9c621ae90e4ad2f97729 AS wrapper
 RUN apt-get update && apt-get install -y --no-install-recommends tini && rm -rf /var/lib/apt/lists/*
 COPY --from=build-wrapper /out/shelf-wrapper /usr/local/bin/shelf-wrapper
 ARG APP_VERSION=dev

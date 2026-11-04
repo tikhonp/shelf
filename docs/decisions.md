@@ -60,6 +60,7 @@ The decisions in force and why. When one changes, edit its row and the docs it t
 | --- | --- |
 | shelf's image carries the upstream amdl 0.1.4 binary and runs it once per download. No amdl code is copied. | amdl has no cancel or progress API, and its repo has no licence. |
 | wrapper-lite runs in its own privileged container, shelf-wrapper, with tini as PID 1 and a Go supervisor that serves a control API for sign-in. | It needs privileges and an Android rootfs the app shouldn't have, tini reaps orphans, and the owner wanted sign-in in the UI. |
+| shelf-wrapper starts from `ghcr.io/tikhonp/wrapper-lite`, the fork's build of upstream's `lite` branch, until upstream publishes an image. PR #70 on `WorldObservationLog/wrapper` adds that. | The fork differs from upstream only by the CI job that pushes the image. Building upstream's Dockerfile here would fetch the Android NDK and LLVM on every uncached build. |
 | `login complete, exiting` decides whether a sign-in worked. | The launcher exits 0 however wrapper-lite ends. |
 | The wrapper has a `starting` state. | A new or restarted wrapper has no answer yet. |
 | The supervisor drops `request: GET /status` lines from its log and redacts the password and token heads. | The log reaches the Status page. |
