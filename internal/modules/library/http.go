@@ -23,6 +23,8 @@ func (m *Module) routes(api *echo.Group) {
 	api.GET("/library/albums", m.list)
 	api.GET("/library/albums/:id", m.get)
 	api.GET("/library/tracks/:id/audio", m.audio)
+	api.POST("/library/albums/:id/save", m.save)
+	api.GET("/library/changes/:id", m.getChange)
 }
 
 func (m *Module) getIndex(c *echo.Context) error { return c.JSON(http.StatusOK, m.ix.status()) }

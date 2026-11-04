@@ -72,13 +72,17 @@ func TestDownloadReports(t *testing.T) {
 
 func TestDownloadResult(t *testing.T) {
 	r := newRig(t).up()
-	_, res, err := r.download(source.KindAlbum, qobuzdltest.AlbumHiRes96, formatMax, false)
+	rec, res, err := r.download(source.KindAlbum, qobuzdltest.AlbumHiRes96, formatMax, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	folder := "qobuz/Norah Jones - Begin Again (2019) [24B-96kHz]"
 	if !slices.Equal(res.Folders, []string{folder}) {
 		t.Fatalf("folders %q", res.Folders)
+	}
+	// Tag writes keep out of the work folder and both names it ends with.
+	if want := []string{"qobuz/[IN PROGRESS] " + folder[6:], folder, "qobuz/[INCOMPLETE] " + folder[6:]}; !slices.Equal(rec.working, want) {
+		t.Fatalf("working %q", rec.working)
 	}
 	if len(res.Files) != 7 || res.Files[0] != folder+"/01 - My Heart Is Full.flac" {
 		t.Fatalf("files %q", res.Files)

@@ -1,8 +1,8 @@
 // Package library is the tag editor's module. Phase 2 builds it in steps.
 // It keeps an index of the music folder, read the way Navidrome reads it,
-// with the albums it forms and the checks they fail, and serves it under
-// /api/library. It never writes a file yet; the reading and writing of tags
-// is in tagio.
+// with the albums it forms and the checks they fail, serves it under
+// /api/library, and saves edits through jobs on the tags queue. The reading
+// and writing of tags is in tagio.
 package library
 
 import (
@@ -16,6 +16,8 @@ import (
 
 	"github.com/labstack/echo/v5"
 	"github.com/tikhonp/shelf/internal/modules/library/tagio"
+	"github.com/tikhonp/shelf/internal/platform/hub"
+	"github.com/tikhonp/shelf/internal/platform/jobs"
 	"github.com/tikhonp/shelf/internal/platform/module"
 )
 
@@ -35,12 +37,16 @@ type Module struct {
 	log   *slog.Logger
 	store store
 	ix    *index
+	jobs  *jobs.System
+	hub   *hub.Hub
 	// kick asks for a walk. It holds one signal, so a burst asks once.
 	kick chan struct{}
 
 	mu     sync.Mutex
 	config ConfigReader
 	rules  *tagio.Rules
+	busy   func(dir string) bool
+	scan   func(ctx context.Context) error
 }
 
 // New returns the module.
@@ -63,15 +69,36 @@ func (m *Module) SetConfig(c ConfigReader) {
 	m.mu.Unlock()
 }
 
+// SetBusy wires the downloads module's report of the folders a download
+// writes in. main sets it before Init. Without it no folder is busy.
+func (m *Module) SetBusy(busy func(dir string) bool) {
+	m.mu.Lock()
+	m.busy = busy
+	m.mu.Unlock()
+}
+
+// SetScanner wires the request for a Navidrome scan after a write.
+func (m *Module) SetScanner(scan func(ctx context.Context) error) {
+	m.mu.Lock()
+	m.scan = scan
+	m.mu.Unlock()
+}
+
+func (m *Module) scanner() func(ctx context.Context) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.scan
+}
+
 // Init keeps the music folder's path and the database. The walk reads the
 // whole library, so it waits for Run, which only serve calls.
 func (m *Module) Init(d module.Deps) error {
-	m.root, m.log = d.Cfg.MusicDir, d.Log
+	m.root, m.log, m.jobs, m.hub = d.Cfg.MusicDir, d.Log, d.Jobs, d.Hub
 	m.store = store{db: d.DB}
 	m.mu.Lock()
 	config := m.config
 	m.mu.Unlock()
-	m.ix = &index{root: m.root, store: m.store, config: config, log: d.Log,
+	m.ix = &index{root: m.root, uid: os.Getuid(), store: m.store, config: config, log: d.Log,
 		publish: func(s Status) {
 			if d.Hub != nil {
 				d.Hub.Publish(Topic, s)
@@ -98,8 +125,9 @@ func (m *Module) Kick() {
 	}
 }
 
-// Run removes the temp files a crash left in the middle of a write, then
-// walks the music folder at start, every m.Every, and when asked.
+// Run removes the temp files a crash left in the middle of a write,
+// settles the changes it cut off, probes the top folders, then walks the
+// music folder at start, every m.Every, and when asked.
 func (m *Module) Run(ctx context.Context) error {
 	removed, err := tagio.Sweep(m.root, os.Getuid())
 	for _, p := range removed {
@@ -109,9 +137,13 @@ func (m *Module) Run(ctx context.Context) error {
 		// Folders shelf can't read hold none of its temp files.
 		m.log.Warn("temp sweep", "error", err)
 	}
+	if err := m.reconcileAll(ctx); err != nil {
+		m.log.Error("library: settle interrupted changes", "error", err)
+	}
 	if err := m.ix.load(ctx); err != nil {
 		return err
 	}
+	m.ix.probe()
 	t := time.NewTimer(0)
 	defer t.Stop()
 	for {

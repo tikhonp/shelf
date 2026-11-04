@@ -53,7 +53,7 @@ and `blackberry/shelf-wrapper.env` with the same `SHELF_WRAPPER_TOKEN`. Commit c
 - shelf writes only into `qobuz/` and `apple-music/`, which belong to 10001. The genre folders keep their mixed owners, so the login user and Picard keep writing there. The login user needs sudo to write into the two source folders.
 - shelf never changes the owner or mode of a file it did not create.
 - Navidrome has a read-only mount and reads the files because they are world-readable.
-- At startup shelf creates and removes a probe file in each source folder. The Status page reports a folder shelf can't write to or one owned by another UID.
+- At startup shelf creates and removes a probe file in each top folder of the music folder, and each walk of the index counts the files another UID owns. `GET /api/library/index` reports a folder shelf can't write to and its locked files, and the Status page will show them.
 
 This command prints nothing while the source folders are right:
 

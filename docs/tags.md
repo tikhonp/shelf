@@ -1,6 +1,6 @@
 # Tags
 
-How shelf reads and writes the tags in audio files, and how it indexes and checks the library. Navidrome is the test of every write. shelf follows its mappings, and a write that reads back right but shows wrong in Navidrome has failed. The code is `internal/modules/library/tagio`. Phase 2 builds the editor in steps, and this doc grows with them. [phase-2.md](phase-2.md) has the plan.
+How shelf reads and writes the tags in audio files, and how it indexes, checks and saves the library. Navidrome is the test of every write. shelf follows its mappings, and a write that reads back right but shows wrong in Navidrome has failed. The code is the library module, `internal/modules/library`, with tag IO in its `tagio` package. Phase 2 builds the editor in steps, and this doc grows with them. [phase-2.md](phase-2.md) has the plan.
 
 ## Fields
 
@@ -38,10 +38,10 @@ A file's revision is its size, its mtime in nanoseconds, and the first 16 hex di
 
 One rule covers every write. `tagio.Writer` runs one write at a time over the files of one album:
 
-1. **Check every file.** The path must be absolute, with a known extension. It must be a regular file, not a symlink, and have one link, because a rename would split a hard link. shelf's UID, 10001 in production, must own it and be able to write its folder, or the file is locked. A folder a download is working in is busy. A revision that differs from the file's is a conflict, and so is an empty one. Any of these stops the write before a file is touched.
+1. **Check every file.** The path must be absolute, with a known extension. It must be a regular file, not a symlink, and have one link, because a rename would split a hard link. shelf's UID, 10001 in production, must own it and be able to write its folder, or the file is locked. A folder a download is working in, or one inside it, is busy. A revision that differs from the file's is a conflict, and so is an empty one. Any of these stops the write before a file is touched.
 2. **Work out the change.** A field edit changes every key of the file that feeds the field, or adds the field's key when none does. Navidrome takes the first alias of a single value and merges the aliases of a multi-value tag, so a stale `ALBUM ARTIST` beside `ALBUMARTIST` would add a second album artist. An edit with no values removes every key that feeds the field. A raw key edit changes that key. An edit that changes nothing drops out, and a file left with nothing to change isn't rewritten.
 3. **Refuse what can't be written.** That covers an unknown field, an edit that names both a field and a key or neither, an empty value, a value with a vertical tab or NUL, a key with a tab, vertical tab, NUL or `=`, since go-taglib uses those as separators, two edits of one key, a read-only key, a cover that isn't JPEG or PNG, and a FLAC cover over 16 MiB, which TagLib drops without an error. M4A's two dates share `DATE`, so editing both in one write is refused.
-4. **Journal.** The write is recorded with each file's tags before and after, before any file is touched. The journal gets its own copy of the result. Until step 3 gives it a table, the journal is a port with no implementation.
+4. **Journal.** The write is recorded with each file's tags before and after, before any file is touched. The journal gets its own copy of the result. It is the change's row in `library_changes`, as [Saving](#saving) describes.
 5. **Copy and write.** shelf copies each file to `.shelf-tmp-<16 hex>` in its own folder, creates the copy with mode 0600, and gives it the original's mode and group. The copy hashes a FLAC file's audio on the way. shelf passes only the changed keys to go-taglib and never uses `taglib.Clear`. A new cover replaces the front cover, or is added when there is none. Other pictures stay.
 6. **Verify.** The copy's full tag map must equal the original's with the change applied. Its pictures must match in count, MIME type, bytes, and, outside M4A, type and description. Its audio must hash the same as the original's. Any difference aborts the write, and every original stays untouched.
 7. **Re-stat and rename.** Each original must still have its size and mtime, and its folder must not be busy. Then shelf renames the copies over the originals back to back, ignoring cancellation, and fsyncs each folder.
@@ -49,6 +49,29 @@ One rule covers every write. `tagio.Writer` runs one write at a time over the fi
 A failure before the renames removes every temp file and changes nothing. A rename that fails after others succeeded ends with `ErrPartial`. Each file is whole, old or new, and the result says which. When a folder fsync fails, every file is already written, and the write returns the error.
 
 At start the library module removes temp files a crash left. It walks the music folder, skips dot folders, and deletes only regular files with the temp name that shelf's UID owns. A folder it can't read is logged and skipped.
+
+## Saving
+
+`POST /api/library/albums/{id}/save` sends the edits of one album. Each track names its row ID, the revision the editor loaded, and its edits, each a field or a raw key with its new values. An album-level edit is the same edit on every track.
+
+1. **Check now.** shelf runs the writer's checks against the files as they are, touching none. A conflict, a locked file or a busy folder answers 409 with a `reason` and the track it stopped at. A change a file can't take answers 422. A Save that changes nothing answers 422 too, and nothing is stored.
+2. **Confirm what Navidrome does.** shelf works out each file's Navidrome album ID and album artists after the edits. Three outcomes move or lose a star or a rating, so the Save answers 409 with `reason: confirm` and a message for each, until the request's `confirm` names all of them:
+   - `split`: the album's tracks end with more than one album ID. Tracks the Save leaves alone keep the ID the index read.
+   - `merge`: tracks move to an album ID another album already has, in any folder.
+   - `album_artist`: the album artists Navidrome shows change. `ALBUMARTISTS` wins over `ALBUMARTIST`, so an edit of the single tag alone renames nobody while the multi-value one is set.
+
+   A change of the whole album to a new ID asks nothing, since Navidrome moves its star and rating to the new ID.
+3. **Queue.** The change goes into `library_changes` as `queued`, with the edits, and a `library.write` job on the `tags` queue, which runs one write at a time. The answer is 202 with the change. The job's payload holds only the change's ID, because payloads stop at 64 KiB.
+4. **Write.** The job runs the writer on the stored edits, so a file that changed since the check is a conflict then. Its journal sets the change `writing` and stores each file's tags before and as planned. When the write ends, each file gets the tags it read back, its new revision, and whether it was replaced. The change ends `done` when every file was replaced, `partial` when some were, and `failed` when none was, with a reason: `conflict`, `locked`, `busy`, `refused`, `verify` or `error`. A failed write fails the change, not the job.
+5. **After.** The hub's `change` topic hears the change when it is queued and when it ends. A change that replaced a file asks Navidrome for a scan, labeled `library`, and the index for a walk.
+
+`GET /api/library/changes/{id}` answers the change with each file's changed keys before and after. Its `album_id` is the album the files belong to now, which differs from the one saved once a new Navidrome album ID reaches the index.
+
+**Busy folders.** A source names each folder it writes in through `source.Reporter.Working`, and the downloads module keeps them until `Download` returns. Qobuz names its work folder `[IN PROGRESS] <name>`, and the plain and `[INCOMPLETE]` names it ends with. amdl names its folders only at the end, so Apple Music names its whole folder, `apple-music`. A write checks for busy folders at the start and again before the renames.
+
+**Interrupted writes.** A stop between a change's journal and its end leaves it `writing`. At start, and when the job resumes, shelf reads each of its files: one that holds the planned tags was replaced. The change ends `done`, `partial` or `failed` by that count, with the reason `interrupted`.
+
+**Write probe.** At start, shelf creates and removes a temp file in each top folder of the music folder. `GET /api/library/index` lists the top folders with `writable` and the reason when not. Each walk counts the files another UID owns, which shelf can't write, as `locked`, per folder and in all. The probe runs once a start, because it moves each folder's mtime.
 
 ## Navidrome's view
 
@@ -131,5 +154,13 @@ Each check is a kind that the filter menu offers. Guide kinds are style only and
 | An opened album read again after another tool's retag, and its split seen from the folder's other album | `TestOpenedAlbumIsReadAgain`, `TestOpenedAlbumSeesItsSplit` |
 | Audio with its type and ranges; a file swapped for a symlink; an unknown track | `TestAudio` |
 | Run sweeps, walks at start, after a download and on request | `TestRunSweepsWalksAndHearsDownloads` |
+| A Save writes every track, stores before and after, asks for a scan and a walk, and follows the album's new ID | `TestSaveWritesTheAlbum` |
+| Bad bodies, another album's track, a conflict, an unknown field, nothing to change, too many edits, a busy folder, a locked folder | `TestSaveRefuses` |
+| Split, merge, album artist renames and their confirmations; an `ALBUMARTIST` edit under `ALBUMARTISTS`; a whole-album change that asks nothing | `TestSaveAsksBeforeNavidromeMovesAStar` |
+| A file another tool changes between the check and the job | `TestSaveSeesAChangeBeforeItsJob` |
+| Interrupted changes settled as done, partial and failed, at start and by a resumed job, and only once | `TestInterruptedChangeIsSettled` |
+| The probe in each top folder, a folder shelf can't write, files another UID owns | `TestProbeAndLockedFiles` |
+| A download's folders are busy while its source writes, and folders inside them; folders outside the music folder are ignored | `TestBusyWhileTheSourceWrites`, `TestWorkingFolderOutsideTheMusicFolder` |
+| Qobuz's work folder and both names it ends with; Apple Music's whole folder | `TestDownloadResult` in `qobuz`, `TestDownloadAlbum` in `applemusic` |
 
 The fixtures in `tagio/testdata` are half a second of a sine per format, written by `testdata/make.sh`. Tests that need ffmpeg skip where it isn't installed.

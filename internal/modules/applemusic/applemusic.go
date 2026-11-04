@@ -94,6 +94,7 @@ func (m *Module) Init(d module.Deps) error {
 	m.wrapper = wrapper.New(cfg.WrapperControlURL, cfg.WrapperURL, cfg.WrapperToken, &http.Client{Timeout: wrapperTimeout})
 	dir := filepath.Join(d.Cfg.DataDir, "amdl")
 	s := m.src
+	s.dir = cfg.Dir
 	s.render = &amdl.Renderer{
 		BasePath: cfg.AMDLConfig, Path: filepath.Join(dir, "config.yaml"),
 		Settings: amdl.Settings{LiteServer: cfg.WrapperURL.String(), Folder: filepath.Join(d.Cfg.MusicDir, cfg.Dir)},
@@ -113,7 +114,9 @@ func (m *Module) Init(d module.Deps) error {
 
 // Source is the Apple Music source.
 type Source struct {
-	off     bool
+	off bool
+	// dir is the folder amdl writes in, relative to the music root.
+	dir     string
 	catalog *Catalog
 	runner  *amdl.Runner
 	render  *amdl.Renderer

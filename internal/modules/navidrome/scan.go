@@ -40,15 +40,18 @@ func (m *Module) JobTypes() []jobs.Type {
 // Schedules: none.
 func (*Module) Schedules() []jobs.Schedule { return nil }
 
-// RequestScan is the downloads module's Scanner port. It queues a scan for
-// SHELF_NAVIDROME_SCAN_DELAY from now. A request in a burst merges into the
-// queued scan and moves it later, so a burst of downloads gives one scan.
-func (m *Module) RequestScan(ctx context.Context) error {
+// RequestScan is the downloads module's Scanner port.
+func (m *Module) RequestScan(ctx context.Context) error { return m.RequestScanFor(ctx, "downloads") }
+
+// RequestScanFor queues a scan for SHELF_NAVIDROME_SCAN_DELAY from now, on
+// behalf of by. A request in a burst merges into the queued scan and moves
+// it later, so a burst of downloads or saves gives one scan.
+func (m *Module) RequestScanFor(ctx context.Context, by string) error {
 	if !m.Enabled() {
 		return nil
 	}
 	_, err := m.jobs.EnqueueNow(ctx, jobs.Request{
-		Type: JobType, CoalescingKey: scanKey, Delay: m.cfg.ScanDelay, CreatedBy: "downloads",
+		Type: JobType, CoalescingKey: scanKey, Delay: m.cfg.ScanDelay, CreatedBy: by,
 	})
 	return err
 }

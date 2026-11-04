@@ -51,6 +51,20 @@ type Status struct {
 	// "cached" or "default".
 	Rules string `json:"rules"`
 	Error string `json:"error"`
+	// Locked counts the files shelf can't write because another user owns
+	// them.
+	Locked int `json:"locked"`
+	// Folders are the music folder's top folders.
+	Folders []FolderState `json:"folders"`
+}
+
+// FolderState is one top folder, with whether the probe at start could
+// write in it and how many of its files another user owns.
+type FolderState struct {
+	Name     string `json:"name"`
+	Writable bool   `json:"writable"`
+	Error    string `json:"error,omitempty"`
+	Locked   int    `json:"locked"`
 }
 
 // ConfigReader reads Navidrome's tag settings. The navidrome module is it.
@@ -58,7 +72,9 @@ type ConfigReader func(ctx context.Context) (tagio.NavidromeConfig, error)
 
 // index walks the music folder into the store.
 type index struct {
-	root   string
+	root string
+	// uid is the owner a file needs before shelf writes it.
+	uid    int
 	store  store
 	config ConfigReader
 	// publish sends a status to the hub.
@@ -90,15 +106,17 @@ func (ix *index) current() *tagio.Rules {
 func (ix *index) status() Status {
 	ix.mu.Lock()
 	defer ix.mu.Unlock()
-	return ix.state
+	st := ix.state
+	// Walks update the folders in place.
+	st.Folders = append([]FolderState{}, st.Folders...)
+	return st
 }
 
 func (ix *index) set(fn func(*Status)) {
 	ix.mu.Lock()
 	fn(&ix.state)
-	st := ix.state
 	ix.mu.Unlock()
-	ix.publish(st)
+	ix.publish(ix.status())
 }
 
 // load reads the index the last run left.
@@ -191,6 +209,13 @@ func (ix *index) run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	locked := map[string]int{}
+	for _, e := range entries {
+		if uid, ok := tagio.Owner(e.info); ok && uid != ix.uid {
+			top, _, _ := strings.Cut(e.rel, "/")
+			locked[top]++
+		}
+	}
 	seen := make(map[string]bool, len(entries))
 	var batch []*file
 	read := 0
@@ -256,8 +281,40 @@ func (ix *index) run(ctx context.Context) error {
 	ix.set(func(s *Status) {
 		s.Read, s.Albums, s.NavidromeAlbums = read, len(albums), len(nd)
 		s.Tracks, s.Unreadable = len(all)-unreadable, unreadable
+		s.Locked = 0
+		for i := range s.Folders {
+			s.Folders[i].Locked = locked[s.Folders[i].Name]
+		}
+		for _, n := range locked {
+			s.Locked += n
+		}
 	})
 	return nil
+}
+
+// probe writes and removes a temp file in each top folder of the music
+// folder, so the Status page can name a folder shelf can't write. It runs
+// once at start, because each probe moves the folder's mtime.
+func (ix *index) probe() {
+	entries, err := os.ReadDir(ix.root)
+	if err != nil {
+		ix.log.Warn("library: list the music folder", "error", err)
+		return
+	}
+	out := []FolderState{}
+	for _, e := range entries {
+		name := e.Name()
+		if !e.IsDir() || dotEntry(name) || slices.ContainsFunc(systemDirs, func(s string) bool { return strings.EqualFold(s, name) }) {
+			continue
+		}
+		fs := FolderState{Name: name, Writable: true}
+		if err := tagio.Probe(filepath.Join(ix.root, name)); err != nil {
+			fs.Writable, fs.Error = false, strings.ReplaceAll(err.Error(), ix.root+string(filepath.Separator), "")
+			ix.log.Warn("library: shelf can't write in a folder", "folder", name, "error", err)
+		}
+		out = append(out, fs)
+	}
+	ix.set(func(s *Status) { s.Folders = out })
 }
 
 // albumsSum sums everything saveAlbums writes.

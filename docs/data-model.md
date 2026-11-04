@@ -150,3 +150,42 @@ Rules:
 - `kinds` lists the issue kinds between commas, so the filter matches `,kind,`. `search` is the title, artist and folder, lowercased with typographic quotes and dashes made plain.
 - `library_state` holds one row, `navidrome_config`, with the tag settings last read from Navidrome as JSON.
 
+`internal/modules/library/migrations/00002_changes.sql` holds every tag write. Unlike the index, the files can't rebuild it.
+
+```sql
+CREATE TABLE library_changes (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind        TEXT NOT NULL CHECK (kind IN ('save', 'undo', 'redo')),
+    target      INTEGER REFERENCES library_changes (id) ON DELETE CASCADE, -- the save an undo or redo works on
+    album_id    INTEGER NOT NULL,          -- the index's album row when asked for; no foreign key
+    folder      TEXT NOT NULL,
+    title       TEXT NOT NULL,             -- the album and its artist when asked for
+    artist      TEXT NOT NULL,
+    state       TEXT NOT NULL CHECK (state IN ('queued', 'writing', 'done', 'partial', 'failed')),
+    reason      TEXT NOT NULL DEFAULT '',  -- 'conflict', 'locked', 'busy', 'refused', 'verify', 'interrupted', 'error'
+    error       TEXT NOT NULL DEFAULT '' CHECK (length(error) <= 4100),
+    undone      INTEGER NOT NULL DEFAULT 0 CHECK (undone IN (0, 1)),
+    request     TEXT NOT NULL DEFAULT '{}', -- JSON: the edits as asked
+    conflicts   TEXT NOT NULL DEFAULT '[]', -- JSON: what an undo or redo left alone
+    tags        INTEGER NOT NULL DEFAULT 0, -- keys changed, over all files
+    job_id      INTEGER,
+    created_at  TEXT NOT NULL,
+    finished_at TEXT
+) STRICT;
+
+CREATE TABLE library_change_files (
+    change_id INTEGER NOT NULL REFERENCES library_changes (id) ON DELETE CASCADE,
+    path      TEXT NOT NULL,                -- inside the music folder
+    before    TEXT NOT NULL,                -- JSON: every key and its values
+    after     TEXT NOT NULL,                -- JSON: as planned, then as read back
+    revision  TEXT NOT NULL DEFAULT '',     -- after the write
+    written   INTEGER NOT NULL DEFAULT 0 CHECK (written IN (0, 1)),
+    PRIMARY KEY (change_id, path)
+) STRICT;
+```
+
+- A change moves from `queued` to `writing` when its journal begins, then to `done`, `partial` or `failed` by how many of its files were replaced. A change the checks stopped goes from `queued` to `failed` and has no files.
+- `request` holds the edits with each file's path and revision, because a job's payload stops at 64 KiB. The job's payload names only the change.
+- A file row holds the full tag map before and after, so an undo can restore any key. `after` is the plan until the write ends, then what the file read back.
+- History has no foreign key to the index, which a walk rebuilds. Paths are relative to the music folder, as in the index.
+

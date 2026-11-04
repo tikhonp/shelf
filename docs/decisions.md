@@ -92,7 +92,7 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 
 ## Tags
 
-Phase 2 is being built. Step 1, tag IO and the safe writer, and step 2, the read-only library, are built, and [tags.md](tags.md) describes them. The rows under Deployment stay in force until the editing backend ships.
+Phase 2 is being built. Step 1, tag IO and the safe writer, and step 2, the read-only library, are built, and step 3, the editing backend, is under way. [tags.md](tags.md) describes them. The rows under Deployment stay in force until the editing backend ships.
 
 | Decision | Why |
 | --- | --- |
@@ -133,6 +133,11 @@ Phase 2 is being built. Step 1, tag IO and the safe writer, and step 2, the read
 | The index keeps facts, about 1 KB a file, and no tags. | An opened album reads its files anyway. Tags with lyrics would make the database, and its 14 daily copies, many times larger. |
 | An `.ndignore` with no pattern skips its folder, as in Navidrome. One with patterns is logged and its folder indexed. | shelf doesn't match Navidrome's patterns, and a missed ignore shows as a count that differs. |
 | The audio endpoint serves the file as it is. A transcode for browsers that can't play a format comes with the player in step 5. | Browsers play FLAC. The UI knows what it can play, and the library has 13 M4A files. |
+| A Save is checked against the files when it is asked for, runs as a `library.write` job, and is checked again there. The job's payload names only the change, whose row holds the edits. | The editor learns of a conflict at once, a phone that drops its connection can't cut a write off, and payloads stop at 64 KiB. |
+| A Save that splits, merges or renames album artists answers 409 until its `confirm` names each of them. | A confirmation given for one warning can't let another through. |
+| A source names each folder it writes in through `source.Reporter.Working`. Qobuz names its work folder and both names it ends with, and Apple Music names its whole folder. | `downloads.folder` is written only after a download, Qobuz renames the album folder while it runs, and amdl names its folders only when it ends. |
+| The write probe runs once at start, in each top folder of the music folder. | Each probe moves the folder's mtime, which Navidrome's watcher hears. |
+| A change cut off while it wrote is settled from its files: one that holds the planned tags was replaced. | The renames run back to back, so a crash leaves each file old or new, and the read tells which. |
 | A bulk run has no nightly limit. Its preview shows the files and GB touched, and the owner sizes each run. | Nothing runs by itself. The HDD backup recopies each changed file and keeps no history, and the remote one keeps overwritten files for 30 days. |
 
 ### Evidence from step 0

@@ -368,3 +368,31 @@ func (s store) navidromeAlbums(ctx context.Context) (int, error) {
 	err := s.db.R.GetContext(ctx, &n, `SELECT count(DISTINCT nd_id) FROM library_albums`)
 	return n, err
 }
+
+// albumIDTaken reports whether an album other than except has a Navidrome
+// album ID, so a Save that moves tracks to it merges them in Navidrome.
+func (s store) albumIDTaken(ctx context.Context, ndID string, except int64) (bool, error) {
+	var n int
+	err := s.db.R.GetContext(ctx, &n, `SELECT count(*) FROM library_albums WHERE nd_id = ? AND id != ?`, ndID, except)
+	return n > 0, err
+}
+
+// albumOf is the album a file belongs to now, or 0.
+func (s store) albumOf(ctx context.Context, path string) (int64, error) {
+	var id sql.NullInt64
+	err := s.db.R.GetContext(ctx, &id, `SELECT album_id FROM library_files WHERE path = ?`, path)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, nil
+	}
+	return id.Int64, err
+}
+
+// fileByPath is a file's row ID.
+func (s store) fileByPath(ctx context.Context, path string) (int64, error) {
+	var id int64
+	err := s.db.R.GetContext(ctx, &id, `SELECT id FROM library_files WHERE path = ?`, path)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, errNotFound
+	}
+	return id, err
+}

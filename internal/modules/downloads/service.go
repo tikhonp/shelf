@@ -60,6 +60,8 @@ type Service struct {
 	mu       sync.Mutex
 	notifier Notifier
 	scanner  Scanner
+	// working maps a running download to the folders its source writes in.
+	working map[int64][]string
 }
 
 func (s *Service) init(d module.Deps) {
@@ -316,7 +318,7 @@ func (s *Service) enqueue(ctx context.Context, tx *sqlx.Tx, id int64, ref source
 // download at a time and two sources run side by side. A source without
 // its own queue, such as the fake one, uses system.
 func queueFor(sourceID string) jobs.Queue {
-	if q := jobs.Queue(sourceID); jobs.Concurrency[q] > 0 && q != jobs.QueueLibrary {
+	if q := jobs.Queue(sourceID); jobs.Concurrency[q] > 0 && q != jobs.QueueLibrary && q != jobs.QueueTags {
 		return q
 	}
 	return jobs.QueueSystem

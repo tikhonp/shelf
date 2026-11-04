@@ -22,6 +22,7 @@ type reporter struct {
 	progress map[int][]int64
 	done     map[int]source.TrackResult
 	lines    []string
+	working  []string
 }
 
 func newReporter() *reporter {
@@ -41,6 +42,11 @@ func (r *reporter) Done(p int, res source.TrackResult) {
 	r.done[p] = res
 }
 func (r *reporter) Log() source.Logger { return logger{r} }
+func (r *reporter) Working(f string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.working = append(r.working, f)
+}
 
 type logger struct{ r *reporter }
 
@@ -83,6 +89,9 @@ func TestDownloadAlbum(t *testing.T) {
 	}
 	if b, _ := os.ReadFile(cfgPath); !strings.Contains(string(b), `alac: "`+filepath.Join(r.music, "apple-music")+`"`) {
 		t.Fatalf("config:\n%s", b)
+	}
+	if !slices.Equal(rep.working, []string{"apple-music"}) {
+		t.Fatalf("working %q", rep.working)
 	}
 	if len(rep.planned) != 3 || !slices.Equal(rep.started, []int{1, 2, 3}) {
 		t.Fatalf("planned %d, started %v", len(rep.planned), rep.started)
