@@ -256,5 +256,5 @@ Help never shows on a screen at rest, and the design adds no helper text beside 
 - The meter shows one lamp per album up to 40, and lamps share albums past that.
 - The cover dialog shows no size for the current cover, because the API has none.
 - On the phone the cover dialog is the desktop's dialog in a narrower window. The canvas has no phone board for it.
-- Status's Library part has no line on whether MusicBrainz answers, because the API has no such check.
+- Status's Library part keeps the index's two lines and gives MusicBrainz a third, with its answer time when it answers. The note under it while MusicBrainz is down says "Suggestions from MusicBrainz" where the canvas says "Its suggestions".
 - Delete is new, with no canvas board. It is a text cap in the Editor's title bar on the desktop and in the album's title bar on the phone. It opens the confirm dialog, or the phone's slot, with Delete as its key. The title is "Delete this album?", or "Delete these albums?" when other albums share the folder. While the delete runs, the Save bar's place shows DELETING and the file count. A refusal uses the Not saved panel, titled Not deleted. In History a delete reads "Deleted: Blue", has a Deleted pill and no Undo, and opens to the folder, the files and size, the other albums, the downloads and Navidrome.

@@ -21,6 +21,7 @@ import (
 func (m *Module) routes(api *echo.Group) {
 	api.GET("/library/index", m.getIndex)
 	api.POST("/library/index", m.postIndex)
+	api.GET("/library/musicbrainz", m.getMusicBrainz)
 	api.GET("/library/filters", m.filters)
 	api.GET("/library/keys", m.keys)
 	api.GET("/library/albums", m.list)

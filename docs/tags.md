@@ -224,6 +224,7 @@ Every MusicBrainz suggestion comes from one release, the anchor. Accepting field
 - **MusicBrainz** answers one request a second from each client. One limiter in shelf holds every call to that, and a bulk caller lets the editor's calls go first. After a 503, shelf asks again 2 and then 4 seconds later. Every call names shelf, its version and `SHELF_PUBLIC_URL` in the User-Agent, as MusicBrainz asks.
 - **Cache.** shelf stores answers from MusicBrainz, the Cover Art Archive and LRCLIB in `library_lookups` by request. A found answer serves for 30 days and a "not found" for a day. shelf stores no other answer. The `library.retention` job removes old answers and old offers.
 - **Time.** An album's lookups stop after 40 seconds, and shelf lists a service still busy then as not answering.
+- **Status.** `GET /api/library/musicbrainz` looks up Various Artists without the cache, waits for the limiter like the editor, and doesn't retry. Its answer serves every caller for 30 seconds, since each page load checks Status. When MusicBrainz is busy, answers with errors or doesn't answer, the Library part on Status turns its lamp amber and says that editing and saving still work.
 
 ## The editor
 
@@ -432,5 +433,6 @@ The test's container installs Alpine's ffmpeg, the one production has, because a
 | AcoustID as the last resort, a miss, a failure, no key, MusicBrainz down | `TestAudioFindsTheAnchorWhenTextFindsNothing`, `TestAudioThatFindsNothingIsKeptAsAMiss`, `TestFailedFingerprintStoresNothing`, `TestNoKeyNoFingerprint`, `TestAudioDoesNothingWhenMusicBrainzFails`, `TestAudioWaitsForTextLookups` |
 | The key out of the address, the service's errors, fpcalc failing | `acoustid`: `TestLookupKeepsTheKeyOutOfTheAddress`, `TestLookupReportsTheServiceError`, `TestFingerprint` |
 | The client's cache, retries and decoding; links; the limiter's spacing and the editor going first | `TestReleaseAndCache`, `TestShapes`, `TestParseRelease`, `TestLimiterSpacesCalls`, `TestLimiterLetsTheEditorGoFirst` in `musicbrainz`, `TestGet` in `lrclib` |
+| The Status probe: no cache, no retry, busy, errors, down, one probe for 30 seconds | `TestPing` in `musicbrainz`, `TestMusicBrainzStatus` |
 
 The fixtures in `tagio/testdata` are half a second of a sine per format, written by `testdata/make.sh`. Tests that need ffmpeg skip where it isn't installed. `musicbrainz/testdata` holds answers in MusicBrainz's and the Cover Art Archive's shapes, written by hand with made-up IDs.
