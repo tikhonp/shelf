@@ -136,6 +136,22 @@ Each check is a kind that the filter menu offers. Guide kinds are style only and
 | `guide_albumartists` | A track has no `ALBUMARTISTS`. |
 | `guide_replaygain` | A track has no track gain, in ReplayGain or R128 form. |
 
+## Navidrome contract
+
+`make contract` runs shelf's writes against a scratch Navidrome, `deluan/navidrome:latest` as in production, or `SHELF_CONTRACT_IMAGE`. Production can pull a release whose rules differ, and this run shows when they do. The script starts Navidrome and the compiled test in Linux containers that share a Docker volume. On a Mac, Docker Desktop's file sharing showed Navidrome stale mtimes, and its quick scan missed some writes, so the test can't read a folder shared from macOS.
+
+After each step the test runs a quick scan, as production asks for, and holds every album's Navidrome ID, year and songs against shelf's index:
+
+1. At start, shelf's album IDs and years match, and Navidrome skips a `.shelf-tmp-` file.
+2. A retag in place keeps a track's ID and star.
+3. A whole-album rename gets a new album ID, and the star follows it.
+4. Its undo brings the old ID back, with the star.
+5. Moving one track to a new album takes the album's star with it, as the Save's warning says.
+6. The `RELEASEDATE` fix's pair on an album under the legacy date rule keeps the year shown.
+7. A new cover is the one Navidrome serves.
+
+Navidrome keeps the old `songCount` of an album that lost a track in a quick scan, though `getAlbum` lists the right songs. The test counts the songs.
+
 ## Edge cases and their tests
 
 | Case | Test |
@@ -197,6 +213,7 @@ Each check is a kind that the filter menu offers. Guide kinds are style only and
 | An interrupted change's cover files settled by their hash | `TestInterruptedCoverIsSettled` |
 | The store keeps covers the history needs and young uploads | `TestCoverStoreSweep` |
 | A route's own body limit, and the 1 MiB limit everywhere else | `TestRouteBodyLimit` |
+| Navidrome's view after a retag, a rename, an undo, a split, the date fix and a cover | `TestNavidromeContract`, with `make contract` |
 | A download's folders are busy while its source writes, and folders inside them; folders outside the music folder are ignored | `TestBusyWhileTheSourceWrites`, `TestWorkingFolderOutsideTheMusicFolder` |
 | Qobuz's work folder and both names it ends with; Apple Music's whole folder | `TestDownloadResult` in `qobuz`, `TestDownloadAlbum` in `applemusic` |
 

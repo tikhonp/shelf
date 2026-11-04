@@ -46,6 +46,7 @@ make manage ARGS="migrate status"   # shelf manage inside the dev container
 make manage ARGS="download https://fake.test/album/album-1"   # with SHELF_DEV_FAKE_SOURCE=true
 make manage ARGS="import-qobuz-db /path/to/qobuz_dl.db"   # the old bot's history
 make manage ARGS="tags /music/qobuz/Album/01.flac"   # one file's tags as Navidrome reads them
+make contract     # shelf's writes against a scratch Navidrome, in Linux containers
 make build-image  # code.tikhonnnnn.com/tikhon/shelf:local
 make build-wrapper-image  # code.tikhonnnnn.com/tikhon/shelf-wrapper:local, amd64 under emulation on a Mac
 SHELF_DATA_DIR=./data go run ./cmd/shelf serve   # /data can't be created on macOS; the shell's SHELF_QOBUZ_TOKEN reaches it
@@ -66,6 +67,7 @@ internal/source/        catalog types, the source interfaces and the registry
 internal/wrapperapi/    the control API's types, shared by shelf and shelf-wrapper
 internal/modules/       downloads, catalog, fakesource, navidrome, telegram, qobuz, applemusic, library
 web/                    the Vue app
+scripts/                contract.sh, which make contract runs
 docs/                   all project information
 ```
 
