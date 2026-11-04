@@ -10,7 +10,7 @@ Every check in [manual-checklist.md](manual-checklist.md) passed in production, 
 
 ## Open
 
-- Status's Library part doesn't say whether MusicBrainz answers, because the API has no such check.
+Nothing is open.
 
 ## Remotes
 

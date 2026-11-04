@@ -176,6 +176,13 @@ export interface ScanState extends ScanEvent {
   latency_ms: number
 }
 
+export interface MusicBrainzState {
+  ok: boolean
+  message: string
+  latency_ms: number
+  checked_at: string
+}
+
 export type WrapperState = 'starting' | 'running' | 'signed_out' | 'signing_in' | 'awaiting_code' | 'error'
 
 export interface Wrapper {

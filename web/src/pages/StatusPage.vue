@@ -94,9 +94,13 @@ const libraryLines = computed(() => {
   if (!i) return []
   if (i.error) return [i.error.toUpperCase()]
   const held = `${count(i.albums, 'album')} · ${count(i.tracks, 'track')}`.toUpperCase()
-  return [i.indexing ? `INDEXING · ${i.read} FILES READ` : 'INDEXED', held]
+  const mb = status.musicbrainz
+  const lookups = mb ? [mb.ok ? `MUSICBRAINZ ANSWERS · ${mb.latency_ms} MS` : mb.message.toUpperCase()] : []
+  return [i.indexing ? `INDEXING · ${i.read} FILES READ` : 'INDEXED', held, ...lookups]
 })
-const libraryLamp = computed(() => (library.index?.error ? 'bad' : library.index?.indexing ? 'run' : 'ok'))
+// While MusicBrainz is down only its suggestions are missing, so the lamp turns amber, not red.
+const mbDown = computed(() => status.musicbrainz?.ok === false)
+const libraryLamp = computed(() => (library.index?.error ? 'bad' : library.index?.indexing ? 'run' : mbDown.value ? 'warn' : 'ok'))
 
 const lines = (s: Source) => [s.enabled ? (s.health.ok ? 'WORKS' : (s.health.message ?? 'FAILED').toUpperCase()) : 'NOT SET UP']
 </script>
@@ -133,7 +137,9 @@ const lines = (s: Source) => [s.enabled ? (s.health.ok ? 'WORKS' : (s.health.mes
           <template v-if="status.scan?.enabled" #keys><button type="button" class="key" :disabled="status.scan.scanning" @click="status.startScan()">Scan now</button></template>
         </PartCard>
         <PartCard name="Telegram" :lamp="telegramLamp" :note="status.telegram?.username ? `@${status.telegram.username}` : ''" :lines="telegramLines" />
-        <PartCard v-if="library.index" name="Library" :lamp="libraryLamp" :lines="libraryLines" />
+        <PartCard v-if="library.index" name="Library" :lamp="libraryLamp" :lines="libraryLines">
+          <template v-if="mbDown" #text><p class="t2">Editing and saving still work. Suggestions from MusicBrainz are missing until it answers.</p></template>
+        </PartCard>
         <NoticeChoice />
         <section class="smod last" aria-label="Theme">
           <div class="smod-h"><h2>Theme</h2></div>
@@ -175,7 +181,9 @@ const lines = (s: Source) => [s.enabled ? (s.health.ok ? 'WORKS' : (s.health.mes
         <template v-if="status.scan?.enabled" #keys><button type="button" class="key" :disabled="status.scan.scanning" @click="status.startScan()">Scan now</button></template>
       </PartCard>
       <PartCard name="Telegram" :lamp="telegramLamp" :note="status.telegram?.username ? `@${status.telegram.username}` : ''" :lines="telegramLines" />
-      <PartCard v-if="library.index" name="Library" :lamp="libraryLamp" :lines="libraryLines" />
+      <PartCard v-if="library.index" name="Library" :lamp="libraryLamp" :lines="libraryLines">
+        <template v-if="mbDown" #text><p class="t2">Editing and saving still work. Suggestions from MusicBrainz are missing until it answers.</p></template>
+      </PartCard>
     </div>
     <NoticeChoice />
     <DensityChoice />

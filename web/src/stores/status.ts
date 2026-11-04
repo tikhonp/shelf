@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { ApiError, get, post } from '../api/client'
-import type { ScanEvent, ScanState, Telegram, Wrapper, WrapperLogLine } from '../api/types'
+import type { MusicBrainzState, ScanEvent, ScanState, Telegram, Wrapper, WrapperLogLine } from '../api/types'
 import { useLibrary } from './library'
 import { useSources } from './sources'
 
@@ -9,6 +9,7 @@ import { useSources } from './sources'
 export const useStatus = defineStore('status', () => {
   const scan = ref<ScanState | null>(null)
   const telegram = ref<Telegram | null>(null)
+  const musicbrainz = ref<MusicBrainzState | null>(null)
   const wrapper = ref<Wrapper | null>(null)
   // wrapperAnswers is false while the wrapper's container doesn't answer.
   const wrapperAnswers = ref(true)
@@ -20,6 +21,10 @@ export const useStatus = defineStore('status', () => {
 
   async function loadTelegram() {
     telegram.value = await get<Telegram>('/api/telegram')
+  }
+
+  async function loadMusicBrainz() {
+    musicbrainz.value = await get<MusicBrainzState>('/api/library/musicbrainz')
   }
 
   async function loadWrapper() {
@@ -36,7 +41,7 @@ export const useStatus = defineStore('status', () => {
   async function check() {
     const sources = useSources()
     // Whether to read the wrapper depends on the sources, so they go first.
-    const others = Promise.allSettled([loadScan(), loadTelegram(), useLibrary().loadIndex()])
+    const others = Promise.allSettled([loadScan(), loadTelegram(), loadMusicBrainz(), useLibrary().loadIndex()])
     await sources.load().catch(() => {})
     if (sources.byId('applemusic')?.enabled) await loadWrapper()
     await others
@@ -77,11 +82,13 @@ export const useStatus = defineStore('status', () => {
   return {
     scan,
     telegram,
+    musicbrainz,
     wrapper,
     wrapperAnswers,
     checkedAt,
     loadScan,
     loadTelegram,
+    loadMusicBrainz,
     loadWrapper,
     check,
     applyScan,

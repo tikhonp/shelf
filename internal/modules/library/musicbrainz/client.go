@@ -33,6 +33,9 @@ const (
 // ErrNotFound is an ID or a search the service has nothing for.
 var ErrNotFound = errors.New("musicbrainz: not found")
 
+// ErrBusy is a 503, which MusicBrainz sends when it turns requests away.
+var ErrBusy = errors.New("musicbrainz: busy")
+
 // Cache keeps answers by request. Only 200 and 404 answers are kept.
 type Cache interface {
 	Get(ctx context.Context, key string) (status int, body []byte, ok bool)
@@ -139,6 +142,36 @@ func (c *Client) do(ctx context.Context, u string) (int, []byte, error) {
 	}
 	return resp.StatusCode, body, nil
 }
+
+// Ping looks up Various Artists, an artist that always exists and has a
+// small answer, and says how long MusicBrainz took. It skips the cache,
+// which would answer even while the service is down. It doesn't retry, so
+// a busy service shows as busy. The time leaves out the wait for the
+// limiter.
+func (c *Client) Ping(ctx context.Context) (time.Duration, error) {
+	if c.Limit != nil {
+		if err := c.Limit.Wait(ctx); err != nil {
+			return 0, err
+		}
+	}
+	start := time.Now()
+	status, _, err := c.do(ctx, c.Base+"/artist/"+VariousArtists+"?fmt=json")
+	took := time.Since(start)
+	switch {
+	case err != nil:
+		return took, err
+	case status == http.StatusOK:
+		return took, nil
+	case status == http.StatusServiceUnavailable:
+		return took, ErrBusy
+	}
+	return took, &StatusError{Code: status}
+}
+
+// StatusError is an answer Ping doesn't expect.
+type StatusError struct{ Code int }
+
+func (e *StatusError) Error() string { return fmt.Sprintf("musicbrainz: answered %d", e.Code) }
 
 // releaseInc is what a release lookup includes. Classical releases also
 // ask for the works and their composers.

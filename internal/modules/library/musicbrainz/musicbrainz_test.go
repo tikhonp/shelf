@@ -269,3 +269,44 @@ func TestLimiterLetsTheEditorGoFirst(t *testing.T) {
 		t.Fatalf("slept %v", slept)
 	}
 }
+
+func TestPing(t *testing.T) {
+	var calls atomic.Int32
+	var path string
+	status := http.StatusOK
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		path = r.URL.Path
+		w.WriteHeader(status)
+		_, _ = w.Write([]byte(`{"id":"` + VariousArtists + `"}`))
+	}))
+	defer srv.Close()
+	cache := &memCache{}
+	c := New("test", cache)
+	c.Base, c.Limit, c.Retry = srv.URL, NewLimiter(0), []time.Duration{time.Millisecond}
+
+	// Every ping asks, since a cached answer would hide a service that is down.
+	for range 2 {
+		if _, err := c.Ping(bg); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if calls.Load() != 2 || path != "/artist/"+VariousArtists || len(cache.m) != 0 {
+		t.Fatalf("%d calls to %s, cache holds %d", calls.Load(), path, len(cache.m))
+	}
+
+	// A 503 returns ErrBusy at once, with no retry.
+	status = http.StatusServiceUnavailable
+	if _, err := c.Ping(bg); !errors.Is(err, ErrBusy) || calls.Load() != 3 {
+		t.Fatalf("busy: %v after %d calls", err, calls.Load())
+	}
+	status = http.StatusBadGateway
+	var se *StatusError
+	if _, err := c.Ping(bg); !errors.As(err, &se) || se.Code != http.StatusBadGateway {
+		t.Fatalf("502: %v", err)
+	}
+	srv.Close()
+	if _, err := c.Ping(bg); err == nil || errors.Is(err, ErrBusy) || errors.As(err, &se) {
+		t.Fatalf("down: %v", err)
+	}
+}

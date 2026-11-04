@@ -68,6 +68,7 @@ type Module struct {
 	userAgent string
 	// kick asks for a walk. It holds one signal, so a burst asks once.
 	kick chan struct{}
+	mb   mbProbe
 
 	mu     sync.Mutex
 	config ConfigReader

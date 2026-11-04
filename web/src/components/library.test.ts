@@ -37,6 +37,7 @@ const routes = (over: Record<string, unknown> = {}) => ({
   '/api/library/scan': { enabled: false },
   '/api/telegram': { enabled: false, connected: false, username: '', users: 0 },
   '/api/library/index': { indexing: false, ready: true, albums: 1, tracks: 2, read: 2, error: '' },
+  '/api/library/musicbrainz': { ok: true, message: '', latency_ms: 120, checked_at: '' },
   '/api/library/filters': { albums: 1, issues: 1, no_mbid: 1, kinds: [{ name: 'no_releasedate', albums: 1 }], folders: [{ name: 'rock', albums: 1 }] },
   '/api/library/keys': { keys: ['TITLE', 'BPM'] },
   '/api/library/albums/7/suggestions': suggestions,
@@ -268,6 +269,16 @@ test('keys act outside a field and leave typing alone', async () => {
 test('the Status page shows the Library part', async () => {
   const { w } = await at('/status')
   expect(w.text()).toContain('1 ALBUM · 2 TRACKS')
+  expect(w.text()).toContain('MUSICBRAINZ ANSWERS · 120 MS')
+  expect(w.find('[aria-label="Library"] .led').classes()).toContain('ok')
+  w.unmount()
+})
+
+test('the Library part warns while MusicBrainz is not answering', async () => {
+  const { w } = await at('/status', { '/api/library/musicbrainz': { ok: false, message: 'MusicBrainz is not answering', latency_ms: 0, checked_at: '' } })
+  expect(w.text()).toContain('MUSICBRAINZ IS NOT ANSWERING')
+  expect(w.text()).toContain('Editing and saving still work.')
+  expect(w.find('[aria-label="Library"] .led').classes()).toContain('warn')
   w.unmount()
 })
 
