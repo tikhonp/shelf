@@ -33,8 +33,8 @@ Apple Music only, through the API, on images from `d54a2f9`. Qobuz, Navidrome an
 | --- | --- |
 | 2 | The code step and the right code passed. The code sent after 60 seconds is not run yet. |
 | 3 | Passed for all four kinds and the album, artist and playlist panels. |
-| 5 | Album, song, album with `?i=`, playlist and artist passed. Music video and station links failed, with the generic error. Fixed after the run. |
-| 6 | Cancel, retry and a restart during a download passed, and the restart went on with 2 tracks skipped and 10 downloaded. A cancel left the current track `running`. Fixed after the run. |
+| 5 | Album, song, album with `?i=`, playlist and artist passed. Music video and station links failed, with the generic error, then passed on `e95e5ad`. |
+| 6 | Cancel, retry and a restart during a download passed, and the restart went on with 2 tracks skipped and 10 downloaded. A cancel left the current track `running`, and on `e95e5ad` it went back to `pending`. |
 | 7 | Passed: skipped without force, 10 skipped with force, and only the deleted track downloaded. |
 | 10 | Passed: `shelf.txt` holds the right IDs and links, and later downloads appended their blocks. |
 | 11 | Passed for modes and owner. Navidrome was off. |
