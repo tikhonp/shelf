@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"log/slog"
@@ -118,6 +119,11 @@ func TestSourceErrors(t *testing.T) {
 	x.src.Source().Fail = &source.Unavailable{Reason: "token expired"}
 	rec := x.do(http.MethodGet, search, nil)
 	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "Fake: token expired") {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
+	x.src.Source().Fail = fmt.Errorf("fake: %w", source.ErrRateLimited)
+	rec = x.do(http.MethodGet, search, nil)
+	if rec.Code != http.StatusTooManyRequests || !strings.Contains(rec.Body.String(), "Fake is slowing us down, try again in a minute") {
 		t.Fatalf("%d %s", rec.Code, rec.Body)
 	}
 	x.src.Source().Fail = errors.New("GET https://fake.test/?token=secret: refused")

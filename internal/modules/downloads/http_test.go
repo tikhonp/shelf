@@ -180,6 +180,16 @@ func TestListPagesAndFilters(t *testing.T) {
 	}
 }
 
+func TestOriginUser(t *testing.T) {
+	r := newRig(t)
+	d := r.queue(QueueRequest{Ref: album("album-1"), Origin: OriginTelegram, OriginRef: OriginRef{UserID: 7, Username: "tikhon"}})
+	var got downloadJSON
+	rec := r.do(http.MethodGet, "/api/downloads/"+strconv.FormatInt(d.ID, 10), nil)
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil || got.Origin != OriginTelegram || got.OriginUser != "tikhon" {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
+}
+
 func TestStatusesMarkItems(t *testing.T) {
 	r := newRig(t)
 	r.start()

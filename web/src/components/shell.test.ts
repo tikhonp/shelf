@@ -1,0 +1,113 @@
+import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
+import { createMemoryHistory } from 'vue-router'
+import App from '../App.vue'
+import { createAppRouter } from '../router'
+import { download, FakeEventSource, list, source, stubApi } from '../testing/api'
+import { useDownloads } from '../stores/downloads'
+import { useSources } from '../stores/sources'
+import { useStatus } from '../stores/status'
+import { useTheme } from '../stores/theme'
+
+const scan = { enabled: true, ok: true, message: '', address: 'x', latency_ms: 3, scanning: false, count: 0, last_scan: '' }
+
+function routes(over: Record<string, unknown> = {}) {
+  return {
+    '/api/downloads': list([]),
+    '/api/sources': [source('qobuz', 'Qobuz')],
+    '/api/library/scan': scan,
+    '/api/telegram': { enabled: false, connected: false, username: '', users: 0 },
+    ...over,
+  }
+}
+
+beforeEach(() => {
+  localStorage.clear()
+  FakeEventSource.all = []
+  vi.stubGlobal('EventSource', FakeEventSource)
+})
+afterEach(() => vi.unstubAllGlobals())
+
+async function mountAt(path: string) {
+  const pinia = createPinia()
+  setActivePinia(pinia)
+  const router = createAppRouter(createMemoryHistory())
+  await router.push(path)
+  const wrapper = mount(App, { global: { plugins: [pinia, router] } })
+  await flushPromises()
+  return { wrapper, router }
+}
+
+const tab = (w: Awaited<ReturnType<typeof mountAt>>['wrapper'], name: string) => w.findAll('nav a').find((a) => a.text().startsWith(name))!
+
+test('/ opens Search and unknown paths too', async () => {
+  stubApi(routes())
+  expect((await mountAt('/')).router.currentRoute.value.path).toBe('/search')
+  expect((await mountAt('/nowhere')).router.currentRoute.value.path).toBe('/search')
+})
+
+test('the Downloads lamp lights only while a download runs or waits', async () => {
+  stubApi(routes())
+  const { wrapper } = await mountAt('/search')
+  expect(tab(wrapper, 'Downloads').find('.led').exists()).toBe(false)
+  useDownloads().items[1] = download(1, { status: 'running' })
+  await flushPromises()
+  expect(tab(wrapper, 'Downloads').find('.led').exists()).toBe(true)
+  useDownloads().items[1] = download(1, { status: 'queued' })
+  await flushPromises()
+  expect(tab(wrapper, 'Downloads').find('.led').exists()).toBe(true)
+  useDownloads().items[1] = download(1, { status: 'failed' })
+  await flushPromises()
+  expect(tab(wrapper, 'Downloads').find('.led').exists()).toBe(false)
+})
+
+test('a tab never shows a number', async () => {
+  stubApi(routes({ '/api/downloads': list([download(1), download(2)]) }))
+  const { wrapper } = await mountAt('/search')
+  expect(tab(wrapper, 'Downloads').text()).not.toMatch(/\d/)
+})
+
+test('the Status lamp lights only while a part needs attention', async () => {
+  stubApi(routes())
+  const { wrapper } = await mountAt('/search')
+  expect(tab(wrapper, 'Status').find('.led').exists()).toBe(false)
+
+  const sources = useSources()
+  sources.list[0]!.health = { ok: false, message: 'Qobuz token expired' }
+  await flushPromises()
+  expect(tab(wrapper, 'Status').find('.led').attributes('title')).toBe('Qobuz token expired')
+
+  sources.list[0]!.health = { ok: true }
+  useStatus().scan = { ...scan, ok: false }
+  await flushPromises()
+  expect(tab(wrapper, 'Status').find('.led').attributes('title')).toBe("Navidrome doesn't answer")
+
+  useStatus().scan = scan
+  await flushPromises()
+  expect(tab(wrapper, 'Status').find('.led').exists()).toBe(false)
+})
+
+test('a source that was never set up needs no attention while another is ready', async () => {
+  stubApi(routes({ '/api/sources': [source('qobuz', 'Qobuz'), source('applemusic', 'Apple Music', { enabled: false, health: { ok: false } })] }))
+  const { wrapper } = await mountAt('/search')
+  expect(tab(wrapper, 'Status').find('.led').exists()).toBe(false)
+})
+
+test('with no source ready, Status asks for attention', async () => {
+  stubApi(routes({ '/api/sources': [source('qobuz', 'Qobuz', { enabled: false, health: { ok: false } })] }))
+  const { wrapper } = await mountAt('/search')
+  expect(tab(wrapper, 'Status').find('.led').attributes('title')).toBe('No source is ready')
+})
+
+test('Night is the default and the switch is remembered', async () => {
+  stubApi(routes())
+  const { wrapper } = await mountAt('/search')
+  expect(wrapper.find('.rs').classes()).not.toContain('day')
+  await wrapper.find('button[aria-label="Switch to Day"]').trigger('click')
+  expect(wrapper.find('.rs').classes()).toContain('day')
+  await flushPromises()
+  expect(localStorage.getItem('shelf.theme')).toBe('day')
+  setActivePinia(createPinia())
+  expect(useTheme().day).toBe(true)
+})

@@ -177,7 +177,7 @@ Every other GET or HEAD path gets the file at that path from the embedded Vue bu
 
 An unknown `/api` path answers a JSON 404 for any method. The client sees only an `echo.HTTPError`'s own message. For any other error it gets the status text, and the request log gets the error.
 
-The API answers a download as `{"id", "parent_id", "source", "kind", "item_id", "url", "format", "title", "artist", "cover_url", "status", "error", "tracks_total", "tracks_done", "tracks_failed", "bytes", "folder", "origin", "created_at", "started_at", "finished_at"}`, with null for an unset parent or time. The detail adds `tracks`, `children` and `provenance_path`. A link no source knows, a source that is unknown, switched off or can't do the request, and an unknown format answer 422. A source's own error in search or lookup answers 502 with a short message, and the log gets the error, since it may hold a URL with a token.
+The API answers a download as `{"id", "parent_id", "source", "kind", "item_id", "url", "format", "title", "artist", "cover_url", "status", "error", "tracks_total", "tracks_done", "tracks_failed", "bytes", "folder", "origin", "origin_user", "created_at", "started_at", "finished_at"}`, with null for an unset parent or time. `origin_user` is the Telegram user who asked, when the bot knows the name. The detail adds `tracks`, `children` and `provenance_path`. A link no source knows, a source that is unknown, switched off or can't do the request, and an unknown format answer 422. A source's own error in search or lookup answers 502 with a short message, and the log gets the error, since it may hold a URL with a token. A source that keeps refusing calls as too many answers 429 with "<source> is slowing us down, try again in a minute".
 
 ## Security
 
