@@ -2,7 +2,9 @@
 
 ## Now
 
-Phase 1. Steps 0, 1a, 1b, 1c, 1d, 1e, 1f and 1g are done. 1a built the shelf skeleton: the trimmed platform from proxier, `serve`, `manage migrate`, `healthcheck` and `version`, a placeholder Vue page, the image and the Forgejo CI workflow. CI passed on its first run and pushed `code.tikhonnnnn.com/tikhon/shelf` with the tags `latest`, `main` and the commit SHA.
+Phase 1 is done. shelf has run in production on blackberry since 2026-11-04, from `shelf.yaml` beside the old pipeline, at `shelf.music.tikhonnnnn.com` and as `@music_shelf_bot`. Every step is done, and every check in [manual-checklist.md](manual-checklist.md) passed or was accepted by the owner.
+
+1a built the shelf skeleton: the trimmed platform from proxier, `serve`, `manage migrate`, `healthcheck` and `version`, a placeholder Vue page, the image and the Forgejo CI workflow. CI passed on its first run and pushed `code.tikhonnnnn.com/tikhon/shelf` with the tags `latest`, `main` and the commit SHA.
 
 1b built the downloads core: the jobs system, the daily backup and the event hub in the platform, the source types and registry in `internal/source`, and the `downloads`, `catalog` and `fakesource` modules. With `SHELF_DEV_FAKE_SOURCE=true`, shelf searches, resolves and downloads canned items, writes `shelf.txt`, and streams progress and logs. `shelf manage download <url>` queues from the shell.
 
@@ -18,7 +20,9 @@ Step 1c is done. qobuz-dl-go `v0.1.0` is tagged, ports qobuz-dl 2.5.9, and resol
 
 1g built the web UI: Search, Downloads and Status with live updates, at phone and desktop widths, in both themes.
 
-Next: 1h, deployment and cutover.
+1h deployed shelf, its own shelf-wrapper and the tunnel on blackberry, with the vhost on the gateway. shelf-wrapper signed in, the import brought in the old bot's 169 downloads, and the checklist ran against real accounts, the real Navidrome and a phone.
+
+Next: no phase 2 is planned. The user removes the old pipeline from `music.yaml` when ready.
 
 ## Remotes
 
@@ -39,13 +43,14 @@ Next: 1h, deployment and cutover.
 | 1e | Apple Music module and shelf-wrapper | done; run on blackberry |
 | 1f | Navidrome and Telegram | done |
 | 1g | Web UI | done; run with the fake source |
-| 1h | Deployment and cutover | next |
+| 1h | Deployment and cutover | done; runs in production |
 
 ## Log
 
 ### 2026-11-04
 
-- Step 1h, production: checks 3 to 8, 10 and 11 passed, run through the API and over SSH, and the UI passed at phone and tablet widths. The owner accepted check 9 and skipped the old bot's download. Check 12, the backup, waits for the next two mornings. After it come 1h's As built section, deployment.md and the end of phase 1. Results are in [manual-checklist.md](manual-checklist.md).
+- Step 1h is done, and so is phase 1. The owner accepted check 12, the backup, without waiting for it to run, since the backup task already ran before shelf. See the As built section of [build/1h.md](build/1h.md). sh-blackberry's `CLAUDE.md` gets a draft of the backup line.
+- Step 1h, production: checks 3 to 8, 10 and 11 passed, run through the API and over SSH, and the UI passed at phone and tablet widths. The owner accepted check 9 and skipped the old bot's download. Results are in [manual-checklist.md](manual-checklist.md).
 - Step 1h, production: shelf runs from `shelf.yaml` on `be76a2d`. shelf-wrapper is signed in with storefront RU, the new bot is connected, and every part on Status is healthy. One Qobuz album and one Apple Music album downloaded, and one scan followed. By the owner's choice, the swingmusic backup now copies all of shelf's folder, the live database too. Results so far are in [manual-checklist.md](manual-checklist.md).
 - Step 1h, production: the import read 169 rows from the old bot's database and added all 169. The `/import` mount is out of the `shelf.yaml` draft.
 - Step 1h, drafts: sh-blackberry gets `shelf.yaml` with shelf, its own shelf-wrapper and the tunnel on 10013, beside `music.yaml`, which stays as it is. Both keep their data in `${SWINGMUSIC_DATA}`, and the swingmusic backup leaves out shelf's live database. The old bot, `apple-music-api` and `apple-music-wrapper` keep running until the user removes them, and shelf gets a new Telegram bot. sh-main gets the vhost, the port and the domain, and sh-secrets gets `shelf.env` and `shelf-wrapper.env`. [deployment.md](deployment.md) now has a rollout without a cutover. See [decisions.md](decisions.md).
@@ -82,6 +87,7 @@ Next: 1h, deployment and cutover.
 
 ## Notes for the next step
 
+- The As built section of [build/1h.md](build/1h.md) ends with notes for after phase 1: the old pipeline's removal, the `/import` mount, and the test albums left in the library.
 - Sign in only a wrapper with its own data folder and its own `--device-info`: wrapper-lite's device ID comes from the Apple ID.
 - The As built sections of [build/1b.md](build/1b.md) and [build/1f.md](build/1f.md) end with notes for the later steps. The main ones: a source module logs in and starts goroutines in `Run` from `module.Runner`, never in `Init`, because `manage` opens the platform too; a source registers with `Switch` when its settings are missing; Apple Music implements `source.LinkRefuser` for music videos and stations; and the Status page reads `/api/telegram` and the health fields of `/api/library/scan`.
 - The As built section of [build/1d.md](build/1d.md) ends with notes for 1g and 1h: what the Status page reads of the Qobuz source, the 503 a search can answer, and what the import prints during the cutover.

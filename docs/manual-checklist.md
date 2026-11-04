@@ -56,7 +56,7 @@ shelf and shelf-wrapper run from `shelf.yaml` beside the old pipeline: `114f699`
 | 9 | Accepted by the owner without a separate run of every line. The logs show one bot download, Protection, which ended `done`. The owner chose to fix any failure later. |
 | 10 | Passed. Every new folder has `shelf.txt` with the right IDs and links. Third's holds one block for each of downloads 5, 8 and 9, and the skip without force added none. |
 | 11 | Passed. New folders are 0755 and files 0644, all owned by 10001:10001. Navidrome went from 11385 to 11417 songs, the 32 tracks of Protection, Third and Portishead. |
-| 12 | Waits for the next mornings. |
+| 12 | Accepted by the owner without a run. The swingmusic backup task is the infrastructure that already ran, and shelf writes its first daily copy at 03:30 on 2026-11-05. |
 
 The extra checks in [build/1h.md](build/1h.md): the owner checked that the `find` on `qobuz/` and `apple-music/` prints nothing and that the tunnel is healthy. The vhost answers 401 without basic auth. The owner skipped the download through `music-download-bot`.
 
