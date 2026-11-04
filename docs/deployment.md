@@ -1,6 +1,6 @@
 # Deployment
 
-shelf runs on blackberry in the `music` compose group of `~/projects/sh-blackberry`, reached through the sh-main gateway at `shelf.music.tikhonnnnn.com`. Changes to those repos and to sh-secrets are drafted for the user to commit.
+shelf runs on blackberry from `shelf.yaml` in `~/projects/sh-blackberry`, beside the old pipeline in `music.yaml`, reached through the sh-main gateway at `shelf.music.tikhonnnnn.com`. It has run there since 2026-11-04. Changes to those repos and to sh-secrets are drafted for the user to commit.
 
 ## Images
 
@@ -29,7 +29,7 @@ Neither `shelf` nor `shelf-wrapper` has the `dev.dozzle.update` label. They shar
 
 `backup.yaml`'s swingmusic task copies the whole of `${SWINGMUSIC_DATA}` to the HDD at 02:45, with nothing left out: shelf's daily copies in `shelf/backups/`, the live `shelf/shelf.db*`, `shelf/amdl/` and the wrapper's data. rsync can catch the live database mid-write, so a restore starts from a daily copy. The task runs before shelf's 03:30 copy, so each copy reaches the HDD the next night.
 
-sh-secrets gains `blackberry/shelf.env`:
+sh-secrets holds `blackberry/shelf.env`:
 
 ```
 SHELF_QOBUZ_TOKEN=          the old bot's QOBUZ_PASSWORD, which holds the user auth token
@@ -40,7 +40,7 @@ SHELF_TELEGRAM_TOKEN=       a new bot of shelf's own, not music-download-bot's
 SHELF_TELEGRAM_USERS=       the old bot's WHITELIST_USERS
 ```
 
-and `blackberry/shelf-wrapper.env` with the same `SHELF_WRAPPER_TOKEN`. Commit in sh-secrets first, then bump the submodule pointer.
+and `blackberry/shelf-wrapper.env` with the same `SHELF_WRAPPER_TOKEN`. Commit changes to them in sh-secrets first, then bump the submodule pointer.
 
 `CLAUDE.md` in sh-blackberry describes the `shelf` group and counts port 10013 as taken.
 
@@ -84,6 +84,8 @@ The last command prints nothing when the folders are right. After the fix the lo
 - `backup.yaml`'s swingmusic task copies all of `shelf/` to the HDD, the live database too. Only the daily copies are sure to be whole. The HDD then goes to the remote node with the rest.
 
 ## Rollout
+
+The rollout ran on 2026-11-04 in this order, and every step is done. The import added the old bot's 169 rows. sh-blackberry `c0f3456` removed the `/import` mount from `shelf.yaml`, and the running container drops it at the next `docker compose up -d shelf`. [manual-checklist.md](manual-checklist.md) has the results.
 
 The old pipeline keeps running through all of this, so nothing needs a rollback. Stopping shelf leaves the old pipeline as it was.
 
