@@ -29,6 +29,8 @@ End-to-end checks that only the real deployment can answer: real accounts, the r
 
 ## Last run
 
+Check 14, in part: 2026-11-04, in production on `cbba46f`, through the API from inside the shelf container. After the chown, the index showed `locked: 0` and all 7 top folders writable. The first Save failed as `locked` and wrote nothing, because the chown had kept the genre folders' groups, 1000 and root, which shelf can't keep on a copy. After a second chown to `10001:10001`, a Save renamed `electronic/Kraftwerk` to "Kraftwerk (shelf test)". Navidrome showed it under a new album ID with its star, its play and its last-played date, kept all 4 song IDs, and matched shelf's new album ID. The undo brought back the old ID with the star and the play, and every file's tags and pictures hashed as before. No temp file was left. The cover steps wait for a fix: a replaced front cover loses its description, such as "Cover", and an undo doesn't bring it back. The backup step waits for the next night.
+
 Check 13: 2026-11-04, in production on `0bcd479`. The index read Navidrome's settings with production's account and matched its 11,461 songs and 1,008 albums, with no file unreadable. It formed 1,013 albums, because 5 Navidrome albums span two folders each. No file changed after the marker, an album opened with its tags, and a track played in the browser.
 
 Checks 1 to 12: 2026-11-04, in production on `be76a2d`, through the API, over SSH and on the owner's phone and tablet. Every check passed. The owner accepted check 9 after one bot download and check 12 without waiting for the backup, and skipped one download through the old bot with shelf-wrapper signed in.
