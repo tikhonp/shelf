@@ -6,6 +6,7 @@ Newest first. A changed decision gets a new entry that names the one it replaces
 
 | Topic | Decision | Why |
 | --- | --- | --- |
+| Backup of shelf's folder | The swingmusic backup task copies all of `${SWINGMUSIC_DATA}`, the live `shelf.db*` and `amdl/` too. A restore starts from a daily copy in `backups/`. Replaces the exclude in Data folders below. | The user's choice. One task that copies everything is easier to keep consistent. |
 | Compose file | shelf, shelf-wrapper and `ssht-shelf` live in sh-blackberry's `shelf.yaml`, not in `music.yaml`. | The user's choice. |
 | Old pipeline | `music-download-bot`, `apple-music-api` and `apple-music-wrapper` keep running untouched. The user removes them later. There is no cutover and no rollback. | The user's choice. shelf can be checked while the old tools still work. |
 | Wrapper | shelf gets a second wrapper with its own data folder and `--device-info`, signed in from the Status page. | `apple-music-wrapper` stays as it is. The staging run on blackberry ran two wrappers on one Apple ID side by side. |
