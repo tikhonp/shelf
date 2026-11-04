@@ -86,6 +86,9 @@ LABEL org.opencontainers.image.title="Music Shelf wrapper" \
       org.opencontainers.image.version="${APP_VERSION}" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.created="${BUILD_DATE}"
+# Dozzle shows this icon for the container: shelf's record with a rose label,
+# so the two look related in Dozzle but are easy to tell apart.
+LABEL dev.dozzle.icon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHJ4PSI4IiBmaWxsPSIjM2Q0YTU3Ii8+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMjEiIGZpbGw9IiMxNTE3MWEiLz48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIxNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMmEyZTMzIiBzdHJva2Utd2lkdGg9IjEuNSIvPjxjaXJjbGUgY3g9IjMwIiBjeT0iMzAiIHI9IjciIGZpbGw9IiNlNTU2NmIiLz48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIxLjYiIGZpbGw9IiMxNTE3MWEiLz48L3N2Zz4="
 WORKDIR /app
 EXPOSE 12340 12341
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/shelf-wrapper"]
