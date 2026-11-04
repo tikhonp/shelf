@@ -14,7 +14,7 @@ What each screen does. [design/](design/README.md) has the look, the screens and
 ## Shell
 
 - A menubar on the desktop and a tab bar on the phone, with Search, Downloads, Library and Status. Library comes with phase 2.
-- A tab shows one amber lamp while there is something to look at, never a number: Downloads while downloads run or wait, Status while a part needs attention. Library has no lamp, because most albums start with an issue.
+- A tab shows one amber lamp while there is something to look at, never a number: Downloads while downloads run or wait, Status while a part needs attention, Library while a bulk run works. Issues never light it, because most albums start with one.
 - Notices never cover the content. On the phone a notice such as Queued takes its own slot above the tab bar. On the desktop a result or a refusal takes the top of the side column.
 
 ## Search
@@ -56,9 +56,10 @@ Planned for phase 2. A tag editor for everything in the music folder. It changes
 - The desktop shows the editor beside the list, in panels the owner can resize. The phone opens it as a page.
 - The header has the cover, album, artist and quality, and the album's issues.
 - The main fields are Title, Artist, Album, Album Artist, Track, Disc, Genre, Release date, Original date, Recording date and Compilation.
-- With no track selected, an edit changes every track. A field whose tracks differ shows Mixed. Selecting a track edits that track alone.
+- With no track selected, an edit changes every track. A field whose tracks differ shows Mixed. Title, Track and ISRC stay read-only until a track is selected. Selecting a track edits that track alone.
 - The track list shows number, title, duration, quality, a lamp for issues, and a play button. One small player serves the album.
-- All fields is one switch. It shows every tag, each with its own suggestion. Standard holds the tags Navidrome reads, and Extended the ones it ignores. Custom fields are added and deleted here.
+- All fields is one switch. It shows every tag, each with its own suggestion. Standard holds the tags Navidrome reads, and Extended the ones it ignores. Custom fields are added and deleted here, and both stage like any edit. Adding a key that already has a row goes to that row. A new key Navidrome reads goes under Standard.
+- A multi-value tag, such as ARTISTS or Genre, has one input per value and an Add value button.
 - Lyrics and any value over 100 characters open a long-form editor.
 - Edits stay staged. A bar with Save and Discard appears only while something is staged, and names how many changes it holds. One Save is one undo step.
 - When a save would split an album in Navidrome, Save asks first and says the album's star and rating go with the moved tracks, even after an undo. A save that merges two albums or renames an album artist asks too, and says what happens to their stars and ratings.
@@ -77,6 +78,7 @@ Planned for phase 2. A tag editor for everything in the music folder. It changes
 ### Covers
 
 - Preview, Upload, Save cover alone, Apply to album and Delete.
+- Save cover alone writes the cover at once as its own undo step, and staged tag edits keep waiting. Apply to album stages the cover for the next Save.
 - A corrupt cover shows as an issue with Repair.
 - A cover edit changes the embedded cover and the folder's `cover.*`, and the dialog says so in one line.
 
@@ -101,6 +103,10 @@ Planned for phase 2. A tag editor for everything in the music folder. It changes
 ### Keyboard, desktop only
 
 Every action has a key: list and field movement, Enter to edit, Esc to cancel, accept a suggestion, play, Save. `?` opens a sheet with all of them.
+
+### Help
+
+Helper text never adds to a screen at rest. On the desktop a note opens under the pointer, and on the phone a small `?` opens it. A Tagging guide, based on Navidrome's tagging guidelines, sits behind the `?` in the menubar and behind each note on the phone.
 
 ### Phone
 
