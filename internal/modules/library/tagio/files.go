@@ -51,6 +51,9 @@ func checkReplace(path string, uid int) (os.FileInfo, error) {
 		if links > 1 {
 			return nil, fmt.Errorf("%w: the file has %d hard links", ErrRefused, links)
 		}
+		if _, gid, _, _ := owner(st); !canKeepGroup(gid) {
+			return nil, fmt.Errorf("%w: its group %d isn't one of shelf's", ErrLocked, gid)
+		}
 	}
 	return st, nil
 }

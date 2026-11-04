@@ -8,6 +8,7 @@ import "os"
 func owner(os.FileInfo) (uid, gid int, links uint64, ok bool) { return 0, 0, 1, false }
 func writableDir(string) bool                                 { return true }
 func keepGroup(*os.File, int) error                           { return nil }
+func canKeepGroup(int) bool                                   { return true }
 
 // Owner gives a file's owner, when the system has one.
 func Owner(os.FileInfo) (uid int, ok bool) { return 0, false }

@@ -76,10 +76,10 @@ find "$M" -mindepth 1 -maxdepth 1 -type d ! -name qobuz ! -name apple-music ! -n
 find "$M" -mindepth 1 -maxdepth 1 -type d ! -name qobuz ! -name apple-music ! -name '.*' -exec find {} -uid 1000 ! -perm -0002 \; | head
 ```
 
-The chown changes only the owner, so modes and groups stay:
+The chown gives them owner and group 10001. A write keeps a file's group, and shelf can give a file only a group it is in, so a file of group 1000 or root is locked. Modes stay, and the login user keeps access through world-write:
 
 ```sh
-sudo find "$M" -mindepth 1 -maxdepth 1 -type d ! -name qobuz ! -name apple-music ! -name '.*' -exec chown -R 10001 {} +
+sudo find "$M" -mindepth 1 -maxdepth 1 -type d ! -name qobuz ! -name apple-music ! -name '.*' -exec chown -R 10001:10001 {} +
 ```
 
 Afterwards `GET /api/library/index` shows `locked: 0` and every folder `writable` once shelf restarts.
