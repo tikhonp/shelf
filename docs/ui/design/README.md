@@ -1,6 +1,6 @@
 # Design
 
-The phase 1 screens and styles, exported on 2026-11-04 from the Studio redesign page of the Claude Design canvas at https://claude.ai/artifact/Hkb6TNxr1Lr9Augzgk1XXn. Step 1g builds the Vue app from these files.
+The phase 1 screens and styles, exported on 2026-11-04 from the Studio redesign page of the Claude Design canvas at https://claude.ai/artifact/Hkb6TNxr1Lr9Augzgk1XXn. The Vue app is built from these files.
 
 Until the app exists, the canvas is the source of record. After that the app's CSS is. A small visual change then goes straight into the app, and a bigger one goes through the canvas first.
 
@@ -74,7 +74,7 @@ The app's root element carries `rs` and these classes:
 | `console` | Desktop only. Adds the wooden sides and widens the side gutter from 24px to 38px. |
 | `compact` | Desktop only. The Compact density: 40px rows instead of 58px, 36px track rows instead of 44px, and 30px covers instead of 46px. Without it the rows are Comfortable. |
 
-The canvas sets `ph` per board. The app applies the same rules through a media query below 720px of width. The canvas draws only 390px and 1440px frames, so 720px is a proposal to check in 1g.
+The canvas sets `ph` per board. The app applies the same rules through a media query below 720px of width. The canvas draws only 390px and 1440px frames. 720px holds up in the app, and between 720px and about 950px the grids drop columns and the menubar wraps.
 
 ## Layout
 
