@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -538,6 +539,9 @@ func TestCancelledUndoFinishesOnTheNextPress(t *testing.T) {
 }
 
 func TestRunWritesReplayGain(t *testing.T) {
+	if _, err := exec.LookPath("ffmpeg"); err != nil {
+		t.Skip("ffmpeg is not installed")
+	}
 	r := newRig(t)
 	flac := r.album("Blue", nil, nil)
 	m4a := r.add("folk/Hejira/1.m4a", "track.m4a", map[string][]string{"ALBUM": {"Hejira"}, "ALBUMARTIST": {"Joni Mitchell"},

@@ -9,8 +9,18 @@ import (
 	"testing"
 )
 
+// needFFmpeg skips a test that decodes audio where ffmpeg isn't installed,
+// such as the CI runner.
+func needFFmpeg(t *testing.T) {
+	t.Helper()
+	if _, err := exec.LookPath("ffmpeg"); err != nil {
+		t.Skip("ffmpeg is not installed")
+	}
+}
+
 func tone(t *testing.T, name, filter string) string {
 	t.Helper()
+	needFFmpeg(t)
 	p := filepath.Join(t.TempDir(), name)
 	if out, err := exec.Command("ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", filter, "-ac", "2", p).CombinedOutput(); err != nil {
 		t.Fatalf("%v: %s", err, out)
@@ -76,6 +86,7 @@ func TestPoolMatchesOneDecode(t *testing.T) {
 }
 
 func TestAnalyzeReportsAFileItCantRead(t *testing.T) {
+	needFFmpeg(t)
 	if _, err := Analyze(context.Background(), "ffmpeg", filepath.Join(t.TempDir(), "gone.flac")); err == nil {
 		t.Fatal("no error")
 	}
