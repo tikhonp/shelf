@@ -86,6 +86,9 @@ type changeFile struct {
 	// file whose cover the change left alone has the same in both.
 	CoverBefore string
 	CoverAfter  string
+	// CoverBeforeDesc and CoverAfterDesc are the front cover's description.
+	CoverBeforeDesc string
+	CoverAfterDesc  string
 }
 
 type changeFileRow struct {
@@ -97,6 +100,9 @@ type changeFileRow struct {
 	Written     bool   `db:"written"`
 	CoverBefore string `db:"cover_before"`
 	CoverAfter  string `db:"cover_after"`
+
+	CoverBeforeDesc string `db:"cover_before_description"`
+	CoverAfterDesc  string `db:"cover_after_description"`
 }
 
 // storedChange is what a change's job writes: the audio files with their
@@ -117,6 +123,16 @@ type storedFile struct {
 
 type storedCover struct {
 	ID string `json:"id"`
+	// Description goes with a cover added to a file that has none. A
+	// replaced cover keeps the file's own.
+	Description string `json:"description,omitempty"`
+}
+
+// coverRecord is an audio file's front cover before and after a change:
+// cover store IDs, "" for none, and descriptions.
+type coverRecord struct {
+	before, after         string
+	beforeDesc, afterDesc string
 }
 
 // folderOp writes a stored image to a cover file of a folder, or removes
@@ -139,14 +155,14 @@ func (s store) change(ctx context.Context, q sqlx.QueryerContext, id int64) (cha
 
 func (s store) changeFiles(ctx context.Context, id int64) ([]changeFile, error) {
 	var rows []changeFileRow
-	if err := s.db.R.SelectContext(ctx, &rows, `SELECT path, kind, before, after, revision, written, cover_before, cover_after
-		FROM library_change_files WHERE change_id = ? ORDER BY kind, path`, id); err != nil {
+	if err := s.db.R.SelectContext(ctx, &rows, `SELECT path, kind, before, after, revision, written, cover_before, cover_after,
+		cover_before_description, cover_after_description FROM library_change_files WHERE change_id = ? ORDER BY kind, path`, id); err != nil {
 		return nil, err
 	}
 	out := make([]changeFile, len(rows))
 	for i, r := range rows {
 		out[i] = changeFile{Path: r.Path, Kind: r.Kind, Revision: r.Revision, Written: r.Written,
-			CoverBefore: r.CoverBefore, CoverAfter: r.CoverAfter}
+			CoverBefore: r.CoverBefore, CoverAfter: r.CoverAfter, CoverBeforeDesc: r.CoverBeforeDesc, CoverAfterDesc: r.CoverAfterDesc}
 		if err := json.Unmarshal([]byte(r.Before), &out[i].Before); err != nil {
 			return nil, err
 		}
@@ -202,8 +218,8 @@ type journal struct {
 	id   int64
 	now  func() time.Time
 	// covers maps each audio file whose front cover changes to its cover
-	// store IDs before and after.
-	covers map[string][2]string
+	// before and after.
+	covers map[string]coverRecord
 	folder []folderOp
 	begun  bool
 	closed bool
@@ -231,12 +247,14 @@ func (j *journal) Begin(ctx context.Context, r tagio.Result) (int64, error) {
 			}
 			rel := j.rel(f.Path)
 			cv := j.covers[rel]
-			if _, err := tx.ExecContext(ctx, `INSERT INTO library_change_files (change_id, path, kind, before, after, cover_before, cover_after)
-				VALUES (?, ?, ?, ?, ?, ?, ?)`, j.id, rel, fileAudio, string(before), string(after), cv[0], cv[1]); err != nil {
+			if _, err := tx.ExecContext(ctx, `INSERT INTO library_change_files (change_id, path, kind, before, after,
+				cover_before, cover_after, cover_before_description, cover_after_description)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, j.id, rel, fileAudio, string(before), string(after),
+				cv.before, cv.after, cv.beforeDesc, cv.afterDesc); err != nil {
 				return err
 			}
 			tags += keysChanged(f.Before, f.After)
-			if cv[0] != cv[1] {
+			if cv.before != cv.after {
 				tags++
 			}
 		}

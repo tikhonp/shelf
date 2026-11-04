@@ -44,9 +44,9 @@ func writeTags(path string, ops map[string][]string) error {
 
 // writeImage replaces the picture at index, appends it when index is past
 // the end, or removes the picture at index when data is nil.
-func writeImage(path string, data []byte, index int, mime string) error {
+func writeImage(path string, data []byte, index int, desc, mime string) error {
 	_, err := guard("write picture", path, func() (struct{}, error) {
-		return struct{}{}, taglib.WriteImageOptions(path, data, index, frontCover, "", mime)
+		return struct{}{}, taglib.WriteImageOptions(path, data, index, frontCover, desc, mime)
 	})
 	return err
 }

@@ -10,15 +10,22 @@ import (
 
 // FrontCover gives the bytes of a file's front cover, or none.
 func FrontCover(path string) ([]byte, error) {
+	b, _, err := FrontPicture(path)
+	return b, err
+}
+
+// FrontPicture gives a file's front cover with its bytes, or none.
+func FrontPicture(path string) ([]byte, Picture, error) {
 	f, err := Read(path)
 	if err != nil {
-		return nil, err
+		return nil, Picture{}, err
 	}
 	i := f.frontIndex()
 	if i < 0 {
-		return nil, nil
+		return nil, Picture{}, nil
 	}
-	return readImage(path, i)
+	b, err := readImage(path, i)
+	return b, f.Pictures[i], err
 }
 
 // HasFrontCover reports whether a file has an embedded front cover.

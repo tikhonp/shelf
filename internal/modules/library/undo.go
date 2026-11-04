@@ -55,8 +55,10 @@ func (m *Module) reverse(ctx context.Context, kind string, files []changeFile) r
 		path, key string
 		values    []string
 		group     bool
-		// cover, when set, is the front cover to put back.
-		cover *string
+		// cover, when set, is the front cover to put back, with its
+		// description.
+		cover     *string
+		coverDesc string
 	}
 	var ops []op
 	var conflicts []conflictJSON
@@ -68,10 +70,10 @@ func (m *Module) reverse(ctx context.Context, kind string, files []changeFile) r
 			continue
 		}
 		from, to := f.After, f.Before
-		fromC, toC := f.CoverAfter, f.CoverBefore
+		fromC, toC, toDesc := f.CoverAfter, f.CoverBefore, f.CoverBeforeDesc
 		if kind == KindRedo {
 			from, to = f.Before, f.After
-			fromC, toC = toC, fromC
+			fromC, toC, toDesc = toC, fromC, f.CoverAfterDesc
 		}
 		abs := m.abs(f.Path)
 		if f.Kind == fileCover {
@@ -89,7 +91,7 @@ func (m *Module) reverse(ctx context.Context, kind string, files []changeFile) r
 			switch h := coverHash(b); {
 			case err == nil && h == toC:
 			case err == nil && h == fromC:
-				ops = append(ops, op{path: f.Path, cover: &toC})
+				ops = append(ops, op{path: f.Path, cover: &toC, coverDesc: toDesc})
 			default:
 				conflicts = append(conflicts, conflictJSON{Path: f.Path, Key: "cover"})
 			}
@@ -141,8 +143,8 @@ func (m *Module) reverse(ctx context.Context, kind string, files []changeFile) r
 				}
 				data = b
 			}
-			out.stored.Files[i].Cover = &storedCover{ID: *o.cover}
-			out.change.Files[i].Cover = &tagio.Cover{Data: data}
+			out.stored.Files[i].Cover = &storedCover{ID: *o.cover, Description: o.coverDesc}
+			out.change.Files[i].Cover = &tagio.Cover{Data: data, Description: o.coverDesc}
 			continue
 		}
 		out.stored.Files[i].Edits = append(out.stored.Files[i].Edits, editJSON{Key: o.key, Values: o.values})

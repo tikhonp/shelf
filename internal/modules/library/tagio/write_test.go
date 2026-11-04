@@ -360,16 +360,21 @@ func TestWriteCovers(t *testing.T) {
 			w, _ := writer(t)
 			p := fixture(t, dir, fx, "a"+filepath.Ext(fx))
 
-			// Add to a file with none, then replace.
-			for _, img := range [][]byte{red, blue} {
+			// Add to a file with none, then replace. The replace keeps the
+			// added cover's description. M4A has none.
+			wantDesc := "Cover"
+			if fx == "track.m4a" {
+				wantDesc = ""
+			}
+			for i, img := range [][]byte{red, blue} {
 				fc := edit(t, p)
-				fc.Cover = &Cover{Data: img}
+				fc.Cover = &Cover{Data: img, Description: []string{"Cover", "ignored"}[i]}
 				if _, err := w.Write(ctx, change(fc)); err != nil {
 					t.Fatal(err)
 				}
 				f := mustRead(t, p)
 				got, _ := readImage(p, 0)
-				if len(f.Pictures) != 1 || !bytes.Equal(got, img) || f.Pictures[0].MIME != mimeOf(img) {
+				if len(f.Pictures) != 1 || !bytes.Equal(got, img) || f.Pictures[0].MIME != mimeOf(img) || f.Pictures[0].Description != wantDesc {
 					t.Fatalf("pictures %+v", f.Pictures)
 				}
 			}
@@ -392,8 +397,8 @@ func TestWriteCovers(t *testing.T) {
 	dir := t.TempDir()
 	w, _ := writer(t)
 	p := fixture(t, dir, "track.flac", "b.flac")
-	seedType(t, p, 0, back, "Back Cover")
-	seedType(t, p, 1, red, "Front Cover")
+	seedType(t, p, 0, back, "Back Cover", "Back")
+	seedType(t, p, 1, red, "Front Cover", "Cover")
 	fc := edit(t, p)
 	fc.Cover = &Cover{Data: blue}
 	if _, err := w.Write(ctx, change(fc)); err != nil {
@@ -402,14 +407,18 @@ func TestWriteCovers(t *testing.T) {
 	f := mustRead(t, p)
 	b0, _ := readImage(p, 0)
 	b1, _ := readImage(p, 1)
-	if len(f.Pictures) != 2 || f.Pictures[0].Type != "Back Cover" || !bytes.Equal(b0, back) || !bytes.Equal(b1, blue) {
+	want := []Picture{{Type: "Back Cover", Description: "Back", MIME: "image/jpeg"}, {Type: "Front Cover", Description: "Cover", MIME: "image/jpeg"}}
+	if !slices.Equal(f.Pictures, want) || !bytes.Equal(b0, back) || !bytes.Equal(b1, blue) {
 		t.Errorf("pictures %+v", f.Pictures)
+	}
+	if b, pic, err := FrontPicture(p); err != nil || !bytes.Equal(b, blue) || pic != want[1] {
+		t.Errorf("FrontPicture: %+v %v", pic, err)
 	}
 }
 
-func seedType(t *testing.T, path string, i int, img []byte, typ string) {
+func seedType(t *testing.T, path string, i int, img []byte, typ, desc string) {
 	t.Helper()
-	if err := taglib.WriteImageOptions(path, img, i, typ, "", mimeOf(img)); err != nil {
+	if err := taglib.WriteImageOptions(path, img, i, typ, desc, mimeOf(img)); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -506,7 +515,7 @@ func TestWriteCatchesDamage(t *testing.T) {
 			seed(t, tmp, map[string][]string{"ALBUM": nil})
 		},
 		"a lost picture": func(t *testing.T, tmp string) {
-			if err := writeImage(tmp, nil, 0, ""); err != nil {
+			if err := writeImage(tmp, nil, 0, "", ""); err != nil {
 				t.Fatal(err)
 			}
 		},
