@@ -11,11 +11,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -232,6 +232,25 @@ func TestServiceRestarts(t *testing.T) {
 	}
 }
 
+// groupRuns reports whether a process of the group is still alive. kill(2)
+// with signal 0 can't answer that: a killed orphan stays in its group as a
+// zombie until PID 1 reaps it. tini does that in the image, but a CI runner's
+// PID 1 may never do it.
+func groupRuns(t *testing.T, pgid int) bool {
+	t.Helper()
+	out, err := exec.Command("ps", "-A", "-o", "pgid=,stat=").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for l := range strings.Lines(string(out)) {
+		f := strings.Fields(l)
+		if len(f) == 2 && f[0] == fmt.Sprint(pgid) && !strings.HasPrefix(f[1], "Z") {
+			return true
+		}
+	}
+	return false
+}
+
 func TestStopSequence(t *testing.T) {
 	t.Run("SIGINT", func(t *testing.T) {
 		r := newRig(t).run()
@@ -266,8 +285,12 @@ func TestStopSequence(t *testing.T) {
 		if took := time.Since(begin); took < 300*time.Millisecond {
 			t.Fatalf("killed after %s, before the grace ended", took)
 		}
-		if err := syscall.Kill(-pid, 0); !errors.Is(err, syscall.ESRCH) {
-			t.Fatalf("the process group lives on: %v", err)
+		deadline := testwait.Deadline(5 * time.Second)
+		for groupRuns(t, pid) {
+			if time.Now().After(deadline) {
+				t.Fatal("the process group lives on")
+			}
+			time.Sleep(10 * time.Millisecond)
 		}
 		if !strings.Contains(r.logText(), "did not stop within") {
 			t.Fatalf("no note of the kill:\n%s", r.logText())
