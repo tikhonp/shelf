@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · New parts and shell changes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="../library.css">
+<style>body { margin: 0; }</style>
+</head>
+<body>
+<div class="rs desk" style="box-sizing: border-box; position: relative; width: 1440px; height: 1150px; padding: 48px; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 class="px" style="font-size: 24px">New parts and shell changes</h1>
+<p class="t2" style="max-width: 900px">Everything else on this page comes from the phase 1 parts. These are the additions, and the places in phase 1 screens that change.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start">
+
+<div style="display: flex; flex-direction: column; gap: 20px">
+<section class="win"><div class="tb"><h2>Fields</h2><span class="stripes"></span></div>
+<div class="lib-fields">
+<div class="lf" style="grid-template-columns: 104px minmax(0, 1fr)"><span class="lf-l">Plain</span><div class="lf-c"><span class="lf-in"><input class="lib-in" value="Low Tide Hymns" aria-label="Plain field"></span></div></div>
+<div class="lf" style="grid-template-columns: 104px minmax(0, 1fr)"><span class="lf-l">Empty</span><div class="lf-c"><span class="lf-in"><input class="lib-in" placeholder="Empty" aria-label="Empty field"></span></div></div>
+<div class="lf" style="grid-template-columns: 104px minmax(0, 1fr)"><span class="lf-l">Mixed</span><div class="lf-c"><span class="lf-in"><input class="lib-in mixed" placeholder="Mixed" aria-label="Mixed field"></span></div></div>
+<div class="lf" style="grid-template-columns: 104px minmax(0, 1fr)"><span class="lf-l"><span class="led stg" role="img" aria-label="Staged"></span>Staged</span><div class="lf-c"><span class="lf-in"><input class="lib-in stg" value="Post-Rock" aria-label="Staged field"><button type="button" class="lf-rev" aria-label="Revert"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.5-5.8"></path><path d="M4 4v5h5"></path></svg></button></span><span class="lf-was">Was Mixed</span></div></div>
+<div class="lf tagrow" style="grid-template-columns: 104px minmax(0, 1fr)"><span class="lf-l tag">ARTISTS</span><div class="lf-c"><span class="lf-in"><input class="lib-in" value="Alice" aria-label="ARTISTS, value 1"><button type="button" class="lf-rev" aria-label="Remove Alice"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></span><span class="lf-in"><input class="lib-in" value="Bob" aria-label="ARTISTS, value 2"><button type="button" class="lf-rev" aria-label="Remove Bob"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></span><span class="lf-adds"><button type="button" class="lf-add"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add value</button></span></div></div>
+<div class="lf" style="grid-template-columns: 104px minmax(0, 1fr)"><span class="lf-l">Read-only</span><div class="lf-c"><span class="lf-in"><input class="lib-in ro" value="1998-02-11" aria-readonly="true" aria-label="Read-only field"><span class="lf-lock" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="1.5"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></span></span></div></div>
+<div class="lf tagrow" style="grid-template-columns: 104px minmax(0, 1fr); border-bottom: 0"><span class="lf-l tag">LYRICS</span><div class="lf-c"><span class="lf-in"><button type="button" class="lib-in ell" style="display: block; text-align: left; cursor: pointer">Salt in the wiring, light on the sill</button><span class="lf-lock" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="m13 7 4 4"></path></svg></span></span></div></div>
+</div></section>
+
+<section class="win"><div class="tb"><h2>Suggestions</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 16px">
+<div class="sugs"><button type="button" class="sug"><span class="sug-v">2019-03-22</span><span class="sug-s">MusicBrainz</span><span class="sug-p">96%</span></button><button type="button" class="sug"><span class="sug-v">2024-05-03</span><span class="sug-s">Qobuz</span><span class="sug-p">58%</span></button></div>
+<div class="sugs"><button type="button" class="sug"><span class="sug-v">Northern Static</span><span class="sug-s">MusicBrainz, Qobuz</span><span class="sug-p">98%</span></button></div>
+<button type="button" class="sug block"><span class="sug-v">Post-Rock</span><span class="sug-s">Qobuz</span><span class="sug-p">71%</span></button>
+<button type="button" class="lib-thumb" aria-pressed="false"><span class="cv a-tide2"></span><span class="two"><span class="ttl" style="font-size: 14px">Cover Art Archive</span><span class="sub num">1200 x 1200 · 96%</span></span></button>
+</div></section>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 20px">
+<section class="win"><div class="tb"><h2>Sort knob</h2><span class="stripes"></span></div>
+<div class="rotary" role="radiogroup" aria-label="Sort by" style="border-top: 0; border-bottom: 0">
+<div class="rot-labels">
+<button type="button" role="radio" aria-checked="true"><span class="led"></span>Album</button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>Artist</button>
+<button type="button" class="knob grey" style="--s: 48px; --a: -75deg" aria-label="Change the sort, now Album" title="Press to turn"><i></i></button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>Year</button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>Added</button>
+</div>
+</div></section>
+
+<section class="win"><div class="tb"><h2>Switches</h2><span class="stripes"></span><button type="button" class="rocker mini" role="switch" aria-checked="true"><span class="rk" aria-hidden="true"><span class="rk-case"><span class="rk-paddle"></span></span></span><span class="rk-name">All fields</span></button></div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 16px">
+<button type="button" class="rocker flat" role="switch" aria-checked="false" aria-label="Compilation"><span class="rk" aria-hidden="true"><span class="rk-case"><span class="rk-paddle"></span></span></span><span class="t2">Off</span></button>
+<input class="lib-ck" type="checkbox" aria-label="Select an album">
+<input class="lib-ck" type="checkbox" checked="" aria-label="Select an album, selected">
+<button type="button" class="wbtn txt" aria-pressed="true" style="height: 28px">History</button>
+<div style="position: relative; width: 20px; height: 90px"><button type="button" class="lib-split" style="position: absolute; inset: 0" aria-label="Divider"></button></div>
+</div></section>
+
+<section class="win"><div class="tb"><h2>Album row and issues</h2><span class="stripes"></span></div>
+<div class="row g-lib" style="grid-template-columns: 46px minmax(0, 1fr) auto 12px"><span class="cv a-tide"></span><span class="two"><span class="ttl"><span class="ell">Low Tide Hymns</span></span><span class="sub ell">Northern Static · 2019 · 11 tracks</span></span><span class="stk hi">Hi-Res 24/96</span><span class="led iss" role="img" aria-label="Has issues"></span></div>
+<div class="lib-iss"><span class="led iss" role="img" aria-label="Open issue"></span><span class="two"><span class="ttl">No RELEASEDATE</span><span class="sub">The fix adds the tag and keeps the year Navidrome shows, 2019.</span></span><button type="button" class="key sm">Fix</button></div>
+<div class="lib-iss" style="border-bottom: 0"><span class="led stg" role="img" aria-label="Staged"></span><span class="two"><span class="ttl">Genre differs across tracks</span><span class="sub">Staged. Nothing changes in the files until Save.</span></span></div>
+</section>
+
+<section class="win"><div class="tb"><h2>Save bar and player</h2><span class="stripes"></span></div>
+<div class="lib-save" style="border-top: 0"><div class="lcd"><span class="lcd-l">3 CHANGES</span></div><button type="button" class="key">Discard</button><button type="button" class="key sun">Save</button></div>
+<div class="lib-player">
+<div class="lcd"><div class="lcd-l" style="display: flex; gap: 10px"><span class="ell">03 SALT IN THE WIRING</span><span class="num" style="margin-left: auto">1:24/3:47</span></div></div>
+<div class="lib-player-keys"><button type="button" class="key sm icon" aria-label="Pause"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14"></path><path d="M16 5v14"></path></svg></button><input class="lib-scrub" type="range" min="0" max="227" value="84" aria-label="Position in the track"></div>
+</div></section>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 20px">
+<section class="win"><div class="tb"><h2>Tab bar, a bulk run working</h2><span class="stripes"></span></div>
+<div style="position: relative; height: 98px">
+<nav class="dock" aria-label="Sample tab bar">
+<a href="MS-phone-start.html" class="on"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m20 20-4.5-4.5"></path></svg>Search</a>
+<a href="MS-phone-downloads.html"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"></rect><circle cx="9" cy="12" r="2"></circle><circle cx="15" cy="12" r="2"></circle><path d="M7 18l1.5-3h7L17 18"></path></svg>Downloads</a>
+<a href="MS-phone-library.html"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18"></path><path d="M5 20V6h4v14"></path><path d="M9 20V9h4v11"></path><path d="m15 20 2-14 4 .6-2 13.4"></path></svg>Library<span class="led" title="Bulk run in progress"></span><span class="sr">, bulk run in progress</span></a>
+<a href="MS-phone-status.html"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17a8 8 0 1 1 16 0"></path><path d="M12 17l4-5"></path></svg>Status</a>
+</nav>
+</div></section>
+
+<section class="win"><div class="tb"><h2>Status: Library module</h2><span class="stripes"></span></div>
+<section class="smod" aria-label="Library working">
+<div class="smod-h"><span class="led ok"></span><h2>Library</h2><span class="sub">Tag index</span></div>
+<div class="lcd"><div class="lcd-l">1,099 ALBUMS · 11,447 TRACKS</div><div class="lcd-l">INDEX IDLE · MUSICBRAINZ ANSWERS</div></div>
+</section>
+<section class="smod" aria-label="Library indexing">
+<div class="smod-h"><span class="led run blink"></span><h2>Library</h2><span class="sub">Tag index</span></div>
+<div class="lcd"><div class="lcd-l">INDEX RUNNING · 412 ALBUMS</div><div class="lcd-l">MUSICBRAINZ ANSWERS</div></div>
+</section>
+<section class="smod" aria-label="MusicBrainz not answering" style="border-bottom: 0">
+<div class="smod-h"><span class="led warn"></span><h2>Library</h2><span class="sub">Tag index</span></div>
+<div class="lcd"><div class="lcd-l">1,099 ALBUMS · 11,447 TRACKS</div><div class="lcd-l">MUSICBRAINZ NOT ANSWERING</div></div>
+<p class="t2">Editing and saving still work. Its suggestions are missing until it answers.</p>
+</section></section>
+
+<section class="win"><div class="tb"><h2>Downloads: link to the album</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 16px">
+<div style="display: flex; gap: 14px; align-items: center">
+<span class="cv a-tide" style="width: 64px; height: 64px"></span>
+<div class="two" style="flex: 1; gap: 3px"><span class="ttl" style="font-size: 17px">Low Tide Hymns</span><span class="sub">Northern Static</span><span><span class="pill done">Done</span></span></div>
+<a class="key" href="MS-desk-library.html">Open in Library</a>
+</div>
+<p class="t2 sm">A finished download gets this key in its panel and on its page. Nothing about the files changes after a download.</p>
+</div></section>
+</div>
+
+</div>
+
+<section class="win" style="position: relative"><div class="tb"><h2>Menubar, a bulk run working</h2><span class="stripes"></span></div>
+<header class="menubar" style="box-shadow: none">
+<a class="brand" href="MS-desk-search.html"><span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>Music Shelf</a>
+<nav style="display: flex; gap: 6px" aria-label="Sample menubar">
+<a class="mb-item on" href="MS-desk-search.html">Search</a>
+<a class="mb-item" href="MS-desk-downloads.html">Downloads</a>
+<a class="mb-item" href="MS-desk-library.html">Library<span class="led" title="Bulk run in progress"></span><span class="sr">, bulk run in progress</span></a>
+<a class="mb-item" href="MS-desk-status.html">Status</a>
+</nav>
+<div class="mb-right"><button type="button" class="key sm icon" aria-label="Keyboard shortcuts">?</button><span class="vfd num">14:32</span></div>
+</header>
+</section>
+</div>
+<!-- Add ?theme=day to the address to see the Day theme. -->
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>

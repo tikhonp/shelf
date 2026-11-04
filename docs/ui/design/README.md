@@ -1,13 +1,14 @@
 # Design
 
-The phase 1 screens and styles, exported on 2026-11-04 from the Studio redesign page of the Claude Design canvas at https://claude.ai/artifact/Hkb6TNxr1Lr9Augzgk1XXn. The Vue app is built from these files.
+The screens and styles, exported on 2026-11-04 from the Claude Design canvas at https://claude.ai/artifact/Hkb6TNxr1Lr9Augzgk1XXn. Phase 1 comes from its Studio redesign page and phase 2 from its Library page. The Vue app is built from these files.
 
 Until the app exists, the canvas is the source of record. After that the app's CSS is. A small visual change then goes straight into the app, and a bigger one goes through the canvas first.
 
 ## Files
 
 - `tokens.css` holds the color and font variables for both themes, and the side gutter.
-- `components.css` holds every part and reads the variables in `tokens.css`.
+- `components.css` holds every phase 1 part and reads the variables in `tokens.css`.
+- `library.css` holds the parts of the Library tab and sits on top of the other two. It is the canvas's `project/library.css`, unchanged.
 - `screens/MS-*.html` has one static page per screen. Open one in a browser to see it, and add `?theme=day` to the address for the Day theme.
 
 The two CSS files are the canvas stylesheet `project/retro.css`, cut in two. Each screen is a canvas board rendered once with its sample data. The board's script fills the template, and links between boards point at the exported files.
@@ -45,12 +46,46 @@ The two CSS files are the canvas stylesheet `project/retro.css`, cut in two. Eac
 | `MS-desk-settings` | Status with every part working, and the Notices and Density switches | `/status` |
 | `MS-desk-search-compact`, `MS-desk-downloads-compact` | Search and Downloads with compact rows | `/search`, `/downloads/:id` |
 
+### Library on the phone, 390 by 844
+
+| Screen | Shows | Route |
+| --- | --- | --- |
+| `MS-phone-library` | The album list | `/library` |
+| `MS-phone-library-filter` | The list with the filter menu open | `/library` |
+| `MS-phone-library-album` | An album at All tracks, with its fields and tracks | `/library/:id` |
+| `MS-phone-library-field` | One field's page, with its suggestions | `/library/:id` |
+| `MS-phone-library-issues` | An album's issues | `/library/:id` |
+| `MS-phone-library-staged` | Staged changes, with the Save bar in its slot | `/library/:id` |
+| `MS-phone-library-ask` | A selected track, with the split warning in a slot | `/library/:id` |
+| `MS-phone-library-day` | An album in the Day theme, with the player | `/library/:id` |
+| `MS-phone-library-note`, `-issue-note` | A field's note and an issue's note, in a slot | `/library/:id` |
+| `MS-phone-library-guide` | The Tagging guide | `/library/:id` |
+
+### Library on the desktop, 1440 wide
+
+| Screen | Shows | Route |
+| --- | --- | --- |
+| `MS-desk-library` | The list, the Editor and the track list at All tracks | `/library/:id` |
+| `MS-desk-library-list` | The wide list with no album open | `/library` |
+| `MS-desk-library-all` | All fields | `/library/:id` |
+| `MS-desk-library-track` | A selected track, playing, with two Genre values | `/library/:id` |
+| `MS-desk-library-day` | Staged changes in the Day theme | `/library/:id` |
+| `MS-desk-library-long` | Lyrics in the long-form editor | `/library/:id` |
+| `MS-desk-library-cover` | The cover dialog | `/library/:id` |
+| `MS-desk-library-ask` | The split warning | `/library/:id` |
+| `MS-desk-library-note` | A hover note on a field name | `/library/:id` |
+| `MS-desk-library-guide`, `-keys` | The Help sheet at Tagging guide and at Keyboard | `/library/:id` |
+| `MS-desk-library-history` | History with one Save open | `/library` |
+| `MS-desk-library-bulk`, `-run` | The bulk preview and a run in progress | `/library` |
+
 ### Other pages
 
 | Page | Shows |
 | --- | --- |
 | `MS-states` | Search states, source errors, the rate-limit wait, Download all and sign-in results, at phone width |
 | `MS-parts` | Every part and the main tokens |
+| `MS-library-states`, `-states-day` | Every Library state, at phone width, in Night and Day |
+| `MS-library-parts` | The Library parts, the fourth tab, and the changes to Status and Downloads |
 
 ## Direction
 
@@ -78,9 +113,9 @@ The canvas sets `ph` per board. The app applies the same rules through a media q
 
 ## Layout
 
-On the phone, `.stack` holds the modules between the top edge and the tab bar (`.dock`). The main window takes the free height. A slot module (`.win.slot`), such as Queued or a confirm, takes its own height and the main window shrinks. The tab bar has Search, Downloads and Status, and the current tab is backlit peach.
+On the phone, `.stack` holds the modules between the top edge and the tab bar (`.dock`). The main window takes the free height. A slot module (`.win.slot`), such as Queued or a confirm, takes its own height and the main window shrinks. The tab bar has Search, Downloads, Library and Status, and the current tab is backlit peach.
 
-On the desktop, the menubar holds the brand, the same three tabs, one lamp for each part (Qobuz, Apple Music, Navidrome), the theme switch and a clock. Below it, the results window and a side column share the row and wrap when the window is narrow. The side column shows the current download and the queue, or one panel: album, artist or playlist. A pasted link replaces the results with that item and keeps the current download beside it. The menubar and the content line up on one side gutter.
+On the desktop, the menubar holds the brand, the same four tabs, one lamp for each part (Qobuz, Apple Music, Navidrome), the theme switch and a clock. Below it, the results window and a side column share the row and wrap when the window is narrow. The side column shows the current download and the queue, or one panel: album, artist or playlist. A pasted link replaces the results with that item and keeps the current download beside it. The menubar and the content line up on one side gutter.
 
 ## Type
 
@@ -122,8 +157,10 @@ A lamp always has words next to it or an `aria-label`, so color never carries th
 | Cyan | `led run` | A download in progress, on a result row |
 | Grey | `led` | Queued |
 | Dark | `led off` | Off: a source switched off, no rate limit |
-| Amber, top right corner of a tab | any `led` inside a tab | Something to look at: Downloads has work running or queued, or Status has a part that needs attention. A tab never shows a number, and has no lamp when there is nothing to see. |
+| Amber, top right corner of a tab | any `led` inside a tab | Something to look at: Downloads has work running or queued, Status has a part that needs attention, or Library has a bulk run working. A tab never shows a number, and has no lamp when there is nothing to see. |
 | Amber, beside a knob position | `led` in `.rot-labels` or `.fmt-list` | The chosen position |
+| Yellow, small, no glow | `led iss` | An album or track has an issue. Nearly every album starts with one, so this lamp stays quiet. |
+| Amber, small | `led stg` | An edit is staged and waits for Save |
 
 The track lamps of a download (`.meter`) are green when done, amber and blinking for the current track, red when failed, and dark when not started. Result pills (`.pill`) are green for done, yellow for partial, red for failed, cyan for running and grey for queued. A canceled pill has an outline, and a skipped one a dashed outline.
 
@@ -156,6 +193,34 @@ Quality labels look like masking tape. The words always name the quality, and th
 - The Density switch on the desktop's Status page sets how tall the rows are in search results, track lists and History. A preview of two History rows under the switch shows the choice. Compact keeps each row's second line. The phone has no switch, because a shorter row there would lose its quality labels.
 - Search shows the first page from each source in one list. The window title counts what is shown, such as "14 of 31 albums", and Load more fetches the next page.
 
+## Library
+
+The canvas boards are `project/Lib-*.dc.html`, styled by `project/retro.css` and `project/library.css`. `Lib-Phone` holds the whole phone flow and `Lib-Desk` the whole desktop flow. The other boards import one of the two with a prop, and the exported screens are their first states.
+
+- A suggestion is a strip of masking tape (`.sug`) beside its field, or under it in a narrow panel. One press stages its value.
+- The grey knob sorts the album list by Album, Artist, Year or Added. It uses the type knob's pointer angles.
+- The album list shows every column in a wide panel. Below 640px of panel width, the year moves into the row's second line and the track count sits under the quality label.
+- A display above the fields says which tracks an edit reaches, `ALL 11 TRACKS` or `TRACK 03 ONLY`. The track list starts with an All 11 tracks row, which is the way back from a selected track.
+- A staged field has an amber edge, a line with its old value, and a Revert button. Revert drops that one edit, so a Fix can be reviewed field by field.
+- Title, Track and ISRC are read-only at All tracks, with a dashed edge and a lock, and accept typing once a track is selected. On the phone the Title and Track rows don't open, and ISRC isn't shown.
+- A multi-value tag has one input per value, a remove button on each when there are two or more, and a plain Add value button (`.lf-add`). A single-value field looks the same as before.
+- An added custom field shows the same staged look as other edits. A deleted one stays in its row, struck through, until Save.
+- All fields is a small rocker in the Editor's title bar. On the phone, the same rocker pattern sets Compilation, and All fields doesn't exist.
+- The Save bar sits at the foot of the Editor on the desktop. On the phone it takes a slot above the tab bar, and so does the player. The desktop player sits at the foot of the track list. Both players appear only while a track plays.
+- Select and History are caps in the Library title bar, and the bulk run and History open beside the album list. The phone has neither.
+- Dividers (`.lib-split`) resize the panels by dragging or with the left and right arrows. Below 1100px the panels stack and the dividers go.
+- The filter menu shows how many albums each entry holds.
+- A phone confirm, such as the split warning, is a slot. A desktop confirm is a dialog.
+
+### Help
+
+Help never shows on a screen at rest, and the design adds no helper text beside a control. The text follows [Navidrome's tagging guidelines](https://www.navidrome.org/docs/usage/library/tagging/) and the measurements in `docs/decisions.md`.
+
+- On the desktop, a note (`.tipbox`) opens 350ms after the pointer reaches a name, and closes when it leaves. Names with a note gain a dotted underline under the pointer. That covers field and tag names, the display that says which tracks an edit reaches, issue names, Standard and Extended, filter entries, suggestions, the Save bar's count, Undo and Redo, and the fixes of a bulk run. A field with nothing worth explaining has no note.
+- The `N` key shows the same note for the field the cursor is on. In the app, the note is also the field's `aria-describedby`.
+- The menubar's `?` opens the Help sheet at the Tagging guide, and the `?` key opens it at Keyboard.
+- The phone has no hover. A small `?` cap (`.wbtn.q`) sits in the title bar of the album and field pages and on each issue. It opens the note in a slot above the tab bar, and the slot links to the Tagging guide page. The album list stays as it is.
+
 ## Accessibility
 
 - Every text color in `tokens.css` passes WCAG AA on every module, panel and field color. The lowest pair at night is 4.5:1, secondary text on the lighter top of a window. The lowest by day is 4.6:1, secondary text on panel blue. Button text on ivory is 11.7:1, backlit tab text 6.6:1, and display text 12.4:1 at night and 8.3:1 by day.
@@ -164,6 +229,8 @@ Quality labels look like masking tape. The words always name the quality, and th
 
 ## Where the app differs from the screens
 
+- The phase 1 screens still show three tabs. The Library screens show all four, with 12px legends so Downloads clears its key.
+- `MS-desk-library-note` shows its note at a fixed place. The canvas and the app place a note under the name it explains.
 - The strict CSP forbids inline styles, and the screens use them for layout. The app moves them into scoped stylesheets and sets changing values, such as the knob angle `--a`, the progress `--p` and the size `--s`, as CSS variables from script.
 - The app switches to the phone layout with a media query at 720px, not with the `ph` class.
 - The app serves its own font files.
