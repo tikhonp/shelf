@@ -18,7 +18,7 @@ Steps 1 to 4 need no screens, so they can run while the owner designs. Step 0's 
 
 ## Open
 
-- The wrapper-lite pin `0f06738`, which fixes `/key` failing after 1024 calls, is deployed. One Apple Music download still has to confirm the fix.
+Nothing. An Apple Music download on 2026-11-04 confirmed that the wrapper-lite pin `0f06738` fixes `/key` failing after 1024 calls.
 
 ## Remotes
 
