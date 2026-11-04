@@ -20,6 +20,7 @@ Steps 1 to 4 need no screens, so they can run while the owner designs. Step 0's 
 
 - The owner removes the old pipeline's data, `${SWINGMUSIC_DATA}/music-downloader-bot` and `${SWINGMUSIC_DATA}/apple-music-lite-data`.
 - The checklist run left Third, Portishead and Wish You Were Here 50 in the library.
+- The wrapper-lite pin moved to `0f06738`, which fixes `/key` failing after 1024 calls. The owner deploys `shelf` and `shelf-wrapper` and runs one Apple Music download to check it.
 
 ## Remotes
 
