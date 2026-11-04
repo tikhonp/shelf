@@ -1,34 +1,15 @@
 # Status
 
-Phase 1 is done. shelf has run in production on blackberry since 2026-11-04: the web UI at `shelf.music.tikhonnnnn.com`, the bot `@music_shelf_bot`, Qobuz through qobuz-dl-go `v0.1.0`, Apple Music through amdl and shelf-wrapper, and scans in Navidrome. The old bot's 169 downloads are imported. The last run of [manual-checklist.md](manual-checklist.md) passed.
+Phases 1 and 2 are done, and shelf runs in production on blackberry. [vision.md](vision.md) says what each phase brought and what may come next.
 
-Phase 2, tags, is done and runs in production. The approved plan is [phase-2.md](phase-2.md), its decisions are in [decisions.md](decisions.md), [ui/design-brief.md](ui/design-brief.md) says what each screen does, and the screens are exported to [ui/design/](ui/design/README.md). `internal/modules/library/tagio` reads tags and writes them through verified temp copies, as [tags.md](tags.md) describes, `shelf manage tags <file>` shows a file, and the library module sweeps leftover temp files at start. The library module keeps an index of the music folder, read as Navidrome reads it under the owner's settings, groups it into albums with Navidrome's album IDs, runs the checks, and serves the album list, an opened album and the audio under `/api/library`.
+- **Downloads.** The web UI at `shelf.music.tikhonnnnn.com` and the bot `@music_shelf_bot` search and download from Qobuz, through qobuz-dl-go `v0.1.0`, and from Apple Music, through amdl and shelf-wrapper. Navidrome scans after downloads. shelf imported the old bot's 169 downloads.
+- **Tags.** The Library tab edits every tag in the library, with suggestions, checks and fixes, covers, playback, history with undo, and bulk runs with ReplayGain and AcoustID. [tags.md](tags.md) describes it. `make contract` passes against Navidrome 0.64.2.
 
-Step 3 is done. `POST /api/library/albums/{id}/save` checks a Save at once, and a `library.write` job on the `tags` queue writes it. A Save refuses conflicts, locked files and folders a download works in, which sources name through `source.Reporter.Working`. It asks first before a split, a merge, an album artist rename or a cover edit that reaches other albums in the folder. `library_changes` keeps every change with each file's tags before and after, shelf settles a change a stop cut off, and a write asks Navidrome for a scan. The write probe reports each top folder. The history lists saves, and undo and redo restore only the keys that still hold what a save wrote, with the release IDs as one group. A Save can replace or delete the album's cover, in the files that have one and in the folder's `cover.*`, with embedded copies scaled to 1000 pixels, and an opened album reports a cover ffmpeg can't decode, with a repair to stage. A replace keeps each disc folder's art, and Delete removes it too. A change reports each file's new revision and whether it wrote a cover, which step 5 needs for Save cover alone and the history. `make contract` runs these writes against a scratch Navidrome and passes on 0.64.2. The rules and deployment docs now let shelf write the whole library.
-
-On blackberry the genre folders belong to `10001:10001` since 2026-11-04, and check 14 of [manual-checklist.md](manual-checklist.md) passed its rename and undo on a real album. A replaced front cover now keeps its type and description, and an undo of a Delete puts the description back. With that fix deployed as `c021044`, the check's cover replace and undo passed on Kraftwerk. On 2026-11-05 the HDD backup copied Kraftwerk's rewritten files, and the check passed.
-
-Step 4 is done. `GET /api/library/albums/{id}/suggestions` suggests values from file and folder names, other tracks, `shelf.txt`, MusicBrainz with the Cover Art Archive, and every catalog, each with its source and a confidence. One MusicBrainz release anchors an album's release fields. shelf finds it by a pasted ID, the files' ID, barcode, ISRC or search, and a Save refuses suggestions from two releases. Lyrics come per track from LRCLIB. shelf stores answers for 30 days and calls MusicBrainz at most once a second. On 2026-11-04 a live run found Blue's release by search, with its cover, and LRCLIB's lyrics for its first tracks.
-
-Step 5 is done. The Library tab has the album list, the editor with suggestions, issues and Fixes, covers, the player and the Save states at both widths, and All fields, the long-form editor, History, the Help sheet, the keys and the resizable panels on the desktop. Status has a Library part, and a finished download has a button that opens its album. [tags.md](tags.md#the-editor) says how the editor works. shelf ran it on a scratch music folder in Chrome at 1440, 1050, 760 and 390 pixels, and each write was read back from the files. Check 15 of [manual-checklist.md](manual-checklist.md) ran on 2026-11-04, on real albums and an emulated phone. It found two bugs, an undo from History that asks and the phone album's track list, and both are fixed and deployed. The check then passed on a real phone behind basic auth. The owner skipped its transcode step, since the library has no file a browser refuses. Status doesn't say whether MusicBrainz answers, because the API has no such check yet.
-
-Step 6 is done. Select in the Library list picks albums, a preview shows what a run would touch, and a run applies fixes or ReplayGain one album at a time, as one undo step. A run skips what a Save would ask about, survives a restart, and can be cancelled. ReplayGain measures on the new `analysis` queue, and AcoustID finds an anchor when text lookups find nothing. [tags.md](tags.md#bulk-runs) has the rules. On 2026-11-04 shelf ran this on a scratch music folder in Chrome at 1440, 1050, 760 and 390 pixels, and `make contract` passed six times in a row with a run's dates and gains read back from Navidrome. On 2026-11-04 check 16 of [manual-checklist.md](manual-checklist.md) ran on blackberry on 20 albums, through a restart, an undo and a second run, and passed up to its backup step. With a key set, AcoustID found an anchor for an album no search found. On 2026-11-05 the HDD backup copied those albums' files byte for byte, and the check passed.
-
-| Step | What | State |
-| --- | --- | --- |
-| 0 | Evidence: real files, a scratch Navidrome, key census, ReplayGain speed | done |
-| 1 | Tag IO and the safe writer | done |
-| 2 | Read-only library: index, album API, checks, audio | done |
-| 3 | Editing backend: Save, history, undo, covers. The owner runs the chown here. | done |
-| 4 | Suggestions | done |
-| 5 | Web UI: Library tab, editor, suggestions, covers, playback, All fields, History, keyboard, panels | done |
-| 6 | Bulk runs, ReplayGain and AcoustID | done |
-
-Steps 1 to 4 needed no screens, so they ran while the owner designed. Step 0's results are in [decisions.md](decisions.md).
+Every check in [manual-checklist.md](manual-checklist.md) passed in production, the last on 2026-11-05.
 
 ## Open
 
-Nothing. Checks 14 and 16 passed in production on 2026-11-05.
+- Status's Library part doesn't say whether MusicBrainz answers, because the API has no such check.
 
 ## Remotes
 
@@ -44,5 +25,4 @@ Nothing. Checks 14 and 16 passed in production on 2026-11-05.
 - A wrapper signed in to the owner's Apple ID needs its own data folder and `--device-info`.
 - Unset `SHELF_QOBUZ_TOKEN` for a local run with only the fake source, or it logs in to the owner's Qobuz account.
 - Files in the music folder belong to UID 10001. Delete test downloads from inside the shelf container.
-- `make contract` used to fail about one run in three, also on the code before step 6, because it read a cover once while Navidrome still served its placeholder. It now waits for the cover.
 - Third, Portishead and Wish You Were Here 50 came from the checklist run, and the owner keeps them in the library.

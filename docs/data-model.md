@@ -150,7 +150,7 @@ Rules:
 - `kinds` lists the issue kinds between commas, so the filter matches `,kind,`. `search` is the title, artist and folder, lowercased with typographic quotes and dashes made plain.
 - `library_state` holds one row, `navidrome_config`, with the tag settings last read from Navidrome as JSON.
 
-`internal/modules/library/migrations/00002_changes.sql` holds every tag write. Unlike the index, the files can't rebuild it.
+`00002_changes.sql`, with columns from `00003_covers.sql` and `00005_cover_descriptions.sql`, holds every tag write. Unlike the index, the files can't rebuild it. `00006_runs.sql` below adds `parent` to `library_changes`.
 
 ```sql
 CREATE TABLE library_changes (
@@ -180,6 +180,11 @@ CREATE TABLE library_change_files (
     after     TEXT NOT NULL,                -- JSON: as planned, then as read back
     revision  TEXT NOT NULL DEFAULT '',     -- after the write
     written   INTEGER NOT NULL DEFAULT 0 CHECK (written IN (0, 1)),
+    kind      TEXT NOT NULL DEFAULT 'audio' CHECK (kind IN ('audio', 'cover')),
+    cover_before TEXT NOT NULL DEFAULT '',  -- SHA-256 of the front cover; '' is no cover
+    cover_after  TEXT NOT NULL DEFAULT '',
+    cover_before_description TEXT NOT NULL DEFAULT '',
+    cover_after_description  TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (change_id, path)
 ) STRICT;
 ```
@@ -187,8 +192,7 @@ CREATE TABLE library_change_files (
 - A change moves from `queued` to `writing` when its journal begins, then to `done`, `partial` or `failed` by how many of its files were replaced. A change the checks stopped goes from `queued` to `failed` and has no files.
 - `request` holds the edits with each file's path and revision, because a job's payload stops at 64 KiB. The job's payload names only the change.
 - A file row holds the full tag map before and after, so an undo can restore any key. `after` is the plan until the write ends, then what the file read back.
-- `00003_covers.sql` adds `kind`, `audio` or `cover`, and `cover_before` and `cover_after` to `library_change_files`. An audio file's are the hashes of its front cover, equal when the change left it alone. A `cover` row is a folder's cover file, with `{}` for its tags. An empty hash is no cover. The images live in `/data/library/covers` under their hashes.
-- `00005_cover_descriptions.sql` adds `cover_before_description` and `cover_after_description`, an audio file's front cover description before and after the change. An undo or redo that adds a removed cover back gives it the description from its row. Rows from before the migration have `''`.
+- An `audio` row holds its front cover's hash and description before and after. The hashes are equal when the change left the cover alone. An undo that puts a removed cover back gives it its description. A `cover` row is a folder's cover file, with `{}` for its tags. The images live in `/data/library/covers` under their hashes.
 - History has no foreign key to the index, which a walk rebuilds. Paths are relative to the music folder, as in the index.
 - An undo or redo has its save as `target` and lists the keys it left alone in `conflicts`. When it replaces any file, it sets its save's `undone`, to 1 for an undo and 0 for a redo.
 - The `library.retention` job at 05:15 keeps the newest 1,000 saves, and `ON DELETE CASCADE` takes their undos, redos and files with them. Clear history deletes every ended change, except a save whose undo or redo is still to run. The same job removes stored covers no change refers to, except uploads younger than a day.

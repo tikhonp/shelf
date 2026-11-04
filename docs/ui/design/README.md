@@ -1,13 +1,11 @@
 # Design
 
-The screens and styles, exported on 2026-11-04 from the Claude Design canvas at https://claude.ai/artifact/Hkb6TNxr1Lr9Augzgk1XXn. Phase 1 comes from its Studio redesign page and phase 2 from its Library page. The Vue app is built from these files.
-
-Until the app exists, the canvas is the source of record. After that the app's CSS is. A small visual change then goes straight into the app, and a bigger one goes through the canvas first.
+The screens and styles, exported from the Studio redesign and Library pages of the Claude Design canvas at https://claude.ai/artifact/Hkb6TNxr1Lr9Augzgk1XXn. The app's CSS is the source of record. A small visual change goes straight into the app, and a bigger one goes through the canvas first.
 
 ## Files
 
 - `tokens.css` holds the color and font variables for both themes, and the side gutter.
-- `components.css` holds every phase 1 part and reads the variables in `tokens.css`.
+- `components.css` holds the parts outside the Library tab and reads the variables in `tokens.css`.
 - `library.css` holds the parts of the Library tab and sits on top of the other two. It is the canvas's `project/library.css`, unchanged.
 - `screens/MS-*.html` has one static page per screen. Open one in a browser to see it, and add `?theme=day` to the address for the Day theme.
 
@@ -231,7 +229,7 @@ Help never shows on a screen at rest, and the design adds no helper text beside 
 
 ## Where the app differs from the screens
 
-- The phase 1 screens still show three tabs. The Library screens show all four, with 12px legends so Downloads clears its key.
+- The screens outside the Library still show three tabs. The Library screens show all four, with 12px legends so Downloads clears its key.
 - `MS-desk-library-note` shows its note at a fixed place. The canvas and the app place a note under the name it explains.
 - The strict CSP forbids inline styles, and the screens use them for layout. The app moves them into scoped stylesheets and sets changing values, such as the knob angle `--a`, the progress `--p` and the size `--s`, as CSS variables from script.
 - The app switches to the phone layout with a media query at 720px, not with the `ph` class.
