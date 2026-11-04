@@ -249,13 +249,16 @@ func TestSaveRefuses(t *testing.T) {
 		t.Errorf("busy: %+v", f)
 	}
 	r.m.SetBusy(nil)
-	dir := filepath.Join(r.root, "folk", "Blue")
-	if err := os.Chmod(dir, 0o555); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.Chmod(dir, 0o755) })
-	if f := decode[refusal](t, r.post(save, saveBody{Tracks: everyTrack(d, title)})); f.Reason != ReasonLocked {
-		t.Errorf("locked: %+v", f)
+	// Root writes a read-only folder, and CI runs the tests as root.
+	if os.Getuid() != 0 {
+		dir := filepath.Join(r.root, "folk", "Blue")
+		if err := os.Chmod(dir, 0o555); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = os.Chmod(dir, 0o755) })
+		if f := decode[refusal](t, r.post(save, saveBody{Tracks: everyTrack(d, title)})); f.Reason != ReasonLocked {
+			t.Errorf("locked: %+v", f)
+		}
 	}
 	var n int
 	if err := r.m.store.db.R.Get(&n, `SELECT count(*) FROM library_changes`); err != nil || n != 0 {
@@ -434,15 +437,19 @@ func TestProbeAndLockedFiles(t *testing.T) {
 	r.add("folk/Blue/01.flac", "track.flac", blue("1", nil))
 	r.add("jazz/Kind of Blue/01.flac", "track.flac", blue("1", nil))
 	r.write(".hidden/x", nil)
-	jazz := filepath.Join(r.root, "jazz")
-	if err := os.Chmod(jazz, 0o555); err != nil {
-		t.Fatal(err)
+	// Root writes a read-only folder, and CI runs the tests as root.
+	readOnly := os.Getuid() != 0
+	if readOnly {
+		jazz := filepath.Join(r.root, "jazz")
+		if err := os.Chmod(jazz, 0o555); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = os.Chmod(jazz, 0o755) })
 	}
-	t.Cleanup(func() { _ = os.Chmod(jazz, 0o755) })
 	r.m.ix.probe()
 	st := r.m.ix.status()
-	if len(st.Folders) != 2 || st.Folders[0] != (FolderState{Name: "folk", Writable: true}) ||
-		st.Folders[1].Name != "jazz" || st.Folders[1].Writable || st.Folders[1].Error == "" || strings.Contains(st.Folders[1].Error, r.root) {
+	if len(st.Folders) != 2 || st.Folders[0] != (FolderState{Name: "folk", Writable: true}) || st.Folders[1].Name != "jazz" ||
+		st.Folders[1].Writable == readOnly || (st.Folders[1].Error == "") == readOnly || strings.Contains(st.Folders[1].Error, r.root) {
 		t.Fatalf("folders %+v", st.Folders)
 	}
 	entries, _ := os.ReadDir(filepath.Join(r.root, "folk"))
