@@ -1,6 +1,6 @@
 # Tags
 
-How shelf reads and writes the tags in audio files. Navidrome is the test of every write. shelf follows its mappings, and a write that reads back right but shows wrong in Navidrome has failed. The code is `internal/modules/library/tagio`. Phase 2 builds the editor in steps, and this doc grows with them. [phase-2.md](phase-2.md) has the plan.
+How shelf reads and writes the tags in audio files, and how it indexes and checks the library. Navidrome is the test of every write. shelf follows its mappings, and a write that reads back right but shows wrong in Navidrome has failed. The code is `internal/modules/library/tagio`. Phase 2 builds the editor in steps, and this doc grows with them. [phase-2.md](phase-2.md) has the plan.
 
 ## Fields
 
@@ -50,6 +50,44 @@ A failure before the renames removes every temp file and changes nothing. A rena
 
 At start the library module removes temp files a crash left. It walks the music folder, skips dot folders, and deletes only regular files with the temp name that shelf's UID owns. A folder it can't read is logged and skipped.
 
+## Navidrome's view
+
+`tagio.Rules` reads a file the way Navidrome 0.64.2's scanner does, and every check and every album uses that view. The rules start from `mappings.yaml` and apply the owner's Navidrome settings, which the navidrome module reads from `GET /api/config/` with the admin login: the `Tags` changes, `Scanner.ArtistSplitExceptions`, `Scanner.ArtistJoiner`, the old `Scanner.GenreSeparators`, `PID.Album` and `CoverArtPriority`. shelf keeps the last answer, so a start while Navidrome is down uses it, and with none it uses Navidrome's defaults. The rules have an ID, and the index reads a file again when it read the file under other rules.
+
+- **Fields.** Each field takes the values of its aliases in order, split by its separators, with duplicates and empty values dropped. Navidrome cuts a value at the field's length limit, 1024 bytes unless the mapping says otherwise. Dates keep `YYYY-MM-DD` or `YYYY-MM`, else the first year. Navidrome drops a MusicBrainz ID that isn't a UUID, and writes one in braces without them.
+- **Artists.** A multi-value `ARTISTS` wins. Otherwise Navidrome splits a single `ARTIST` by the field's separators, or by the mappings' artist separators, skipping the split exceptions. Album artists work the same way, and without any they are the track's artists, or Various Artists on a compilation. The display name joins the tag's values with the joiner.
+- **Dates.** With an original date, no release date, and a date no earlier than the original, Navidrome shows the original date and reads the date as the release date. Otherwise it shows the date, then the original date, then the release date.
+- **Album ID.** shelf hashes the spec, `musicbrainz_albumid|albumartistid,album,albumversion,releasedate` by default, as Navidrome does. It takes the first alternative with any value and puts the library ID 1 in front. shelf supports `album_legacy` too. The tests hold IDs that a real Navidrome 0.64.2 computed.
+
+## Index
+
+The library module keeps an index of the music folder. A walk runs at start, every 15 minutes, after each finished download, and on `POST /api/library/index`. It never writes a file.
+
+- **What it reads.** Audio files of the formats above, skipping what Navidrome skips: names with exactly one leading dot, its system folders such as `@eaDir` and `lost+found`, and folders whose `.ndignore` holds no pattern. shelf doesn't match `.ndignore` patterns, so it logs such a file and indexes the folder. The walk skips symlinks and lists the image files of each folder for the cover check.
+- **What it reads again.** Only a file whose size or mtime changed, or that the index read under other rules or older code. The index keeps a file it can't read as unreadable, and that file joins no album.
+- **Albums.** Files group by Navidrome album ID inside a release folder. A release folder is the file's folder, or the one above it when the file's folder is a disc folder such as `CD 2` or `Disc1`. Discs whose tags agree form one album, and discs that disagree form two albums in one folder, which the split check reports. Navidrome merges one album ID across folders, so the index also counts distinct album IDs, and that number is the one to hold against Navidrome's album count.
+- **Rows.** An album keeps its row ID while its folder and Navidrome ID stay the same. Every file and album has a row ID, so the API never puts a path in a URL. "Date added" is the earliest file's mtime when the index first saw it, which a retag doesn't move.
+- **An opened album.** `GET /api/library/albums/{id}` reads every file of the album again. When a file changed since the walk, the answer says `stale` and the module asks for a walk.
+
+## Checks
+
+Each check is a kind that the filter menu offers. Guide kinds are style only and never light a lamp.
+
+| Kind | An album has it when |
+| --- | --- |
+| `missing_tag` | A track has no title, artist, album or track number, so Navidrome shows a placeholder or the file name. |
+| `split_album` | Two albums of one release folder share an album name. Navidrome shows them apart. |
+| `values_differ` | Its tracks hold different values, or a value and none, of a field the album should share: album artist, album artists, album version, compilation, release date, original date, disc total, label, catalogue number, barcode, release type, country and status, and the MusicBrainz album artist ID. |
+| `tags_disagree` | Two keys of one track feed one field with different values, such as `ALBUMARTIST` and a stale `ALBUM ARTIST`. |
+| `reissue_year` | Navidrome shows a year later than the original date's. |
+| `no_releasedate` | A track has no `RELEASEDATE` key. |
+| `various_artists` | The album artist is Various Artists and a track lacks the compilation flag. |
+| `artist_split` | A track's MusicBrainz artist IDs, or album artist IDs, don't match in number the artists Navidrome splits from its tags. Without IDs there is nothing to judge by. |
+| `two_releases` | Its tracks hold two MusicBrainz album or release group IDs, or a split album's halves hold two album IDs. |
+| `no_cover` | No image in its folders matches a file pattern of the cover priority, and no track has an embedded picture, or the priority leaves out `embedded`. |
+| `guide_albumartists` | A track has no `ALBUMARTISTS`. |
+| `guide_replaygain` | A track has no track gain, in ReplayGain or R128 form. |
+
 ## Edge cases and their tests
 
 | Case | Test |
@@ -75,6 +113,23 @@ At start the library module removes temp files a crash left. It walks the music 
 | ffmpeg's hash ignores tags and sees changed samples | `TestFFmpegHash` |
 | Empty, garbage and half files read without a panic | `TestReadBadFiles` |
 | The revision moves with tags, pictures, and a retag that keeps the mtime | `TestRevisionMoves` |
-| The sweep's names, owners, dot folders, symlinks and unreadable folders | `TestSweep`, `TestSweepSkipsUnreadableFolders`, `TestRunSweepsTempFiles` |
+| The sweep's names, owners, dot folders, symlinks and unreadable folders | `TestSweep`, `TestSweepSkipsUnreadableFolders`, `TestRunSweepsWalksAndHearsDownloads` |
+| Album IDs, album artists, dates and years as a real Navidrome 0.64.2 computed them | `TestGoldenNavidrome` |
+| Aliases merged, splits, a bad UUID dropped, `3/9` track numbers, a bad day keeping the year | `TestViewMergesAliasesAndSplits` |
+| The owner's split exceptions and separators, an ignored tag, genre separators, a folder album spec, cover priority | `TestRulesFollowNavidromeSettings` |
+| Disagreeing aliases; lyrics in two languages are no disagreement; M4A's `DATE` against `RELEASEDATE` | `TestDisagreements` |
+| Navidrome's settings read with an admin login; a user who isn't an admin; a wrong password kept out of the error | `TestConfigReadsTheTagSettings`, `TestConfigRefusals` |
+| Each file check, the legacy date rule that is no reissue, and a split that matches its IDs | `TestFileChecks`, `TestFactsOfAWellTaggedFile` |
+| Disc folders merging; discs that disagree splitting; two releases in a folder; a playlist folder that is no split | `TestGroupMergesDiscFolders`, `TestGroupFindsSplits` |
+| Shared values differing, Various Artists without the flag, two release groups | `TestAlbumChecks` |
+| Cover files, embedded pictures and the owner's cover priority | `TestCovers` |
+| Unreadable files left out; the most common quality | `TestGroupSkipsUnreadableAndSummarizes` |
+| Dot entries, an ellipsis folder, system folders, an `.ndignore` with only a comment, `.mp4` artwork, a broken file; only changed files read again; a row ID kept; a restart that reads nothing | `TestWalkIndexesTheLibrary` |
+| A walk with nothing new writes nothing | `TestWalkWithNothingNewWritesNothing` |
+| New Navidrome settings read every file again; Navidrome down keeps the settings last read | `TestNavidromeSettingsChangeTheIndex` |
+| List filters, sorts, search, paging and refusals; the filter menu's counts | `TestListFiltersSortsAndSearches` |
+| An opened album read again after another tool's retag, and its split seen from the folder's other album | `TestOpenedAlbumIsReadAgain`, `TestOpenedAlbumSeesItsSplit` |
+| Audio with its type and ranges; a file swapped for a symlink; an unknown track | `TestAudio` |
+| Run sweeps, walks at start, after a download and on request | `TestRunSweepsWalksAndHearsDownloads` |
 
 The fixtures in `tagio/testdata` are half a second of a sine per format, written by `testdata/make.sh`. Tests that need ffmpeg skip where it isn't installed.

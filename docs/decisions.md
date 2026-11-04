@@ -92,7 +92,7 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 
 ## Tags
 
-Phase 2 is being built. Step 1, tag IO and the safe writer, is done, and [tags.md](tags.md) describes it. The rows under Deployment stay in force until the editing backend ships.
+Phase 2 is being built. Step 1, tag IO and the safe writer, and step 2, the read-only library, are built, and [tags.md](tags.md) describes them. The rows under Deployment stay in force until the editing backend ships.
 
 | Decision | Why |
 | --- | --- |
@@ -126,6 +126,13 @@ Phase 2 is being built. Step 1, tag IO and the safe writer, is done, and [tags.m
 | MP3 writes gain an ID3v1 copy of the tags. | TagLib's save adds one, and go-taglib has no option to stop it. The read-back and Navidrome's view are unchanged, and the library has no MP3 files. |
 | A WMA file with two pictures can't be written. | TagLib reorders WMA pictures on save, and the read-back refuses a moved picture. The library has no WMA files. |
 | Tests that check audio through ffmpeg skip where ffmpeg is missing. The FLAC tests never need it. | The image and the dev machines have ffmpeg. CI's runner may not. |
+| The index groups files by Navidrome album ID inside a release folder, computing the ID as Navidrome 0.64.2 does under the owner's settings. A disc folder such as `CD 2` belongs to the folder above. | Navidrome's grouping is the measure, and the step is done when the counts match. A real Navidrome computed the test IDs. Grouping inside a folder keeps playlist folders and single tracks apart. |
+| The navidrome module reads Navidrome's tag settings from `GET /api/config/` at each walk, and shelf keeps the last answer. New settings make the index read every file again. | The owner's split rules and album ID spec decide what Navidrome shows. Reading them needs no TOML parsing and no new mount. |
+| shelf judges an artist split by the MusicBrainz artist IDs. Their number must match the number of artists Navidrome splits. Without IDs there is no check. | The IDs are the only evidence of the intended artists that shelf has offline. |
+| The index walks at start, every 15 minutes, after each finished download and on request. An opened album always reads its files again. | A walk reads only changed files, and the editor never works from what the index read. |
+| The index keeps facts, about 1 KB a file, and no tags. | An opened album reads its files anyway. Tags with lyrics would make the database, and its 14 daily copies, many times larger. |
+| An `.ndignore` with no pattern skips its folder, as in Navidrome. One with patterns is logged and its folder indexed. | shelf doesn't match Navidrome's patterns, and a missed ignore shows as a count that differs. |
+| The audio endpoint serves the file as it is. A transcode for browsers that can't play a format comes with the player in step 5. | Browsers play FLAC. The UI knows what it can play, and the library has 13 M4A files. |
 | A bulk run has no nightly limit. Its preview shows the files and GB touched, and the owner sizes each run. | Nothing runs by itself. The HDD backup recopies each changed file and keeps no history, and the remote one keeps overwritten files for 30 days. |
 
 ### Evidence from step 0

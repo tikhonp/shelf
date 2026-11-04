@@ -250,10 +250,10 @@ func (m *Module) retry(c *echo.Context) error {
 	return c.JSON(http.StatusOK, toJSON(d))
 }
 
-// events streams the hub's download, scan and source events. A client that
-// reconnects reloads what it shows, so nothing is replayed.
+// events streams the hub's download, scan, source and library events. A
+// client that reconnects reloads what it shows, so nothing is replayed.
 func (m *Module) events(c *echo.Context) error {
-	ch, stop := m.svc.hub.Subscribe(Topic, "scan", "source")
+	ch, stop := m.svc.hub.Subscribe(Topic, "scan", "source", "library")
 	defer stop()
 	st, err := web.OpenStream(c)
 	if err != nil {

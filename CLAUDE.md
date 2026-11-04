@@ -105,4 +105,8 @@ Use these words in code, UI, docs and conversation.
 
 **Scan.** The Navidrome library scan that shelf starts after downloads.
 
+**Index.** shelf's own record of the music folder, read the way Navidrome reads it. A walk brings it up to date. _Avoid_: scan, for the index.
+
+**Check.** A test of an album against Navidrome's tagging guide. What a check finds is an issue.
+
 **Status message.** The Telegram message the bot edits while one download moves.
