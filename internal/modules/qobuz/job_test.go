@@ -211,6 +211,37 @@ func TestPartialAlbumThroughTheJob(t *testing.T) {
 	}
 }
 
+// Force passes the check in Queue, and qobuz-dl-go still skips complete files.
+func TestForceFetchesWhatIsMissing(t *testing.T) {
+	r := newJobRig(t)
+	r.up()
+	link := "https://play.qobuz.com/album/" + qobuzdltest.AlbumHiRes96
+	d := r.wait(r.queue(link).ID)
+	if err := os.Remove(filepath.Join(r.cfg.MusicDir, d.Tracks[1].Path)); err != nil {
+		t.Fatal(err)
+	}
+	q, err := r.svc.Queue(bg, downloads.QueueRequest{URL: link, Force: true, Origin: downloads.OriginWeb})
+	if err != nil {
+		t.Fatal(err)
+	}
+	again := r.wait(q.ID)
+	if again.Status != downloads.Done || again.TracksDone != 7 {
+		t.Fatalf("%+v", again.Download)
+	}
+	for i, tr := range again.Tracks {
+		want := "skipped"
+		if i == 1 {
+			want = "done"
+		}
+		if tr.Status != want {
+			t.Errorf("track %d: %s, want %s", tr.Position, tr.Status, want)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(r.cfg.MusicDir, d.Tracks[1].Path)); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestExpiredTokenThroughTheJob(t *testing.T) {
 	r := newJobRig(t)
 	r.up()

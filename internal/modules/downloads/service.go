@@ -54,6 +54,8 @@ type Service struct {
 	hub     *hub.Hub
 	sources *source.Registry
 	log     *slog.Logger
+	// lookupWait is defaultLookupWait; tests shorten it.
+	lookupWait time.Duration
 
 	mu       sync.Mutex
 	notifier Notifier
@@ -62,6 +64,7 @@ type Service struct {
 
 func (s *Service) init(d module.Deps) {
 	s.cfg, s.db, s.jobs, s.hub, s.sources, s.log = d.Cfg, d.DB, d.Jobs, d.Hub, d.Sources, d.Log
+	s.lookupWait = defaultLookupWait
 }
 
 func (s *Service) now() db.Time { return db.At(s.Now()) }
@@ -134,6 +137,10 @@ func format(dl source.Downloader, ref source.Ref, id string) (string, error) {
 	return id, nil
 }
 
+// defaultLookupWait bounds the lookup behind a skipped download, which the
+// person who queued it is waiting on. Qobuz can hold a call for a minute.
+const defaultLookupWait = 5 * time.Second
+
 // Queue creates a download and its job. An album, playlist or track that is
 // already in downloaded_items gives a skipped download unless r.Force.
 func (s *Service) Queue(ctx context.Context, r QueueRequest) (Download, error) {
@@ -162,10 +169,45 @@ func (s *Service) Queue(ctx context.Context, r QueueRequest) (Download, error) {
 	}
 	s.jobs.Kick()
 	d, err := s.load(ctx, id)
-	if err == nil {
-		s.publish(d, "")
+	if err != nil {
+		return d, err
 	}
-	return d, err
+	d = s.fillSkipped(ctx, d, dl)
+	s.publish(d, "")
+	return d, nil
+}
+
+// fillSkipped asks the source for what a skipped download doesn't know, such
+// as the cover of an imported album. It runs after the transaction because it
+// reaches the network. The download stays skipped without it, so a failure
+// is only logged.
+func (s *Service) fillSkipped(ctx context.Context, d Download, dl source.Downloader) Download {
+	if d.Status != Skipped || (d.Title != "" && d.Artist != "" && d.CoverURL != "") {
+		return d
+	}
+	res, ok := dl.(source.Resolver)
+	if !ok {
+		return d
+	}
+	lookup, cancel := context.WithTimeout(ctx, s.lookupWait)
+	defer cancel()
+	item, err := res.Item(lookup, d.Ref)
+	if err != nil {
+		s.log.Warn("downloads: lookup of a skipped item", "download", d.ID, "error", err)
+		return d
+	}
+	title, artist, cover := first(d.Title, item.Title), first(d.Artist, item.Artist), first(d.CoverURL, item.CoverURL)
+	err = s.db.Write(ctx, func(tx *sqlx.Tx) error {
+		_, err := tx.ExecContext(ctx, `UPDATE downloads SET title = ?, artist = ?, cover_url = ? WHERE id = ?`,
+			title, artist, cover, d.ID)
+		return err
+	})
+	if err != nil {
+		s.log.Error("downloads: store a skipped item", "download", d.ID, "error", err)
+		return d
+	}
+	d.Title, d.Artist, d.CoverURL = title, artist, cover
+	return d
 }
 
 type newDownload struct {
@@ -196,9 +238,11 @@ func (s *Service) create(ctx context.Context, tx *sqlx.Tx, nd newDownload) (int6
 
 	if !nd.force && !nd.ref.Kind.Collection() {
 		var have struct {
-			Path string `db:"path"`
+			Path   string `db:"path"`
+			Title  string `db:"title"`
+			Artist string `db:"artist"`
 		}
-		err := tx.GetContext(ctx, &have, `SELECT path FROM downloaded_items WHERE source = ? AND kind = ? AND item_id = ?`,
+		err := tx.GetContext(ctx, &have, `SELECT path, title, artist FROM downloaded_items WHERE source = ? AND kind = ? AND item_id = ?`,
 			nd.ref.Source, nd.ref.Kind, nd.ref.ID)
 		if err == nil {
 			// The last download of the item knows its title and cover.
@@ -211,6 +255,7 @@ func (s *Service) create(ctx context.Context, tx *sqlx.Tx, nd newDownload) (int6
 				SELECT title, artist, cover_url FROM downloads
 				WHERE source = ? AND kind = ? AND item_id = ? AND title != '' ORDER BY id DESC LIMIT 1`,
 				nd.ref.Source, nd.ref.Kind, nd.ref.ID)
+			last.Title, last.Artist = first(last.Title, have.Title), first(last.Artist, have.Artist)
 			last.Title, last.Artist, last.CoverURL = first(nd.title, last.Title), first(nd.artist, last.Artist), first(nd.cover, last.CoverURL)
 			res, err := tx.ExecContext(ctx, `
 				INSERT INTO downloads (parent_id, source, kind, item_id, url, format, force, title, artist, cover_url,

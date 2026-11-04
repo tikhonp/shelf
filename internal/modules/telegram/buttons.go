@@ -15,7 +15,7 @@ import (
 const (
 	dataCancel  = "c:" // c:<download id>
 	dataRetry   = "r:" // r:<download id>
-	dataAgain   = "f:" // f:<download id>, download again with force
+	dataMissing = "f:" // f:<download id>, fetch what is missing, with force
 	dataQueue   = "q:" // q:<source>:<kind>:<id>, an item from search results
 	dataAll     = "a:" // a:<source>:<kind>:<id>, a confirmed artist or label
 	dataDismiss = "x"  // dismiss a confirmation
@@ -51,7 +51,7 @@ func (b *bot) handleCallback(ctx context.Context, q *models.CallbackQuery) {
 		b.cancel(ctx, q, rest)
 	case dataRetry:
 		b.retry(ctx, q, rest)
-	case dataAgain:
+	case dataMissing:
 		b.again(ctx, q, rest)
 	case dataQueue:
 		b.queueFromSearch(ctx, q, rest)

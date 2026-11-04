@@ -109,7 +109,8 @@ type Library interface {
 ## Downloads
 
 - `POST /api/downloads`, the bot and `manage` commands all go through `downloads.Service.Queue`. A format without the source's prefix, such as `27`, is the source's; no format is the source's default.
-- Before queuing, the service looks up `downloaded_items`. A hit creates a `skipped` download unless the request has `force`. It has no job, and takes its title and cover from the item's last download, if any.
+- Before queuing, the service looks up `downloaded_items`. A hit creates a `skipped` download unless the request has `force`. It has no job, and takes its title and cover from the item's last download, then its title and artist from the `downloaded_items` row. For anything still missing, `Queue` asks the source after the transaction, for up to 5 seconds. When that fails, the download stays `skipped` without it, and the next skip asks again.
+- `force` passes this check and nothing more. The sources still skip complete files, so a forced download fetches what is missing, and on a complete folder it ends `done` with every track `skipped`. `bytes` counts the files it skipped.
 - A download gets one job of type `downloads.download` on its source's queue: the queue named after the source, or `system` for a source without one, such as the fake source. Queues and concurrency: `qobuz` 1, `applemusic` 1, `library` 1, `system` 1.
 - The job's steps:
   1. `resolve` fetches the item and stores its title, artist, cover and tracks, and keeps the label, release date, UPC, ISRC and link for `shelf.txt` in the job's payload. An artist or label creates one child download per album of every section, once, and ends there.

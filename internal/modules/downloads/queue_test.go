@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/tikhonp/shelf/internal/modules/fakesource"
 	"github.com/tikhonp/shelf/internal/platform/jobs"
@@ -130,7 +133,63 @@ func TestQueueSkipsDownloaded(t *testing.T) {
 	}
 }
 
-func TestQueueForceDownloadsAgain(t *testing.T) {
+// An imported row has what the older tool knew, and the source gives the rest.
+func TestSkippedAsksTheSourceForWhatItLacks(t *testing.T) {
+	r := newRig(t)
+	ref := album("album-1")
+	if _, err := r.svc.ImportDownloaded(bg, []Downloaded{{Ref: ref, Path: "old/path", Title: "Old Title"}}); err != nil {
+		t.Fatal(err)
+	}
+	calls := r.src.ItemCalls()
+	d := r.queue(QueueRequest{Ref: ref})
+	if d.Status != Skipped || d.Title != "Old Title" || d.Artist != "Northern Static" || d.CoverURL == "" {
+		t.Fatalf("%+v", d)
+	}
+	if got := r.get(d.ID); got.Artist != d.Artist || got.CoverURL != d.CoverURL {
+		t.Fatalf("stored %+v", got.Download)
+	}
+	// The next skip reads the last download, so it asks nothing.
+	if d = r.queue(QueueRequest{Ref: ref}); d.CoverURL == "" || r.src.ItemCalls() != calls+1 {
+		t.Fatalf("%d calls, %+v", r.src.ItemCalls()-calls, d)
+	}
+}
+
+// slowResolver never answers.
+type slowResolver struct{ source.Downloader }
+
+func (slowResolver) Item(ctx context.Context, _ source.Ref) (source.Item, error) {
+	<-ctx.Done()
+	return source.Item{}, ctx.Err()
+}
+
+func TestSkippedWaitsForTheSourceOnlySoLong(t *testing.T) {
+	r := newRig(t)
+	r.svc.lookupWait = time.Millisecond
+	d := Download{ID: 1, Ref: album("album-1"), Status: Skipped, Title: "Old Title"}
+	if got := r.svc.fillSkipped(bg, d, slowResolver{}); got.Title != "Old Title" || got.CoverURL != "" {
+		t.Fatalf("%+v", got)
+	}
+}
+
+func TestSkippedWhenTheSourceFails(t *testing.T) {
+	r := newRig(t)
+	ref := album("album-1")
+	if _, err := r.svc.ImportDownloaded(bg, []Downloaded{{Ref: ref, Path: "old/path", Title: "Old Title", Artist: "Old Artist"}}); err != nil {
+		t.Fatal(err)
+	}
+	r.src.Fail = errors.New("no answer")
+	d := r.queue(QueueRequest{Ref: ref})
+	if d.Status != Skipped || d.Title != "Old Title" || d.Artist != "Old Artist" || d.CoverURL != "" {
+		t.Fatalf("%+v", d)
+	}
+	// The cover is still missing, so the next skip asks again.
+	r.src.Fail = nil
+	if d = r.queue(QueueRequest{Ref: ref}); d.CoverURL == "" {
+		t.Fatalf("%+v", d)
+	}
+}
+
+func TestQueueForceFetchesWhatIsMissing(t *testing.T) {
 	r := newRig(t)
 	r.start()
 	first := r.queue(QueueRequest{Ref: album("album-1")})
@@ -153,6 +212,17 @@ func TestQueueForceDownloadsAgain(t *testing.T) {
 	var by int64
 	if err := r.h.DB.R.Get(&by, `SELECT download_id FROM downloaded_items WHERE item_id = 'album-1'`); err != nil || by != again.ID {
 		t.Fatalf("downloaded_items points at %d, want %d (first %d): %v", by, again.ID, first.ID, err)
+	}
+
+	// A file that went away comes back, and only that one.
+	if err := os.Remove(filepath.Join(r.cfg.MusicDir, det.Tracks[1].Path)); err != nil {
+		t.Fatal(err)
+	}
+	third := r.queue(QueueRequest{Ref: album("album-1"), Force: true})
+	r.h.Drain()
+	det = r.get(third.ID)
+	if det.Status != Done || det.Tracks[0].Status != "skipped" || det.Tracks[1].Status != "done" || det.Tracks[2].Status != "skipped" {
+		t.Fatalf("%+v", det)
 	}
 }
 

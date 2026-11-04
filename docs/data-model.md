@@ -75,6 +75,8 @@ CREATE TABLE downloaded_items (
     path        TEXT NOT NULL DEFAULT '',     -- the release folder, relative to the music root
     imported    INTEGER NOT NULL DEFAULT 0 CHECK (imported IN (0, 1)),
     at          TEXT NOT NULL,
+    title       TEXT NOT NULL DEFAULT '',     -- from an older tool's history
+    artist      TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (source, kind, item_id)
 ) STRICT;
 ```
@@ -85,8 +87,9 @@ Rules:
 - `partial` means some tracks failed. The release folder stays where the source left it; for Qobuz that is an `[INCOMPLETE]` folder.
 - `error` says why a download failed. A running download with an error has failed in `resolve` or `fetch` and will end at `finish`. An artist or label without albums ends `done` with "nothing to download" there.
 - `finish` marks a track that never ended, because the source stopped or skipped it, `failed` with "not downloaded".
+- A track a cancel or a shutdown cut off goes back to `pending`, even when the source ends it as failed. So `tracks_failed` of a `canceled` download counts only tracks that failed before the cancel.
 - An artist or label download has children and no tracks. Its counts are the sums of its children's counts. Children share their parent's origin, format and force flag, with an empty `origin_ref`.
 - `downloaded_items` also gets a row for each track of a Qobuz playlist, without a `download_id`, and for each row `import-qobuz-db` brings in, with `imported = 1`. See [sources/qobuz.md](sources/qobuz.md).
-- `downloaded_items` gets a row when an album, playlist or track download ends `done`. A `partial` download writes no row, so asking for it again fetches the missing tracks; the sources skip files that are already complete. `skipped` downloads read the table and never write it. `shelf manage import-qobuz-db` writes rows with `imported = 1` and no `download_id`.
+- `downloaded_items` gets a row when an album, playlist or track download ends `done`. A `partial` download writes no row, so asking for it again fetches the missing tracks; the sources skip files that are already complete. `skipped` downloads read the table and never write it. `shelf manage import-qobuz-db` writes rows with `imported = 1`, no `download_id`, and the title and artist the old database knew.
 - `origin_ref` holds what the bot needs to edit its status message. `status_is_text` marks a status message sent as text, without a cover, whose edits change the text and not a caption. The bot sends the message before it queues, so a download from Telegram has its message from the start. It never holds tokens.
 - Paths are relative to `SHELF_MUSIC_DIR`, so the database stays valid if the mount point changes.

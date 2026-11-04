@@ -2,6 +2,15 @@
 
 Newest first. A changed decision gets a new entry that names the one it replaces.
 
+## 2026-11-04: open issues from the first Qobuz run
+
+| Topic | Decision | Why |
+| --- | --- | --- |
+| Force | Force fetches what is missing and leaves complete files alone. The bot's "Download again" becomes "Fetch missing", and check 7 says so. Replaces "download again" in the bot's buttons. | qobuz-dl-go and amdl skip complete files, and the sources' resume depends on that. |
+| Canceled tracks | A track a cancel or a shutdown cut off goes back to `pending`, so `tracks_failed` counts only real failures. | Kid A ended `canceled` at 3 of 11 with 8 failed, though no track failed. |
+| Imported items | The import keeps the old database's artist and album in `downloaded_items`, and `Queue` asks the source for what a skip still lacks, after the transaction and for up to 5 seconds. The import itself stays offline. | The old table has no covers, a lookup per row would make the cutover slow, and `manage` doesn't log in to Qobuz. |
+| MP3 frame order | Left as it is. MP3 files differ byte for byte between runs, with the same audio and tags. | `bogem/id3v2` keeps frames in a map. The audio and the tags are the same, and FLAC isn't affected. |
+
 ## 2026-11-04: step 1d
 
 | Topic | Decision | Why |

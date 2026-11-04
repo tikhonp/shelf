@@ -281,7 +281,7 @@ func (s *Service) fetch(ctx context.Context, r *jobs.Run) error {
 	if err != nil {
 		return err
 	}
-	pr := newProgress(s, d, tracks, r.Log())
+	pr := newProgress(ctx, s, d, tracks, r.Log())
 	stop := pr.run(ctx, nil)
 	res, derr := dl.Download(ctx, source.DownloadRequest{
 		DownloadID: d.ID, Ref: d.Ref, Format: d.Format, Force: d.Force, MusicDir: s.cfg.MusicDir,

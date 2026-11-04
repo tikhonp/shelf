@@ -54,8 +54,13 @@ func Import(ctx context.Context, file string, cfg *config.Config, to Importer, l
 		return res, err
 	}
 	defer func() { _ = conn.Close() }()
+	names, err := nameColumns(ctx, conn)
+	if err != nil {
+		return res, fmt.Errorf("read %s: %w", file, err)
+	}
 	rows, err := conn.QueryContext(ctx, `
-		SELECT id, media_type, file_format, bit_depth, sampling_rate, saved_path FROM downloads ORDER BY quality DESC, rowid`)
+		SELECT id, media_type, file_format, bit_depth, sampling_rate, saved_path, `+names+`
+		FROM downloads ORDER BY quality DESC, rowid`)
 	if err != nil {
 		return res, fmt.Errorf("read %s: %w", file, err)
 	}
@@ -67,9 +72,9 @@ func Import(ctx context.Context, file string, cfg *config.Config, to Importer, l
 	}
 	var items []downloads.Downloaded
 	for rows.Next() {
-		var id, kind, format, saved string
+		var id, kind, format, saved, artist, album string
 		var bits, khz sql.NullString
-		if err := rows.Scan(&id, &kind, &format, &bits, &khz, &saved); err != nil {
+		if err := rows.Scan(&id, &kind, &format, &bits, &khz, &saved, &artist, &album); err != nil {
 			return res, fmt.Errorf("read %s: %w", file, err)
 		}
 		res.Rows++
@@ -82,9 +87,14 @@ func Import(ctx context.Context, file string, cfg *config.Config, to Importer, l
 			res.Outside++
 			log.Warn("qobuz: import: a path outside the music folder stays as it is", "id", id, "path", saved)
 		}
-		items = append(items, downloads.Downloaded{
-			Ref: ref(source.Kind(kind), id), Quality: qualityText(format, nullable(bits), nullable(khz)), Path: p,
-		})
+		it := downloads.Downloaded{
+			Ref: ref(source.Kind(kind), id), Quality: qualityText(format, nullable(bits), nullable(khz)), Path: p, Artist: artist,
+		}
+		// A track's row names its album, which isn't the track's title.
+		if kind == string(source.KindAlbum) {
+			it.Title = album
+		}
+		items = append(items, it)
 	}
 	if err := rows.Err(); err != nil {
 		return res, fmt.Errorf("read %s: %w", file, err)
@@ -95,6 +105,21 @@ func Import(ctx context.Context, file string, cfg *config.Config, to Importer, l
 	}
 	res.Kept = len(items) - res.Added
 	return res, nil
+}
+
+// nameColumns is the select list for the artist and the album. qobuz-dl added
+// both columns late, and only on a file it opened again, which a read-only
+// import can't do.
+func nameColumns(ctx context.Context, conn *sql.DB) (string, error) {
+	var n int
+	err := conn.QueryRowContext(ctx, `SELECT count(*) FROM pragma_table_info('downloads') WHERE name IN ('artist', 'album')`).Scan(&n)
+	if err != nil {
+		return "", err
+	}
+	if n < 2 {
+		return `'', ''`, nil
+	}
+	return `artist, album`, nil
 }
 
 func nullable(s sql.NullString) *string {

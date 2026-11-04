@@ -37,7 +37,7 @@ Send a few words, such as an album title, and I search albums on every source. T
 	// Buttons.
 	buttonCancel   = "Cancel"
 	buttonRetry    = "Retry"
-	buttonAgain    = "Download again"
+	buttonMissing  = "Fetch missing"
 	buttonOpen     = "Open in Shelf"
 	buttonAll      = "Download all"
 	buttonNotNow   = "Cancel"
