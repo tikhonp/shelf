@@ -30,8 +30,6 @@ Nothing. An Apple Music download on 2026-11-04 confirmed that the wrapper-lite p
 ## Notes for later work
 
 - The writer's journal and busy check are ports with no implementation yet. Step 3 gives the journal a table, reconciles rows left pending at start, and wires the busy check to the working-folder port.
-- Run `shelf manage tags` on blackberry once, on a real FLAC and a real M4A, before step 2's index reads every file the same way.
-
 - A source module logs in and starts goroutines in `Run`, never in `Init`, and registers with `Switch` when its settings are missing.
 - A wrapper signed in to the owner's Apple ID needs its own data folder and `--device-info`.
 - Unset `SHELF_QOBUZ_TOKEN` for a local run with only the fake source, or it logs in to the owner's Qobuz account.
