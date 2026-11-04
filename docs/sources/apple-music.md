@@ -27,7 +27,7 @@ The module is on when `SHELF_AMDL_CONFIG` names a readable amdl config. An empty
 
 The views become an artist's sections: Albums, EPs and singles, Compilations, and Appears on. Without views, the client splits the albums by their `isSingle` and `isCompilation` flags, and there is no Appears on.
 
-Albums and playlists list their songs and leave out music videos. amdl still downloads such a video, as an `.mp4` in the release folder, as the old setup did. amdl numbers the items of an album or playlist with the videos counted, and the runner maps its numbers to the songs' positions.
+Albums and playlists list their songs and leave out music videos. amdl still downloads such a video, as an `.mp4` in the release folder. amdl numbers the items of an album or playlist with the videos counted, and the runner maps its numbers to the songs' positions.
 
 Most of the tests' answers in `internal/modules/applemusic/testdata` are hand-written in the API's shape. `testdata/live` holds answers Apple gave on 2026-11-04, without editorial notes: Radiohead's artist views with their `next` pages, and the album In Rainbows. A view answers 10 albums per page.
 
@@ -61,16 +61,16 @@ amdl gets `https://music.apple.com/<account storefront>/album/<id>`, `/song/<id>
 
 ### Config
 
-Before each run the runner checks the base config from `SHELF_AMDL_CONFIG`. In production that is today's `secrets/blackberry/apple-music-config.yaml`, mounted read-only. When the file changed since the last write, or the rendered config is missing, the runner sets these keys and writes the result to `/data/amdl/config.yaml` with mode 0600, through a temporary file:
+Before each run the runner checks the base config from `SHELF_AMDL_CONFIG`. In production that is `secrets/blackberry/apple-music-config.yaml`, mounted read-only. When the file changed since the last write, or the rendered config is missing, the runner sets these keys and writes the result to `/data/amdl/config.yaml` with mode 0600, through a temporary file:
 
 | Key | Value | Why |
 | --- | --- | --- |
 | `general.lite-server` | `SHELF_WRAPPER_URL` | The wrapper's address on the compose network. |
 | `general.exit-on-error` | `true` | Otherwise amdl reads stdin after a pass in which a song failed, and runs the whole queue again. With stdin empty it would repeat that until the timeout. |
 | `general.proxy` | empty | A proxy here would also carry the wrapper traffic. |
-| `paths.alac`, `paths.atmos`, `paths.aac`, `paths.mv` | `/music/<SHELF_APPLE_DIR>` | Files land where they land today. |
+| `paths.alac`, `paths.atmos`, `paths.aac`, `paths.mv` | `/music/<SHELF_APPLE_DIR>` | The folder the old setup wrote to. |
 
-Every other key keeps its value, its place and its comments, and the renderer adds a missing `general` or `paths` section. Init only reads and checks the file, since `manage` runs Init too. Today's production config, with secrets left out:
+Every other key keeps its value, its place and its comments, and the renderer adds a missing `general` or `paths` section. Init only reads and checks the file, since `manage` runs Init too. The production config, without its secrets:
 
 - `general`: `language: en-GB`, `storefront: ru`, `max-memory-limit: 1024`, `exit-on-error: true`, empty `proxy` and `authorization-token`, and a `media-user-token` that only stations need.
 - `media`: `get-m3u8-mode: hires`, `aac-type: aac-lc`, `alac-fix: true`, `alac-max: 192000`, `atmos-max: 2768`, music videos `atmos` audio up to 2160p.
@@ -91,11 +91,11 @@ Every other key keeps its value, its place and its comments, and the renderer ad
 - A release with no songs, such as a playlist of music videos, fails before amdl runs: amdl would save the videos and list nothing.
 - A Dolby Atmos download fails before amdl runs with "<title> has no Dolby Atmos version" when no song of the release has the `atmos` trait. amdl would fail every song with `⚠ Failed to extract info from manifest: no codec found`, exit 0, print `null`, and leave a release folder with lyrics and a cover. A song without traits lets amdl try.
 - A song amdl didn't list fails with its error from the output, or "amdl did not write this song". A run that lists no song fails the download with "amdl wrote no songs" and the last failure. A run that stops before its list, such as without a token, fails with its last lines.
-- A run that ends with `Error detected, exiting...` went through every song, and some failed; amdl exits 1 before it prints its list. The runner runs amdl once more. amdl skips the files it finished and lists them, and a song may pass on the second try. In a live run Apple's key server refused one song's key, wrapper-lite logged `Invalid CKC error.`, and the second try got the key. A song the first run wrote counts as done, not skipped.
+- A run that ends with `Error detected, exiting...` went through every song, and some failed; amdl exits 1 before it prints its list. The runner runs amdl once more. amdl skips the files it finished and lists them, and a song may pass on the second try. A song the first run wrote counts as done, not skipped.
 - A second failed run, or any other non-zero exit, fails the download with the last three error lines and no per-song results. A retry runs amdl again, which skips the files it finds complete and lists them.
 - Cancel and the timeout send SIGTERM to the process group, then SIGKILL after 5 seconds. That stops ffmpeg too. Each run has its own timeout. The tool line in `shelf.txt` is `amdl 0.1.4, wrapper-lite storefront <storefront>`, and Apple Music calls a track a song.
 
-The output rules come from amdl's source and from runs recorded on 2026-11-04 against a signed-in wrapper, in `internal/modules/applemusic/amdl/testdata/live`: In Rainbows downloaded for the first time, again over its own files, and with `--atmos`. The runs used the shelf image's amdl, the rendered config and the runner's folders.
+The output rules come from amdl's source and from real runs, kept in `internal/modules/applemusic/amdl/testdata/live`: In Rainbows downloaded for the first time, again over its own files, and with `--atmos`.
 
 ### Formats
 
@@ -107,11 +107,11 @@ The output rules come from amdl's source and from runs recorded on 2026-11-04 ag
 
 ### Artists
 
-An artist link is expanded by shelf's `resolve` step into one album download per album from the catalog client's views. amdl's own artist mode asks on stdin and also takes music videos, so shelf doesn't use it.
+shelf's `resolve` step expands an artist link into one album download per album from the catalog client's views. amdl's own artist mode asks on stdin and also takes music videos, so shelf doesn't use it.
 
 ## shelf-wrapper
 
-The image starts from the `ghcr.io/tikhonp/wrapper-lite` image, pinned by digest, and adds Debian's tini and the static `shelf-wrapper` binary from this repo. tini is PID 1: it passes Docker's SIGTERM to the supervisor and reaps the wrapper-lite processes a SIGKILL leaves behind. This replaces the image's `entrypoint.sh`, which checks an outdated account database path. Build it with `make build-wrapper-image`; it is amd64 only, and runs under emulation on an arm64 Mac.
+The image starts from the `ghcr.io/tikhonp/wrapper-lite` image, pinned by digest, and adds Debian's tini and the static `shelf-wrapper` binary from this repo. tini is PID 1: it passes Docker's SIGTERM to the supervisor and reaps the wrapper-lite processes a SIGKILL leaves behind. It replaces the image's `entrypoint.sh`, which checks an outdated account database path. Build it with `make build-wrapper-image`; it is amd64 only, and runs under emulation on an arm64 Mac.
 
 ### Supervisor
 
@@ -169,5 +169,5 @@ The shelf UI drives this through `/api/applemusic/wrapper/*`. Neither shelf nor 
 - The code window is 60 seconds. That limit is in wrapper-lite, not shelf.
 - wrapper-lite serves `/key` and `/m3u8` one request at a time.
 - Its Android libraries use the DNS servers 223.5.5.5 and 223.6.6.6, so the container needs outbound DNS to them.
-- wrapper-lite derives its device ID from the Apple ID, so a second wrapper signed in to the same account looks like the same device, and its sign-in may disturb the production session. Give a test wrapper its own ID: `SHELF_WRAPPER_LITE_ARGS='--device-info "Music/5.0.2/Android/10/Pixel 8/7663314/en-US/en-US/<16 hex digits>"'`, wrapper-lite's default device info with another last part.
-- The data volume stays `${SWINGMUSIC_DATA}/apple-music-lite-data` at `/app/rootfs/data`, so the current session survives the switch to shelf-wrapper.
+- wrapper-lite derives its device ID from the Apple ID, so a second wrapper signed in to the same account looks like the same device, and its sign-in may disturb the other's session. Every wrapper on one account needs its own data folder and its own ID: `SHELF_WRAPPER_LITE_ARGS='--device-info "Music/5.0.2/Android/10/Pixel 8/7663314/en-US/en-US/<16 hex digits>"'`, wrapper-lite's default device info with another last part. In production shelf-wrapper has both, beside the old `apple-music-wrapper`.
+- shelf-wrapper's data volume is `${SWINGMUSIC_DATA}/shelf-wrapper`, mounted at `/app/rootfs/data`.

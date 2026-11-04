@@ -2,27 +2,6 @@
 
 The `qobuz` module is an adapter over [qobuz-dl-go](https://github.com/tikhonp/qobuz-dl-go), the Go port of qobuz-dl 2.5.9. The port does the API calls, file names, tags and transfers; the module maps them onto shelf's source interfaces. How the port behaves is described in qobuz-dl-go's `docs/port-spec.md`.
 
-## What runs in production today
-
-The old bot calls qobuz-dl 2.5.9 with these effective settings. shelf keeps them.
-
-| Setting | Value | From |
-| --- | --- | --- |
-| Quality | 27, FLAC up to 24-bit 192 kHz | hard-coded in the bot |
-| Fallback to lower quality | on | `QOBUZ_QUALITY_FALLBACK=true` |
-| Track workers | 3, no delay | `QOBUZ_BATCH_DOWNLOAD_ENABLED` unset |
-| Cover | `cover.jpg` at original size, not embedded | `QOBUZ_EMBED_COVER` has no effect; `settings.embed_art` stays off |
-| Tracklist file | on | qobuz-dl default |
-| Playlist m3u8 | on | qobuz-dl default |
-| Smart discography | off | qobuz-dl default |
-| Lyrics | off | qobuz-dl default |
-| Folder template | `{artist} - {album} ({year}) [{bit_depth}B-{sampling_rate}kHz]` | `QobuzDL` default |
-| Track template | `{track_number} - {track_title}` | `QobuzDL` default |
-| Proxy | none | `PROXY_URL` unset |
-| Auth | the web player's `user_auth_token` | `QOBUZ_PASSWORD` holds it; qobuz-dl treats a password longer than 60 characters as the token |
-
-Files land in `${SWINGMUSIC_DATA}/music/qobuz`, which shelf sees as `/music/qobuz`.
-
 ## Settings
 
 | Variable | Maps to |
@@ -34,6 +13,8 @@ Files land in `${SWINGMUSIC_DATA}/music/qobuz`, which shelf sees as `/music/qobu
 | `SHELF_QOBUZ_DIR` | folder under the music root, default `qobuz` |
 | `SHELF_QOBUZ_USE_PROXY` | send the module's HTTP client through `SHELF_PROXY_URL` |
 
+The rest are qobuz-dl's defaults, as the old bot ran them: `cover.jpg` at original size and not embedded, the tracklist file, a playlist m3u8, no lyrics, smart discography off, the folder template `{artist} - {album} ({year}) [{bit_depth}B-{sampling_rate}kHz]` and the track template `{track_number} - {track_title}`. Files land in `/music/qobuz`, which is `${SWINGMUSIC_DATA}/music/qobuz` on blackberry.
+
 The module's `*http.Client` has no `Timeout`, because it would cut long transfers. qobuz-dl-go sets its own per call through `Options.Timeouts`: 30 seconds per API call, 10 seconds to connect, and 60 seconds without a byte during a transfer. Every request, covers and booklets included, goes through that one client.
 
 A qobuz-dl-go instance has one quality and one downloads database, and `HandleID` can't change either per call. So the module keeps one instance per format, and one more per format for forced downloads, which has no database. The first download in a format logs in again with the app ID and secrets from the start.
@@ -41,7 +22,7 @@ A qobuz-dl-go instance has one quality and one downloads database, and `HandleID
 ## Startup and health
 
 - At startup the module fetches the web player bundle with `GetTokens`, which keeps the app ID and the non-empty secrets. `InitializeClient` then checks the token with `user/get` and picks the first secret that passes a signed `track/getFileUrl` call.
-- qobuz-dl treats the app ID `798273057` as a legacy ID and fetches the bundle a second time, keeping all its secrets, the empty one included. On 2026-11-03 the bundle carried that ID, so startup makes two bundle fetches and tries an empty secret, which fails before the next one is tried. The port does the same.
+- qobuz-dl treats the app ID `798273057` as a legacy ID and fetches the bundle a second time, keeping all its secrets, the empty one included. The bundle carries that ID, so startup makes two bundle fetches and tries the empty secret first, which fails. The port does the same.
 - When no secret passes, the port logs a warning and goes on with the first, as qobuz-dl does without the warning. Later calls then fail with HTTP 400.
 - A `user/get` failure other than a 401 doesn't stop startup: qobuz-dl logs "Profile validation bypassed" and goes on with the label `Studio` and no user ID.
 - All of this runs in `Run`, in the background, so shelf starts when Qobuz is unreachable. Until the first attempt ends, health says `starting`. After a failed attempt it says `no answer, trying again every 5 minutes`, and the module tries again that often.
@@ -63,8 +44,6 @@ Upstream qobuz-dl doesn't accept three forms the site uses, so the module reads 
 - `https://www.qobuz.com/<locale>/interpreter/<slug>/<id>` as an artist link
 - `https://www.qobuz.com/<locale>/playlists/<slug>/<id>` and `/playlists/<id>` as a playlist link
 - `https://www.qobuz.com/<locale>/label/<slug>/download-streaming-albums/<id>` as a label link
-
-The old bot's own regex dropped links with a locale and cut links with a slug. That bug is gone because the module parses the whole URL.
 
 `GetURLInfo` follows upstream's regex exactly, gaps included, and the module closes them:
 
@@ -101,7 +80,7 @@ With fallback on, Qobuz may deliver less than asked. `shelf.txt` and the downloa
 - A track ends in the work folder, so `Reporter.Done` goes out twice for a track with a file: at `TrackEnd`, which moves the counts, and after the call returns, with the final path and size.
 - Each call returns a `*Result`: the final folder, the album metadata that was used, and per track the final path, the delivered format, bit depth and sampling rate, and whether it was done, skipped because the file existed, or failed. A skipped track's format is read from its file. The error is non-nil only when nothing could start, the context ended, or upstream would have crashed (`ErrUnhandled`).
 - Cancelling the context starts no new tracks, stops transfers, removes temp files and renames `[IN PROGRESS]` to `[INCOMPLETE]`.
-- Artist and label downloads are expanded by shelf's `resolve` step into one album download per album, using `artist/get` and `label/get` with `extra=albums`. Smart discography stays off, as today.
+- shelf's `resolve` step expands an artist or label into one album download per album, using `artist/get` and `label/get` with `extra=albums`. Smart discography stays off.
 - Folder states come from qobuz-dl: an album downloads into `[IN PROGRESS] <folder>` and is renamed to `<folder>` when every track succeeded, or to `[INCOMPLETE] <folder>` when some failed. Playlists download into a flat folder named after the playlist and get `<name>.m3u8`.
 - Multi-disc albums put tracks in `CD 01`, `CD 02` subfolders.
 - Extras: `cover.jpg`, `<album> - Tracklist.txt`, and booklet PDFs named `<album> (<id>).pdf`.

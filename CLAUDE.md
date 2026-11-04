@@ -4,20 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Music Shelf, short name shelf, manages a Navidrome music library. It downloads releases from Qobuz and Apple Music into the library, searches both catalogs, and keeps a record of every download. One Go binary with one SQLite file and a Vue web UI, deployed on blackberry next to Navidrome behind the sh-main gateway. Docs, code, logs and UI are in English.
 
-State: phase 1 is done, and shelf runs in production on blackberry. Steps 0 and 1a to 1h built the docs, the shelf skeleton with the platform, the image and CI, the downloads core with the jobs system, the source interfaces, the downloads, catalog, fake source, qobuz, applemusic, navidrome and telegram modules, shelf-wrapper, the Vue web UI, and the deployment. Step 1c is qobuz-dl-go `v0.1.0`. The UI design is exported to `docs/ui/design/`. No phase 2 is planned yet. `docs/status.md` says what is done and what comes next.
+State: phase 1 is done, and shelf runs in production on blackberry. `docs/status.md` says where things stand and what is open.
 
 ## Read first
 
-- `docs/status.md`: where the work stands, and notes for the next step.
-- `docs/README.md`: the map of the docs.
-- `docs/decisions.md`: what was decided and why.
-- `docs/architecture.md`, then `docs/data-model.md`, then the doc of the part you touch.
-- The step's contract in `docs/build/` before starting the step.
+- `docs/status.md`, then `docs/README.md`, the map of the docs.
+- `docs/architecture.md`, `docs/data-model.md`, and the doc of the part you touch.
+- `docs/decisions.md` before changing how something works.
 - For the UI: `docs/ui/design/README.md` and its screens, then `docs/ui/design-brief.md`. The design wins where they differ.
 
 ## Rules for all code
 
-- Every edge case in a doc or a step contract gets a test. A behavior change updates the docs in the same commit.
+- Every edge case in a doc gets a test. A behavior change updates the docs in the same commit.
 - Modules live under `internal/modules/<name>` and are enabled in `cmd/shelf/main.go`. A module never reads another module's tables. It talks to others through ports, which are small interfaces, and through the event hub.
 - `Init` reaches no network and starts no goroutine, because `manage` opens the platform too. Work that lasts as long as the server goes in `Run` from `module.Runner`.
 - A source is a module that implements the interfaces in `internal/source`. Code outside that module never knows which source it talks to.
@@ -32,7 +30,7 @@ State: phase 1 is done, and shelf runs in production on blackberry. Steps 0 and 
 
 - Run `/tikhon:unslop` on all prose before committing: docs, this file, READMEs, code comments, UI texts and bot texts.
 - Commit messages are one short line, such as `Add Qobuz search`, with no body. Commit on `main` and create no branches.
-- At the end of each step, update `docs/status.md`, fill in the As built section of the step's contract, and update `docs/decisions.md` if a decision changed.
+- When work finishes, update `docs/status.md`, and `docs/decisions.md` if a decision changed.
 - When tests, lint, a build or a subagent's work fails, fix it and go on. Ask only when it can't be solved, and mention the fix in the summary.
 - Never run `caffeinate` or `pkill caffeinate`.
 - Changes to `~/projects/sh-blackberry`, `~/projects/sh-main` and sh-secrets are drafted for the user to commit.

@@ -2,18 +2,19 @@
 
 ## Containers
 
-On blackberry, in the `music` group of `sh-blackberry/music.yaml`:
+On blackberry, in `sh-blackberry/shelf.yaml`:
 
 - `shelf` is the Go binary. It serves the web UI and the JSON API on port 8080, keeps its SQLite file and backups in `/data`, writes music into `/music`, runs the bot, and starts amdl and ffmpeg as child processes.
-- `apple-music-wrapper` runs the shelf-wrapper image: wrapper-lite on port 12340 and its supervisor's control API on port 12341. It is privileged and amd64-only.
-- `navidrome` reads the music folder through a read-only mount. shelf asks it to scan over the Subsonic API.
+- `shelf-wrapper` is wrapper-lite on port 12340 and its supervisor's control API on port 12341. It is privileged and amd64-only.
 - `ssht-shelf` tunnels port 8080 to the sh-main gateway, where nginx serves `shelf.music.tikhonnnnn.com` behind `auth_basic`.
+
+`navidrome`, in `music.yaml`, reads the music folder through a read-only mount. shelf asks it to scan over the Subsonic API.
 
 Outside services: the Qobuz API and CDN, the Apple Music catalog API at `amp-api.music.apple.com`, and the Telegram Bot API. Each source can send its traffic through `SHELF_PROXY_URL`.
 
 ## Inside shelf
 
-`cmd/shelf/main.go` builds the platform and the list of modules. The platform packages come from proxier and are trimmed to what shelf uses:
+`cmd/shelf/main.go` builds the platform and the list of modules. The platform packages are proxier's, trimmed to what shelf uses:
 
 | Package | Job |
 | --- | --- |
@@ -183,12 +184,12 @@ The API answers a download as `{"id", "parent_id", "source", "kind", "item_id", 
 
 - The gateway asks for basic auth before any request reaches shelf.
 - shelf checks unsafe methods with `http.NewCrossOriginProtection` and also trusts `SHELF_PUBLIC_URL`'s origin, because the gateway may rewrite `Host`. It limits request bodies to 1 MiB and sends a CSP that allows only `'self'`, plus images from `static.qobuz.com` and `*.mzstatic.com`, with `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`.
-- Tokens and passwords live only in environment variables, never in the database, logs or `shelf.txt`. The Apple ID password passes through shelf to the supervisor and is not stored by either.
+- Tokens and passwords live only in environment variables, never in the database, logs or `shelf.txt`. The Apple ID password passes through shelf to the supervisor, and neither stores it.
 - The supervisor's control API requires `SHELF_WRAPPER_TOKEN` and is reachable only on the compose network.
 
 ## Configuration
 
-Parsed by hand like `proxier/internal/platform/config/config.go`. Every problem is reported at once, and values are never logged.
+`config.Load` parses the variables by hand, as proxier does. It reports every problem at once and never logs a value.
 
 An unset variable takes its default. A variable set to an empty value is empty. An empty `SHELF_AMDL_CONFIG` or `SHELF_NAVIDROME_URL` turns Apple Music or scans off despite the default, and an empty value is an error for a variable that needs one, such as `SHELF_TIMEZONE`. `Load` trims every value.
 
@@ -202,12 +203,12 @@ Tokens and passwords are `config.Secret`, which prints, logs and marshals as `[r
 | `SHELF_PUBLIC_URL` | | Base URL for links in Telegram messages and in `shelf.txt`. |
 | `SHELF_TIMEZONE` | `Europe/Moscow` | Display time zone for `shelf.txt`, the UI and the backup schedule. |
 | `SHELF_PROXY_URL` | | Proxy for modules that opt in. |
-| `SHELF_QOBUZ_TOKEN` | | Qobuz `user_auth_token`, today's `QOBUZ_PASSWORD`. Empty disables Qobuz. |
+| `SHELF_QOBUZ_TOKEN` | | Qobuz `user_auth_token`. Empty disables Qobuz. |
 | `SHELF_QOBUZ_DIR` | `qobuz` | Folder under the music root. |
 | `SHELF_QOBUZ_QUALITY` | `27` | Requested format ID. |
-| `SHELF_QOBUZ_FALLBACK` | `true` | Allow lower quality, as in production now. |
+| `SHELF_QOBUZ_FALLBACK` | `true` | Allow lower quality. |
 | `SHELF_QOBUZ_WORKERS` | `3` | Tracks downloaded at once. |
-| `SHELF_QOBUZ_DELAY` | `0s` | Pause after each track. Above zero, one worker. The old `QOBUZ_BATCH_DOWNLOAD_ENABLED=false` maps to `1s`. |
+| `SHELF_QOBUZ_DELAY` | `0s` | Pause after each track. Above zero, one worker. |
 | `SHELF_QOBUZ_USE_PROXY` | `false` | Send Qobuz traffic through the proxy. |
 | `SHELF_AMDL_CONFIG` | `/config/amdl.yaml` | Base amdl config. Empty disables Apple Music. |
 | `SHELF_AMDL_TIMEOUT` | `2h` | Limit per amdl run. |
