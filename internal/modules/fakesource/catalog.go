@@ -131,6 +131,9 @@ func (s *Source) collection(kind source.Kind, id string) source.Item {
 // Item resolves any ID of a known kind, except one starting with missing.
 func (s *Source) Item(_ context.Context, ref source.Ref) (source.Item, error) {
 	s.items.Add(1)
+	if s.Fail != nil {
+		return source.Item{}, s.Fail
+	}
 	return s.item(ref)
 }
 
@@ -158,6 +161,9 @@ func (s *Source) SearchKinds() []source.Kind {
 
 // Search filters the canned items by the query, in title or artist.
 func (s *Source) Search(_ context.Context, q source.Query) (source.Page, error) {
+	if s.Fail != nil {
+		return source.Page{}, s.Fail
+	}
 	var all []source.Item
 	switch q.Kind {
 	case source.KindAlbum:

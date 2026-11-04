@@ -67,6 +67,13 @@ func ParseRef(s string) (Ref, error) {
 // ErrNotFound is what a Resolver answers for an item its catalog doesn't have.
 var ErrNotFound = errors.New("source: no such item")
 
+// Unavailable is a source that can't answer now, with a reason people may
+// read. Other source errors stay in the logs, since they may hold a URL with
+// a token.
+type Unavailable struct{ Reason string }
+
+func (e *Unavailable) Error() string { return e.Reason }
+
 // Source is a music service shelf searches and downloads from. A source
 // implements Source and any of the interfaces below.
 type Source interface {

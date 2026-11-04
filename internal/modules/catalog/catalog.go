@@ -188,6 +188,10 @@ func (m *Module) sourceError(ctx context.Context, s source.Source, what string, 
 	if errors.Is(err, source.ErrNotFound) {
 		return echo.NewHTTPError(http.StatusNotFound, s.Name()+" has no such item")
 	}
+	var un *source.Unavailable
+	if errors.As(err, &un) {
+		return echo.NewHTTPError(http.StatusServiceUnavailable, s.Name()+": "+un.Reason)
+	}
 	m.log.Warn("catalog: "+what+" failed", "source", s.ID(), "error", err)
 	return echo.NewHTTPError(http.StatusBadGateway, s.Name()+" "+what+" failed")
 }

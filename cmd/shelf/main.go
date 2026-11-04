@@ -27,6 +27,7 @@ import (
 	"github.com/tikhonp/shelf/internal/modules/downloads"
 	"github.com/tikhonp/shelf/internal/modules/fakesource"
 	"github.com/tikhonp/shelf/internal/modules/navidrome"
+	"github.com/tikhonp/shelf/internal/modules/qobuz"
 	"github.com/tikhonp/shelf/internal/modules/telegram"
 	"github.com/tikhonp/shelf/internal/platform"
 	"github.com/tikhonp/shelf/internal/platform/config"
@@ -44,7 +45,7 @@ func modules(cfg *config.Config) []module.Module {
 	bot := telegram.New(dl.Service())
 	dl.Service().SetScanner(nav)
 	dl.Service().SetNotifier(bot)
-	ms := []module.Module{dl, catalog.New(dl), nav, bot, applemusic.New()}
+	ms := []module.Module{dl, catalog.New(dl), nav, bot, qobuz.New(dl.Service()), applemusic.New()}
 	if cfg.DevFakeSource {
 		ms = append(ms, fakesource.New())
 	}
@@ -58,6 +59,7 @@ const usage = `Usage:
   shelf manage migrate status             list every module's migrations
   shelf manage download <url> [--format F] [--force]
                                           queue a download; F is a format ID such as 27 or qobuz:27
+  shelf manage import-qobuz-db <path>     add the old bot's qobuz_dl.db to the download history
   shelf healthcheck                       exit 0 when the running server is healthy, 1 otherwise
   shelf version
 `
@@ -188,12 +190,12 @@ func (c cli) healthcheck(ctx context.Context) int {
 const healthTimeout = 3 * time.Second
 
 func (c cli) manage(ctx context.Context, args []string) int {
-	var cmd func(*platform.App, *slog.Logger) error
+	var cmd func(*platform.App, *config.Config, *slog.Logger) error
 	switch {
 	case len(args) == 2 && args[0] == "migrate" && args[1] == "up":
-		cmd = func(app *platform.App, _ *slog.Logger) error { return app.Migrate(ctx) }
+		cmd = func(app *platform.App, _ *config.Config, _ *slog.Logger) error { return app.Migrate(ctx) }
 	case len(args) == 3 && args[0] == "migrate" && args[1] == "down":
-		cmd = func(app *platform.App, log *slog.Logger) error {
+		cmd = func(app *platform.App, _ *config.Config, log *slog.Logger) error {
 			m, ok := app.Module(args[2])
 			if !ok {
 				return fmt.Errorf("no module %q", args[2])
@@ -201,7 +203,7 @@ func (c cli) manage(ctx context.Context, args []string) int {
 			return db.MigrateDown(ctx, app.DB, log, m)
 		}
 	case len(args) == 2 && args[0] == "migrate" && args[1] == "status":
-		cmd = func(app *platform.App, _ *slog.Logger) error {
+		cmd = func(app *platform.App, _ *config.Config, _ *slog.Logger) error {
 			st, err := app.MigrationStatus(ctx)
 			if err == nil {
 				printStatus(c.stdout, st, app.Modules)
@@ -214,7 +216,11 @@ func (c cli) manage(ctx context.Context, args []string) int {
 			sayf(c.stderr, "%v\n\n%s", err, usage)
 			return 2
 		}
-		cmd = func(app *platform.App, _ *slog.Logger) error { return c.download(ctx, app, req) }
+		cmd = func(app *platform.App, _ *config.Config, _ *slog.Logger) error { return c.download(ctx, app, req) }
+	case len(args) == 2 && args[0] == "import-qobuz-db":
+		cmd = func(app *platform.App, cfg *config.Config, log *slog.Logger) error {
+			return c.importQobuzDB(ctx, app, cfg, log, args[1])
+		}
 	default:
 		sayf(c.stderr, "unknown manage command\n\n%s", usage)
 		return 2
@@ -232,7 +238,7 @@ func (c cli) manage(ctx context.Context, args []string) int {
 		return 1
 	}
 	defer func() { _ = app.Close() }()
-	if err := cmd(app, log); err != nil {
+	if err := cmd(app, cfg, log); err != nil {
 		sayln(c.stderr, err)
 		return 1
 	}

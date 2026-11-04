@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"io/fs"
 	"log/slog"
@@ -107,6 +108,22 @@ func TestSourcesCapabilities(t *testing.T) {
 	d := list[1]
 	if d.ID != "dark" || d.Enabled || d.Health.OK || d.Health.Message != "Dark Music is not set up in Shelf" {
 		t.Fatalf("%+v", d)
+	}
+}
+
+func TestSourceErrors(t *testing.T) {
+	x := newApp(t)
+	search := "/api/search?source=fake&type=album&q=northern"
+	// A reason people may read reaches them. Anything else stays in the log.
+	x.src.Source().Fail = &source.Unavailable{Reason: "token expired"}
+	rec := x.do(http.MethodGet, search, nil)
+	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "Fake: token expired") {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
+	x.src.Source().Fail = errors.New("GET https://fake.test/?token=secret: refused")
+	rec = x.do(http.MethodGet, search, nil)
+	if rec.Code != http.StatusBadGateway || strings.Contains(rec.Body.String(), "secret") {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
 	}
 }
 

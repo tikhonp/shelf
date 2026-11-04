@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Music Shelf, short name shelf, manages a Navidrome music library. It downloads releases from Qobuz and Apple Music into the library, searches both catalogs, and keeps a record of every download. One Go binary with one SQLite file and a Vue web UI, deployed on blackberry next to Navidrome behind the sh-main gateway. Docs, code, logs and UI are in English.
 
-State: phase 1. Steps 0, 1a, 1b and 1f are done: the docs, the shelf skeleton with the platform, a placeholder Vue page, the image and CI, the downloads core with the jobs system, the source interfaces, and the downloads, catalog and fake source modules, and the navidrome and telegram modules. The UI design is exported to `docs/ui/design/`. Step 1e is built, the applemusic module and shelf-wrapper, and waits for its staging run on blackberry. Step 1c is done: qobuz-dl-go `v0.1.0`. Step 1d is next. `docs/status.md` says what is done and what comes next.
+State: phase 1. Steps 0, 1a, 1b, 1d and 1f are done: the docs, the shelf skeleton with the platform, a placeholder Vue page, the image and CI, the downloads core with the jobs system, the source interfaces, and the downloads, catalog, fake source, qobuz, navidrome and telegram modules. The UI design is exported to `docs/ui/design/`. Step 1e is built, the applemusic module and shelf-wrapper, and waits for its staging run on blackberry. Step 1c is done: qobuz-dl-go `v0.1.0`. Step 1g is next. `docs/status.md` says what is done and what comes next.
 
 ## Read first
 
@@ -46,6 +46,7 @@ make web-check    # npm ci, vue-tsc, Vitest and the Vite build
 make dev          # docker compose with air hot reload on :8080
 make manage ARGS="migrate status"   # shelf manage inside the dev container
 make manage ARGS="download https://fake.test/album/album-1"   # with SHELF_DEV_FAKE_SOURCE=true
+make manage ARGS="import-qobuz-db /path/to/qobuz_dl.db"   # the old bot's history
 make build-image  # code.tikhonnnnn.com/tikhon/shelf:local
 make build-wrapper-image  # code.tikhonnnnn.com/tikhon/shelf-wrapper:local, amd64 under emulation on a Mac
 SHELF_DATA_DIR=./data go run ./cmd/shelf serve   # /data can't be created on macOS
@@ -64,12 +65,10 @@ cmd/shelf-wrapper/      supervisor for the wrapper-lite image: runs it, signs it
 internal/platform/      config, obs, db, migrations, httpx, module, web, ui, jobs, backup, hub, testwait
 internal/source/        catalog types, the source interfaces and the registry
 internal/wrapperapi/    the control API's types, shared by shelf and shelf-wrapper
-internal/modules/       downloads, catalog, fakesource, navidrome, telegram, applemusic
+internal/modules/       downloads, catalog, fakesource, navidrome, telegram, qobuz, applemusic
 web/                    the Vue app
 docs/                   all project information
 ```
-
-Step 1d adds `internal/modules/qobuz`.
 
 ## Related repositories
 

@@ -2,6 +2,19 @@
 
 Newest first. A changed decision gets a new entry that names the one it replaces.
 
+## 2026-11-04: step 1d
+
+| Topic | Decision | Why |
+| --- | --- | --- |
+| Instances | The module keeps one qobuz-dl-go instance per format, and one per format without a database for forced downloads, each logging in on first use. | `Options.Quality` and `DownloadsDB` are fixed per instance, `HandleID` can't override them, and this needs no new tag of qobuz-dl-go. |
+| Database check | Album and track downloads pass `IgnoreDB`, so only a playlist's tracks reach `Has`. Replaces 1d's reading that the port checks albums and tracks too. | `Queue` has asked already. Asking again in the job skips a second queued copy, or a job resumed after `Add`, with no tracks, and `finish` then marks it failed. |
+| `Has` | It matches the kind and ID and ignores the quality. | `downloaded_items` keeps what was delivered, and `Queue` ignores the format too. |
+| Link forms | `ParseLink` also reads `/playlists/` and `/label/<slug>/download-streaming-albums/<id>`, beside `/interpreter/`, and refuses a link unless the ID is its whole last segment. Settles the question 1c left open. | They are the site's own links, and without this the label form reads as the ID `download`. |
+| Import paths | `/downloads/<folder>` becomes `<SHELF_QOBUZ_DIR>/<folder>`. Adds to 1d's import row. | The old container mounted `music/qobuz` at `/downloads`, so no row is under `/music`, and all of them would have stayed as they were. |
+| Import duplicates | The row of the highest quality wins. | qobuz-dl keeps a row per ID and quality, and `downloaded_items` one per item. |
+| Waiting for the start | Search, lookups and downloads wait up to a minute for the first login attempt to end. Adds to 1d's startup row. | The pools start with the module, so a download resumed after a restart would fail with "starting". |
+| Readable errors | `source.Unavailable` carries a reason the API may show, and `catalog` answers 503 with it. | `catalog` hides source errors, yet sources/qobuz.md says search fails with "token expired". |
+
 ## 2026-11-04: step 1e, local downloads
 
 Made after a signed-in local wrapper ran real downloads through shelf.
