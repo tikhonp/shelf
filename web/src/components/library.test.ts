@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { nextTick } from 'vue'
 import { createMemoryHistory } from 'vue-router'
 import App from '../App.vue'
-import type { LibraryAlbum, LibraryAlbumDetail, LibraryTrack } from '../api/types'
+import type { LibraryAlbum, LibraryAlbumDetail, LibraryChange, LibraryTrack } from '../api/types'
 import { createAppRouter } from '../router'
 import { useLibrary } from '../stores/library'
 import { download, FakeEventSource, list, Reply, source, stubApi } from '../testing/api'
@@ -167,6 +167,31 @@ test('a confirm opens as a dialog and Save anyway sends it', async () => {
   await flushPromises()
   expect(w.find('[role=alertdialog]').exists()).toBe(false)
   expect(JSON.parse(calls.filter((c) => c.url.endsWith('/save'))[1]!.init!.body as string).confirm).toEqual(['split'])
+  w.unmount()
+})
+
+test('an undo that renames an album artist asks first, and Undo anyway sends the confirm', async () => {
+  const saved: LibraryChange = {
+    id: 9, kind: 'save', target: null, album_id: 7, folder: 'rock/x', title: 'Blue', artist: 'Joni', state: 'done', reason: '', error: '',
+    undone: false, tags: 2, cover: false, conflicts: [], job_id: 1, created_at: '2026-11-04T18:00:00Z', finished_at: '2026-11-04T18:00:01Z',
+  }
+  let n = 0
+  const { w, calls } = await at('/library', {
+    '/api/library/history': { changes: [saved], next: null },
+    '/api/library/changes/9/undo': () => (n++ === 0 ? new Reply(409, { error: 'c', reason: 'confirm', confirm: [{ kind: 'album_artist', message: 'The old name keeps its star.' }] }) : { ...saved, id: 10, kind: 'undo', target: 9, state: 'queued' }),
+  })
+  await button(w, 'History').trigger('click')
+  await flushPromises()
+  await button(w, 'Undo').trigger('click')
+  await flushPromises()
+  expect(w.find('[role=alertdialog]').text()).toContain('Rename the album artist?')
+  expect(w.text()).not.toContain('confirm what')
+  await button(w, 'Undo anyway').trigger('click')
+  await flushPromises()
+  expect(w.find('[role=alertdialog]').exists()).toBe(false)
+  const undos = calls.filter((c) => c.url.endsWith('/undo'))
+  expect(undos[0]!.init!.body).toBeUndefined()
+  expect(JSON.parse(undos[1]!.init!.body as string).confirm).toEqual(['album_artist'])
   w.unmount()
 })
 

@@ -157,6 +157,8 @@
 .rs .g-lt .ttl { font-size: 14px; font-weight: 500; }
 .rs .g-lt.all .ttl { font-weight: 600; }
 .rs .lib-tracks { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+/* On the phone the list sits in the album's scroller, where flex: 1 shrinks it to nothing. */
+.rs .vscroll > .lib-tracks { flex: none; overflow-y: visible; }
 /* The album's one player. It appears when a track plays, so a page with nothing playing stays plain. */
 .rs .lib-player { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; background: var(--deck); border-top: 1px solid var(--ink); }
 .rs .lib-player .lcd { flex: none; gap: 2px; padding: 7px 10px; }
