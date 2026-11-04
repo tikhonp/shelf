@@ -15,25 +15,19 @@ Forgejo CI builds both on every push to `main` and tags them with the SHA, `main
 
 shelf has its own file, `shelf.yaml`, in `compose.yaml`'s `include:` list. It runs beside the old pipeline in `music.yaml`: `music-download-bot`, `apple-music-api` and `apple-music-wrapper` stay as they are until the user removes them, and shelf touches none of them. Both write into the same `music/qobuz` and `music/apple-music` folders.
 
-`.env` gains:
-
-```
-SHELF_DATA=${DATA_VOLUME}/shelf/
-SHELF_WRAPPER_DATA=${DATA_VOLUME}/shelf-wrapper/
-BACKUP_SHELF_LOCAL=${LOCAL_BACKUP_VOLUME}/shelf/
-```
+Like the other music services, shelf keeps its data in `${SWINGMUSIC_DATA}`: `shelf/` for the app and `shelf-wrapper/` for the wrapper. `.env` doesn't change.
 
 `shelf.yaml` holds three services, in the Dozzle group `shelf`:
 
 | Service | What | Notes |
 | --- | --- | --- |
-| `shelf` | the app, modeled on `proxier.yaml` | `10001:10001`, read-only root, no capabilities, `/tmp` on tmpfs. Mounts `${SHELF_DATA}` at `/data`, `${SWINGMUSIC_DATA}/music` at `/music`, `apple-music-config.yaml` at `/config/amdl.yaml`, and the old bot's folder read-only at `/import` for the import. Sets `SHELF_PUBLIC_URL` and points `SHELF_WRAPPER_URL` and `SHELF_WRAPPER_CONTROL_URL` at `shelf-wrapper`. Healthcheck `shelf healthcheck`, 30 seconds of stop grace. |
-| `shelf-wrapper` | wrapper-lite under the supervisor | Privileged. Its own data folder, `${SHELF_WRAPPER_DATA}`, and its own `--device-info` in `SHELF_WRAPPER_LITE_ARGS`, because wrapper-lite derives its device ID from the Apple ID and `apple-music-wrapper` uses the same one. It starts signed out, and the Status page signs it in. |
+| `shelf` | the app, modeled on `proxier.yaml` | `10001:10001`, read-only root, no capabilities, `/tmp` on tmpfs. Mounts `${SWINGMUSIC_DATA}/shelf` at `/data`, `${SWINGMUSIC_DATA}/music` at `/music`, `apple-music-config.yaml` at `/config/amdl.yaml`, and the old bot's folder read-only at `/import` for the import. Sets `SHELF_PUBLIC_URL` and points `SHELF_WRAPPER_URL` and `SHELF_WRAPPER_CONTROL_URL` at `shelf-wrapper`. Healthcheck `shelf healthcheck`, 30 seconds of stop grace. |
+| `shelf-wrapper` | wrapper-lite under the supervisor | Privileged. Its own data folder, `${SWINGMUSIC_DATA}/shelf-wrapper`, and its own `--device-info` in `SHELF_WRAPPER_LITE_ARGS`, because wrapper-lite derives its device ID from the Apple ID and `apple-music-wrapper` uses the same one. It starts signed out, and the Status page signs it in. |
 | `ssht-shelf` | the tunnel | Port 10013 to `shelf:8080`, with the pinned host key and the healthcheck every `ssht-*` has. |
 
 Neither `shelf` nor `shelf-wrapper` has the `dev.dozzle.update` label. They share the control API's types, so both move together, by hand, with `docker compose pull shelf shelf-wrapper && docker compose up -d shelf shelf-wrapper`.
 
-`backup.yaml` mounts `${SHELF_DATA}backups/` read-only and rsyncs it to `${BACKUP_SHELF_LOCAL}` in `CRON_TASK_9` at 03:50, after shelf writes its daily copy at 03:30. The wrapper's data isn't backed up: a sign-in recreates it.
+`backup.yaml`'s swingmusic task copies the whole of `${SWINGMUSIC_DATA}` to the HDD at 02:45, so it carries shelf's daily copies in `shelf/backups/` and the wrapper's data. It leaves out `shelf/shelf.db*`, the live database, which rsync could catch mid-write, and `shelf/amdl/`, which shelf writes on every start. The task runs before shelf's 03:30 copy, so each copy reaches the HDD the next night.
 
 sh-secrets gains `blackberry/shelf.env`:
 
@@ -50,10 +44,10 @@ and `blackberry/shelf-wrapper.env` with the same `SHELF_WRAPPER_TOKEN`. Commit i
 
 `CLAUDE.md` in sh-blackberry describes the `shelf` group and counts port 10013 as taken.
 
-Before the first start, `${SHELF_DATA}` and `${SHELF_DATA}backups` must exist and belong to UID 10001. Otherwise Docker creates them as root and shelf can't write; that broke proxier's backups once:
+Before the first start, `${SWINGMUSIC_DATA}/shelf` must exist and belong to UID 10001. Otherwise Docker creates it as root and shelf can't write. shelf creates `backups/` inside it.
 
 ```sh
-sudo install -d -o 10001 -g 10001 -m 755 ~/.local/share/shelf ~/.local/share/shelf/backups
+sudo install -d -o 10001 -g 10001 -m 755 ~/.local/share/swingmusic/shelf
 ```
 
 ## sh-main
@@ -80,7 +74,7 @@ find "${SWINGMUSIC_DATA}/music" \( ! -uid 10001 -o -type d ! -perm -0555 -o -typ
 ## Backups
 
 - shelf's `backup` job runs at 03:30 in the display time zone. It writes `VACUUM INTO` to a temp file on its own read-only connection, syncs it, and renames it to `/data/backups/shelf-YYYY-MM-DD.db`. It keeps 14.
-- `backup.yaml` copies only `backups/` to the HDD, so rsync never reads the live database. The HDD then goes to the remote node with the rest.
+- `backup.yaml`'s swingmusic task copies `backups/` to the HDD and leaves out the live database, so rsync never reads it mid-write. The HDD then goes to the remote node with the rest.
 
 ## Rollout
 

@@ -21,7 +21,7 @@ End-to-end checks that only the real deployment can answer: real accounts, the r
 9. Telegram: a link gets a status message with the cover that moves from queued to downloading to done. Cancel stops a running download, and Retry starts it again in the same message. A link already in the library says when it was downloaded, and Download again fetches it. An artist link asks before queuing. Plain text returns album buttons that queue on tap. `/queue` lists progress. A user outside the whitelist is refused. A restart of shelf while a download runs keeps its message moving, and it ends with one final edit.
 10. Every finished download's folder has a `shelf.txt` with the right IDs and links, and a second download into the same folder appends a block.
 11. New folders are 0755 and new files 0644, owned by 10001, and Navidrome lists the new albums.
-12. The next morning a backup is in `${SHELF_DATA}/backups` and on the HDD.
+12. The next morning a backup is in `${SWINGMUSIC_DATA}/shelf/backups`, and the morning after it is on the HDD, with no `shelf.db` beside it.
 
 ## Results
 
