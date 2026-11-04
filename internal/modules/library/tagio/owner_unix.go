@@ -45,8 +45,9 @@ func canKeepGroup(gid int) bool {
 	return err == nil && slices.Contains(groups, gid)
 }
 
-// Owner gives a file's owner, when the system has one.
-func Owner(fi os.FileInfo) (uid int, ok bool) {
-	uid, _, _, ok = owner(fi)
-	return uid, ok
+// Locked reports whether shelf, running as uid, can't replace a file:
+// another user owns it, or its group isn't one of shelf's.
+func Locked(fi os.FileInfo, uid int) bool {
+	u, gid, _, ok := owner(fi)
+	return ok && (u != uid || !canKeepGroup(gid))
 }
