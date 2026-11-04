@@ -103,6 +103,7 @@ type Library interface {
 - `Reporter` has `Plan`, `Start`, `Progress` with the bytes written, `Done` with the file, its quality and size, a skipped flag or an error, and `Log`, the download's log. A position, 1 to n in release order, names each track. Several goroutines may call its methods.
 - `Download` returns an error only when the download could not run or its context ended. A failed track goes to `Reporter.Done`.
 - `DownloadResult` lists the release folders and files, relative to the music root, the tool that wrote them, such as `amdl 0.1.4`, and what the catalog calls a track, `track` or `song`.
+- A source that can't answer now returns `source.Unavailable` with a reason people may read, such as `token expired`. The API passes that reason on and answers 503. Other source errors stay in the logs, since they may hold a URL with a token.
 - `source.Registry` holds every registered source. `ParseLink` asks all of them, switched on or not, so shelf can refuse a link from a switched-off source by name. `RefusedLink` finds the source that refuses a link, so the bot can say music videos are not supported rather than that the link is unknown.
 
 ## Downloads

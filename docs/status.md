@@ -2,7 +2,7 @@
 
 ## Now
 
-Phase 1. Steps 0, 1a, 1b, 1c and 1f are done. 1a built the shelf skeleton: the trimmed platform from proxier, `serve`, `manage migrate`, `healthcheck` and `version`, a placeholder Vue page, the image and the Forgejo CI workflow. CI passed on its first run and pushed `code.tikhonnnnn.com/tikhon/shelf` with the tags `latest`, `main` and the commit SHA.
+Phase 1. Steps 0, 1a, 1b, 1c, 1d and 1f are done. 1a built the shelf skeleton: the trimmed platform from proxier, `serve`, `manage migrate`, `healthcheck` and `version`, a placeholder Vue page, the image and the Forgejo CI workflow. CI passed on its first run and pushed `code.tikhonnnnn.com/tikhon/shelf` with the tags `latest`, `main` and the commit SHA.
 
 1b built the downloads core: the jobs system, the daily backup and the event hub in the platform, the source types and registry in `internal/source`, and the `downloads`, `catalog` and `fakesource` modules. With `SHELF_DEV_FAKE_SOURCE=true`, shelf searches, resolves and downloads canned items, writes `shelf.txt`, and streams progress and logs. `shelf manage download <url>` queues from the shell.
 
@@ -14,7 +14,9 @@ The UI design is done. Its screens, stylesheets and rules are in [ui/design/](ui
 
 Step 1c is done. qobuz-dl-go `v0.1.0` is tagged, ports qobuz-dl 2.5.9, and resolves through the Go proxy. Its parity runs against Qobuz gave files byte for byte the same as Python's for a multi-disc hi-res album, a CD album and a playlist.
 
-Next: 1d, the Qobuz module, on qobuz-dl-go `v0.1.0`; the notes for it are in the As built section of [build/1c.md](build/1c.md). 1e's staging run on blackberry still waits for the owner.
+1d built the qobuz module over qobuz-dl-go `v0.1.0`. It logs in behind the start, searches, resolves and downloads albums, tracks and playlists with their m3u8, and marks the source unhealthy when the token expires. `shelf manage import-qobuz-db` brings in the old bot's history. Its tests run against `qobuzdltest`, and a run with a made-up token reached the live site as far as Qobuz's 401. No search or download has run with a real token yet.
+
+Next: 1g, the web UI. 1e's staging run on blackberry still waits for the owner, and so does a first local run of Qobuz with a real token.
 
 ## Remotes
 
@@ -31,16 +33,17 @@ Next: 1d, the Qobuz module, on qobuz-dl-go `v0.1.0`; the notes for it are in the
 | 1a | shelf skeleton | done |
 | 1b | Downloads core | done |
 | 1c | qobuz-dl-go | done: `v0.1.0` |
-| 1d | Qobuz module | next |
+| 1d | Qobuz module | done; not yet run with a real token |
 | 1e | Apple Music module and shelf-wrapper | built and run locally; the staging run on blackberry is left |
 | 1f | Navidrome and Telegram | done |
-| 1g | Web UI | after 1b to 1f; the design is done |
+| 1g | Web UI | next; the design is done |
 | 1h | Deployment and cutover | last |
 
 ## Log
 
 ### 2026-11-04
 
+- Step 1d: the qobuz module and `shelf manage import-qobuz-db`. `make check`, `make lint`, `make web-check` and `docker build .` pass. Every checklist line has its test against `qobuzdltest`, and more tests run the module through the real download job. A run with a made-up token read the live bundle and got Qobuz's 401; nothing has run with a real token. What differs from the contract is in the As built section of [build/1d.md](build/1d.md), and the decisions in [decisions.md](decisions.md).
 - Step 1c: qobuz-dl-go `v0.1.0` is tagged and pushed to GitHub, and `go list -m` resolves it through proxy.golang.org. qobuz-dl-go's steps 6 to 11 are done: the fake Qobuz, the downloader with both transfers, core, the downloads database, the CLI and the parity runs against Qobuz. See the As built section of [build/1c.md](build/1c.md).
 - Step 1e, local downloads: the owner signed the local wrapper in, and shelf downloaded a song, three albums and a Dolby Atmos single. The runs changed the module: amdl's bars give per-song progress, a failure printed on a bar's line reaches the log, a run in which a song failed runs once more, shelf refuses Dolby Atmos for a release without it, and the supervisor hides the token heads wrapper-lite prints. The fixtures now hold amdl's output for In Rainbows and Apple's answer for the album. See the As built section of [build/1e.md](build/1e.md) and [decisions.md](decisions.md).
 - Step 1e, short of its staging run: the applemusic module, the amdl runner, the wrapper client, `internal/wrapperapi`, `cmd/shelf-wrapper` and the image's `wrapper` target. `make check`, `make lint`, `make web-check` and `docker build .` pass. A local compose run checked the wrapper under Rosetta, the routes, the event and the stop, then search and lookups against Apple's live catalog. The live artist views are recorded as a fixture. What differs from the contract is in the As built section of [build/1e.md](build/1e.md), and the decisions in [decisions.md](decisions.md).
@@ -67,6 +70,5 @@ Next: 1d, the Qobuz module, on qobuz-dl-go `v0.1.0`; the notes for it are in the
 
 - 1e's staging run: the steps are at the end of the As built section of [build/1e.md](build/1e.md). Sign in only a wrapper with its own data folder and its own `--device-info`: wrapper-lite's device ID comes from the Apple ID. The fixtures are recorded already.
 - The As built sections of [build/1b.md](build/1b.md) and [build/1f.md](build/1f.md) end with notes for the later steps. The main ones: a source module logs in and starts goroutines in `Run` from `module.Runner`, never in `Init`, because `manage` opens the platform too; a source registers with `Switch` when its settings are missing; Apple Music implements `source.LinkRefuser` for music videos and stations; and the Status page reads `/api/telegram` and the health fields of `/api/library/scan`.
-- The values the old bot runs with in production are in [sources/qobuz.md](sources/qobuz.md), so the Qobuz settings keep parity.
-- The As built section of [build/1c.md](build/1c.md) ends with notes for 1d on how an expired token surfaces, what a playlist's progress and `Result` look like, the ffmpeg the host needs, and what `qobuzdltest` offers for the checklist.
-- For 1d: `GetURLInfo` reads `/label/<slug>/download-streaming-albums/<id>` as the ID `download` and doesn't match `/playlists/`. Decide in 1d whether `ParseLink` handles these, as it handles `/interpreter/`.
+- The As built section of [build/1d.md](build/1d.md) ends with notes for 1g and 1h: what the Status page reads of the Qobuz source, the 503 a search can answer, and what the import prints during the cutover.
+- A first run with a real token: set `SHELF_QOBUZ_TOKEN` and `SHELF_MUSIC_DIR`, start `serve`, and download an album. `qobuz-dl dl -q 27 URL` from qobuz-dl-go gives the files to compare against.

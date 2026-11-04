@@ -7,8 +7,67 @@ import (
 	"strings"
 	"testing"
 
+	qobuzdl "github.com/tikhonp/qobuz-dl-go"
+	"github.com/tikhonp/qobuz-dl-go/downloadsdb"
 	"github.com/tikhonp/shelf/internal/platform/db"
 )
+
+func TestManageImportQobuzDB(t *testing.T) {
+	music := t.TempDir()
+	vars := local(t, map[string]string{"SHELF_MUSIC_DIR": music})
+	manage := func(args ...string) (int, string, string) {
+		var out, errs bytes.Buffer
+		c := cli{lookup: env(vars), stdout: &out, stderr: &errs, modules: modules}
+		code := c.run(context.Background(), append([]string{"manage"}, args...))
+		return code, out.String(), errs.String()
+	}
+	if code, _, e := manage("migrate", "up"); code != 0 {
+		t.Fatalf("migrate: %d %s", code, e)
+	}
+	file := filepath.Join(t.TempDir(), "qobuz_dl.db")
+	old, err := downloadsdb.Open(context.Background(), file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range []qobuzdl.DownloadRecord{
+		{ID: "a1", MediaType: "album", Quality: 27, FileFormat: "FLAC", SavedPath: "/downloads/One", Status: "downloaded"},
+		{ID: "t1", MediaType: "track", Quality: 27, FileFormat: "MP3", SavedPath: "/elsewhere/Two", Status: "downloaded"},
+		{ID: "p1", MediaType: "playlist", Quality: 27, FileFormat: "FLAC", Status: "downloaded"},
+	} {
+		if err := old.Add(context.Background(), r); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := old.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	code, out, e := manage("import-qobuz-db", file)
+	if code != 0 || out != "Read 3 rows: 2 added, 0 already on record, 1 of another kind, 1 with a path outside the music folder.\n" {
+		t.Fatalf("%d %q %s", code, out, e)
+	}
+	if !strings.Contains(e, "/elsewhere/Two") {
+		t.Errorf("the path outside wasn't logged: %s", e)
+	}
+	code, out, _ = manage("import-qobuz-db", file)
+	if code != 0 || !strings.Contains(out, "0 added, 2 already on record") {
+		t.Fatalf("%d %q", code, out)
+	}
+
+	// The import and a link meet in downloaded_items, without a token.
+	vars["SHELF_QOBUZ_TOKEN"] = "not-used"
+	code, out, e = manage("download", "https://play.qobuz.com/album/a1")
+	if code != 0 || !strings.Contains(out, "already in the library at qobuz/One") {
+		t.Fatalf("%d %q %s", code, out, e)
+	}
+
+	if code, _, _ := manage("import-qobuz-db"); code != 2 {
+		t.Errorf("no file: exit %d", code)
+	}
+	if code, _, e := manage("import-qobuz-db", filepath.Join(t.TempDir(), "nothing.db")); code != 1 || !strings.Contains(e, "nothing.db") {
+		t.Errorf("missing file: %d %s", code, e)
+	}
+}
 
 func TestManageDownload(t *testing.T) {
 	vars := local(t, map[string]string{"SHELF_DEV_FAKE_SOURCE": "true", "SHELF_MUSIC_DIR": t.TempDir()})

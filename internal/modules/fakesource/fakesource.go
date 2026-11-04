@@ -42,6 +42,8 @@ type Source struct {
 	// to hold a download at a track or to see its context end. An error
 	// fails the download.
 	Hook func(ctx context.Context, ref source.Ref, position int) error
+	// Fail, when set, is what Search and Item answer.
+	Fail error
 
 	items atomic.Int32
 }
