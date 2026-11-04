@@ -76,7 +76,7 @@ docs/                   all project information
 - `~/projects/sh-blackberry` and `~/projects/sh-main`: the production compose files and the gateway.
 - `~/projects/wrapper`: wrapper-lite sources on the `lite` branch.
 - `~/projects/apple-music-downloader`: amdl sources, for reading only. The repo has no licence, so no code is copied from it.
-- `~/projects/music-download-bot` and `~/projects/apple-music-dl-http-wrapper`: the services shelf replaces.
+- `~/projects/music-download-bot` and `~/projects/apple-music-dl-http-wrapper`: the services shelf replaced.
 
 ## Glossary
 

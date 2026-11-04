@@ -1,5 +1,5 @@
 # Development stack: air rebuilds and restarts shelf on every change.
-# Production runs code.tikhonnnnn.com/tikhon/shelf from sh-blackberry/music.yaml.
+# Production runs code.tikhonnnnn.com/tikhon/shelf from sh-blackberry/shelf.yaml.
 services:
   shelf:
     build:

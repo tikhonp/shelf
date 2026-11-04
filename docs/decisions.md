@@ -75,7 +75,7 @@ The decisions in force and why. When one changes, edit its row and the docs it t
 | One status message per download that the bot edits, with Cancel, Retry and Fetch missing, a confirmation before artist and label downloads, and album search by plain text. | One edited message replaces two separate replies per link. |
 | The bot sends the status message before it queues the download. | A download that ends at once would reach `notify` before the message existed. |
 | The editor keeps one edit per message in the send queue, and the edit reads the download's state when its turn comes. | A message never goes back to an older state. |
-| shelf has its own bot, `@music_shelf_bot`. | Two processes can't poll one token, and the old bot still runs. |
+| shelf has its own bot, `@music_shelf_bot`. | Two processes can't poll one token, and the old bot ran beside shelf at first. |
 
 ## Web UI
 
@@ -89,12 +89,70 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 | Notices and table density are per-browser settings on Status. Notices default to Failures. | A failure needs a person, and phone and desktop may want different levels. |
 | The fake source's covers are data URLs. | Any other host breaks the CSP. |
 
+## Tags
+
+Planned for phase 2 and not built yet. The rows under Deployment stay in force until the editing backend ships.
+
+| Decision | Why |
+| --- | --- |
+| Navidrome is the test of every write. shelf follows its mappings, split rules and grouping, and a write that reads back but shows wrong in Navidrome has failed. | The owner's rule: shelf exists for Navidrome. |
+| No Picard integration. Everything lives in shelf, and Picard stays as it is. | The owner's choice. Picard's HTTP port can't load files, and its web view is a remote desktop that is poor on a phone. |
+| Suggestions are hints beside tag fields, with no album card, Apply step or release picker. | The owner asked for a radically simple interface. |
+| MusicBrainz IDs and other hidden tags are plain fields behind an All fields switch. Nothing is written unless accepted. | The owner's choice. |
+| The server picks one anchor release per album. Release-scoped fields show only its values, and Save refuses suggestions from two anchors. | Accepting fields one at a time could otherwise mix IDs from two releases. |
+| shelf edits the whole library, after one chown of the five genre folders to 10001 that keeps their modes. | shelf can't write 184 album folders there, which are root's with mode 0755, or 73 files, which are root's with mode 0644. No file owned by UID 1000 lacks world-write, so nobody loses access. |
+| Nothing changes after a download on its own. | The owner's choice. |
+| shelf never renames or moves a file. | The owner's choice. It also avoids Navidrome's limit that retagging and moving can't share a scan. |
+| Checks and fixes exist, and only the owner starts them, on one album or on many. | The owner's choice. |
+| Missing `RELEASEDATE` is a check, and its fix keeps what Navidrome shows today. Where Navidrome's legacy date rule applies (832 of 1,099 albums), it writes `RELEASEDATE` from the old `DATE` and `DATE` from `ORIGINALDATE`. Where `YEAR` or M4A's `©day` already sets the release date (108), `RELEASEDATE` copies that value. Elsewhere (158), `RELEASEDATE` copies `DATE`. | The owner wants the tag. `mapDates` reads `DATE` as the release date while `ORIGINALDATE` is set and no release date exists, so `RELEASEDATE` alone moved a reissue from 1956 to 2006 in step 0. The pair changed nothing. |
+| Navidrome showing a reissue year is a check of its own, and the owner picks each fix. | On 23 albums `YEAR` or `©day` turns the legacy rule off, so Navidrome shows `DATE`, such as 1984 for Moanin', whose `ORIGINALDATE` is 1958. No rule can tell which date the owner wants. |
+| A cover edit changes the folder's `cover.*` and replaces the embedded front cover in files that have one. The folder keeps one `cover.*`. Delete removes both. Embedded art stops at 1000x1000. | Navidrome shows `cover.*` first, and `cover.jpg` hid a `cover.png` beside it. A track without embedded art shows the album's cover, so 58% of files need no rewrite. FLAC drops a picture over 16 MiB without an error. The guide calls 1000x1000 plenty. |
+| On a phone the editor covers albums, issues and main fields with suggestions. Custom fields, bulk runs and history need a desktop. | The owner's choice. |
+| go-taglib reads and writes tags, and `Clear` is never used. Every write is read back. | In step 0 it read the same values as Navidrome on every shared key of 249 tracks and lost nothing in a write. `Clear` drops every field not passed, and its write call ignores rejected keys. |
+| WMA refuses custom fields and multi-value writes. | go-taglib lost custom keys and reversed multi-value order in WMA. The library has no WMA files. |
+| Every write goes through a temp copy, a verify and a rename, for all of an album's files together. | A crash or a failed tag write must leave the originals whole. |
+| Writes run on a `tags` queue, and ReplayGain and fingerprints on an `analysis` queue. `library` keeps scans. | A long run on `library`, whose one slot scans share, would hold back scans for new downloads. |
+| A write updates every alias of a field that the file holds. | Navidrome takes the first alias of a single value, so `DISC` beats `DISCNUMBER`, and merges aliases of a multi-value tag, so a stale `ALBUM ARTIST` adds a second album artist. |
+| A Save that moves only some of an album's tracks to a new Navidrome album ID asks first, and says the star and rating leave with them, even after an undo. | Navidrome moves the album's star and rating to the new album. Undo leaves them on neither album. shelf can't restore them, because they belong to each Navidrome user. |
+| A Save that merges two albums says the first album's star and rating are lost when the other has its own. A Save that renames an album artist says their star and rating stay with the old name. | Both happen in Navidrome's scan, and shelf can't prevent them. An undo of an artist rename brings the star back. |
+| On M4A files with Picard's lowercase atoms, `ORIGINALDATE` and `ORIGINALYEAR` are read-only. | go-taglib can neither change nor remove `----:com.apple.iTunes:originaldate`, and the uppercase atom it adds is read by nobody. This is one album of 13 files. |
+| `.mp4` files are never audio to shelf. | The 10 in the library are amdl's animated artwork, and Navidrome skips them. |
+| All fields groups tags by whether Navidrome reads them: Standard holds the ones it reads, Extended the rest. | 28 of the library's 89 keys, such as `ENSEMBLE` and `UPC`, never reach Navidrome. The owner should see that before editing one. |
+| A ReplayGain run writes track and album values to -18 LUFS with one ffmpeg `ebur128` decode per track, and pools the loudness blocks for album gain. | Pooled blocks gave -21.21 LUFS where one continuous decode gave -21.2. The whole library takes about 12 hours on one CPU. No file has album gain today, and on the album tested the 2,443 existing track gains differ from `ebur128` by 0.5 to 1.2 dB, so a run replaces them. |
+| A bulk run has no nightly limit. Its preview shows the files and GB touched, and the owner sizes each run. | Nothing runs by itself. The HDD backup recopies each changed file and keeps no history, and the remote one keeps overwritten files for 30 days. |
+
+### Evidence from step 0
+
+Run on 2026-11-04 on blackberry in the shelf image as UID 10001, on 25 albums copied from the library (249 tracks) and 17 rare files, with a scratch Navidrome 0.64.2 and the owner's split rules. The library was mounted read-only, and the copies are deleted.
+
+| Test | Result |
+| --- | --- |
+| Preservation | Adding a field, removing it, writing hard values, replacing a cover and deleting it lost no tag, picture or audio byte. That covers an ID3 prefix, zero padding, APPLICATION blocks, lowercase keys and pictures without a MIME type. Deliberate damage was caught, so the checks can fail. TagLib sorts FLAC comments and uppercases their keys, and Navidrome ignores both. |
+| Readers | go-taglib 0.15.0 and Navidrome agree on every shared key of all 249 tracks. Only Navidrome splits `3/9` track numbers, adds a language to `lyrics` and lists raw MP4 atoms. |
+| Tracks | A retag in place keeps a track's ID, star, rating, plays and playlists, even when its persistent ID changes. |
+| Albums | Renaming an album, changing its MusicBrainz ID or adding MusicBrainz IDs changes the album ID, and the star, rating and plays follow. Undo restores the old ID. A scan that lands between two halves of a rename ends the same. |
+| Split | Moving one track off an album moved the star and rating to the new album. Undoing it left them on neither. |
+| Merge | A source album's star and rating moved to an unmarked target. A target with its own rating kept it, and the source's was lost. |
+| Artists | An artist renamed in tags starts with no star or rating. They stay under the old name's ID, so an undo brings them back. |
+| Recently Added | Rewriting all of an album's files through temp files left its created time and position alone. |
+| Dates | `YEAR` and M4A's `©day` are release date aliases, and `RELEASEDATE` beats `YEAR`. On an album without a MusicBrainz ID, a new release date changes the album ID and keeps the star. |
+| Covers | An embedded change alone left the album cover as it was and changed the track's. With `cover.*` gone, the embedded cover showed. Tracks without embedded art showed the album's cover on 19 of 19 albums. |
+| Lyrics | An `.lrc` hides embedded lyrics. Without a sidecar the embedded text shows. |
+| Temp files | Navidrome skips dot files. TagLib detects the format by content, so a temp name needs no extension. |
+| Watcher | Navidrome showed a retag 5.6 seconds after the write, with no scan request. |
+| Config | `GET /api/config/` returns the split rules, exceptions, persistent ID specs and priorities to an admin. Without the trailing slash it is a 404. |
+| Census | 89 keys in 11,457 files, read in 26 seconds with no errors or lost keys. No file has two pictures, and no file is a hard link or a symlink. The longest file name is 187 bytes. |
+| Broken files | Empty, garbage and damaged-header files return an error, with no panic. A half-truncated file reads and writes without one. |
+| AcoustID | Alpine's `chromaprint` ships `fpcalc`. |
+
+Not tested: that `RELEASEDATE` copying `YEAR`'s exact value keeps an album ID, which follows from the persistent ID code, and `/api/config/` with production's account. Step 3 covers both.
+
 ## Deployment
 
 | Decision | Why |
 | --- | --- |
-| shelf, shelf-wrapper and `ssht-shelf` live in sh-blackberry's `shelf.yaml`, beside the old pipeline in `music.yaml`, which the owner removes later. | shelf could be checked while the old tools still worked, and stopping `shelf.yaml` is the rollback. |
-| shelf-wrapper has its own data folder and `--device-info`. | wrapper-lite derives the device ID from the Apple ID, and `apple-music-wrapper` uses the same account. |
+| shelf, shelf-wrapper and `ssht-shelf` live in sh-blackberry's `shelf.yaml`, apart from `music.yaml`. | shelf could be checked while the old tools still worked. They were removed once it passed the checklist. |
+| shelf-wrapper has its own data folder and `--device-info`. | wrapper-lite derives the device ID from the Apple ID, and `apple-music-wrapper` used the same account. |
 | Neither `shelf` nor `shelf-wrapper` updates nightly. Both are pulled together by hand. | They share the control API's types. |
 | shelf's data lives in `${SWINGMUSIC_DATA}/shelf` and `${SWINGMUSIC_DATA}/shelf-wrapper`, and the swingmusic backup copies all of it. A restore starts from a daily copy. | The owner's choice, like the other music services. One task that copies everything is easier to keep right. |
 | Only `qobuz/` and `apple-music/` belong to 10001. The genre folders keep their mixed owners. | shelf writes only there, and the login user and Picard keep writing elsewhere. |

@@ -1,6 +1,6 @@
 # Deployment
 
-shelf runs on blackberry from `shelf.yaml` in `~/projects/sh-blackberry`, beside the old pipeline in `music.yaml`. The sh-main gateway serves it at `shelf.music.tikhonnnnn.com`, and the bot is `@music_shelf_bot`. Changes to sh-blackberry, sh-main and sh-secrets are drafted for the user to commit.
+shelf runs on blackberry from `shelf.yaml` in `~/projects/sh-blackberry`. The sh-main gateway serves it at `shelf.music.tikhonnnnn.com`, and the bot is `@music_shelf_bot`. Changes to sh-blackberry, sh-main and sh-secrets are drafted for the user to commit.
 
 ## Images
 
@@ -18,10 +18,8 @@ Forgejo CI builds both on every push to `main` and tags them with the SHA, `main
 | Service | What | Notes |
 | --- | --- | --- |
 | `shelf` | the app | `10001:10001`, read-only root, no capabilities, `/tmp` on tmpfs. Mounts `${SWINGMUSIC_DATA}/shelf` at `/data`, `${SWINGMUSIC_DATA}/music` at `/music`, and `apple-music-config.yaml` at `/config/amdl.yaml`. Sets `SHELF_PUBLIC_URL` and points `SHELF_WRAPPER_URL` and `SHELF_WRAPPER_CONTROL_URL` at `shelf-wrapper`. Healthcheck `shelf healthcheck`, 30 seconds of stop grace. |
-| `shelf-wrapper` | wrapper-lite under the supervisor | Privileged. Its own data folder, `${SWINGMUSIC_DATA}/shelf-wrapper`, and its own `--device-info` in `SHELF_WRAPPER_LITE_ARGS`, because `apple-music-wrapper` is signed in to the same Apple ID. The Status page signs it in. |
+| `shelf-wrapper` | wrapper-lite under the supervisor | Privileged. Its own data folder, `${SWINGMUSIC_DATA}/shelf-wrapper`, and its own `--device-info` in `SHELF_WRAPPER_LITE_ARGS`. The Status page signs it in. |
 | `ssht-shelf` | the tunnel | Port 10013 to `shelf:8080`, with the pinned host key and the healthcheck every `ssht-*` has. |
-
-The old pipeline, `music-download-bot`, `apple-music-api` and `apple-music-wrapper`, keeps running in `music.yaml` until the user removes it. shelf touches none of it, and both write into `music/qobuz` and `music/apple-music`. The old bot's data stays in `${SWINGMUSIC_DATA}/music-downloader-bot` until then.
 
 Neither `shelf` nor `shelf-wrapper` has the `dev.dozzle.update` label. They share the control API's types, so update both together:
 
@@ -32,11 +30,11 @@ docker compose pull shelf shelf-wrapper && docker compose up -d shelf shelf-wrap
 sh-secrets holds `blackberry/shelf.env`:
 
 ```
-SHELF_QOBUZ_TOKEN=          the Qobuz user auth token, the old bot's QOBUZ_PASSWORD
+SHELF_QOBUZ_TOKEN=          the Qobuz user auth token
 SHELF_WRAPPER_TOKEN=        openssl rand -base64 32
 SHELF_NAVIDROME_USER=       a Navidrome admin
 SHELF_NAVIDROME_PASSWORD=
-SHELF_TELEGRAM_TOKEN=       shelf's own bot, not music-download-bot's
+SHELF_TELEGRAM_TOKEN=       the token of `@music_shelf_bot`
 SHELF_TELEGRAM_USERS=       the user IDs the bot answers
 ```
 
@@ -77,8 +75,6 @@ sudo chmod -R u+rwX,go+rX,go-w "$M/qobuz" "$M/apple-music"
 - `backup.yaml`'s swingmusic task copies all of `${SWINGMUSIC_DATA}` to the HDD at 02:45, shelf's live database and the wrapper's data included. rsync can catch the live database mid-write, so a restore starts from a daily copy. The task runs before shelf's copy, so each copy reaches the HDD the next night. The HDD then goes to the remote node with the rest.
 
 ## Setting up from scratch
-
-The old pipeline doesn't depend on shelf, so stopping `shelf.yaml` is the rollback.
 
 1. Give `qobuz/` and `apple-music/` to 10001 as above.
 2. Create shelf's data folder for UID 10001, or Docker creates it as root and shelf can't write: `sudo install -d -o 10001 -g 10001 -m 755 ~/.local/share/swingmusic/shelf`.

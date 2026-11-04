@@ -35,7 +35,7 @@ convert:
   format: "flac"
 `
 
-var settings = amdl.Settings{LiteServer: "http://apple-music-wrapper:12340", Folder: "/music/apple-music"}
+var settings = amdl.Settings{LiteServer: "http://shelf-wrapper:12340", Folder: "/music/apple-music"}
 
 func TestRenderConfig(t *testing.T) {
 	out, b, err := amdl.Render([]byte(base), settings)
@@ -47,7 +47,7 @@ func TestRenderConfig(t *testing.T) {
 	}
 	got := string(out)
 	for _, want := range []string{
-		`lite-server: "http://apple-music-wrapper:12340" # wrapper-lite HTTP API endpoint`,
+		`lite-server: "http://shelf-wrapper:12340" # wrapper-lite HTTP API endpoint`,
 		`exit-on-error: true`,
 		`proxy: ""`,
 		`alac: "/music/apple-music"`, `atmos: "/music/apple-music"`, `aac: "/music/apple-music"`, `mv: "/music/apple-music"`,
