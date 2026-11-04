@@ -159,7 +159,7 @@ Run on 2026-11-04 on blackberry in the shelf image as UID 10001, on 25 albums co
 | Broken files | Empty, garbage and damaged-header files return an error, with no panic. A half-truncated file reads and writes without one. |
 | AcoustID | Alpine's `chromaprint` ships `fpcalc`. |
 
-Not tested: that `RELEASEDATE` copying `YEAR`'s exact value keeps an album ID, which follows from the persistent ID code, and `/api/config/` with production's account. Step 3 covers both.
+Not tested: that `RELEASEDATE` copying `YEAR`'s exact value keeps an album ID, which follows from the persistent ID code, which step 3 covers. Check 13 read `/api/config/` with production's account on 2026-11-04.
 
 ## Deployment
 
