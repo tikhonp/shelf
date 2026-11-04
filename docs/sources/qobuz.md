@@ -105,7 +105,7 @@ With fallback on, Qobuz may deliver less than asked. `shelf.txt` and the downloa
 - Folder states come from qobuz-dl: an album downloads into `[IN PROGRESS] <folder>` and is renamed to `<folder>` when every track succeeded, or to `[INCOMPLETE] <folder>` when some failed. Playlists download into a flat folder named after the playlist and get `<name>.m3u8`.
 - Multi-disc albums put tracks in `CD 01`, `CD 02` subfolders.
 - Extras: `cover.jpg`, `<album> - Tracklist.txt`, and booklet PDFs named `<album> (<id>).pdf`.
-- Tags follow qobuz-dl 2.5.9's `metadata.py`. In MP3 files the ID3 frame order and padding differ from mutagen's; players show neither.
+- Tags follow qobuz-dl 2.5.9's `metadata.py`. In MP3 files the ID3 frame order and padding differ from mutagen's; players show neither. The frame order also changes between runs, because `bogem/id3v2` keeps frames in a map, so two downloads of one MP3 differ byte for byte. The audio and the tags are the same.
 - `shelf.txt` goes into the final folder after qobuz-dl-go returns.
 
 ## Already downloaded
@@ -135,5 +135,7 @@ A playlist track that `Has` skips writes no file, as in Python. That also covers
 - Rows of other kinds are skipped and counted.
 - qobuz-dl keeps a row per ID and quality, and `downloaded_items` one per item. The row of the highest quality wins.
 - Existing rows are kept, so a second run changes nothing.
+- `artist` is kept, and `album` becomes the title of an album row. A track row's `album` isn't the track's title, so its title stays empty. qobuz-dl added these columns late. A file it hasn't opened since has neither, and imports without them.
+- The old table has no cover. The import stays offline, and the first skip of an imported item asks Qobuz for what it lacks.
 
 The command prints how many rows it read, added, found on record, skipped for their kind, and kept with a path outside the music folder.

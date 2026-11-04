@@ -60,8 +60,8 @@ func TestButtons(t *testing.T) {
 		t.Fatalf("a retry of a done download answered %q", a)
 	}
 
-	// Download again: the item is in the library, so the link is skipped,
-	// and the button downloads it with force into the same message.
+	// Fetch missing: the item is in the library, so the link is skipped, and
+	// the button queues it with force into the same message.
 	r.say("https://fake.test/album/album-1")
 	photos := r.tg.of("sendPhoto")
 	again := photos[len(photos)-1]
@@ -70,20 +70,20 @@ func TestButtons(t *testing.T) {
 		t.Fatalf("download %+v", skipped)
 	}
 	sk := r.waitEdit(again.msgID, "Already downloaded on 10 Mar 2026")
-	if !slices.Equal(sk.buttons(), []string{"Download again=f:" + itoa(skipped.ID), "Open in Shelf>https://shelf.test/downloads/" + itoa(skipped.ID)}) {
+	if !slices.Equal(sk.buttons(), []string{"Fetch missing=f:" + itoa(skipped.ID), "Open in Shelf>https://shelf.test/downloads/" + itoa(skipped.ID)}) {
 		t.Fatalf("buttons %q", sk.buttons())
 	}
-	r.tap(owner, again, dataAgain+itoa(skipped.ID))
+	r.tap(owner, again, dataMissing+itoa(skipped.ID))
 	if a := r.lastAnswer(); a != answerQueued {
 		t.Fatalf("answered %q", a)
 	}
-	r.tap(owner, again, dataAgain+itoa(skipped.ID)) // a double tap
+	r.tap(owner, again, dataMissing+itoa(skipped.ID)) // a double tap
 	if n := len(r.downloads()); n != 3 {
 		t.Fatalf("%d downloads after a double tap", n)
 	}
 	forced := r.downloads()[0]
 	if forced.ID == skipped.ID || !forced.Force || forced.OriginRef.StatusMessageID != again.msgID || forced.Ref != skipped.Ref {
-		t.Fatalf("download again %+v", forced)
+		t.Fatalf("fetch missing %+v", forced)
 	}
 	r.h.Drain()
 	if done := r.waitEdit(again.msgID, "Done: 3 tracks"); !strings.Contains(done.buttons()[0], "/downloads/"+itoa(forced.ID)) {
@@ -102,7 +102,7 @@ func TestButtonUnknownUser(t *testing.T) {
 	status := r.tg.of("sendPhoto")[0]
 	d := r.downloads()[0]
 	g.waitReached(t)
-	for _, data := range []string{dataCancel + itoa(d.ID), dataRetry + itoa(d.ID), dataAgain + itoa(d.ID),
+	for _, data := range []string{dataCancel + itoa(d.ID), dataRetry + itoa(d.ID), dataMissing + itoa(d.ID),
 		dataQueue + "fake:album:album-2", dataAll + "fake:artist:artist-1", dataDismiss} {
 		r.tap(stranger, status, data)
 		if a := r.lastAnswer(); a != textPrivate {

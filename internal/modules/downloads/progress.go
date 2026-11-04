@@ -18,8 +18,11 @@ const ProgressEvery = time.Second
 // change goes to the hub at once; the table gets the latest state once a
 // second and when fetch ends.
 type progress struct {
-	s   *Service
-	d   Download
+	s *Service
+	d Download
+	// ctx is the fetch step's context. A track that fails after it ended was
+	// cut off.
+	ctx context.Context
 	log source.Logger
 	// write stores a snapshot; tests count the calls.
 	write func(ctx context.Context, snap snapshot) error
@@ -39,8 +42,8 @@ type snapshot struct {
 	replanned bool
 }
 
-func newProgress(s *Service, d Download, tracks []Track, log source.Logger) *progress {
-	p := &progress{s: s, d: d, log: log, tracks: map[int]*Track{}, dirty: map[int]bool{}}
+func newProgress(ctx context.Context, s *Service, d Download, tracks []Track, log source.Logger) *progress {
+	p := &progress{s: s, d: d, ctx: ctx, log: log, tracks: map[int]*Track{}, dirty: map[int]bool{}}
 	for i := range tracks {
 		t := tracks[i]
 		p.tracks[t.Position] = &t
@@ -221,6 +224,10 @@ func (p *progress) Done(pos int, r source.TrackResult) {
 	defer p.mu.Unlock()
 	t := p.track(pos)
 	switch {
+	case r.Err != nil && p.ctx.Err() != nil && t.Status != "failed":
+		// Sources end what a cancel or a shutdown cut off as failed, and
+		// nothing went wrong with those tracks.
+		t.Status, t.Error = "pending", ""
 	case r.Err != nil:
 		t.Status, t.Error = "failed", r.Err.Error()
 		p.log.Warn("Track %d, %s: %v", pos, t.Title, r.Err)

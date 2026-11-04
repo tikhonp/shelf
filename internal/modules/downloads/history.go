@@ -15,6 +15,9 @@ type Downloaded struct {
 	Quality string
 	// Path is the release folder, relative to the music root.
 	Path string
+	// Title and Artist are what the older tool knew. A skipped download
+	// shows them when no download of the item has.
+	Title, Artist string
 }
 
 // IsDownloaded reports whether ref is in downloaded_items at any quality.
@@ -45,10 +48,10 @@ func (s *Service) addDownloaded(ctx context.Context, rows []Downloaded, imported
 	err := s.db.Write(ctx, func(tx *sqlx.Tx) error {
 		for _, d := range rows {
 			res, err := tx.ExecContext(ctx, `
-				INSERT INTO downloaded_items (source, kind, item_id, quality, path, imported, at)
-				VALUES (?, ?, ?, ?, ?, ?, ?)
+				INSERT INTO downloaded_items (source, kind, item_id, quality, path, title, artist, imported, at)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 				ON CONFLICT (source, kind, item_id) DO NOTHING`,
-				d.Ref.Source, string(d.Ref.Kind), d.Ref.ID, d.Quality, d.Path, imported, s.now())
+				d.Ref.Source, string(d.Ref.Kind), d.Ref.ID, d.Quality, d.Path, d.Title, d.Artist, imported, s.now())
 			if err != nil {
 				return err
 			}

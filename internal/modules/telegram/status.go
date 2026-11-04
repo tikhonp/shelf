@@ -453,7 +453,7 @@ func (v view) keyboard() *models.InlineKeyboardMarkup {
 	case downloads.Partial, downloads.Failed, downloads.Canceled:
 		row = append(row, callbackButton(buttonRetry, dataRetry+itoa(d.ID)))
 	case downloads.Skipped:
-		row = append(row, callbackButton(buttonAgain, dataAgain+itoa(d.ID)))
+		row = append(row, callbackButton(buttonMissing, dataMissing+itoa(d.ID)))
 	}
 	if d.Status != downloads.Canceled {
 		if u := v.openURL(); u != "" {

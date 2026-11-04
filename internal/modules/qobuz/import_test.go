@@ -1,12 +1,14 @@
 package qobuz
 
 import (
+	"database/sql"
 	"os"
 	"path/filepath"
 	"testing"
 
 	qobuzdl "github.com/tikhonp/qobuz-dl-go"
 	"github.com/tikhonp/qobuz-dl-go/downloadsdb"
+	"github.com/tikhonp/qobuz-dl-go/qobuzdltest"
 	"github.com/tikhonp/shelf/internal/modules/downloads"
 	"github.com/tikhonp/shelf/internal/platform/db/dbtest"
 	"github.com/tikhonp/shelf/internal/source"
@@ -56,6 +58,7 @@ func (r *jobRig) items() map[string]imported {
 
 func TestImportMapsRows(t *testing.T) {
 	r := newJobRig(t)
+	r.up()
 	music := r.s.root
 	// A file name a URI would cut short.
 	file := oldDB(t, "qobuz dl #1?.db",
@@ -108,6 +111,59 @@ func TestImportMapsRows(t *testing.T) {
 	d, err := r.svc.Queue(bg, downloads.QueueRequest{URL: "https://play.qobuz.com/album/a1", Origin: downloads.OriginWeb})
 	if err != nil || d.Status != downloads.Skipped {
 		t.Fatalf("%+v, %v", d, err)
+	}
+}
+
+func TestImportKeepsNames(t *testing.T) {
+	r := newJobRig(t)
+	r.up()
+	file := oldDB(t, "qobuz_dl.db",
+		qobuzdl.DownloadRecord{ID: qobuzdltest.AlbumHiRes96, MediaType: "album", FileFormat: "FLAC", SavedPath: "/downloads/Album", Artist: "Old Artist", Album: "Old Album"},
+		qobuzdl.DownloadRecord{ID: "t1", MediaType: "track", FileFormat: "FLAC", SavedPath: "/downloads/Single", Artist: "Old Artist", Album: "Its Album"},
+	)
+	if _, err := Import(bg, file, r.cfg, r.svc, dbtest.Discard); err != nil {
+		t.Fatal(err)
+	}
+	var track struct {
+		Title  string `db:"title"`
+		Artist string `db:"artist"`
+	}
+	if err := r.h.DB.R.Get(&track, `SELECT title, artist FROM downloaded_items WHERE item_id = 't1'`); err != nil {
+		t.Fatal(err)
+	}
+	// A track's row names its album, not the track.
+	if track.Title != "" || track.Artist != "Old Artist" {
+		t.Fatalf("%+v", track)
+	}
+	// The old names stay, and Qobuz gives the cover.
+	d := r.queue("https://play.qobuz.com/album/" + qobuzdltest.AlbumHiRes96)
+	if d.Status != downloads.Skipped || d.Title != "Old Album" || d.Artist != "Old Artist" || d.CoverURL == "" {
+		t.Fatalf("%+v", d)
+	}
+}
+
+// qobuz-dl adds artist and album when it opens a file, and the import reads
+// the file as it is.
+func TestImportReadsAFileWithoutNames(t *testing.T) {
+	r := newJobRig(t)
+	file := filepath.Join(t.TempDir(), "qobuz_dl.db")
+	conn, err := sql.Open("sqlite", file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = conn.Close() }()
+	if _, err := conn.Exec(`
+		CREATE TABLE downloads (id text NOT NULL, media_type text NOT NULL, quality integer NOT NULL, file_format text NOT NULL,
+			bit_depth text, sampling_rate text, saved_path text NOT NULL);
+		INSERT INTO downloads VALUES ('a1', 'album', 27, 'FLAC', '24', '96', '/downloads/Album')`); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Import(bg, file, r.cfg, r.svc, dbtest.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Added != 1 || r.items()["a1"].Path != "qobuz/Album" {
+		t.Fatalf("%+v, %+v", res, r.items())
 	}
 }
 

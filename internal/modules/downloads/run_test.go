@@ -30,7 +30,7 @@ func TestProgressThrottled(t *testing.T) {
 	// they come.
 	events, stopEvents := r.hub.Subscribe(Topic)
 
-	p := newProgress(r.svc, d, nil, nopLog{})
+	p := newProgress(bg, r.svc, d, nil, nopLog{})
 	var writes atomic.Int32
 	store := p.write
 	p.write = func(ctx context.Context, s snapshot) error { writes.Add(1); return store(ctx, s) }
@@ -223,8 +223,28 @@ func TestCancelRunning(t *testing.T) {
 	if det.Tracks[0].Status != "done" || det.FinishedAt.IsZero() {
 		t.Fatalf("%+v", det)
 	}
+	// The source ended the other tracks as failed, but none of them failed.
+	if det.TracksDone != 1 || det.TracksFailed != 0 || det.Tracks[1].Status != "pending" || det.Tracks[1].Error != "" {
+		t.Fatalf("%+v", det)
+	}
 	if j := r.job(d.JobID); j.State != jobs.Cancelled || j.CancelRequestedBy != "web" {
 		t.Fatalf("%+v", j)
+	}
+}
+
+func TestFailureBeforeACancelStays(t *testing.T) {
+	r := newRig(t)
+	d := r.queue(QueueRequest{Ref: album("album-1")})
+	ctx, cancel := context.WithCancel(bg)
+	defer cancel()
+	p := newProgress(ctx, r.svc, d, nil, nopLog{})
+	p.Plan([]source.Track{{ID: "a", Position: 1, Title: "One"}, {ID: "b", Position: 2, Title: "Two"}})
+	p.Done(1, source.TrackResult{Err: errors.New("no such file")})
+	cancel()
+	p.Done(1, source.TrackResult{Err: context.Canceled})
+	p.Done(2, source.TrackResult{Err: context.Canceled})
+	if p.d.TracksFailed != 1 || p.tracks[1].Status != "failed" || p.tracks[2].Status != "pending" {
+		t.Fatalf("%+v, %+v, %+v", p.d, p.tracks[1], p.tracks[2])
 	}
 }
 

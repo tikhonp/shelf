@@ -269,7 +269,7 @@ func TestStatusTexts(t *testing.T) {
 			"Failed: Qobuz returned 401: token expired", []string{"Retry=r:7", open}},
 		{"canceled", downloads.Download{Status: downloads.Canceled}, nil, nil, 0, time.Time{}, "Canceled", []string{"Retry=r:7"}},
 		{"skipped", downloads.Download{Status: downloads.Skipped}, nil, nil, 0, time.Date(2026, 9, 30, 22, 30, 0, 0, time.UTC),
-			"Already downloaded on 1 Oct 2026", []string{"Download again=f:7", open}},
+			"Already downloaded on 1 Oct 2026", []string{"Fetch missing=f:7", open}},
 		{"artist running", downloads.Download{Ref: artist, Status: downloads.Running}, nil, kids(12, 22), 0, time.Time{},
 			"Downloading, 12 of 34 albums", []string{"Cancel=c:7", open}},
 		{"artist done", downloads.Download{Ref: artist, Status: downloads.Done, Bytes: 340_000_000}, nil, kids(34, 0), 0, time.Time{},

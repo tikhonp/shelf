@@ -36,7 +36,7 @@ The bot edits the message while the download moves:
 | partial | `Done with errors: 11 of 12 tracks` | Retry, Open in Shelf |
 | failed | `Failed: <error>` | Retry, Open in Shelf |
 | canceled | `Canceled` | Retry |
-| skipped | `Already downloaded on 1 Oct 2026` | Download again, Open in Shelf |
+| skipped | `Already downloaded on 1 Oct 2026` | Fetch missing, Open in Shelf |
 
 "Ahead" counts the albums, playlists and tracks of the same source that run or wait before this download. The date of a skipped download is when the item went into the library, in `SHELF_TIMEZONE`. Open in Shelf is a URL button to `SHELF_PUBLIC_URL/downloads/<id>`. Without `SHELF_PUBLIC_URL` it is left out.
 
@@ -85,12 +85,12 @@ Callback data stays under Telegram's 64-byte limit:
 | --- | --- | --- |
 | `c:<download id>` | Cancel | "Canceling", or "This download has already ended." |
 | `r:<download id>` | Retry; the message follows the download again | "Queued again", or "Only a failed, partial or canceled download can be retried." |
-| `f:<download id>` | Download again with `force`, into the same message | "Queued" |
+| `f:<download id>` | Fetch what is missing, with `force`, into the same message | "Queued" |
 | `q:<source>:<kind>:<id>` | Queue an item from search results | "Queued" |
 | `a:<source>:<kind>:<id>` | Confirm an artist or label download | "Queued" |
 | `x` | Dismiss a confirmation | none |
 
-A source that was switched off since the message was sent answers "Qobuz is not set up in Shelf." A second tap on Download all or Download again queues nothing more. An item whose ID would not fit in 64 bytes gets no button, and the log says so.
+A source that was switched off since the message was sent answers "Qobuz is not set up in Shelf." A second tap on Download all or Fetch missing queues nothing more. An item whose ID would not fit in 64 bytes gets no button, and the log says so.
 
 ## Sending and editing
 

@@ -58,12 +58,18 @@ func (s *Source) Download(ctx context.Context, req source.DownloadRequest, rep s
 	}
 	rep.Plan(tracks)
 	rep.Log().Info("Downloading %d tracks of %s into %s", len(tracks), it.Title, rel)
-	for _, t := range tracks {
+	for i, t := range tracks {
 		if err := ctx.Err(); err != nil {
 			return res, err
 		}
 		if s.Hook != nil {
 			if err := s.Hook(ctx, req.Ref, t.Position); err != nil {
+				// qobuz-dl-go ends every track left as failed when it stops.
+				if ctx.Err() != nil {
+					for _, left := range tracks[i:] {
+						rep.Done(left.Position, source.TrackResult{Err: err})
+					}
+				}
 				return res, err
 			}
 		}
