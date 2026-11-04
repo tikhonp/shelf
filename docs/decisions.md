@@ -140,6 +140,11 @@ Phase 2 is being built. Step 1, tag IO and the safe writer, and step 2, the read
 | The MusicBrainz release IDs undo and redo as one group. | Restoring some of them could leave a file with IDs from two releases. |
 | An undo or redo is checked and confirmed as a Save is. | Putting tracks back moves stars between Navidrome albums too. |
 | The history keeps the newest 1,000 saves, trimmed at 05:15. Clear history keeps a save whose undo or redo is still to run. | The plan's limit. Deleting such a save would delete its queued undo through the foreign key. |
+| A cover edit names every track, and its cover files are written only after every audio file was replaced, the new file before the old ones go. | It may change each file, and a failure never leaves the folder without a cover. |
+| The cover store under `/data` keeps uploads and every cover a change replaces, named by hash, in any format. | Undo needs the old bytes, and a damaged cover is still the one to put back. |
+| shelf scales embedded covers down with its own area average, in the image's own format. | Downscaling needs only the standard library, so shelf takes on no new dependency for it. |
+| `bad_cover` is found when an album opens, by ffmpeg. Repair stages a cover and writes nothing. | The walk reads no picture bytes. A Fix only stages edits for review. |
+| Modules raise a route's body limit through `module.BodyLimiter`. | The platform's 1 MiB limit runs before routing would let a route raise it. |
 | The write probe runs once at start, in each top folder of the music folder. | Each probe moves the folder's mtime, which Navidrome's watcher hears. |
 | A change cut off while it wrote is settled from its files: one that holds the planned tags was replaced. | The renames run back to back, so a crash leaves each file old or new, and the read tells which. |
 | A bulk run has no nightly limit. Its preview shows the files and GB touched, and the owner sizes each run. | Nothing runs by itself. The HDD backup recopies each changed file and keeps no history, and the remote one keeps overwritten files for 30 days. |

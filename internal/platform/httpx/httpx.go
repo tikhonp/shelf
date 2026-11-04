@@ -16,7 +16,8 @@ import (
 	"github.com/tikhonp/shelf/internal/platform/web"
 )
 
-// BodyLimit is the largest request body. The API takes only small JSON bodies.
+// BodyLimit is the largest request body, except on the routes in
+// Options.BodyLimits. The API takes mostly small JSON bodies.
 const BodyLimit = 1 << 20
 
 // ShutdownGrace is how long Run waits for open requests after ctx ends.
@@ -34,6 +35,9 @@ type Options struct {
 	// PublicURL, when set, is an origin that unsafe requests may come from.
 	PublicURL *url.URL
 	Health    Health
+	// BodyLimits raises the body limit of single routes, keyed by the
+	// route's path as registered, such as "/api/library/covers".
+	BodyLimits map[string]int64
 }
 
 // New returns the Echo app with the shared middleware and /healthz.
@@ -49,11 +53,34 @@ func New(o Options) *echo.Echo {
 	e.Use(middleware.Recover())
 	e.Use(web.SecurityHeaders())
 	e.Use(web.CrossOrigin(o.PublicURL))
-	e.Use(middleware.BodyLimit(BodyLimit))
+	e.Use(bodyLimit(o.BodyLimits))
 
 	e.GET("/healthz", healthz(o.Health))
 	e.HEAD("/healthz", healthz(o.Health)) // uptime monitors often ask with HEAD
 	return e
+}
+
+// bodyLimit applies BodyLimit, or a route's own limit. It runs after the
+// router, so the route's path is known.
+func bodyLimit(routes map[string]int64) echo.MiddlewareFunc {
+	def := middleware.BodyLimit(BodyLimit)
+	own := map[string]echo.MiddlewareFunc{}
+	for path, n := range routes {
+		own[path] = middleware.BodyLimit(n)
+	}
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		small := def(next)
+		large := map[string]echo.HandlerFunc{}
+		for path, mw := range own {
+			large[path] = mw(next)
+		}
+		return func(c *echo.Context) error {
+			if h, ok := large[c.Path()]; ok {
+				return h(c)
+			}
+			return small(c)
+		}
+	}
 }
 
 func healthz(h Health) echo.HandlerFunc {

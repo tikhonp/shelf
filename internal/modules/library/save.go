@@ -1,11 +1,14 @@
 package library
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"path"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -40,6 +43,17 @@ const (
 type saveBody struct {
 	Tracks  []trackEdits `json:"tracks"`
 	Confirm []string     `json:"confirm"`
+	// Cover changes the album's cover. It needs every track of the album.
+	Cover *coverEdit `json:"cover"`
+}
+
+// coverEdit replaces the album's cover with an upload, or deletes it. Each
+// goes to the folder's cover file and to the front cover of every track
+// that has one, or of every track with EveryTrack.
+type coverEdit struct {
+	Upload     string `json:"upload"`
+	Delete     bool   `json:"delete"`
+	EveryTrack bool   `json:"every_track"`
 }
 
 type trackEdits struct {
@@ -130,11 +144,16 @@ func (m *Module) save(c *echo.Context) error {
 		stored.Files = append(stored.Files, storedFile{Path: f.Path, Revision: t.Revision, Edits: t.Edits})
 		trackOf[abs] = t.ID
 	}
+	if b.Cover != nil {
+		if err := m.planCover(row, files, b, &ch, &stored); err != nil {
+			return m.refuse(c, err, trackOf)
+		}
+	}
 	planned, err := m.writer(nil).Check(ch)
 	if err != nil {
 		return m.refuse(c, err, trackOf)
 	}
-	if len(planned.Files) == 0 {
+	if len(planned.Files) == 0 && len(stored.Folder) == 0 {
 		return c.JSON(http.StatusUnprocessableEntity, refusal{Error: "nothing to change", Reason: ReasonRefused})
 	}
 	warns, err := m.identity(ctx, []albumFiles{{row, files}}, planned)
@@ -154,6 +173,78 @@ func (m *Module) save(c *echo.Context) error {
 		return err
 	}
 	return c.JSON(http.StatusAccepted, m.changeJSON(ctx, cr))
+}
+
+// planCover adds a cover edit to a Save: a front cover for the tracks and
+// the ops on the folder's cover files. The folder keeps one cover file,
+// named after the image's format, because Navidrome shows the first it
+// finds.
+func (m *Module) planCover(row albumRow, files []*file, b saveBody, ch *tagio.Change, stored *storedChange) error {
+	ce := b.Cover
+	refuse := func(msg string) error { return fmt.Errorf("%w: %s", tagio.ErrRefused, msg) }
+	if (ce.Upload == "") == !ce.Delete {
+		return refuse("a cover edit has an upload or deletes the cover")
+	}
+	if len(b.Tracks) != len(files) {
+		return refuse("a cover edit names every track of the album")
+	}
+	var full, emb []byte
+	embID := ""
+	if ce.Upload != "" {
+		var err error
+		if full, err = m.covers.get(ce.Upload); err != nil {
+			return refuse("no such upload")
+		}
+		if emb, err = embedded(full); err != nil {
+			return err
+		}
+		if embID, err = m.covers.put(emb); err != nil {
+			return err
+		}
+	}
+	for i := range ch.Files {
+		tf, err := tagio.Read(ch.Files[i].Path)
+		if err != nil {
+			return &tagio.FileError{Path: ch.Files[i].Path, Err: err}
+		}
+		if !tf.HasFrontCover() && (ce.Delete || !ce.EveryTrack) {
+			continue
+		}
+		ch.Files[i].Cover = &tagio.Cover{Data: emb}
+		stored.Files[i].Cover = &storedCover{ID: embID}
+	}
+	target := ""
+	if full != nil {
+		target = path.Join(row.Folder, "cover"+storeExt(full))
+	}
+	dir := m.abs(row.Folder)
+	if busy := m.writer(nil).Busy; busy != nil && busy(dir) {
+		return &tagio.FileError{Path: dir, Err: tagio.ErrBusy}
+	}
+	names := m.folderCovers(row.Folder)
+	if target != "" && !slices.Contains(names, path.Base(target)) {
+		names = append(names, path.Base(target))
+	}
+	for _, name := range names {
+		rel := path.Join(row.Folder, name)
+		abs := m.abs(rel)
+		was, _, err := fileHash(abs)
+		if err != nil {
+			return &tagio.FileError{Path: abs, Err: err}
+		}
+		op := folderOp{Path: rel, Was: was}
+		if rel == target {
+			op.ID = ce.Upload
+		}
+		if op.ID == op.Was {
+			continue
+		}
+		if err := tagio.CheckFile(abs, os.Getuid()); err != nil {
+			return &tagio.FileError{Path: abs, Err: err}
+		}
+		stored.Folder = append(stored.Folder, op)
+	}
+	return nil
 }
 
 // queueChange stores a change and its write job together.
@@ -347,24 +438,30 @@ func (m *Module) write(ctx context.Context, r *jobs.Run) error {
 	if err := json.Unmarshal([]byte(c.Request), &sc); err != nil {
 		return jobs.Permanent(err)
 	}
-	var ch tagio.Change
-	for _, f := range sc.Files {
-		fc := tagio.FileChange{Path: m.abs(f.Path), Revision: f.Revision}
-		for _, e := range f.Edits {
-			fc.Edits = append(fc.Edits, e.edit())
-		}
-		ch.Files = append(ch.Files, fc)
+	ch, covers, perr := m.prepare(ctx, sc)
+	j := &journal{s: m.store, root: m.root, id: c.ID, now: time.Now, covers: covers, folder: sc.Folder}
+	var res tagio.Result
+	werr := perr
+	if perr == nil {
+		res, werr = m.writer(j).Write(ctx, ch)
 	}
-	j := &journal{s: m.store, root: m.root, id: c.ID, now: time.Now}
-	res, werr := m.writer(j).Write(ctx, ch)
-	switch {
-	case !j.begun && werr != nil:
-		if err := j.fail(context.WithoutCancel(ctx), werr); err != nil {
+	bg := context.WithoutCancel(ctx)
+	if !j.begun && werr == nil {
+		// Nothing in the audio files is left to change: another tool made
+		// the same change, or only the folder's cover changes.
+		if _, err := j.Begin(bg, tagio.Result{}); err != nil {
+			werr = err
+		}
+	}
+	if !j.begun {
+		if err := j.fail(bg, werr); err != nil {
 			return err
 		}
-	case !j.begun:
-		// Another tool made the same change since the Save was checked.
-		if err := j.End(ctx, c.ID, res, nil); err != nil {
+	} else if !j.closed {
+		if werr == nil {
+			werr = m.writeFolder(ctx, j)
+		}
+		if err := j.close(bg, werr); err != nil {
 			return err
 		}
 	}
@@ -375,6 +472,113 @@ func (m *Module) write(ctx context.Context, r *jobs.Run) error {
 	}
 	m.afterWrite(ctx, c.ID)
 	return nil
+}
+
+// prepare builds the writer's change from a stored one. It reads each cover
+// to write from the store and keeps every cover it replaces there, so an
+// undo can put it back, and checks the folder's cover files.
+func (m *Module) prepare(ctx context.Context, sc storedChange) (tagio.Change, map[string][2]string, error) {
+	var ch tagio.Change
+	covers := map[string][2]string{}
+	for _, f := range sc.Files {
+		abs := m.abs(f.Path)
+		fc := tagio.FileChange{Path: abs, Revision: f.Revision}
+		for _, e := range f.Edits {
+			fc.Edits = append(fc.Edits, e.edit())
+		}
+		if f.Cover != nil {
+			var data []byte
+			if f.Cover.ID != "" {
+				b, err := m.covers.get(f.Cover.ID)
+				if err != nil {
+					return ch, nil, fmt.Errorf("the cover to write: %w", err)
+				}
+				data = b
+			}
+			fc.Cover = &tagio.Cover{Data: data}
+			old, err := tagio.FrontCover(abs)
+			if err != nil {
+				return ch, nil, &tagio.FileError{Path: abs, Err: err}
+			}
+			before := ""
+			if old != nil {
+				if before, err = m.covers.put(old); err != nil {
+					return ch, nil, err
+				}
+			}
+			covers[f.Path] = [2]string{before, f.Cover.ID}
+		}
+		ch.Files = append(ch.Files, fc)
+	}
+	for _, op := range sc.Folder {
+		abs := m.abs(op.Path)
+		h, b, err := fileHash(abs)
+		if err != nil {
+			return ch, nil, &tagio.FileError{Path: abs, Err: err}
+		}
+		if h != op.Was {
+			return ch, nil, &tagio.FileError{Path: abs, Err: tagio.ErrConflict}
+		}
+		if err := tagio.CheckFile(abs, os.Getuid()); err != nil {
+			return ch, nil, &tagio.FileError{Path: abs, Err: err}
+		}
+		if b != nil {
+			if _, err := m.covers.put(b); err != nil {
+				return ch, nil, err
+			}
+		}
+		if op.ID != "" {
+			if _, err := m.covers.get(op.ID); err != nil {
+				return ch, nil, fmt.Errorf("the cover to write: %w", err)
+			}
+		}
+	}
+	return ch, covers, nil
+}
+
+// writeFolder writes a change's folder cover files once its audio files
+// are replaced, the new cover first, so a failure never leaves the folder
+// without one.
+func (m *Module) writeFolder(ctx context.Context, j *journal) error {
+	ops := slices.Clone(j.folder)
+	slices.SortStableFunc(ops, func(a, b folderOp) int {
+		return cmp.Compare(boolInt(a.ID == ""), boolInt(b.ID == ""))
+	})
+	busy := m.writer(nil).Busy
+	for _, op := range ops {
+		abs := m.abs(op.Path)
+		fail := func(err error) error { return &tagio.FileError{Path: abs, Err: err} }
+		if busy != nil && busy(filepath.Dir(abs)) {
+			return fail(tagio.ErrBusy)
+		}
+		if h, _, err := fileHash(abs); err != nil || h != op.Was {
+			return fail(cmp.Or(err, tagio.ErrConflict))
+		}
+		if op.ID == "" {
+			if err := tagio.RemoveFile(abs, os.Getuid()); err != nil {
+				return fail(err)
+			}
+		} else {
+			b, err := m.covers.get(op.ID)
+			if err != nil {
+				return fail(err)
+			}
+			if err := tagio.ReplaceFile(abs, b, os.Getuid()); err != nil {
+				return fail(err)
+			}
+		}
+		if err := j.wrote(context.WithoutCancel(ctx), op.Path); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func boolInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 // afterWrite tells the editor how a change ended, and asks Navidrome and

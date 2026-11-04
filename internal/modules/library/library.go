@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -32,6 +33,8 @@ type Module struct {
 	// Every is how often the index walks without being asked. Tests change
 	// it.
 	Every time.Duration
+	// FFmpeg judges and repairs covers.
+	FFmpeg string
 
 	root  string
 	log   *slog.Logger
@@ -39,6 +42,8 @@ type Module struct {
 	ix    *index
 	jobs  *jobs.System
 	hub   *hub.Hub
+	// covers keeps uploads and the covers changes replaced.
+	covers coverStore
 	// kick asks for a walk. It holds one signal, so a burst asks once.
 	kick chan struct{}
 
@@ -51,7 +56,7 @@ type Module struct {
 
 // New returns the module.
 func New() *Module {
-	return &Module{Every: IndexEvery, kick: make(chan struct{}, 1), rules: tagio.DefaultRules()}
+	return &Module{Every: IndexEvery, FFmpeg: "ffmpeg", kick: make(chan struct{}, 1), rules: tagio.DefaultRules()}
 }
 
 func (*Module) Name() string { return Name }
@@ -95,6 +100,7 @@ func (m *Module) scanner() func(ctx context.Context) error {
 func (m *Module) Init(d module.Deps) error {
 	m.root, m.log, m.jobs, m.hub = d.Cfg.MusicDir, d.Log, d.Jobs, d.Hub
 	m.store = store{db: d.DB}
+	m.covers = coverStore{dir: filepath.Join(d.Cfg.DataDir, "library", "covers")}
 	m.mu.Lock()
 	config := m.config
 	m.mu.Unlock()

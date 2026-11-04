@@ -32,6 +32,7 @@ var bg = context.Background()
 type rig struct {
 	t      *testing.T
 	root   string
+	data   string
 	dbPath string
 	m      *Module
 	hub    *hub.Hub
@@ -42,7 +43,7 @@ type rig struct {
 
 func newRig(t *testing.T) *rig {
 	t.Helper()
-	r := &rig{t: t, root: t.TempDir(), dbPath: filepath.Join(t.TempDir(), "shelf.db"), hub: hub.New()}
+	r := &rig{t: t, root: t.TempDir(), data: t.TempDir(), dbPath: filepath.Join(t.TempDir(), "shelf.db"), hub: hub.New()}
 	dbtest.Seed(t, r.dbPath, dbtest.Platform, New())
 	r.m = r.module(nil)
 	return r
@@ -62,7 +63,7 @@ func (r *rig) module(c ConfigReader) *Module {
 	r.t.Cleanup(func() { _ = d.Close() })
 	r.sys = jobs.New(d, time.UTC, dbtest.Discard)
 	r.sys.Poll, r.sys.Grace = 5*time.Millisecond, 200*time.Millisecond
-	if err := m.Init(module.Deps{Cfg: &config.Config{MusicDir: r.root}, Log: dbtest.Discard, DB: d, Hub: r.hub, Jobs: r.sys}); err != nil {
+	if err := m.Init(module.Deps{Cfg: &config.Config{MusicDir: r.root, DataDir: r.data}, Log: dbtest.Discard, DB: d, Hub: r.hub, Jobs: r.sys}); err != nil {
 		r.t.Fatal(err)
 	}
 	if err := r.sys.Register(Name, m.JobTypes()...); err != nil {
@@ -158,7 +159,7 @@ func TestWalkIndexesTheLibrary(t *testing.T) {
 	r := newRig(t)
 	r.add("folk/Blue/01.flac", "track.flac", blue("1", nil))
 	r.add("folk/Blue/02.flac", "track.flac", blue("2", nil))
-	r.write("folk/Blue/cover.jpg", []byte("jpeg"))
+	r.write("folk/Blue/cover.jpg", jpegOf(t, 10, 10))
 	r.add("apple-music/Album/01.m4a", "alac.m4a", map[string][]string{"TITLE": {"T"}, "ARTIST": {"A"}, "ALBUM": {"Album"}, "TRACKNUMBER": {"1"}})
 	r.add("folk/.hidden/01.flac", "track.flac", blue("1", nil))
 	r.add("folk/Blue/._01.flac", "track.flac", blue("1", nil))
@@ -239,7 +240,7 @@ func TestNavidromeSettingsChangeTheIndex(t *testing.T) {
 func TestListFiltersSortsAndSearches(t *testing.T) {
 	r := newRig(t)
 	r.add("qobuz/Blue/01.flac", "track.flac", blue("1", nil))
-	r.write("qobuz/Blue/cover.jpg", []byte("jpeg"))
+	r.write("qobuz/Blue/cover.jpg", jpegOf(t, 10, 10))
 	r.add("qobuz-old/Hejira/01.flac", "track.flac", tagged(map[string][]string{"ALBUM": {"Hejira"}, "DATE": {"1976"}, "RELEASEDATE": nil}))
 	r.add("jazz/Kind of Blue/01.flac", "track.flac", tagged(map[string][]string{"ALBUM": {"Kind of Blue"}, "ARTIST": {"Miles Davis"},
 		"ALBUMARTIST": {"Miles Davis"}, "ALBUMARTISTS": nil, "DATE": {"1959"}, "MUSICBRAINZ_ALBUMID": {"8d2338a8-5e0e-4e3b-9f3e-6b1e4b8f6c11"}}))
@@ -289,7 +290,7 @@ func TestOpenedAlbumIsReadAgain(t *testing.T) {
 	r := newRig(t)
 	p := r.add("folk/Blue/01.flac", "track.flac", blue("1", nil))
 	r.add("folk/Blue/02.flac", "track.flac", blue("2", nil))
-	r.write("folk/Blue/cover.jpg", []byte("jpeg"))
+	r.write("folk/Blue/cover.jpg", jpegOf(t, 10, 10))
 	r.walk()
 	id := r.albums("").Albums[0].ID
 	var d detailJSON

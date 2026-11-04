@@ -55,9 +55,12 @@ func (m *Module) reverse(ctx context.Context, kind string, files []changeFile) r
 		path, key string
 		values    []string
 		group     bool
+		// cover, when set, is the front cover to put back.
+		cover *string
 	}
 	var ops []op
 	var conflicts []conflictJSON
+	out := reversal{trackOf: map[string]int64{}}
 	groupConflict := false
 	revs := map[string]string{}
 	for _, f := range files {
@@ -65,10 +68,32 @@ func (m *Module) reverse(ctx context.Context, kind string, files []changeFile) r
 			continue
 		}
 		from, to := f.After, f.Before
+		fromC, toC := f.CoverAfter, f.CoverBefore
 		if kind == KindRedo {
 			from, to = f.Before, f.After
+			fromC, toC = toC, fromC
 		}
 		abs := m.abs(f.Path)
+		if f.Kind == fileCover {
+			switch h, _, err := fileHash(abs); {
+			case err == nil && h == toC:
+			case err == nil && h == fromC:
+				out.stored.Folder = append(out.stored.Folder, folderOp{Path: f.Path, ID: toC, Was: fromC})
+			default:
+				conflicts = append(conflicts, conflictJSON{Path: f.Path, Key: "cover"})
+			}
+			continue
+		}
+		if fromC != toC {
+			b, err := tagio.FrontCover(abs)
+			switch h := coverHash(b); {
+			case err == nil && h == toC:
+			case err == nil && h == fromC:
+				ops = append(ops, op{path: f.Path, cover: &toC})
+			default:
+				conflicts = append(conflicts, conflictJSON{Path: f.Path, Key: "cover"})
+			}
+		}
 		ft := tagio.FormatOf(abs)
 		tf, err := tagio.Read(abs)
 		for _, k := range diffKeys(f.Before, f.After) {
@@ -90,7 +115,6 @@ func (m *Module) reverse(ctx context.Context, kind string, files []changeFile) r
 			revs[f.Path] = tf.Revision()
 		}
 	}
-	out := reversal{trackOf: map[string]int64{}}
 	byPath := map[string]int{}
 	for _, o := range ops {
 		if o.group && groupConflict {
@@ -106,6 +130,20 @@ func (m *Module) reverse(ctx context.Context, kind string, files []changeFile) r
 			if id, err := m.store.fileByPath(ctx, o.path); err == nil {
 				out.trackOf[m.abs(o.path)] = id
 			}
+		}
+		if o.cover != nil {
+			var data []byte
+			if *o.cover != "" {
+				b, err := m.covers.get(*o.cover)
+				if err != nil {
+					conflicts = append(conflicts, conflictJSON{Path: o.path, Key: "cover"})
+					continue
+				}
+				data = b
+			}
+			out.stored.Files[i].Cover = &storedCover{ID: *o.cover}
+			out.change.Files[i].Cover = &tagio.Cover{Data: data}
+			continue
 		}
 		out.stored.Files[i].Edits = append(out.stored.Files[i].Edits, editJSON{Key: o.key, Values: o.values})
 		out.change.Files[i].Edits = append(out.change.Files[i].Edits, tagio.Edit{Key: o.key, Values: o.values})
@@ -154,7 +192,7 @@ func (m *Module) reverseSave(c *echo.Context, kind string) error {
 		return err
 	}
 	rv := m.reverse(ctx, kind, files)
-	if len(rv.change.Files) == 0 {
+	if len(rv.change.Files) == 0 && len(rv.stored.Folder) == 0 {
 		return c.JSON(http.StatusConflict, refusal{Error: "every tag this save changed has changed since", Reason: ReasonConflict, Conflicts: rv.conflicts})
 	}
 	planned, err := m.writer(nil).Check(rv.change)
@@ -310,5 +348,47 @@ func (m *Module) retain(ctx context.Context, r *jobs.Run) error {
 	if n > 0 {
 		r.Log().Info("Removed %s old changes from the history", strconv.FormatInt(n, 10))
 	}
-	return nil
+	used, err := m.store.coverIDs(ctx)
+	if err != nil {
+		return err
+	}
+	removed, err := m.covers.sweep(used, time.Now())
+	if removed > 0 {
+		r.Log().Info("Removed %d covers no change needs", removed)
+	}
+	return err
+}
+
+// coverIDs are the covers the history refers to.
+func (s store) coverIDs(ctx context.Context) (map[string]bool, error) {
+	var ids []string
+	if err := s.db.R.SelectContext(ctx, &ids, `SELECT cover_before FROM library_change_files WHERE cover_before != ''
+		UNION SELECT cover_after FROM library_change_files WHERE cover_after != ''`); err != nil {
+		return nil, err
+	}
+	out := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		out[id] = true
+	}
+	// A queued change's covers are in its request.
+	var reqs []string
+	if err := s.db.R.SelectContext(ctx, &reqs, `SELECT request FROM library_changes WHERE state IN ('queued', 'writing')`); err != nil {
+		return nil, err
+	}
+	for _, r := range reqs {
+		var sc storedChange
+		if json.Unmarshal([]byte(r), &sc) != nil {
+			continue
+		}
+		for _, f := range sc.Files {
+			if f.Cover != nil && f.Cover.ID != "" {
+				out[f.Cover.ID] = true
+			}
+		}
+		for _, op := range sc.Folder {
+			out[op.ID], out[op.Was] = true, true
+		}
+	}
+	delete(out, "")
+	return out, nil
 }

@@ -94,6 +94,13 @@ type JobDeclarer interface {
 	Schedules() []jobs.Schedule
 }
 
+// BodyLimiter is a module with routes that take bodies over the platform's
+// limit, such as an image upload. The keys are route paths as registered,
+// with the /api prefix.
+type BodyLimiter interface {
+	BodyLimits() map[string]int64
+}
+
 // SourceDeclarer is a module that provides sources. The platform adds them
 // to the registry after Init, switched on or not.
 type SourceDeclarer interface {

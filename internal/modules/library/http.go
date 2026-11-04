@@ -27,6 +27,10 @@ func (m *Module) routes(api *echo.Group) {
 	api.GET("/library/changes/:id", m.getChange)
 	api.POST("/library/changes/:id/undo", m.undo)
 	api.POST("/library/changes/:id/redo", m.redo)
+	api.POST("/library/covers", m.upload)
+	api.GET("/library/covers/:id", m.getCover)
+	api.GET("/library/albums/:id/cover", m.albumCover)
+	api.POST("/library/albums/:id/cover/repair", m.repair)
 	api.GET("/library/history", m.history)
 	api.DELETE("/library/history", m.clearHistory)
 }
@@ -296,6 +300,14 @@ func (m *Module) get(c *echo.Context) error {
 			out.Issues = []Issue{}
 		}
 		out.Lamp = a.lamp()
+	}
+	var paths []string
+	for _, f := range fresh {
+		paths = append(paths, f.Path)
+	}
+	if bad := m.badCovers(ctx, row.Folder, paths); bad != nil {
+		out.Issues = append(out.Issues, Issue{Kind: BadCover, Fields: bad})
+		out.Lamp = true
 	}
 	if out.Stale {
 		m.Kick()
