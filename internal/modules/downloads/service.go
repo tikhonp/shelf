@@ -97,6 +97,9 @@ func (s *Service) target(r QueueRequest) (source.Ref, source.Downloader, error) 
 	if r.URL != "" {
 		var ok bool
 		if ref, src, ok = s.sources.ParseLink(r.URL); !ok {
+			if _, refused := s.sources.RefusedLink(r.URL); refused {
+				return ref, nil, ErrRefusedLink
+			}
 			return ref, nil, ErrUnknownLink
 		}
 	} else {

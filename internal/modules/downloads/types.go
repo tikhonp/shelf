@@ -135,6 +135,7 @@ const Topic = "download"
 
 var (
 	ErrUnknownLink   = errors.New("downloads: link not from a known source")
+	ErrRefusedLink   = errors.New("downloads: refused link")
 	ErrUnknownSource = errors.New("downloads: unknown or disabled source")
 	ErrNotRetryable  = errors.New("downloads: only failed, partial or canceled downloads can be retried")
 	ErrUnknownFormat = errors.New("downloads: the source has no such format")

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/tikhonp/shelf/internal/source"
 )
 
 // Every text the bot sends is here, so they can be reviewed together. Plain
@@ -19,7 +21,7 @@ Send a few words, such as an album title, and I search albums on every source. T
 
 /queue lists what is downloading and what waits.`
 
-	textUnsupported = "Music videos and stations are not supported yet."
+	textUnsupported = source.RefusedLinkText
 	textQueueEmpty  = "Nothing is downloading or waiting."
 	textDismissed   = "Nothing was queued."
 	textNoSearch    = "No source in Shelf can search right now."

@@ -2,13 +2,13 @@
 
 ## Now
 
-Phase 1. Steps 0, 1a, 1b, 1c, 1d and 1f are done. 1a built the shelf skeleton: the trimmed platform from proxier, `serve`, `manage migrate`, `healthcheck` and `version`, a placeholder Vue page, the image and the Forgejo CI workflow. CI passed on its first run and pushed `code.tikhonnnnn.com/tikhon/shelf` with the tags `latest`, `main` and the commit SHA.
+Phase 1. Steps 0, 1a, 1b, 1c, 1d, 1e and 1f are done. 1a built the shelf skeleton: the trimmed platform from proxier, `serve`, `manage migrate`, `healthcheck` and `version`, a placeholder Vue page, the image and the Forgejo CI workflow. CI passed on its first run and pushed `code.tikhonnnnn.com/tikhon/shelf` with the tags `latest`, `main` and the commit SHA.
 
 1b built the downloads core: the jobs system, the daily backup and the event hub in the platform, the source types and registry in `internal/source`, and the `downloads`, `catalog` and `fakesource` modules. With `SHELF_DEV_FAKE_SOURCE=true`, shelf searches, resolves and downloads canned items, writes `shelf.txt`, and streams progress and logs. `shelf manage download <url>` queues from the shell.
 
 1f added the navidrome and telegram modules. Finished downloads ask Navidrome for one scan per burst, `/api/library/scan` shows and starts scans, and the bot queues links, asks before artists, searches albums by text, and keeps one status message per download up to date until the `notify` step gives it its final text. The platform gained `module.Runner`, the start hook that only serve runs.
 
-1e built the applemusic module and shelf-wrapper. The module searches and reads Apple's catalog, downloads with amdl, and follows and signs in the wrapper through `/api/applemusic/wrapper`. shelf-wrapper is wrapper-lite with tini and a Go supervisor that runs service mode, signs in with the 2FA code file, and serves the control API. CI's image job now pushes shelf-wrapper too; it hasn't run yet. A local run of both images on this Mac signed in to the owner's Apple ID and downloaded real albums through shelf, and the fixtures now hold its amdl output. The staging run on blackberry is still to do.
+1e built the applemusic module and shelf-wrapper. The module searches and reads Apple's catalog, downloads with amdl, and follows and signs in the wrapper through `/api/applemusic/wrapper`. shelf-wrapper is wrapper-lite with tini and a Go supervisor that runs service mode, signs in with the 2FA code file, and serves the control API. CI's image job pushes shelf-wrapper too. A local run of both images on this Mac signed in to the owner's Apple ID and downloaded real albums through shelf, and the fixtures now hold its amdl output. A staging run on blackberry then downloaded In Rainbows through shelf.
 
 The UI design is done. Its screens, stylesheets and rules are in [ui/design/](ui/design/README.md), exported from the Claude Design canvas on 2026-11-04. The brief and 1g's contract match it.
 
@@ -16,7 +16,7 @@ Step 1c is done. qobuz-dl-go `v0.1.0` is tagged, ports qobuz-dl 2.5.9, and resol
 
 1d built the qobuz module over qobuz-dl-go `v0.1.0`. It logs in behind the start, searches, resolves and downloads albums, tracks and playlists with their m3u8, and marks the source unhealthy when the token expires. `shelf manage import-qobuz-db` brings in the old bot's history. Its tests run against `qobuzdltest`. A local run with a real token searched, resolved and downloaded from the live Qobuz, and five albums came out byte for byte the same as `qobuz-dl`'s, apart from `shelf.txt`. That run left four open issues, which [decisions.md](decisions.md) settles.
 
-Next: 1g, the web UI. 1e's staging run on blackberry still waits for the owner.
+Next: 1g, the web UI. The temporary staging stack on blackberry still has to be removed.
 
 ## Remotes
 
@@ -34,7 +34,7 @@ Next: 1g, the web UI. 1e's staging run on blackberry still waits for the owner.
 | 1b | Downloads core | done |
 | 1c | qobuz-dl-go | done: `v0.1.0` |
 | 1d | Qobuz module | done; run locally with a real token |
-| 1e | Apple Music module and shelf-wrapper | built and run locally; the staging run on blackberry is left |
+| 1e | Apple Music module and shelf-wrapper | done; run on blackberry |
 | 1f | Navidrome and Telegram | done |
 | 1g | Web UI | next; the design is done |
 | 1h | Deployment and cutover | last |
@@ -43,6 +43,8 @@ Next: 1g, the web UI. 1e's staging run on blackberry still waits for the owner.
 
 ### 2026-11-04
 
+- Step 1e, staging run on blackberry: In Rainbows downloaded through `shelf-staging`, 10 of 10 tracks, and the Apple Music parts of checks 3, 5, 6, 7, 10 and 11 of [manual-checklist.md](manual-checklist.md) ran. The run found two bugs, both fixed: music video and station links got the generic error from the API, and a cancel left amdl's current track `running`. See the As built section of [build/1e.md](build/1e.md).
+- CI: `TestStopSequence/SIGKILL` had failed on every push since `4353edf`, so the image job was skipped and shelf-wrapper was never published. The test counted a zombie as alive. With `d54a2f9` CI passed and published both images.
 - The four open issues from the first Qobuz run are settled. Force keeps its behaviour and the bot's button now says Fetch missing, a cancel no longer counts unfinished tracks as failed, the import keeps the old artist and album, and a skip asks the source for what it lacks, such as the cover. MP3 frame order stays as it is. See [decisions.md](decisions.md).
 - Step 1d, first run with a real token: `serve` on this Mac, with Apple Music and Navidrome off, ran the Qobuz parts of checks 3 to 8, 10 and 11 of [manual-checklist.md](manual-checklist.md) through the API. Five albums, 78 files, match `qobuz-dl -q 27` byte for byte, including one retried after a cancel and two resumed after a stop and a `kill -9`. The run found no failures and left four open issues, listed in the notes below. See the As built section of [build/1d.md](build/1d.md).
 - Step 1d: the qobuz module and `shelf manage import-qobuz-db`. `make check`, `make lint`, `make web-check` and `docker build .` pass. Every checklist line has its test against `qobuzdltest`, and more tests run the module through the real download job. A run with a made-up token read the live bundle and got Qobuz's 401; nothing has run with a real token. What differs from the contract is in the As built section of [build/1d.md](build/1d.md), and the decisions in [decisions.md](decisions.md).
@@ -70,7 +72,8 @@ Next: 1g, the web UI. 1e's staging run on blackberry still waits for the owner.
 
 ## Notes for the next step
 
-- 1e's staging run: the steps are at the end of the As built section of [build/1e.md](build/1e.md). Sign in only a wrapper with its own data folder and its own `--device-info`: wrapper-lite's device ID comes from the Apple ID. The fixtures are recorded already.
+- blackberry still runs `shelf-staging` and `shelf-wrapper-staging`. Remove them with `docker compose --profile shelf-staging rm -sf shelf-staging shelf-wrapper-staging`, never `docker compose down`, which stops the whole node. Then delete `shelf-staging.yaml`, its line in `compose.yaml`, `secrets/blackberry/shelf-staging.env` and `${SWINGMUSIC_DATA}/shelf-staging`.
+- Sign in only a wrapper with its own data folder and its own `--device-info`: wrapper-lite's device ID comes from the Apple ID.
 - The As built sections of [build/1b.md](build/1b.md) and [build/1f.md](build/1f.md) end with notes for the later steps. The main ones: a source module logs in and starts goroutines in `Run` from `module.Runner`, never in `Init`, because `manage` opens the platform too; a source registers with `Switch` when its settings are missing; Apple Music implements `source.LinkRefuser` for music videos and stations; and the Status page reads `/api/telegram` and the health fields of `/api/library/scan`.
 - The As built section of [build/1d.md](build/1d.md) ends with notes for 1g and 1h: what the Status page reads of the Qobuz source, the 503 a search can answer, and what the import prints during the cutover.
 - The open issues from the first run with a real token are settled in [decisions.md](decisions.md). For 1g: force fetches what is missing, so its button says Fetch missing, and a canceled download's unfinished tracks are `pending`, not failed. MP3 files still differ byte for byte between runs, and that stays.

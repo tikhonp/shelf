@@ -108,6 +108,8 @@ func apiError(err error) error {
 	switch {
 	case errors.Is(err, ErrNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, "no such download")
+	case errors.Is(err, ErrRefusedLink):
+		return echo.NewHTTPError(http.StatusUnprocessableEntity, source.RefusedLinkText)
 	case errors.Is(err, ErrUnknownLink), errors.Is(err, ErrUnknownSource), errors.Is(err, ErrUnknownFormat):
 		return echo.NewHTTPError(http.StatusUnprocessableEntity, strings.TrimPrefix(err.Error(), "downloads: "))
 	case errors.Is(err, ErrNotRetryable), errors.Is(err, ErrNotActive):
