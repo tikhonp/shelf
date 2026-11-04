@@ -27,4 +27,6 @@ End-to-end checks that only the real deployment can answer: real accounts, the r
 
 ## Last run
 
-2026-11-04, in production on `be76a2d`, through the API, over SSH and on the owner's phone and tablet. Every check passed. The owner accepted check 9 after one bot download and check 12 without waiting for the backup, and skipped one download through the old bot with shelf-wrapper signed in.
+Check 13: 2026-11-04, in production on `0bcd479`. The index read Navidrome's settings with production's account and matched its 11,461 songs and 1,008 albums, with no file unreadable. It formed 1,013 albums, because 5 Navidrome albums span two folders each. No file changed after the marker, an album opened with its tags, and a track played in the browser.
+
+Checks 1 to 12: 2026-11-04, in production on `be76a2d`, through the API, over SSH and on the owner's phone and tablet. Every check passed. The owner accepted check 9 after one bot download and check 12 without waiting for the backup, and skipped one download through the old bot with shelf-wrapper signed in.
