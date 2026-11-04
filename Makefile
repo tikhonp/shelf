@@ -1,7 +1,7 @@
 # <branch>-<sha7>, as CI sets it
 APP_VERSION := $(shell b=$$(git rev-parse --abbrev-ref HEAD 2>/dev/null) && c=$$(git rev-parse --short=7 HEAD 2>/dev/null) && echo "$$b-$$c" || echo dev)
 
-.PHONY: check test lint web-check dev manage build-image build-wrapper-image
+.PHONY: check test lint web-check dev manage build-image build-wrapper-image icons
 
 # CI passes GOTESTFLAGS=-timeout=30m, because its runner is slower than a laptop.
 GOTESTFLAGS ?=
@@ -45,3 +45,11 @@ build-image:
 # emulation.
 build-wrapper-image:
 	docker buildx build --platform linux/amd64 --target wrapper --build-arg APP_VERSION=$(APP_VERSION) -t code.tikhonnnnn.com/tikhon/shelf-wrapper:local --load .
+
+# The raster icons in web/public, from web/public/favicon.svg and the
+# full-bleed web/icons/icon.svg. Needs ImageMagick. Commit the output.
+icons:
+	magick -background none -density 1536 web/public/favicon.svg -define icon:auto-resize=48,32,16 web/public/favicon.ico
+	magick -density 192 web/icons/icon.svg -resize 180x180 -depth 8 -strip web/public/apple-touch-icon.png
+	magick -density 192 web/icons/icon.svg -resize 192x192 -depth 8 -strip web/public/icon-192.png
+	magick -density 192 web/icons/icon.svg -resize 512x512 -depth 8 -strip web/public/icon-512.png
