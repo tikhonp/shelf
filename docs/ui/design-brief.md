@@ -56,10 +56,10 @@ Planned for phase 2. A tag editor for everything in the music folder. It changes
 - The desktop shows the editor beside the list, in panels the owner can resize. The phone opens it as a page.
 - The header has the cover, album, artist and quality, and the album's issues.
 - The main fields are Title, Artist, Album, Album Artist, Track, Disc, Genre, Release date, Original date, Recording date and Compilation.
-- With no track selected, an edit changes every track. A field whose tracks differ shows Mixed. Title, Track and ISRC stay read-only until a track is selected. Selecting a track edits that track alone.
+- With no track selected, an edit changes every track. A field whose tracks differ shows Mixed. A tag that belongs to a single track, such as Title, Track, ISRC, a track ID, track gain or lyrics, stays read-only until a track is selected. Selecting a track edits that track alone.
 - The track list shows number, title, duration, quality, a lamp for issues, and a play button. One small player serves the album.
 - All fields is one switch. It shows every tag, each with its own suggestion. Standard holds the tags Navidrome reads, and Extended the ones it ignores. Custom fields are added and deleted here, and both stage like any edit. Adding a key that already has a row goes to that row. A new key Navidrome reads goes under Standard.
-- A multi-value tag, such as ARTISTS or Genre, has one input per value and an Add value button.
+- A multi-value tag, such as ARTISTS or Genre, has one input per value and an Add value button. Pressing a suggestion adds it as another value.
 - Lyrics and any value over 100 characters open a long-form editor.
 - Edits stay staged. A bar with Save and Discard appears only while something is staged, and names how many changes it holds. One Save is one undo step.
 - When a save would split an album in Navidrome, Save asks first and says the album's star and rating go with the moved tracks, even after an undo. A save that merges two albums or renames an album artist asks too, and says what happens to their stars and ratings.
@@ -78,7 +78,7 @@ Planned for phase 2. A tag editor for everything in the music folder. It changes
 ### Covers
 
 - Preview, Upload, Save cover alone, Apply to album and Delete.
-- Save cover alone writes the cover at once as its own undo step, and staged tag edits keep waiting. Apply to album stages the cover for the next Save.
+- Save cover alone writes the cover at once as its own undo step, and staged tag edits keep waiting. Apply to album and Delete stage for the next Save.
 - A corrupt cover shows as an issue with Repair.
 - A cover edit changes the embedded cover and the folder's `cover.*`, and the dialog says so in one line.
 
