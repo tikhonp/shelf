@@ -19,6 +19,7 @@ import (
 	"github.com/tikhonp/shelf/internal/platform/db"
 	"github.com/tikhonp/shelf/internal/platform/db/dbtest"
 	"github.com/tikhonp/shelf/internal/platform/hub"
+	"github.com/tikhonp/shelf/internal/platform/jobs"
 	"github.com/tikhonp/shelf/internal/platform/module"
 	"github.com/tikhonp/shelf/internal/platform/testwait"
 	"github.com/tikhonp/shelf/internal/platform/web"
@@ -34,6 +35,8 @@ type rig struct {
 	dbPath string
 	m      *Module
 	hub    *hub.Hub
+	// sys runs the module's jobs once startJobs is called.
+	sys *jobs.System
 }
 
 func newRig(t *testing.T) *rig {
@@ -56,7 +59,12 @@ func (r *rig) module(c ConfigReader) *Module {
 		r.t.Fatal(err)
 	}
 	r.t.Cleanup(func() { _ = d.Close() })
-	if err := m.Init(module.Deps{Cfg: &config.Config{MusicDir: r.root}, Log: dbtest.Discard, DB: d, Hub: r.hub}); err != nil {
+	r.sys = jobs.New(d, time.UTC, dbtest.Discard)
+	r.sys.Poll, r.sys.Grace = 5*time.Millisecond, 200*time.Millisecond
+	if err := m.Init(module.Deps{Cfg: &config.Config{MusicDir: r.root}, Log: dbtest.Discard, DB: d, Hub: r.hub, Jobs: r.sys}); err != nil {
+		r.t.Fatal(err)
+	}
+	if err := r.sys.Register(Name, m.JobTypes()...); err != nil {
 		r.t.Fatal(err)
 	}
 	if err := m.ix.load(bg); err != nil {

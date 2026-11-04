@@ -74,6 +74,9 @@ func (s *Source) Download(ctx context.Context, req source.DownloadRequest, rep s
 		return res, fmt.Errorf("%s has no Dolby Atmos version", rel.item.Title)
 	}
 	rep.Plan(rel.item.Tracks)
+	// amdl names its folders only when it ends, so all of its folder is
+	// busy while it runs.
+	rep.Working(s.dir)
 	link := downloadLink(sf, req.Ref)
 	log := rep.Log()
 	log.Info("Running amdl %s for %s", strings.Join(append([]string{"--json"}, formatFlags[f.ID]...), " "), link)

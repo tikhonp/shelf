@@ -165,11 +165,7 @@ func (w *Writer) Write(ctx context.Context, ch Change) (res Result, err error) {
 	if err != nil {
 		return Result{}, err
 	}
-	for _, p := range plans {
-		res.Files = append(res.Files, FileResult{
-			Path: p.file.Path, Before: p.file.Tags, After: p.want, Pictures: p.wantPics, Revision: p.file.Revision(),
-		})
-	}
+	res = planned(plans)
 	if len(plans) == 0 {
 		return res, nil
 	}
@@ -250,6 +246,27 @@ func (w *Writer) Write(ctx context.Context, ch Change) (res Result, err error) {
 		}
 	}
 	return res, nil
+}
+
+// Check runs every check of a write and works out its change, touching no
+// file. The result lists the files that would change, with what each is to
+// end with.
+func (w *Writer) Check(ch Change) (Result, error) {
+	plans, err := w.plan(ch)
+	if err != nil {
+		return Result{}, err
+	}
+	return planned(plans), nil
+}
+
+func planned(plans []plan) Result {
+	var res Result
+	for _, p := range plans {
+		res.Files = append(res.Files, FileResult{
+			Path: p.file.Path, Before: p.file.Tags, After: p.want, Pictures: p.wantPics, Revision: p.file.Revision(),
+		})
+	}
+	return res
 }
 
 func (w *Writer) at(stage, path string) error {

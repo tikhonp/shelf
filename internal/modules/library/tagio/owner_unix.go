@@ -33,3 +33,9 @@ func keepGroup(f *os.File, gid int) error {
 	}
 	return f.Chown(-1, gid)
 }
+
+// Owner gives a file's owner, when the system has one.
+func Owner(fi os.FileInfo) (uid int, ok bool) {
+	uid, _, _, ok = owner(fi)
+	return uid, ok
+}

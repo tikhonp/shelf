@@ -172,6 +172,17 @@ func (p *progress) ReleaseStart(r qobuzdl.ReleaseInfo) {
 		}
 	}
 	p.rep.Plan(tracks)
+	// The work folder is the album's own folder with a state prefix, and
+	// qobuz-dl-go renames it back when the release ends. Both names are
+	// busy until then.
+	if rel, ok := p.rel(r.Folder); ok {
+		p.rep.Working(rel)
+		dir, base := filepath.Split(rel)
+		if name, cut := strings.CutPrefix(base, "[IN PROGRESS] "); cut {
+			p.rep.Working(filepath.Join(dir, name))
+			p.rep.Working(filepath.Join(dir, "[INCOMPLETE] "+name))
+		}
+	}
 }
 
 func (p *progress) TrackStart(t qobuzdl.TrackInfo) { p.rep.Start(t.Position) }

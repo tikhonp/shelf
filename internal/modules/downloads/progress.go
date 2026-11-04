@@ -268,3 +268,6 @@ func (p *progress) cutOff() {
 
 // Log is the job's log.
 func (p *progress) Log() source.Logger { return p.log }
+
+// Working records a folder the source writes in until fetch ends.
+func (p *progress) Working(folder string) { p.s.work(p.d.ID, folder) }

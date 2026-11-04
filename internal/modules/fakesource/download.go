@@ -57,6 +57,7 @@ func (s *Source) Download(ctx context.Context, req source.DownloadRequest, rep s
 		ext, q = ".mp3", source.Quality{Codec: "mp3"}
 	}
 	rep.Plan(tracks)
+	rep.Working(rel)
 	rep.Log().Info("Downloading %d tracks of %s into %s", len(tracks), it.Title, rel)
 	for i, t := range tracks {
 		if err := ctx.Err(); err != nil {
