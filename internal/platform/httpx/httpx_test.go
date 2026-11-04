@@ -37,6 +37,7 @@ func app(t *testing.T, o httpx.Options) *echo.Echo {
 		return c.String(http.StatusOK, string(b))
 	})
 	e.GET("/api/panic", func(*echo.Context) error { panic("boom") })
+	e.GET("/api/canceled", func(*echo.Context) error { return context.Canceled })
 	return e
 }
 
@@ -204,6 +205,24 @@ func TestPanicIsA500WithoutDetails(t *testing.T) {
 	}
 	if !strings.Contains(logs.String(), "boom") {
 		t.Errorf("the panic is not logged:\n%s", logs.String())
+	}
+}
+
+// A client that left is no failure of shelf's, but a canceled context the
+// client didn't cause still is.
+func TestAClientThatLeftIsNoError(t *testing.T) {
+	var logs bytes.Buffer
+	e := app(t, httpx.Options{Log: slog.New(slog.NewJSONHandler(&logs, nil))})
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	do(e, httptest.NewRequest(http.MethodGet, "/api/canceled", nil).WithContext(ctx))
+	if !strings.Contains(logs.String(), `"level":"INFO"`) {
+		t.Errorf("an aborted request is not logged as info:\n%s", logs.String())
+	}
+	logs.Reset()
+	do(e, httptest.NewRequest(http.MethodGet, "/api/canceled", nil))
+	if !strings.Contains(logs.String(), `"level":"ERROR"`) {
+		t.Errorf("a canceled context with the client still there is not an error:\n%s", logs.String())
 	}
 }
 

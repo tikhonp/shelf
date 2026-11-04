@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { RouterLink } from 'vue-router'
-import { errorText } from '../api/client'
-import type { DownloadStatus, DownloadTrack } from '../api/types'
+import { RouterLink, useRouter } from 'vue-router'
+import { errorText, get } from '../api/client'
+import type { DownloadStatus, DownloadTrack, LibraryPage } from '../api/types'
 import { useNow } from '../lib/clock'
 import { clockSeconds, elapsed, originWord, resultWord, size, took } from '../lib/format'
 import { percent } from '../lib/lamps'
@@ -23,6 +23,21 @@ const now = useNow()
 const downloads = useDownloads()
 const sources = useSources()
 const error = ref('')
+const router = useRouter()
+
+// The index reads a download's folder at its next walk, so a fresh one may not
+// be there yet.
+async function openInLibrary(folder: string) {
+  error.value = ''
+  try {
+    const page = await get<LibraryPage>(`/api/library/albums?limit=1&folder=${encodeURIComponent(folder)}`)
+    const album = page.albums[0]
+    if (album) await router.push({ name: 'album', params: { id: album.id } })
+    else error.value = "The Library hasn't read this folder yet."
+  } catch (err) {
+    error.value = errorText(err)
+  }
+}
 
 async function load(id: number) {
   error.value = ''
@@ -134,6 +149,7 @@ function trackState(t: DownloadTrack): { led: string; text: string } {
         <div v-if="d.folder || d.provenance_path" class="panel col g8">
           <template v-if="d.folder"><span class="px t3 small-h">Release folder</span><code class="mono path">{{ d.folder }}</code></template>
           <template v-if="d.provenance_path"><span class="px t3 small-h">Provenance file</span><code class="mono path">{{ d.provenance_path }}</code></template>
+          <button v-if="d.folder && (d.status === 'done' || d.status === 'partial')" type="button" class="key sm" @click="openInLibrary(d.folder)">Open in Library</button>
         </div>
 
         <section v-if="d.children.length" class="col">

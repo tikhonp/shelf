@@ -23,6 +23,19 @@ export function tapes(q?: Quality): Tape[] {
   return out
 }
 
+// libraryTape is the label of a file's short quality, such as FLAC 24/96. The
+// index has no bitrate, so a lossy file shows its codec.
+export function libraryTape(quality: string): Tape {
+  const m = /(\d+)\/([\d.]+)$/.exec(quality)
+  if (!m) return { text: quality, cls: quality ? 'lossy' : '' }
+  const [, bits, rate] = m
+  if (Number(bits) > 16 || Number(rate) > 48) {
+    const text = `Hi-Res ${bits}/${rate}`
+    return { text, cls: tapeClass(text) }
+  }
+  return { text: bits === '16' && rate === '44.1' ? 'CD 16/44.1' : 'Lossless', cls: '' }
+}
+
 // words is a quality as the panel's Quality line says it: FLAC 24-bit 96 kHz.
 export function words(q?: Quality): string {
   if (!q) return ''

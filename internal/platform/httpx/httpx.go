@@ -98,6 +98,12 @@ func healthz(h Health) echo.HandlerFunc {
 	}
 }
 
+// clientGone reports a request that failed because the client left, such as a
+// search the browser aborted for a newer one. shelf did nothing wrong.
+func clientGone(c *echo.Context, err error) bool {
+	return errors.Is(err, context.Canceled) && c.Request().Context().Err() != nil
+}
+
 // RequestLogger logs one line per request. It logs /healthz only when it
 // fails, or Docker's checks would fill the log.
 func RequestLogger(log *slog.Logger) echo.MiddlewareFunc {
@@ -111,6 +117,8 @@ func RequestLogger(log *slog.Logger) echo.MiddlewareFunc {
 				attrs = append(attrs, "error", v.Error.Error())
 			}
 			switch {
+			case clientGone(c, v.Error):
+				log.Info("request", attrs...)
 			case v.Status >= 500:
 				log.Error("request", attrs...)
 			case v.Status >= 400:

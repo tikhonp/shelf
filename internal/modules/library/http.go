@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"slices"
@@ -20,6 +21,7 @@ func (m *Module) routes(api *echo.Group) {
 	api.GET("/library/index", m.getIndex)
 	api.POST("/library/index", m.postIndex)
 	api.GET("/library/filters", m.filters)
+	api.GET("/library/keys", m.keys)
 	api.GET("/library/albums", m.list)
 	api.GET("/library/albums/:id", m.get)
 	api.GET("/library/tracks/:id/audio", m.audio)
@@ -172,6 +174,16 @@ func (m *Module) filters(c *echo.Context) error {
 	}
 	slices.SortFunc(out.Folders, func(a, b countJSON) int { return strings.Compare(a.Name, b.Name) })
 	return c.JSON(http.StatusOK, out)
+}
+
+// keys lists the keys Navidrome reads, so the editor can tell where a custom
+// field goes before any file holds it.
+func (m *Module) keys(c *echo.Context) error {
+	out := []string{}
+	for _, f := range tagio.Fields() {
+		out = append(out, f.Key)
+	}
+	return c.JSON(http.StatusOK, map[string][]string{"keys": out})
 }
 
 func idParam(c *echo.Context, what string) (int64, error) {
@@ -373,7 +385,27 @@ var audioTypes = map[string]string{
 	"wav": "audio/wav", "aiff": "audio/aiff", "wma": "audio/x-ms-wma",
 }
 
-// audio serves a track's file as it is, with ranges, for the player.
+// transcode streams a file as MP3, for a browser that can't play its format.
+// The stream has no length and no ranges, so the player can't seek in it. A
+// client that leaves stops ffmpeg through the request's context.
+func (m *Module) transcode(c *echo.Context, abs string) error {
+	cmd := exec.CommandContext(c.Request().Context(), m.FFmpeg, "-nostdin", "-v", "error", "-i", abs,
+		"-map", "0:a:0", "-vn", "-c:a", "libmp3lame", "-b:a", "256k", "-f", "mp3", "pipe:1")
+	w := c.Response()
+	w.Header().Set("Content-Type", audioTypes["mp3"])
+	w.Header().Set("Cache-Control", "no-store")
+	cmd.Stdout = w
+	if err := cmd.Run(); err != nil {
+		if r, _ := echo.UnwrapResponse(w); r != nil && r.Committed {
+			return nil
+		}
+		return echo.NewHTTPError(http.StatusUnprocessableEntity, "ffmpeg can't read this file")
+	}
+	return nil
+}
+
+// audio serves a track's file as it is, with ranges, for the player, or
+// transcoded with ?transcode=1.
 func (m *Module) audio(c *echo.Context) error {
 	id, err := idParam(c, "track")
 	if err != nil {
@@ -400,6 +432,9 @@ func (m *Module) audio(c *echo.Context) error {
 	defer func() { _ = fh.Close() }()
 	ft := tagio.FormatOf(abs)
 	w := c.Response()
+	if c.QueryParam("transcode") != "" {
+		return m.transcode(c, abs)
+	}
 	if ft != nil {
 		w.Header().Set("Content-Type", audioTypes[ft.Name])
 	}

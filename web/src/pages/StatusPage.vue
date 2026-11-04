@@ -14,6 +14,7 @@ import { ago, count } from '../lib/format'
 import { sourceLamp } from '../lib/lamps'
 import { usePhone } from '../lib/viewport'
 import { useSources } from '../stores/sources'
+import { useLibrary } from '../stores/library'
 import { useStatus } from '../stores/status'
 import { useTheme } from '../stores/theme'
 
@@ -23,6 +24,7 @@ const phone = usePhone()
 const now = useNow()
 const sources = useSources()
 const status = useStatus()
+const library = useLibrary()
 const theme = useTheme()
 
 onMounted(() => void status.check())
@@ -83,9 +85,18 @@ const navidromeLamp = computed(() => (!status.scan?.enabled ? 'off' : status.sca
 const telegramLines = computed(() => {
   const t = status.telegram
   if (!t?.enabled) return ['NOT SET UP']
-  return [t.connected ? 'CONNECTED' : 'NOT CONNECTED', `ANSWERS ${count(t.users, 'USER')}`]
+  return [t.connected ? 'CONNECTED' : 'NOT CONNECTED', `ANSWERS ${count(t.users, 'user')}`.toUpperCase()]
 })
 const telegramLamp = computed(() => (!status.telegram?.enabled ? 'off' : status.telegram.connected ? 'ok' : 'bad'))
+
+const libraryLines = computed(() => {
+  const i = library.index
+  if (!i) return []
+  if (i.error) return [i.error.toUpperCase()]
+  const held = `${count(i.albums, 'album')} · ${count(i.tracks, 'track')}`.toUpperCase()
+  return [i.indexing ? `INDEXING · ${i.read} FILES READ` : 'INDEXED', held]
+})
+const libraryLamp = computed(() => (library.index?.error ? 'bad' : library.index?.indexing ? 'run' : 'ok'))
 
 const lines = (s: Source) => [s.enabled ? (s.health.ok ? 'WORKS' : (s.health.message ?? 'FAILED').toUpperCase()) : 'NOT SET UP']
 </script>
@@ -122,6 +133,7 @@ const lines = (s: Source) => [s.enabled ? (s.health.ok ? 'WORKS' : (s.health.mes
           <template v-if="status.scan?.enabled" #keys><button type="button" class="key" :disabled="status.scan.scanning" @click="status.startScan()">Scan now</button></template>
         </PartCard>
         <PartCard name="Telegram" :lamp="telegramLamp" :note="status.telegram?.username ? `@${status.telegram.username}` : ''" :lines="telegramLines" />
+        <PartCard v-if="library.index" name="Library" :lamp="libraryLamp" :lines="libraryLines" />
         <NoticeChoice />
         <section class="smod last" aria-label="Theme">
           <div class="smod-h"><h2>Theme</h2></div>
@@ -163,6 +175,7 @@ const lines = (s: Source) => [s.enabled ? (s.health.ok ? 'WORKS' : (s.health.mes
         <template v-if="status.scan?.enabled" #keys><button type="button" class="key" :disabled="status.scan.scanning" @click="status.startScan()">Scan now</button></template>
       </PartCard>
       <PartCard name="Telegram" :lamp="telegramLamp" :note="status.telegram?.username ? `@${status.telegram.username}` : ''" :lines="telegramLines" />
+      <PartCard v-if="library.index" name="Library" :lamp="libraryLamp" :lines="libraryLines" />
     </div>
     <NoticeChoice />
     <DensityChoice />

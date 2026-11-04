@@ -47,17 +47,6 @@ const toggle = () => emit('update:open', !props.open)
 .rs .srcbtn .chev { width: 16px; height: 16px; transition: transform .2s ease; }
 .rs .srcbtn[aria-expanded="true"] .chev { transform: rotate(180deg); }
 .rs .rockers { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; padding: 8px 10px; background: var(--win-2); border: 1px solid var(--ink); border-radius: 6px; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .35); }
-.rs .rocker { display: inline-flex; align-items: center; gap: 12px; min-height: 64px; padding: 4px 10px 4px 4px; border: 0; border-radius: 5px; background: transparent; color: var(--text); text-align: left; cursor: pointer; }
-.rs .rocker:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
-.rs .rk { flex: none; display: flex; flex-direction: column; align-items: center; gap: 3px; font: 700 9px/1 var(--label); letter-spacing: .12em; color: var(--text-3); }
-.rs .rk-case { display: block; width: 24px; height: 38px; padding: 3px; background: #07090C; border-radius: 4px; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .9), 0 1px 0 rgba(255, 255, 255, .1); }
-.rs .rk-paddle { display: block; height: 100%; border-radius: 2px; background: linear-gradient(180deg, #F7F3EA, #E2DCCB 46%, #8F887A 50%, #B3AB99 54%, #857F72); box-shadow: inset 0 1px 0 #fff, 0 -1px 2px rgba(0, 0, 0, .4); }
-.rs .rocker[aria-checked="true"] .rk-paddle { background: linear-gradient(180deg, #857F72, #B3AB99 46%, #8F887A 50%, #F7F3EA 54%, #E2DCCB); box-shadow: inset 0 -1px 0 #fff, 0 1px 2px rgba(0, 0, 0, .4); }
-.rs .rk-t { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.rs .rk-name { font-family: var(--label); font-size: 15px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
-.rs .rk-state { display: inline-flex; align-items: center; gap: 7px; font-size: 14px; color: var(--text-2); white-space: nowrap; }
-.rs .rocker[aria-checked="false"] .rk-name { color: var(--text-3); }
 .rs .srcbtn.tall { height: 50px; }
 .rs .about { margin-left: auto; max-width: 320px; }
-.rs .rocker:disabled { cursor: default; opacity: .7; }
 </style>

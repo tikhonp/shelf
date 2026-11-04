@@ -32,13 +32,5 @@ const turn = () => emit('update:modelValue', types[(at.value + 1) % types.length
 </template>
 
 <style scoped>
-.rs .rotary { display: flex; justify-content: center; padding: 6px 12px; background: var(--win-2); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); box-shadow: inset 0 1px 3px rgba(0, 0, 0, .3); }
-.rs .rot-labels { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 4px; width: 100%; max-width: 460px; }
-.rs .rot-labels button[aria-checked="true"] { color: var(--text); }
-.rs .rot-labels .led { --c: #3A4554; box-shadow: none; }
 .rs.day .rot-labels .led { --c: #9AA0A9; }
-.rs .rot-labels button[aria-checked="true"] .led { --c: var(--sun); box-shadow: 0 0 calc(9px * var(--glow)) var(--sun); }
-.rs .rot-labels .knob { margin: 0 4px; }
-.rs .rot-labels button:not(.knob) { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-height: 48px; padding: 4px 2px; border: 0; border-radius: 5px; background: transparent; color: var(--text-2); font-family: var(--label); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
-.rs .rot-labels button:not(.knob):hover { color: var(--text); background: color-mix(in srgb, var(--text) 6%, transparent); }
 </style>

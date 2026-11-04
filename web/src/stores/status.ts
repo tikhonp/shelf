@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { ApiError, get, post } from '../api/client'
 import type { ScanEvent, ScanState, Telegram, Wrapper, WrapperLogLine } from '../api/types'
+import { useLibrary } from './library'
 import { useSources } from './sources'
 
 // The parts beside the sources that the Status page and the shell show.
@@ -35,7 +36,7 @@ export const useStatus = defineStore('status', () => {
   async function check() {
     const sources = useSources()
     // Whether to read the wrapper depends on the sources, so they go first.
-    const others = Promise.allSettled([loadScan(), loadTelegram()])
+    const others = Promise.allSettled([loadScan(), loadTelegram(), useLibrary().loadIndex()])
     await sources.load().catch(() => {})
     if (sources.byId('applemusic')?.enabled) await loadWrapper()
     await others
