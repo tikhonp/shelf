@@ -16,7 +16,7 @@ Step 1c is done. qobuz-dl-go `v0.1.0` is tagged, ports qobuz-dl 2.5.9, and resol
 
 1d built the qobuz module over qobuz-dl-go `v0.1.0`. It logs in behind the start, searches, resolves and downloads albums, tracks and playlists with their m3u8, and marks the source unhealthy when the token expires. `shelf manage import-qobuz-db` brings in the old bot's history. Its tests run against `qobuzdltest`. A local run with a real token searched, resolved and downloaded from the live Qobuz, and five albums came out byte for byte the same as `qobuz-dl`'s, apart from `shelf.txt`. That run left four open issues, which [decisions.md](decisions.md) settles.
 
-Next: 1g, the web UI. The temporary staging stack on blackberry still has to be removed.
+Next: 1g, the web UI.
 
 ## Remotes
 
@@ -72,7 +72,8 @@ Next: 1g, the web UI. The temporary staging stack on blackberry still has to be 
 
 ## Notes for the next step
 
-- blackberry still runs `shelf-staging` and `shelf-wrapper-staging`. Remove them with `docker compose --profile shelf-staging rm -sf shelf-staging shelf-wrapper-staging`, never `docker compose down`, which stops the whole node. Then delete `shelf-staging.yaml`, its line in `compose.yaml`, `secrets/blackberry/shelf-staging.env` and `${SWINGMUSIC_DATA}/shelf-staging`.
+- The staging containers on blackberry are gone. Their folder, `${SWINGMUSIC_DATA}/shelf-staging`, goes with the commit that drops `shelf-staging.yaml` from sh-blackberry and `blackberry/shelf-staging.env` from sh-secrets. `docker compose down` stops the whole node, so remove one service with `docker compose rm -sf <service>`.
+- For 1g's sign-in dialog: a failed sign-in's `error` clears within about 20 seconds when the wrapper has an old session, because a region clears it, so the dialog has to keep the message it saw. For a wrong password the supervisor reports `auth error: code=2076505080, message=iTunesStoreErrorCategory`, though Apple's readable `server message` comes one line earlier. Make the supervisor prefer that line.
 - Sign in only a wrapper with its own data folder and its own `--device-info`: wrapper-lite's device ID comes from the Apple ID.
 - The As built sections of [build/1b.md](build/1b.md) and [build/1f.md](build/1f.md) end with notes for the later steps. The main ones: a source module logs in and starts goroutines in `Run` from `module.Runner`, never in `Init`, because `manage` opens the platform too; a source registers with `Switch` when its settings are missing; Apple Music implements `source.LinkRefuser` for music videos and stations; and the Status page reads `/api/telegram` and the health fields of `/api/library/scan`.
 - The As built section of [build/1d.md](build/1d.md) ends with notes for 1g and 1h: what the Status page reads of the Qobuz source, the 503 a search can answer, and what the import prints during the cutover.
