@@ -13,7 +13,7 @@ Everything about Music Shelf lives in this folder. The docs describe shelf as it
 | [sources/apple-music.md](sources/apple-music.md) | The Apple Music module, amdl, and shelf-wrapper with sign-in. |
 | [telegram.md](telegram.md) | The bot's flow and texts. |
 | [provenance.md](provenance.md) | The `shelf.txt` format. |
-| [deployment.md](deployment.md) | Compose services, the gateway, permissions, backups, cutover. |
+| [deployment.md](deployment.md) | Compose services, the gateway, permissions, backups, rollout. |
 | [ui/design-brief.md](ui/design-brief.md) | The brief for the Claude Design session, brought in line with its result. |
 | [ui/design/](ui/design/README.md) | The design: screens, stylesheets and rules. |
 | [build/](build/README.md) | Step contracts for phase 1. |

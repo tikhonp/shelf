@@ -2,6 +2,17 @@
 
 Newest first. A changed decision gets a new entry that names the one it replaces.
 
+## 2026-11-04: step 1h, rollout
+
+| Topic | Decision | Why |
+| --- | --- | --- |
+| Compose file | shelf, shelf-wrapper and `ssht-shelf` live in sh-blackberry's `shelf.yaml`, not in `music.yaml`. | The user's choice. |
+| Old pipeline | `music-download-bot`, `apple-music-api` and `apple-music-wrapper` keep running untouched. The user removes them later. There is no cutover and no rollback. | The user's choice. shelf can be checked while the old tools still work. |
+| Wrapper | shelf gets a second wrapper with its own data folder and `--device-info`, signed in from the Status page. | `apple-music-wrapper` stays as it is. The staging run on blackberry ran two wrappers on one Apple ID side by side. |
+| Telegram | shelf gets a new bot. The old bot keeps its token. | The user's choice. Two processes can't poll one token. |
+| Image updates | Neither `shelf` nor `shelf-wrapper` has `dev.dozzle.update=auto`. Both are pulled together by hand. | They share the control API's types, and a nightly update could move one without the other. |
+| Secrets | `shelf.env` takes the Qobuz token, the Navidrome user and the whitelist from the old bot's env. | They are the same accounts. |
+
 ## 2026-11-04: web UI
 
 | Topic | Decision | Why |

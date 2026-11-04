@@ -5,13 +5,13 @@ End-to-end checks that only the real deployment can answer: real accounts, the r
 ## Setup
 
 - shelf and shelf-wrapper deployed as in [deployment.md](deployment.md).
-- A staging shelf-wrapper with its own empty data folder for check 2, so the production session stays untouched.
+- Check 2 is shelf-wrapper's first sign-in. Its data folder starts empty and is apart from `apple-music-wrapper`'s. Send no code once to see the timeout, then sign in.
 - One known Qobuz album and one Apple Music album that the old tools downloaded before, to compare against.
 
 ## Checks
 
 1. Status shows every part healthy, and the Apple Music card shows the storefront.
-2. Sign in from the Status card against the staging shelf-wrapper. The code step appears, the right code signs in, and a code sent after 60 seconds shows the timeout error.
+2. Sign in from the Status card. The code step appears, the right code signs in, and a code sent after 60 seconds shows the timeout error.
 3. Search each source for albums, tracks, artists and playlists. Open an album panel, an artist panel and a playlist panel.
 4. Download a Qobuz album and an Apple Music album at the same time. Progress updates live. Folder names, file names and tags match the old tools' output for the same albums. Navidrome scans once, about 30 seconds after the second download finishes.
 5. Paste each link form: Qobuz `play`, `open`, and `www` with a locale and a slug, for album, track, playlist, artist and label, and the site's `/interpreter/`, `/playlists/` and `/label/<slug>/download-streaming-albums/<id>`; Apple Music album, song, album with `?i=`, playlist and artist. A music video link gets the refusal message.
