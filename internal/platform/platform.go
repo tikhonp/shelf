@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"maps"
 	"net"
 	"net/http"
 	"os"
@@ -155,7 +156,13 @@ func (a *App) Health(ctx context.Context) error {
 // HTTP builds the HTTP app: /healthz, the /api group with every module's
 // routes, and the UI for every other GET or HEAD.
 func (a *App) HTTP() *echo.Echo {
-	e := httpx.New(httpx.Options{Log: a.Log, PublicURL: a.Cfg.PublicURL, Health: a.Health})
+	limits := map[string]int64{}
+	for _, m := range a.Modules {
+		if bl, ok := m.(module.BodyLimiter); ok {
+			maps.Copy(limits, bl.BodyLimits())
+		}
+	}
+	e := httpx.New(httpx.Options{Log: a.Log, PublicURL: a.Cfg.PublicURL, Health: a.Health, BodyLimits: limits})
 	api := e.Group("/api")
 	api.GET("/version", version)
 	for _, m := range a.Modules {

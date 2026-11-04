@@ -67,33 +67,65 @@ type changeRow struct {
 const changeCols = `id, kind, target, album_id, folder, title, artist, state, reason, error, undone, request,
 	conflicts, tags, job_id, created_at, finished_at`
 
-// changeFile is one file of a change, with its tags before and after.
+// The kinds of a change's file.
+const (
+	fileAudio = "audio"
+	fileCover = "cover"
+)
+
+// changeFile is one file of a change: an audio file with its tags and front
+// cover before and after, or a folder's cover file.
 type changeFile struct {
 	Path     string
+	Kind     string
 	Before   map[string][]string
 	After    map[string][]string
 	Revision string
 	Written  bool
+	// CoverBefore and CoverAfter are cover store IDs, "" for none. An audio
+	// file whose cover the change left alone has the same in both.
+	CoverBefore string
+	CoverAfter  string
 }
 
 type changeFileRow struct {
-	Path     string `db:"path"`
-	Before   string `db:"before"`
-	After    string `db:"after"`
-	Revision string `db:"revision"`
-	Written  bool   `db:"written"`
+	Path        string `db:"path"`
+	Kind        string `db:"kind"`
+	Before      string `db:"before"`
+	After       string `db:"after"`
+	Revision    string `db:"revision"`
+	Written     bool   `db:"written"`
+	CoverBefore string `db:"cover_before"`
+	CoverAfter  string `db:"cover_after"`
 }
 
-// storedChange is what a change's job writes: the files and their edits,
-// as the request named them.
+// storedChange is what a change's job writes: the audio files with their
+// edits, then the folder's cover files.
 type storedChange struct {
-	Files []storedFile `json:"files"`
+	Files  []storedFile `json:"files"`
+	Folder []folderOp   `json:"folder,omitempty"`
 }
 
 type storedFile struct {
 	Path     string     `json:"path"` // inside the music folder
 	Revision string     `json:"revision"`
 	Edits    []editJSON `json:"edits"`
+	// Cover, when set, replaces the front cover with a stored image, or
+	// removes it when its ID is empty.
+	Cover *storedCover `json:"cover,omitempty"`
+}
+
+type storedCover struct {
+	ID string `json:"id"`
+}
+
+// folderOp writes a stored image to a cover file of a folder, or removes
+// the file when ID is empty. Was is the hash the file had when the change
+// was asked for, "" for none, so a file another tool changed is a conflict.
+type folderOp struct {
+	Path string `json:"path"`
+	ID   string `json:"id"`
+	Was  string `json:"was"`
 }
 
 func (s store) change(ctx context.Context, q sqlx.QueryerContext, id int64) (changeRow, error) {
@@ -107,13 +139,14 @@ func (s store) change(ctx context.Context, q sqlx.QueryerContext, id int64) (cha
 
 func (s store) changeFiles(ctx context.Context, id int64) ([]changeFile, error) {
 	var rows []changeFileRow
-	if err := s.db.R.SelectContext(ctx, &rows, `SELECT path, before, after, revision, written FROM library_change_files
-		WHERE change_id = ? ORDER BY path`, id); err != nil {
+	if err := s.db.R.SelectContext(ctx, &rows, `SELECT path, kind, before, after, revision, written, cover_before, cover_after
+		FROM library_change_files WHERE change_id = ? ORDER BY kind, path`, id); err != nil {
 		return nil, err
 	}
 	out := make([]changeFile, len(rows))
 	for i, r := range rows {
-		out[i] = changeFile{Path: r.Path, Revision: r.Revision, Written: r.Written}
+		out[i] = changeFile{Path: r.Path, Kind: r.Kind, Revision: r.Revision, Written: r.Written,
+			CoverBefore: r.CoverBefore, CoverAfter: r.CoverAfter}
 		if err := json.Unmarshal([]byte(r.Before), &out[i].Before); err != nil {
 			return nil, err
 		}
@@ -160,16 +193,20 @@ func keysChanged(before, after map[string][]string) int {
 }
 
 // journal records one change's write in its row, as the writer's Journal.
-// Begin runs before any file is touched, and End when the write ends,
-// however it ends.
+// Begin runs before any file is touched, and End when the audio files are
+// done, however they end. A change with folder cover files ends in close,
+// after those.
 type journal struct {
-	s     store
-	root  string
-	id    int64
-	now   func() time.Time
-	begun bool
-	// ended has the state End stored.
-	ended changeRow
+	s    store
+	root string
+	id   int64
+	now  func() time.Time
+	// covers maps each audio file whose front cover changes to its cover
+	// store IDs before and after.
+	covers map[string][2]string
+	folder []folderOp
+	begun  bool
+	closed bool
 }
 
 func (j *journal) rel(abs string) string {
@@ -192,11 +229,23 @@ func (j *journal) Begin(ctx context.Context, r tagio.Result) (int64, error) {
 			if err != nil {
 				return err
 			}
-			if _, err := tx.ExecContext(ctx, `INSERT INTO library_change_files (change_id, path, before, after)
-				VALUES (?, ?, ?, ?)`, j.id, j.rel(f.Path), string(before), string(after)); err != nil {
+			rel := j.rel(f.Path)
+			cv := j.covers[rel]
+			if _, err := tx.ExecContext(ctx, `INSERT INTO library_change_files (change_id, path, kind, before, after, cover_before, cover_after)
+				VALUES (?, ?, ?, ?, ?, ?, ?)`, j.id, rel, fileAudio, string(before), string(after), cv[0], cv[1]); err != nil {
 				return err
 			}
 			tags += keysChanged(f.Before, f.After)
+			if cv[0] != cv[1] {
+				tags++
+			}
+		}
+		for _, op := range j.folder {
+			if _, err := tx.ExecContext(ctx, `INSERT INTO library_change_files (change_id, path, kind, before, after, cover_before, cover_after)
+				VALUES (?, ?, ?, '{}', '{}', ?, ?)`, j.id, op.Path, fileCover, op.Was, op.ID); err != nil {
+				return err
+			}
+			tags++
 		}
 		res, err := tx.ExecContext(ctx, `UPDATE library_changes SET state = ?, tags = ? WHERE id = ? AND state = ?`,
 			StateWriting, tags, j.id, StateQueued)
@@ -215,8 +264,7 @@ func (j *journal) Begin(ctx context.Context, r tagio.Result) (int64, error) {
 }
 
 func (j *journal) End(ctx context.Context, _ int64, r tagio.Result, werr error) error {
-	return j.s.db.Write(ctx, func(tx *sqlx.Tx) error {
-		written := 0
+	err := j.s.db.Write(ctx, func(tx *sqlx.Tx) error {
 		for _, f := range r.Files {
 			after, err := json.Marshal(f.After)
 			if err != nil {
@@ -226,23 +274,50 @@ func (j *journal) End(ctx context.Context, _ int64, r tagio.Result, werr error) 
 				WHERE change_id = ? AND path = ?`, string(after), f.Revision, f.Written, j.id, j.rel(f.Path)); err != nil {
 				return err
 			}
-			if f.Written {
-				written++
-			}
 		}
-		state := stateOf(written, len(r.Files))
+		return nil
+	})
+	if err != nil || len(j.folder) > 0 {
+		return err
+	}
+	return j.close(ctx, werr)
+}
+
+// close ends the change with the state its files' rows add up to.
+func (j *journal) close(ctx context.Context, werr error) error {
+	j.closed = true
+	return j.s.db.Write(ctx, func(tx *sqlx.Tx) error {
+		var n struct {
+			Files   int `db:"files"`
+			Written int `db:"written"`
+		}
+		if err := tx.GetContext(ctx, &n, `SELECT count(*) AS files, coalesce(sum(written), 0) AS written
+			FROM library_change_files WHERE change_id = ?`, j.id); err != nil {
+			return err
+		}
 		reason, msg := "", ""
 		if werr != nil {
 			reason, msg = reasonOf(werr), j.message(werr)
 		}
-		return j.s.finish(ctx, tx, j.id, state, reason, msg, j.now(), &j.ended)
+		var out changeRow
+		return j.s.finish(ctx, tx, j.id, stateOf(n.Written, n.Files), reason, msg, j.now(), &out)
 	})
 }
 
 // fail ends a change whose write stopped before its journal began.
 func (j *journal) fail(ctx context.Context, werr error) error {
+	j.closed = true
 	return j.s.db.Write(ctx, func(tx *sqlx.Tx) error {
-		return j.s.finish(ctx, tx, j.id, StateFailed, reasonOf(werr), j.message(werr), j.now(), &j.ended)
+		var out changeRow
+		return j.s.finish(ctx, tx, j.id, StateFailed, reasonOf(werr), j.message(werr), j.now(), &out)
+	})
+}
+
+// wrote marks one file of the change written.
+func (j *journal) wrote(ctx context.Context, path string) error {
+	return j.s.db.Write(ctx, func(tx *sqlx.Tx) error {
+		_, err := tx.ExecContext(ctx, `UPDATE library_change_files SET written = 1 WHERE change_id = ? AND path = ?`, j.id, path)
+		return err
 	})
 }
 
@@ -309,10 +384,23 @@ func (m *Module) reconcile(ctx context.Context, c changeRow) error {
 	}
 	landed := map[string]string{}
 	for _, f := range files {
-		tf, err := tagio.Read(filepath.Join(m.root, filepath.FromSlash(f.Path)))
-		if err == nil && sameTags(tf.Tags, f.After) {
-			landed[f.Path] = tf.Revision()
+		abs := m.abs(f.Path)
+		if f.Kind == fileCover {
+			if h, _, err := fileHash(abs); err == nil && h == f.CoverAfter {
+				landed[f.Path] = ""
+			}
+			continue
 		}
+		tf, err := tagio.Read(abs)
+		if err != nil || !sameTags(tf.Tags, f.After) {
+			continue
+		}
+		if f.CoverBefore != f.CoverAfter {
+			if b, err := tagio.FrontCover(abs); err != nil || coverHash(b) != f.CoverAfter {
+				continue
+			}
+		}
+		landed[f.Path] = tf.Revision()
 	}
 	return m.store.db.Write(ctx, func(tx *sqlx.Tx) error {
 		// The job and the start may both settle one change.

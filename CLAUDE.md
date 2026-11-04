@@ -21,7 +21,7 @@ State: phase 1 is done, and shelf runs in production on blackberry. `docs/status
 - A source is a module that implements the interfaces in `internal/source`. Code outside that module never knows which source it talks to.
 - Nothing slow or remote happens inside a database transaction. Read, act, then write.
 - Schema changes go only into new goose migrations. Tables are STRICT. Stored times are UTC text.
-- The music folder belongs to UID 10001. shelf runs as that user with umask 022, never changes the owner or mode of a file it did not create, and deletes only its own temp files.
+- The music folder belongs to UID 10001. shelf runs as that user with umask 022, never changes the owner or mode of a file it did not create, and deletes only its own temp files and, when the owner replaces or deletes a cover, a folder's `cover.*`.
 - Secrets never reach logs, job logs, `shelf.txt` or API answers. That covers the Qobuz token, the Telegram token, the Navidrome password, the wrapper token, and Apple ID passwords and codes.
 - Comments say why, not what. Match the surrounding code.
 - There is no error reporting service. Errors are logged with slog.
@@ -108,5 +108,7 @@ Use these words in code, UI, docs and conversation.
 **Index.** shelf's own record of the music folder, read the way Navidrome reads it. A walk brings it up to date. _Avoid_: scan, for the index.
 
 **Check.** A test of an album against Navidrome's tagging guide. What a check finds is an issue.
+
+**Change.** One tag write and its record: a Save, or the undo or redo of one. _Avoid_: edit, for the record.
 
 **Status message.** The Telegram message the bot edits while one download moves.

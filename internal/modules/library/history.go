@@ -46,10 +46,16 @@ type conflictJSON struct {
 
 type changeFileJSON struct {
 	// TrackID is the file's row now, or 0 when the index has lost it.
-	TrackID int64           `json:"track_id"`
-	Path    string          `json:"path"`
+	TrackID int64  `json:"track_id"`
+	Path    string `json:"path"`
+	// Kind is "audio", or "cover" for a folder's cover file.
+	Kind    string          `json:"kind"`
 	Written bool            `json:"written"`
 	Keys    []keyChangeJSON `json:"keys"`
+	// CoverBefore and CoverAfter are cover IDs under /api/library/covers,
+	// "" for none. They are equal when the change left the cover alone.
+	CoverBefore string `json:"cover_before"`
+	CoverAfter  string `json:"cover_after"`
 }
 
 // keyChangeJSON is one key a change set, added or removed.
@@ -107,7 +113,8 @@ func (m *Module) getChange(c *echo.Context) error {
 	out := m.changeJSON(ctx, row)
 	out.Files = []changeFileJSON{}
 	for _, f := range files {
-		fj := changeFileJSON{Path: f.Path, Written: f.Written, Keys: diffKeys(f.Before, f.After)}
+		fj := changeFileJSON{Path: f.Path, Kind: f.Kind, Written: f.Written, Keys: diffKeys(f.Before, f.After),
+			CoverBefore: f.CoverBefore, CoverAfter: f.CoverAfter}
 		if tf, err := m.store.fileByPath(ctx, f.Path); err == nil {
 			fj.TrackID = tf
 		}

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -171,6 +172,26 @@ func TestBodyLimit(t *testing.T) {
 	req.ContentLength = -1
 	if rec := do(e, req); rec.Code != http.StatusRequestEntityTooLarge {
 		t.Fatalf("chunked over 1 MiB: %d", rec.Code)
+	}
+}
+
+func TestRouteBodyLimit(t *testing.T) {
+	e := app(t, httpx.Options{BodyLimits: map[string]int64{"/api/big/:id": 3 << 20}})
+	e.POST("/api/big/:id", func(c *echo.Context) error {
+		b, err := io.ReadAll(c.Request().Body)
+		if err != nil {
+			return err
+		}
+		return c.String(http.StatusOK, strconv.Itoa(len(b)))
+	})
+	if rec := do(e, httptest.NewRequest(http.MethodPost, "/api/big/1", bytes.NewReader(make([]byte, 3<<20)))); rec.Code != http.StatusOK {
+		t.Fatalf("3 MiB on its route: %d", rec.Code)
+	}
+	if rec := do(e, httptest.NewRequest(http.MethodPost, "/api/big/1", bytes.NewReader(make([]byte, 3<<20+1)))); rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("over the route's limit: %d", rec.Code)
+	}
+	if rec := do(e, httptest.NewRequest(http.MethodPost, "/api/echo", bytes.NewReader(make([]byte, httpx.BodyLimit+1)))); rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("another route: %d", rec.Code)
 	}
 }
 

@@ -71,6 +71,20 @@ At start the library module removes temp files a crash left. It walks the music 
 
 **Interrupted writes.** A stop between a change's journal and its end leaves it `writing`. At start, and when the job resumes, shelf reads each of its files: one that holds the planned tags was replaced. The change ends `done`, `partial` or `failed` by that count, with the reason `interrupted`.
 
+## Covers
+
+A cover edit is part of a Save: `"cover": {"upload"}` puts an uploaded image in place of the album's cover, and `"cover": {"delete": true}` removes it. Either needs every track of the album in `tracks`, with its revision, because it may change each file.
+
+- **Upload.** `POST /api/library/covers` takes the image as the raw body, up to 32 MiB, and answers 201 with `{"id", "mime", "width", "height", "size"}`. Only JPEG and PNG that decode are taken. The ID is the SHA-256 of the bytes, and `GET /api/library/covers/{id}` serves it.
+- **Store.** Uploads, the embedded copies made of them, and every cover a change replaces live in `/data/library/covers`, named by that hash. A replaced cover is kept whatever its format, damaged ones too, so an undo can put it back.
+- **Embedded.** A track that has a front cover gets the new one. With `every_track`, tracks without one get it too, though Navidrome shows the album's cover for them anyway. The embedded copy stops at 1000 pixels on its longest side: a bigger upload is scaled down in its own format, each pixel the average of the pixels it covers. Other pictures stay, and Delete removes only the front cover.
+- **Folder.** The release folder keeps one cover file, `cover.jpg` or `cover.png` after the upload's format, at full size, because Navidrome shows `cover.*` before embedded art. The write replaces the file of that name and then removes every other `cover.*`, so a failure never leaves the folder without a cover. Delete removes every `cover.*`. Other images, such as `folder.jpg`, stay, and Navidrome shows them when no `cover.*` is left.
+- **Checks.** A cover file is replaced through a temp copy and a rename, as audio files are, and needs the same owner, a writable folder and no download in it. A cover file another tool changed since the Save is a conflict. The audio files go first, and the cover files only after all of them were replaced.
+- **History.** Each audio file's row holds its front cover's hash before and after, and each cover file has its own row of kind `cover`. Undo and redo put a picture back only while the file holds what the change wrote, as with keys, and report a conflict on the key `cover` otherwise. A restored embedded cover comes back as a front cover with no description.
+- **Damaged covers.** An opened album has ffmpeg decode each of its cover files and each different embedded front cover. A picture that makes ffmpeg print an error is the issue `bad_cover`, with the files it came from. The walk reads no picture bytes, so the album list doesn't show it, and a missing ffmpeg judges nothing.
+- **Repair.** `POST /api/library/albums/{id}/cover/repair` answers 201 with an upload to stage as the cover: the first of the album's pictures ffmpeg decodes cleanly, else the damaged one decoded as far as it goes and written again as a JPEG. It writes no file. It answers 422 when nothing is damaged or ffmpeg can't repair it.
+- **Album cover.** `GET /api/library/albums/{id}/cover` serves what Navidrome shows: the first folder image the cover priority names, else the first track's embedded cover.
+
 ## History
 
 The history lists the saves newest first, `GET /api/library/history?before=&limit=`, each with its `undone` flag. `POST /api/library/changes/{id}/undo` and `/redo` work on a save, in any order, as often as the owner likes.
@@ -80,7 +94,7 @@ The history lists the saves newest first, `GET /api/library/history?before=&limi
 - **Refusals.** A save that wrote nothing, an undo of an undone save and a redo of one that isn't undone answer 409. So does an undo or redo while another of the same save is still to run. One whose every key changed since answers 409 with `reason: conflict` and its conflicts.
 - **The write.** An undo or redo is a change of its own, of kind `undo` or `redo`, with the save as its `target`. It is checked and confirmed as a Save is, because putting tracks back can merge or split albums in Navidrome too, and its body takes the same `confirm`. It writes raw keys through the same `library.write` job. When it replaces any file, the save's `undone` flag follows it.
 - **Clear history.** `DELETE /api/library/history` deletes every change that has ended, except a save whose undo or redo is still to run. It answers `{"deleted"}`.
-- **Retention.** A `library.retention` job at 05:15 keeps the newest 1,000 saves. Each save takes its undos and redos with it.
+- **Retention.** A `library.retention` job at 05:15 keeps the newest 1,000 saves. Each save takes its undos and redos with it. The job then removes stored covers no change refers to, except uploads younger than a day.
 
 **Write probe.** At start, shelf creates and removes a temp file in each top folder of the music folder. `GET /api/library/index` lists the top folders with `writable` and the reason when not. Each walk counts the files another UID owns, which shelf can't write, as `locked`, per folder and in all. The probe runs once a start, because it moves each folder's mtime.
 
@@ -176,6 +190,13 @@ Each check is a kind that the filter menu offers. Guide kinds are style only and
 | A conflict on one release ID keeps every release ID in every file | `TestUndoKeepsReleaseIDsTogether` |
 | An undo that merges tracks back asks first | `TestUndoAsksBeforeNavidromeMovesAStar` |
 | History pages, retention, a second undo while one waits, Clear history keeping a save whose undo waits | `TestHistory` |
+| Uploads taken and refused; covers by ID; the embedded copy scaled to 1000 in its format, and kept when small | `TestCoverUploads` |
+| A cover replaces the front cover only where there is one, writes `cover.jpg` and removes `cover.png`; undo and redo; every track; Delete | `TestSaveCover` |
+| A cover edit without every track, with both or neither, with an unknown upload, with nothing to delete; a cover file changed before the job | `TestSaveCoverRefuses` |
+| A damaged cover file found by ffmpeg; repair from a good embedded cover, by re-encoding, and nothing to repair | `TestBadCoverAndRepair` |
+| An interrupted change's cover files settled by their hash | `TestInterruptedCoverIsSettled` |
+| The store keeps covers the history needs and young uploads | `TestCoverStoreSweep` |
+| A route's own body limit, and the 1 MiB limit everywhere else | `TestRouteBodyLimit` |
 | A download's folders are busy while its source writes, and folders inside them; folders outside the music folder are ignored | `TestBusyWhileTheSourceWrites`, `TestWorkingFolderOutsideTheMusicFolder` |
 | Qobuz's work folder and both names it ends with; Apple Music's whole folder | `TestDownloadResult` in `qobuz`, `TestDownloadAlbum` in `applemusic` |
 
