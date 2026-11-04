@@ -296,6 +296,33 @@ func TestArtistViews(t *testing.T) {
 	}
 }
 
+// TestArtistViewsLive reads the views Apple answered for Radiohead on
+// 2026-11-04, recorded in testdata/live, with their next pages.
+func TestArtistViewsLive(t *testing.T) {
+	r := newRig(t)
+	it := r.item(source.KindArtist, "657515")
+	var counts []int
+	for _, s := range it.Sections {
+		counts = append(counts, len(s.Items))
+	}
+	if !slices.Equal(counts, []int{11, 26, 3, 1}) || it.TrackCount != 41 || it.Title != "Radiohead" {
+		t.Fatalf("%v %+v", counts, it.Title)
+	}
+	a := it.Sections[0].Items[0]
+	if a.Title != "A Moon Shaped Pool" || a.Year != 2016 || a.Quality.Badge != "Lossless" || !strings.HasSuffix(a.CoverURL, "/600x600bb.jpg") {
+		t.Fatalf("%+v", a)
+	}
+	pages := 0
+	for _, c := range r.apple.calls() {
+		if strings.Contains(c, "/view/") {
+			pages++
+		}
+	}
+	if pages != 3 {
+		t.Fatalf("%d view pages: %q", pages, r.apple.calls())
+	}
+}
+
 func TestArtistFallback(t *testing.T) {
 	r := newRig(t)
 	want := map[string][]string{

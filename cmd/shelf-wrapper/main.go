@@ -7,9 +7,9 @@
 //	shelf-wrapper version
 //
 // It reads SHELF_WRAPPER_TOKEN, the control API's bearer token, and
-// SHELF_WRAPPER_LITE_ARGS, more wrapper-lite flags split on spaces. The
-// protocol is in internal/wrapperapi; docs/sources/apple-music.md has the
-// rest.
+// SHELF_WRAPPER_LITE_ARGS, more wrapper-lite flags split on spaces, where
+// quotes keep a value with spaces whole. The protocol is in
+// internal/wrapperapi; docs/sources/apple-music.md has the rest.
 package main
 
 import (
@@ -59,7 +59,12 @@ func run() int {
 		log.Warn("SHELF_WRAPPER_TOKEN is empty: the control API refuses every request")
 	}
 	cfg := DefaultConfig()
-	cfg.Extra = strings.Fields(os.Getenv("SHELF_WRAPPER_LITE_ARGS"))
+	extra, err := splitArgs(os.Getenv("SHELF_WRAPPER_LITE_ARGS"))
+	if err != nil {
+		log.Error("SHELF_WRAPPER_LITE_ARGS", "error", err)
+		return 1
+	}
+	cfg.Extra = extra
 	r := newRing(keepLines, func(l wrapperapi.LogLine) { log.Info(l.Text, "from", "wrapper-lite") })
 	sup := NewSupervisor(cfg, r)
 
@@ -97,4 +102,39 @@ func run() int {
 	}
 	log.Info("shelf-wrapper stopped")
 	return code
+}
+
+// splitArgs splits flags on spaces. Single or double quotes keep a value
+// with spaces whole, such as --device-info's "Pixel 8"; there are no
+// escapes.
+func splitArgs(s string) ([]string, error) {
+	var out []string
+	var cur strings.Builder
+	quote, inArg := rune(0), false
+	for _, r := range s {
+		switch {
+		case quote != 0 && r == quote:
+			quote = 0
+		case quote != 0:
+			cur.WriteRune(r)
+		case r == '"' || r == '\'':
+			quote, inArg = r, true
+		case r == ' ' || r == '\t' || r == '\n':
+			if inArg {
+				out = append(out, cur.String())
+				cur.Reset()
+				inArg = false
+			}
+		default:
+			cur.WriteRune(r)
+			inArg = true
+		}
+	}
+	if quote != 0 {
+		return nil, errors.New("a quote is not closed")
+	}
+	if inArg {
+		out = append(out, cur.String())
+	}
+	return out, nil
 }

@@ -222,4 +222,4 @@ Tokens and passwords are `config.Secret`, which prints, logs and marshals as `[r
 | `SHELF_DEV_FAKE_SOURCE` | `false` | Register the fake source, for UI work without accounts. |
 | `SHELF_LOG_LEVEL` | `info` | slog level. |
 
-The supervisor in shelf-wrapper reads `SHELF_WRAPPER_TOKEN`, plus optional `SHELF_WRAPPER_LITE_ARGS`: more wrapper-lite flags, split on spaces, for service mode and sign-in.
+The supervisor in shelf-wrapper reads `SHELF_WRAPPER_TOKEN`, plus optional `SHELF_WRAPPER_LITE_ARGS`: more wrapper-lite flags for service mode and sign-in, split on spaces, with quotes around a value that has spaces.

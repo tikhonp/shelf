@@ -14,7 +14,8 @@ Newest first. A changed decision gets a new entry that names the one it replaces
 | Failed runs | A non-zero amdl exit fails the download without per-song results; a retry picks up the files amdl skips. | With `exit-on-error`, amdl exits before it prints its list, and guessing the files from output or folder times would be fragile. |
 | Config rendering | The renderer parses the base config as YAML nodes, so comments and key order stay, and writes the rendered file before a run, not at startup. Replaces "a generic map, written at startup". | Init must not write, since `manage` runs it, and the rendered file stays readable next to the base. |
 | Requests | The client reads albums with `include=tracks,artists`, without `extend=extendedAssetUrls` and `record-labels`. | shelf uses neither; the label is an album attribute. |
-| Fixtures | The catalog tests use hand-written answers in the API's shape; the staging run's recorded answers replace them. | This session made no live call to the catalog API from the development machine. |
+| Fixtures | The catalog tests use hand-written answers in the API's shape, and the live artist views recorded on 2026-11-04 in `testdata/live`, without Apple's editorial notes. | The views were the open question; the other answers match the hand-written shape, and editorial prose has no place in the repo. |
+| Test device ID | A test wrapper signs in with its own `--device-info`, which `SHELF_WRAPPER_LITE_ARGS` passes with quotes. | wrapper-lite derives the device ID from the Apple ID, so a second wrapper on the production account would look like the same device. |
 
 ## 2026-11-04: step 1f
 
