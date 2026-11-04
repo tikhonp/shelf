@@ -147,6 +147,11 @@ func TestDownloadFailure(t *testing.T) {
 	if _, _, _, err := r.download("album", album, "applemusic:flac"); err == nil || !strings.Contains(err.Error(), "unknown format") {
 		t.Fatalf("%v", err)
 	}
+	// A playlist of music videos alone is refused before amdl runs.
+	_, _, args, err := r.download("album", source.Ref{Source: ID, Kind: source.KindPlaylist, ID: "pl.videos"}, FormatALAC)
+	if err == nil || err.Error() != "Videos has no songs; music videos are not supported yet" || args != "" {
+		t.Fatalf("%v, ran %q", err, args)
+	}
 	if _, _, _, err := r.download("album", source.Ref{Source: ID, Kind: source.KindArtist, ID: "111"}, FormatALAC); err == nil {
 		t.Fatal("an artist was downloaded")
 	}

@@ -60,6 +60,10 @@ func (s *Source) Download(ctx context.Context, req source.DownloadRequest, rep s
 	if err != nil {
 		return res, err
 	}
+	// amdl would save the videos and list nothing.
+	if len(rel.item.Tracks) == 0 {
+		return res, fmt.Errorf("%s has no songs; music videos are not supported yet", rel.item.Title)
+	}
 	rep.Plan(rel.item.Tracks)
 	link := downloadLink(sf, req.Ref)
 	log := rep.Log()

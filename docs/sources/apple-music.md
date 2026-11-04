@@ -29,7 +29,7 @@ The views become an artist's sections: Albums, EPs and singles, Compilations, an
 
 Albums and playlists list their songs and leave out music videos. amdl still downloads such a video, as an `.mp4` in the release folder, as the old setup did. amdl numbers the items of an album or playlist with the videos counted, and the runner maps its numbers to the songs' positions.
 
-The tests' answers in `internal/modules/applemusic/testdata` follow the API's shape but are hand-written. The staging run on blackberry records the live answers, the artist views above all, to replace them.
+Most of the tests' answers in `internal/modules/applemusic/testdata` are hand-written in the API's shape. `testdata/live` holds the artist views Apple answered for Radiohead on 2026-11-04, with their `next` pages and without editorial notes. A view answers 10 albums per page.
 
 Quality comes from the item's `audioTraits`:
 
@@ -86,6 +86,7 @@ Every other key keeps its value, its place and its comments, and the renderer ad
 - stdout and stderr go line by line into the job log. Both `\n` and `\r` end a line, because amdl draws progress bars with `\r`. A bar's redraws reach the log once every 5 seconds, and at 100%.
 - amdl prints `Track 3 of 12: songs` when it starts an item. The runner marks that song started. After it, `Track already exists locally.` or `Converted track already exists locally.` marks the song skipped. The runner keeps a line that says something failed, such as `Unavailable` or `Failed to run v4: …`, as the song's error. amdl's notes that it falls back to AAC, and its closing tally, don't count as failures.
 - At the end amdl prints a JSON array of the songs it wrote or found complete: path, artist, artist ID, album, song. The runner reads the last line that parses as one, since a name may start with `[` too. Each entry matches the next song of the release with that name, in release order. The release folders are the folders of those files, relative to the music root.
+- A release with no songs, such as a playlist of music videos, fails before amdl runs: amdl would save the videos and list nothing.
 - A song amdl didn't list fails with its error from the output, or "amdl did not write this song". A run that lists no song fails the download with "amdl wrote no songs" and the last failure. A run that stops before its list, such as without a token, fails with its last lines.
 - A non-zero exit fails the download with the last three error lines. With `exit-on-error`, amdl exits 1 when any song failed, before it prints its list, so the songs of that run aren't reported and the download ends failed. A retry runs amdl again, which skips the files it finds complete and lists them.
 - Cancel and the timeout send SIGTERM to the process group, then SIGKILL after 5 seconds. That stops ffmpeg too. The tool line in `shelf.txt` is `amdl 0.1.4, wrapper-lite storefront <storefront>`, and Apple Music calls a track a song.
@@ -110,7 +111,7 @@ The image starts from the `ghcr.io/tikhonp/wrapper-lite` image, pinned by digest
 
 ### Supervisor
 
-- It runs wrapper-lite in service mode: `/app/wrapper-lite-rootless --base-dir /data --host 0.0.0.0 --port 12340` from `/app`, plus the flags in `SHELF_WRAPPER_LITE_ARGS`, split on spaces. `--base-dir` is a path inside wrapper-lite's chroot, so `/data` there is `/app/rootfs/data` in the container, which is the mounted volume.
+- It runs wrapper-lite in service mode: `/app/wrapper-lite-rootless --base-dir /data --host 0.0.0.0 --port 12340` from `/app`, plus the flags in `SHELF_WRAPPER_LITE_ARGS`, split on spaces, with single or double quotes around a value that has spaces. `--base-dir` is a path inside wrapper-lite's chroot, so `/data` there is `/app/rootfs/data` in the container, which is the mounted volume.
 - Each run of wrapper-lite has its own process group. To stop it, the supervisor sends SIGINT to the launcher, the only signal it handles, and SIGKILL to the group after 10 seconds. Docker's SIGTERM starts that sequence, so compose needs no `stop_signal`.
 - When service mode exits by itself, the state becomes `error` with the exit code and the last line, and the supervisor starts it again after a wait that doubles from 1 second to 1 minute. A run that lasted a minute starts the next wait from 1 second.
 - It reads `GET /status` every second until a new run answers, then every 15 seconds. A poll that fails changes nothing, since a busy wrapper-lite can be slow to answer.
@@ -164,5 +165,5 @@ The shelf UI drives this through `/api/applemusic/wrapper/*`. Neither shelf nor 
 - The code window is 60 seconds. That limit is in wrapper-lite, not shelf.
 - wrapper-lite serves `/key` and `/m3u8` one request at a time.
 - Its Android libraries use the DNS servers 223.5.5.5 and 223.6.6.6, so the container needs outbound DNS to them.
-- wrapper-lite derives its device ID from the Apple ID, so a second wrapper signed in to the same account looks like the same device. Signing in a test wrapper may disturb the production session.
+- wrapper-lite derives its device ID from the Apple ID, so a second wrapper signed in to the same account looks like the same device, and its sign-in may disturb the production session. Give a test wrapper its own ID: `SHELF_WRAPPER_LITE_ARGS='--device-info "Music/5.0.2/Android/10/Pixel 8/7663314/en-US/en-US/<16 hex digits>"'`, wrapper-lite's default device info with another last part.
 - The data volume stays `${SWINGMUSIC_DATA}/apple-music-lite-data` at `/app/rootfs/data`, so the current session survives the switch to shelf-wrapper.

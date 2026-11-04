@@ -140,6 +140,14 @@ func (f *fakeApple) serve(w http.ResponseWriter, r *http.Request) {
 		f.fixture(w, "song.json")
 	case p == "playlists/pl.0123456789abcdef":
 		f.fixture(w, "playlist.json")
+	case p == "artists/657515" && q.Get("views") != "":
+		f.fixture(w, "live/artist-657515-views.json")
+	case p == "artists/657515/view/full-albums" && q.Get("offset") == "10":
+		f.fixture(w, "live/artist-657515-view-full-albums-10.json")
+	case p == "artists/657515/view/singles" && (q.Get("offset") == "10" || q.Get("offset") == "20"):
+		f.fixture(w, "live/artist-657515-view-singles-"+q.Get("offset")+".json")
+	case p == "playlists/pl.videos":
+		_, _ = w.Write([]byte(`{"data":[{"id":"pl.videos","type":"playlists","attributes":{"name":"Videos"},"relationships":{"tracks":{"data":[{"id":"1500000001","type":"music-videos","attributes":{"name":"Shoreline (Video)"}}]}}}]}`))
 	case p == "artists/111" && q.Get("views") != "":
 		f.fixture(w, "artist-views.json")
 	case p == "artists/111/view/full-albums" && q.Get("offset") == "1":

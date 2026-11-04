@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"syscall"
@@ -532,6 +533,20 @@ func TestLogRingRedacts(t *testing.T) {
 		if strings.Contains(l, "p4ss") {
 			t.Fatalf("stdout got %q", l)
 		}
+	}
+}
+
+func TestSplitArgs(t *testing.T) {
+	got, err := splitArgs(` --device-info "Music/5.0.2/Android/10/Pixel 8/7663314/en-US/en-US/0123" --log-level 'debug'  -x "" `)
+	want := []string{"--device-info", "Music/5.0.2/Android/10/Pixel 8/7663314/en-US/en-US/0123", "--log-level", "debug", "-x", ""}
+	if err != nil || !slices.Equal(got, want) {
+		t.Fatalf("%q %v", got, err)
+	}
+	if got, err := splitArgs(""); err != nil || len(got) != 0 {
+		t.Fatalf("%q %v", got, err)
+	}
+	if _, err := splitArgs(`--proxy "http://x`); err == nil {
+		t.Fatal("an open quote was accepted")
 	}
 }
 
