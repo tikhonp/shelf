@@ -21,7 +21,7 @@ End-to-end checks that only the real deployment can answer: real accounts, the r
 9. Telegram: a link gets a status message with the cover that moves from queued to downloading to done. Cancel stops a running download, and Retry starts it again in the same message. A link already in the library says when it was downloaded, and Download again fetches it. An artist link asks before queuing. Plain text returns album buttons that queue on tap. `/queue` lists progress. A user outside the whitelist is refused. A restart of shelf while a download runs keeps its message moving, and it ends with one final edit.
 10. Every finished download's folder has a `shelf.txt` with the right IDs and links, and a second download into the same folder appends a block.
 11. New folders are 0755 and new files 0644, owned by 10001, and Navidrome lists the new albums.
-12. The next morning a backup is in `${SWINGMUSIC_DATA}/shelf/backups`, and the morning after it is on the HDD, with no `shelf.db` beside it.
+12. The next morning a backup is in `${SWINGMUSIC_DATA}/shelf/backups`, and the morning after it is on the HDD.
 
 ## Results
 
@@ -38,3 +38,16 @@ Apple Music only, through the API, on images from `d54a2f9`. Qobuz, Navidrome an
 | 7 | Passed: skipped without force, 10 skipped with force, and only the deleted track downloaded. |
 | 10 | Passed: `shelf.txt` holds the right IDs and links, and later downloads appended their blocks. |
 | 11 | Passed for modes and owner. Navidrome was off. |
+
+### 2026-11-04, production on blackberry
+
+shelf and shelf-wrapper from `be76a2d`, run from `shelf.yaml` beside the old pipeline. Claude read the results through the API behind the gateway, except for the checks the owner ran.
+
+| Check | Result |
+| --- | --- |
+| 1 | Passed. Qobuz is healthy with the Studio label, Apple Music says `Signed in, storefront RU`, Navidrome answers in 9 ms with 11385 songs, and the bot is connected as `@music_shelf_bot` with 2 users. |
+| 2 | Passed, run by the owner from the Status card. The timeout part passed on staging. |
+| 4 | Partly run. Blue Lines from Qobuz at 27 and Mezzanine from Apple Music in ALAC both ended `done`, 9 of 9 and 11 of 11, one after the other rather than at the same time. Navidrome scanned at 11:34:14, 31 seconds after Mezzanine finished. The comparison with the old tools' output is still to run. |
+| 9 | The owner saw the bot answer. Its separate lines are still to run. |
+
+The extra checks in [build/1h.md](build/1h.md): the owner checked that the `find` on `qobuz/` and `apple-music/` prints nothing and that the tunnel is healthy. The vhost answers 401 without basic auth.
