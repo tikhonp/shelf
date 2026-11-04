@@ -4,7 +4,8 @@
 #
 #   FAKE_DATA     the folder that --base-dir names, as the supervisor sees it
 #   FAKE_SERVICE  service mode: "run" waits for SIGINT (the default), "exit"
-#                 exits at once, "stubborn" ignores SIGINT
+#                 exits at once, "stubborn" ignores SIGINT and starts a
+#                 child that only a SIGKILL to the group ends
 #   FAKE_LOGIN    sign-in: "code" asks for a code (the default), "direct"
 #                 signs in without one, "fail" fails at once
 #   FAKE_CODE     the code that signs in, 123456 by default
@@ -73,6 +74,7 @@ case "${FAKE_SERVICE:-run}" in
     ;;
   stubborn)
     trap '' INT
+    sleep 300 &
     ;;
   *)
     trap 'rm -f "$FAKE_DATA/listening"; say INFO "received signal 2, stopping service"; say INFO "wrapper-lite stopped"; exit 0' INT
