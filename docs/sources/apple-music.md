@@ -29,7 +29,7 @@ The views become an artist's sections: Albums, EPs and singles, Compilations, an
 
 Albums and playlists list their songs and leave out music videos. amdl still downloads such a video, as an `.mp4` in the release folder, as the old setup did. amdl numbers the items of an album or playlist with the videos counted, and the runner maps its numbers to the songs' positions.
 
-Most of the tests' answers in `internal/modules/applemusic/testdata` are hand-written in the API's shape. `testdata/live` holds the artist views Apple answered for Radiohead on 2026-11-04, with their `next` pages and without editorial notes. A view answers 10 albums per page.
+Most of the tests' answers in `internal/modules/applemusic/testdata` are hand-written in the API's shape. `testdata/live` holds answers Apple gave on 2026-11-04, without editorial notes: Radiohead's artist views with their `next` pages, and the album In Rainbows. A view answers 10 albums per page.
 
 Quality comes from the item's `audioTraits`:
 
@@ -66,7 +66,7 @@ Before each run the runner checks the base config from `SHELF_AMDL_CONFIG`. In p
 | Key | Value | Why |
 | --- | --- | --- |
 | `general.lite-server` | `SHELF_WRAPPER_URL` | The wrapper's address on the compose network. |
-| `general.exit-on-error` | `true` | Otherwise a failed track makes amdl wait on stdin and run the whole queue again. |
+| `general.exit-on-error` | `true` | Otherwise amdl reads stdin after a pass in which a song failed, and runs the whole queue again. With stdin empty it would repeat that until the timeout. |
 | `general.proxy` | empty | A proxy here would also carry the wrapper traffic. |
 | `paths.alac`, `paths.atmos`, `paths.aac`, `paths.mv` | `/music/<SHELF_APPLE_DIR>` | Files land where they land today. |
 
@@ -83,15 +83,19 @@ Every other key keeps its value, its place and its comments, and the renderer ad
 - Command: `amdl --config /data/amdl/config.yaml --json <url>`, plus `--atmos` for the Dolby Atmos format or `--aac` for AAC.
 - Working folder `/data/amdl`, with `XDG_CACHE_HOME=/data/amdl/.cache` and `TMPDIR=/data/amdl/tmp`, and stdin empty.
 - Its own process group, a timeout of `SHELF_AMDL_TIMEOUT`, and the container's umask 022.
-- stdout and stderr go line by line into the job log. Both `\n` and `\r` end a line, because amdl draws progress bars with `\r`. A bar's redraws reach the log once every 5 seconds, and at 100%.
-- amdl prints `Track 3 of 12: songs` when it starts an item. The runner marks that song started. After it, `Track already exists locally.` or `Converted track already exists locally.` marks the song skipped. The runner keeps a line that says something failed, such as `Unavailable` or `Failed to run v4: …`, as the song's error. amdl's notes that it falls back to AAC, and its closing tally, don't count as failures.
+- stdout and stderr go line by line into the job log, except the closing list. Both `\n` and `\r` end a line, because amdl redraws its progress bars with `\r`. amdl writes no color codes into a pipe.
+- amdl draws two bars, without the bar itself: `Decrypting...` while it fetches and decrypts a song, and `Downloading...` for AAC. A redraw looks like `Decrypting...  42%  (12/27 MB, 4.6 MB/s)`, and the last one like `Decrypting... 100%  (27/27 MB, 24 MB/s) [1s] Decrypted`. Redraws reach the log once every 5 seconds, and at 100%. Each redraw's count becomes the song's progress, at most once a second and always at 100%. The bar rounds the count and uses decimal units. It measures the stream amdl fetches, and the song's size becomes the file's size when the run ends.
+- amdl prints `Track 3 of 12: songs` when it starts an item. The runner marks that song started. After it, `Track already exists locally.` or `Converted track already exists locally.` marks the song skipped. The runner keeps a line that says something failed, such as `Unavailable`, `⚠ Failed to extract info from manifest: …` or `Failed to run v4: …`, as the song's error. amdl's notes that it falls back to AAC, `Repaired 3 affected packets`, and its closing tally don't count as failures.
+- A failure that cuts a bar short follows it on the same line: `Decrypting...   7%  (1.5/22 MB, 35 MB/s) Failed to run v4: lite-server /key returned code=500 msg=internal error`. The runner splits the bar off, and such a line always reaches the log.
 - At the end amdl prints a JSON array of the songs it wrote or found complete: path, artist, artist ID, album, song. The runner reads the last line that parses as one, since a name may start with `[` too. Each entry matches the next song of the release with that name, in release order. The release folders are the folders of those files, relative to the music root.
 - A release with no songs, such as a playlist of music videos, fails before amdl runs: amdl would save the videos and list nothing.
+- A Dolby Atmos download fails before amdl runs with "<title> has no Dolby Atmos version" when no song of the release has the `atmos` trait. amdl would fail every song with `⚠ Failed to extract info from manifest: no codec found`, exit 0, print `null`, and leave a release folder with lyrics and a cover. A song without traits lets amdl try.
 - A song amdl didn't list fails with its error from the output, or "amdl did not write this song". A run that lists no song fails the download with "amdl wrote no songs" and the last failure. A run that stops before its list, such as without a token, fails with its last lines.
-- A non-zero exit fails the download with the last three error lines. With `exit-on-error`, amdl exits 1 when any song failed, before it prints its list, so the songs of that run aren't reported and the download ends failed. A retry runs amdl again, which skips the files it finds complete and lists them.
-- Cancel and the timeout send SIGTERM to the process group, then SIGKILL after 5 seconds. That stops ffmpeg too. The tool line in `shelf.txt` is `amdl 0.1.4, wrapper-lite storefront <storefront>`, and Apple Music calls a track a song.
+- A run that ends with `Error detected, exiting...` went through every song, and some failed; amdl exits 1 before it prints its list. The runner runs amdl once more. amdl skips the files it finished and lists them, and a song may pass on the second try. In a live run Apple's key server refused one song's key, wrapper-lite logged `Invalid CKC error.`, and the second try got the key. A song the first run wrote counts as done, not skipped.
+- A second failed run, or any other non-zero exit, fails the download with the last three error lines and no per-song results. A retry runs amdl again, which skips the files it finds complete and lists them.
+- Cancel and the timeout send SIGTERM to the process group, then SIGKILL after 5 seconds. That stops ffmpeg too. Each run has its own timeout. The tool line in `shelf.txt` is `amdl 0.1.4, wrapper-lite storefront <storefront>`, and Apple Music calls a track a song.
 
-The output rules come from amdl's source. The staging run on blackberry records a real run's output as a fixture, and per-song byte progress from the bars can follow from it.
+The output rules come from amdl's source and from runs recorded on 2026-11-04 against a signed-in wrapper, in `internal/modules/applemusic/amdl/testdata/live`: In Rainbows downloaded for the first time, again over its own files, and with `--atmos`. The runs used the shelf image's amdl, the rendered config and the runner's folders.
 
 ### Formats
 
@@ -115,7 +119,7 @@ The image starts from the `ghcr.io/tikhonp/wrapper-lite` image, pinned by digest
 - Each run of wrapper-lite has its own process group. To stop it, the supervisor sends SIGINT to the launcher, the only signal it handles, and SIGKILL to the group after 10 seconds. Docker's SIGTERM starts that sequence, so compose needs no `stop_signal`.
 - When service mode exits by itself, the state becomes `error` with the exit code and the last line, and the supervisor starts it again after a wait that doubles from 1 second to 1 minute. A run that lasted a minute starts the next wait from 1 second.
 - It reads `GET /status` every second until a new run answers, then every 15 seconds. A poll that fails changes nothing, since a busy wrapper-lite can be slow to answer.
-- It keeps the last 1,000 lines of wrapper-lite's output and its own notes, and writes each to stdout as a JSON log line. The supervisor drops wrapper-lite's `request: GET /status` lines, which would fill the log. While a sign-in runs, the supervisor replaces its password with `[redacted]` in every line, and the supervisor's own note of the command shows `user:[redacted]`.
+- It keeps the last 1,000 lines of wrapper-lite's output and its own notes, and writes each to stdout as a JSON log line. The supervisor drops wrapper-lite's `request: GET /status` lines, which would fill the log. While a sign-in runs, the supervisor replaces its password with `[redacted]` in every line, and the supervisor's own note of the command shows `user:[redacted]`. wrapper-lite prints the first characters of its tokens when it loads its token cache, `token cache loaded (dev=<16 characters>... music=<16 characters>...)`, and again in its debug lines; the supervisor replaces each `dev=` and `music=` value with `[redacted]`.
 
 ### Control API
 

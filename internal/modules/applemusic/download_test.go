@@ -16,18 +16,25 @@ import (
 
 // reporter records what a download reports.
 type reporter struct {
-	mu      sync.Mutex
-	planned []source.Track
-	started []int
-	done    map[int]source.TrackResult
-	lines   []string
+	mu       sync.Mutex
+	planned  []source.Track
+	started  []int
+	progress map[int][]int64
+	done     map[int]source.TrackResult
+	lines    []string
 }
 
-func newReporter() *reporter { return &reporter{done: map[int]source.TrackResult{}} }
+func newReporter() *reporter {
+	return &reporter{done: map[int]source.TrackResult{}, progress: map[int][]int64{}}
+}
 
 func (r *reporter) Plan(t []source.Track) { r.mu.Lock(); r.planned = t; r.mu.Unlock() }
 func (r *reporter) Start(p int)           { r.mu.Lock(); r.started = append(r.started, p); r.mu.Unlock() }
-func (r *reporter) Progress(int, int64)   {}
+func (r *reporter) Progress(p int, n int64) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.progress[p] = append(r.progress[p], n)
+}
 func (r *reporter) Done(p int, res source.TrackResult) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -47,10 +54,10 @@ func (l logger) Info(f string, a ...any)  { l.add(f, a...) }
 func (l logger) Warn(f string, a ...any)  { l.add(f, a...) }
 func (l logger) Error(f string, a ...any) { l.add(f, a...) }
 
-func (r *rig) download(mode string, ref source.Ref, format string) (*reporter, source.DownloadResult, string, error) {
+func (r *rig) download(mode string, ref source.Ref, format string, env ...string) (*reporter, source.DownloadResult, string, error) {
 	r.t.Helper()
 	args := filepath.Join(r.t.TempDir(), "args")
-	r.s.runner.Env = []string{"SHELF_FAKE_AMDL=" + mode, "FAKE_ARGS=" + args}
+	r.s.runner.Env = append([]string{"SHELF_FAKE_AMDL=" + mode, "FAKE_ARGS=" + args}, env...)
 	rep := newReporter()
 	res, err := r.s.Download(bg, source.DownloadRequest{DownloadID: 1, Ref: ref, Format: format, MusicDir: r.music}, rep)
 	b, _ := os.ReadFile(args)
@@ -96,7 +103,7 @@ func TestDownloadAlbum(t *testing.T) {
 		t.Fatalf("%+v", res)
 	}
 	log := strings.Join(rep.lines, "\n")
-	for _, want := range []string{"Running amdl --json for https://music.apple.com/ru/album/1440000000", "Track 1 of 3: songs", "100% |"} {
+	for _, want := range []string{"Running amdl --json for https://music.apple.com/ru/album/1440000000", "Track 1 of 3: songs", "Decrypting... 100%"} {
 		if !strings.Contains(log, want) {
 			t.Errorf("log lacks %q:\n%s", want, log)
 		}
@@ -115,6 +122,151 @@ func TestDownloadSong(t *testing.T) {
 	// amdl numbers the song by its album; it is still the one track.
 	if !slices.Equal(rep.started, []int{1}) || rep.done[1].Path != folder+"/02. Undertow.flac" || !slices.Equal(res.Folders, []string{folder}) {
 		t.Fatalf("%v %+v %+v", rep.started, rep.done, res)
+	}
+}
+
+// TestDownloadRecorded replays amdl's recorded runs for In Rainbows against
+// Apple's recorded answer for the album.
+func TestDownloadRecorded(t *testing.T) {
+	r := newRig(t)
+	rainbows := source.Ref{Source: ID, Kind: source.KindAlbum, ID: "1109714933"}
+	replay := func(name, format string) (*reporter, source.DownloadResult, string, error) {
+		t.Helper()
+		fixture, err := filepath.Abs(filepath.Join("amdl", "testdata", "live", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r.download("replay", rainbows, format, "FAKE_REPLAY="+fixture)
+	}
+	const dir = "apple-music/Radiohead - In Rainbows (2007)[16B-44.1kHz]"
+	ten := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+
+	rep, res, _, err := replay("in-rainbows-fresh.txt", FormatALAC)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rep.planned) != 10 || !slices.Equal(rep.started, ten) || !slices.Equal(res.Folders, []string{dir}) || len(res.Files) != 10 {
+		t.Fatalf("planned %d, started %v, %+v", len(rep.planned), rep.started, res)
+	}
+	for _, n := range ten {
+		d := rep.done[n]
+		if d.Err != nil || d.Skipped || d.Quality.Codec != "flac" || d.Quality.BitDepth != 16 || d.Quality.SampleRate != 44100 ||
+			!strings.HasPrefix(d.Path, dir+"/") || filepath.Base(d.Path)[:3] != fmt.Sprintf("%02d.", n) {
+			t.Fatalf("song %d: %+v", n, d)
+		}
+		// A song's progress ends at its bar's 100%.
+		if p := rep.progress[n]; len(p) == 0 || p[len(p)-1] < 10_000_000 {
+			t.Fatalf("song %d progress %v", n, p)
+		}
+	}
+	if p := rep.progress[1]; p[len(p)-1] != 27_000_000 {
+		t.Fatalf("song 1 progress %v", p)
+	}
+	if rep.done[4].Path != dir+"/04. Weird Fishes _ Arpeggi.flac" {
+		t.Fatalf("%+v", rep.done[4])
+	}
+	// The replay prints everything at once, so the log keeps only the first
+	// redraw and every 100%. It has none of the list.
+	bars := 0
+	for _, l := range rep.lines {
+		if amdl.IsBar(l) {
+			bars++
+		}
+		if strings.HasPrefix(l, "[{") {
+			t.Fatalf("log has the list: %.60s", l)
+		}
+	}
+	if bars != 11 {
+		t.Fatalf("%d bars in the log", bars)
+	}
+
+	// A second run finds every file complete.
+	rep, _, _, err = replay("in-rainbows-exists.txt", FormatALAC)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, n := range ten {
+		if d := rep.done[n]; d.Err != nil || !d.Skipped || d.Size == 0 || !strings.HasPrefix(d.Path, dir+"/") {
+			t.Fatalf("song %d: %+v", n, d)
+		}
+	}
+
+	// The album has no Dolby Atmos version, which the catalog tells before
+	// amdl runs.
+	_, _, args, err := replay("in-rainbows-atmos.txt", FormatAtmos)
+	if err == nil || err.Error() != "In Rainbows has no Dolby Atmos version" || args != "" {
+		t.Fatalf("%v, args %q", err, args)
+	}
+	// Had amdl run for it, it would have exited 0, listed nothing, and
+	// named the failure on every song.
+	rep, _, _, err = replay("in-rainbows-atmos.txt", FormatALAC)
+	const noCodec = "⚠ Failed to extract info from manifest: no codec found"
+	if err == nil || err.Error() != "amdl wrote no songs: "+noCodec {
+		t.Fatal(err)
+	}
+	for _, n := range ten {
+		if d := rep.done[n]; d.Err == nil || d.Err.Error() != noCodec {
+			t.Fatalf("song %d: %+v", n, d)
+		}
+	}
+}
+
+// TestDownloadRunsAgain checks that a run in which a song failed runs once
+// more.
+func TestDownloadRunsAgain(t *testing.T) {
+	const keyRefused = "Failed to run v4: lite-server /key returned code=500 msg=internal error"
+	r := newRig(t)
+	dir := filepath.Join(r.music, folder)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "03. Breakwater.flac"), flacHeader(24, 96000), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	state := filepath.Join(t.TempDir(), "runs")
+	rep, _, _, err := r.download("flaky", album, FormatALAC, "FAKE_STATE="+state, "FAKE_FAILS=1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Song 1 came in the first run, song 2 in the second; song 3 was there
+	// before.
+	if d := rep.done[1]; d.Err != nil || d.Skipped {
+		t.Fatalf("song 1: %+v", d)
+	}
+	if d := rep.done[2]; d.Err != nil || d.Skipped || d.Path != folder+"/02. Undertow.flac" {
+		t.Fatalf("song 2: %+v", d)
+	}
+	if d := rep.done[3]; d.Err != nil || !d.Skipped {
+		t.Fatalf("song 3: %+v", d)
+	}
+	if !slices.Equal(rep.started, []int{1, 2, 3, 1, 2, 3}) {
+		t.Fatalf("started %v", rep.started)
+	}
+	log := strings.Join(rep.lines, "\n")
+	// The failure printed after a bar reaches the log, though that bar came
+	// right after the one before. The redraw before it stays out.
+	for _, want := range []string{
+		"Decrypting...  20%  (2.0/9.9 MB, 5.0 MB/s) " + keyRefused,
+		"A song failed, so amdl runs once more: " + keyRefused,
+	} {
+		if !strings.Contains(log, want) {
+			t.Fatalf("log lacks %q:\n%s", want, log)
+		}
+	}
+	if strings.Contains(log, "Decrypting...  10%") {
+		t.Fatalf("log kept a redraw:\n%s", log)
+	}
+
+	// A song that fails twice fails the download, after two runs.
+	_ = os.Remove(filepath.Join(dir, "02. Undertow.flac"))
+	_ = os.Remove(state)
+	_, _, _, err = r.download("flaky", album, FormatALAC, "FAKE_STATE="+state, "FAKE_FAILS=2")
+	var ee *amdl.ExitError
+	if !errors.As(err, &ee) || err.Error() != "amdl exited with code 1: "+keyRefused {
+		t.Fatalf("%v", err)
+	}
+	if b, _ := os.ReadFile(state); string(b) != "2" {
+		t.Fatalf("%s runs", b)
 	}
 }
 

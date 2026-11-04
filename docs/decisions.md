@@ -2,6 +2,18 @@
 
 Newest first. A changed decision gets a new entry that names the one it replaces.
 
+## 2026-11-04: step 1e, local downloads
+
+Made after a signed-in local wrapper ran real downloads through shelf.
+
+| Topic | Decision | Why |
+| --- | --- | --- |
+| Failed runs | A run that ends with amdl's `Error detected, exiting...` runs once more, and a song the first run wrote counts as done. A second failure, or any other non-zero exit, still fails the download without per-song results. Replaces 1e's "a non-zero exit fails the download". | In a live run Apple's key server refused one song's key, and a retry got it. amdl skips the files it finished, so the second run costs little, and `exit-on-error: false` would loop on empty stdin. |
+| Song progress | The byte count of amdl's bars becomes the song's progress, at most once a second and at 100%. Adds to 1e's progress row. | The recorded runs show the bars' format. |
+| Dolby Atmos | A Dolby Atmos download fails before amdl runs when no song of the release has the `atmos` trait. | amdl fails every song, exits 0, and leaves a folder with lyrics and a cover. |
+| Token heads | The supervisor replaces the token heads that wrapper-lite prints after `dev=` and `music=` with `[redacted]`. Adds to 1e's wrapper log row. | The log reaches the Status page, and the heads are the start of the account's tokens. |
+| Fixtures | amdl's output and Apple's album answer for In Rainbows, recorded on this Mac, stand for the staging run's fixtures. | The owner asked to leave blackberry alone, and the local stack ran the same images. |
+
 ## 2026-11-04: step 1e
 
 | Topic | Decision | Why |

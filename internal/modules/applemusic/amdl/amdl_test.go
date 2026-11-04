@@ -187,6 +187,12 @@ func TestRunnerOutput(t *testing.T) {
 	if len(bars) != 3 || !strings.Contains(bars[2], "100%") {
 		t.Fatalf("bars %q", bars)
 	}
+	// The list is the result, not a line of the log.
+	for _, l := range lines {
+		if strings.HasPrefix(l, "[{") {
+			t.Fatalf("line hears the list: %s", l)
+		}
+	}
 	if !slices.Equal(started, []int{1, 2, 3}) {
 		t.Fatalf("started %v", started)
 	}
@@ -325,5 +331,189 @@ func TestErrorLines(t *testing.T) {
 		"Failed to run v4: a", "Failed to rip album: b", "Failed to write cover.", "=======  [✔ ] Completed", "Error detected, exiting..."}
 	if got := amdl.ErrorLines(tail); !slices.Equal(got, []string{"Failed to run v4: a", "Failed to rip album: b", "Failed to write cover."}) {
 		t.Fatalf("%q", got)
+	}
+}
+
+func TestBar(t *testing.T) {
+	for line, want := range map[string]int64{
+		"Decrypting...   0%  (1.0 kB/27 MB, 19 MB/s)":                 1000,
+		"Decrypting...  42%  (12/27 MB, 4.6 MB/s)":                    12_000_000,
+		"Decrypting...   6%  (1.7/27 MB, 8.9 MB/s) ":                  1_700_000,
+		"Decrypting... 100%  (27/27 MB, 24 MB/s) [1s] Decrypted":      27_000_000,
+		"Decrypting...   0%  (512 B/27 MB, 1.0 MB/s)":                 512,
+		"Downloading...  50%  (1.2/2.4 GB, 30 MB/s)":                  1_200_000_000,
+		"Downloading... (3.1 MB, 2.0 MB/s) [2s]":                      3_100_000,
+		"Converting -> flac ...":                                      -1,
+		"Conversion completed in 917ms: 01. 15 Step.flac":             -1,
+		"Decrypting... done":                                          -1,
+		"MV Remuxing...":                                              -1,
+		"03. Downloading... (Live)":                                   -1,
+		"Track 1 of 10: songs":                                        -1,
+		"Downloading...  50% |█████     | (1.0/2.0 MB, 4.0 MB/s)":     1_000_000,
+		"Decrypting...  50%  (1.0/2.0 MB, 4.0 MB/s)\tand a long tail": 1_000_000,
+	} {
+		got, ok := amdl.Bar(line)
+		if want < 0 {
+			if ok {
+				t.Errorf("%q gave %d", line, got)
+			}
+			continue
+		}
+		if !ok || got != want {
+			t.Errorf("%q gave %d %v, want %d", line, got, ok, want)
+		}
+	}
+}
+
+// TestRecordedRuns replays amdl 0.1.4's output for In Rainbows, recorded
+// on 2026-11-04 against a signed-in wrapper: a first run, a second run
+// over the files the first wrote, and an --atmos run of an album that has
+// no Dolby Atmos version.
+func TestRecordedRuns(t *testing.T) {
+	type run struct {
+		lines, bars []string
+		started     []int
+		tr          *amdl.Tracker
+		res         amdl.Result
+	}
+	replay := func(name string) run {
+		t.Helper()
+		fixture, err := filepath.Abs(filepath.Join("testdata", "live", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		r := runner(t, "FAKE_AMDL=replay", "FAKE_REPLAY="+fixture)
+		out := run{tr: amdl.NewTracker()}
+		out.res, err = r.Run(context.Background(), "https://music.apple.com/ru/album/1109714933", nil, func(l string) {
+			out.lines = append(out.lines, l)
+			if amdl.IsBar(l) {
+				out.bars = append(out.bars, l)
+			}
+			if n := out.tr.Line(l); n > 0 {
+				out.started = append(out.started, n)
+			}
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+	ten := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+
+	fresh := replay("in-rainbows-fresh.txt")
+	if !fresh.res.Listed || len(fresh.res.Tracks) != 10 || !slices.Equal(fresh.started, ten) {
+		t.Fatalf("listed %v, %d tracks, started %v", fresh.res.Listed, len(fresh.res.Tracks), fresh.started)
+	}
+	first := fresh.res.Tracks[0]
+	if first.Path != "/music/apple-music/Radiohead - In Rainbows (2007)[16B-44.1kHz]/01. 15 Step.flac" || first.Song != "15 Step" ||
+		first.ArtistID != "657515" || fresh.res.Tracks[3].Song != "Weird Fishes / Arpeggi" ||
+		filepath.Base(fresh.res.Tracks[3].Path) != "04. Weird Fishes _ Arpeggi.flac" {
+		t.Fatalf("%+v", fresh.res.Tracks)
+	}
+	// Every redraw is a bar with a count, and each song ends at 100%.
+	full := 0
+	for _, b := range fresh.bars {
+		if _, ok := amdl.Bar(b); !ok {
+			t.Errorf("no count in %q", b)
+		}
+		if strings.Contains(b, "100%") {
+			full++
+		}
+	}
+	if len(fresh.bars) < 100 || full != 10 {
+		t.Fatalf("%d bars, %d at 100%%", len(fresh.bars), full)
+	}
+	for _, n := range ten {
+		if fresh.tr.Skipped(n) || fresh.tr.Failure(n) != "" {
+			t.Fatalf("song %d: skipped %v, failure %q", n, fresh.tr.Skipped(n), fresh.tr.Failure(n))
+		}
+	}
+	// "Repaired 3 affected packets" and the closing tally are not failures.
+	if fresh.tr.LastFailure() != "" {
+		t.Fatalf("failure %q", fresh.tr.LastFailure())
+	}
+	for _, l := range fresh.lines {
+		if strings.HasPrefix(l, "[{") {
+			t.Fatalf("line hears the list: %.60s", l)
+		}
+	}
+
+	again := replay("in-rainbows-exists.txt")
+	if !again.res.Listed || len(again.res.Tracks) != 10 || !slices.Equal(again.started, ten) || len(again.bars) != 0 {
+		t.Fatalf("listed %v, %d tracks, started %v, %d bars", again.res.Listed, len(again.res.Tracks), again.started, len(again.bars))
+	}
+	for _, n := range ten {
+		if !again.tr.Skipped(n) {
+			t.Fatalf("song %d not skipped", n)
+		}
+	}
+
+	atmos := replay("in-rainbows-atmos.txt")
+	// amdl exits 0 and lists nothing. Only its lines name the failures.
+	if !atmos.res.Listed || len(atmos.res.Tracks) != 0 || !slices.Equal(atmos.started, ten) {
+		t.Fatalf("listed %v, %d tracks, started %v", atmos.res.Listed, len(atmos.res.Tracks), atmos.started)
+	}
+	const noCodec = "⚠ Failed to extract info from manifest: no codec found"
+	for _, n := range ten {
+		if atmos.tr.Failure(n) != noCodec {
+			t.Fatalf("song %d: %q", n, atmos.tr.Failure(n))
+		}
+	}
+}
+
+func TestSplitBar(t *testing.T) {
+	// From a live run, where Apple's key server refused a song's key.
+	const live = "Decrypting...   7%  (1.5/22 MB, 35 MB/s) Failed to run v4: lite-server /key returned code=500 msg=internal error"
+	for line, want := range map[string][2]string{
+		live: {"Decrypting...   7%  (1.5/22 MB, 35 MB/s)", "Failed to run v4: lite-server /key returned code=500 msg=internal error"},
+		"Decrypting... 100%  (27/27 MB, 24 MB/s) [1s] Decrypted": {"Decrypting... 100%  (27/27 MB, 24 MB/s) [1s]", "Decrypted"},
+		"Decrypting...  42%  (12/27 MB, 4.6 MB/s) ":              {"Decrypting...  42%  (12/27 MB, 4.6 MB/s)", ""},
+		"Downloading... (3.1 MB, 2.0 MB/s) [2s]":                 {"Downloading... (3.1 MB, 2.0 MB/s) [2s]", ""},
+		"Converting -> flac ...":                                 {"", "Converting -> flac ..."},
+	} {
+		bar, rest := amdl.SplitBar(line)
+		if bar != want[0] || rest != want[1] {
+			t.Errorf("%q gave %q and %q", line, bar, rest)
+		}
+	}
+
+	tr := amdl.NewTracker()
+	tr.Line("Track 11 of 12: songs")
+	tr.Line(live)
+	if got := tr.Failure(11); got != "Failed to run v4: lite-server /key returned code=500 msg=internal error" {
+		t.Fatalf("failure %q", got)
+	}
+	if got := amdl.ErrorLines([]string{"Track 11 of 12: songs", live, "Error detected, exiting..."}); len(got) != 1 || got[0] != tr.Failure(11) {
+		t.Fatalf("error lines %q", got)
+	}
+	if !amdl.FailedPass([]string{"=======  [✔ ] Completed: 11/12  |  [⚠ ] Warnings: 0  |  [✖ ] Errors: 1  =======", "Error detected, exiting..."}) ||
+		amdl.FailedPass([]string{"Failed to get token."}) {
+		t.Fatal("FailedPass")
+	}
+}
+
+func TestTrackerAgain(t *testing.T) {
+	tr := amdl.NewTracker()
+	for _, l := range []string{
+		"Track 1 of 3: songs", "Converted track already exists locally.",
+		"Track 2 of 3: songs", "Conversion completed in 1s: 02. B.flac",
+		"Track 3 of 3: songs", "Failed to run v4: key retrieval failed",
+	} {
+		tr.Line(l)
+	}
+	tr.Again()
+	if tr.Failure(3) != "" || tr.LastFailure() != "" {
+		t.Fatal("failures kept")
+	}
+	for _, l := range []string{
+		"Track 1 of 3: songs", "Converted track already exists locally.",
+		"Track 2 of 3: songs", "Converted track already exists locally.",
+		"Track 3 of 3: songs", "Conversion completed in 1s: 03. C.flac",
+	} {
+		tr.Line(l)
+	}
+	// Song 1 was there before the first run; the first run wrote song 2.
+	if !tr.Skipped(1) || tr.Skipped(2) || tr.Skipped(3) || tr.First() != 1 {
+		t.Fatalf("skipped %v %v %v", tr.Skipped(1), tr.Skipped(2), tr.Skipped(3))
 	}
 }

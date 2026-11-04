@@ -502,6 +502,15 @@ func TestLogRingRedacts(t *testing.T) {
 		t.Fatalf("%d after 1490", len(got))
 	}
 
+	// wrapper-lite prints the heads of its tokens.
+	ring.add("2026-11-04 06:36:41.323 [INFO ] token cache loaded (dev=eyJhbGciOiJFUzI1... music=AbCdEfGh12345678...)")
+	ring.add("2026-11-04 06:40:00.000 [DEBUG] license: dev=eyJhbGciOiJFUzI1NiIsImtp... music=AbCdEfGh12345678ijklmnop... uri=skd://x")
+	for _, l := range ring.after(1500) {
+		if strings.Contains(l.Text, "eyJ") || strings.Contains(l.Text, "AbCd") || !strings.Contains(l.Text, "music=[redacted]") {
+			t.Fatalf("token head kept: %s", l.Text)
+		}
+	}
+
 	// A sign-in whose launcher echoes its arguments shows no password.
 	var echoed []string
 	var mu sync.Mutex
