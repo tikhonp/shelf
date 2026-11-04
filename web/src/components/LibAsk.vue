@@ -24,7 +24,7 @@ const title = computed(() => {
       <div id="ask-d" class="ask-body"><p v-for="w in editor.asks" :key="w.kind">{{ w.message }}</p></div>
       <div class="ask-keys">
         <button type="button" class="key" @click="editor.cancelAsks()">Cancel</button>
-        <button type="button" class="key sun" @click="editor.confirmAsks()">Save anyway</button>
+        <button type="button" class="key sun" @click="editor.confirmAsks()">{{ editor.askKey }}</button>
       </div>
     </section>
   </div>

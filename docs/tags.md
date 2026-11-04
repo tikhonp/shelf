@@ -181,6 +181,7 @@ The Library tab holds staged edits in the browser, per album, so opening another
 | `no_cover`, `bad_cover` | No Fix. The issue opens the cover dialog, and `bad_cover` offers Repair there. |
 
 - **After a Save.** A finished Save clears the stage and reads the album again. A Save or an undo that changes the Navidrome album ID gives the album a new row at the next walk. When the walk ends the editor asks the change for its `album_id`, moves there with any staged edits, and the address follows.
+- **An undo that asks.** An undo or redo from History asks as a Save does when it would split or merge albums or rename an album artist. The dialog's key says Undo anyway or Redo anyway, and pressing it sends the undo again with the confirm.
 - **A running Save.** The event stream has no replay, so a reconnect asks for the change.
 - **A release in the album ID field.** A MusicBrainz ID or link typed into `MUSICBRAINZ_ALBUMID` asks for the suggestions again with `?anchor=`. A release that fails to match shows its `reason`.
 - **Playback.** The player asks for the file as it is. When the browser refuses it, the player asks again with `?transcode=1`, and shelf streams it through ffmpeg as MP3. That stream has no length, so the position can't move. A second failure says the browser can't play the file.
@@ -316,7 +317,7 @@ Navidrome keeps the old `songCount` of an album that lost a track in a quick sca
 | Each Fix: the date pair, a key that feeds the release date, `DATE` alone, a file with no date, differing values, disagreeing tags, the flag, and the issues with no Fix | `web/src/lib/tags.test.ts` |
 | All fields: each key once, a row and a main field on one tag, a second key's own row, where a new key goes | `web/src/lib/tags.test.ts` |
 | A Save's confirm and Cancel, each refusal keeping the stage, a reload taking new revisions, a finished and a failed write, Save cover alone, following a new album ID, staged edits across albums, a reconnect | `web/src/stores/editor.store.test.ts` |
-| The list, its lamp, no match, the first index, a locked tag, a selected track, Revert, a suggestion, a note, a silent service, Fix, each refusal's state, custom fields, a deleted tag, keys, keys behind a dialog, a pasted release, a failed anchor, the long editor, the transcode retry, Open in Library | `web/src/components/library.test.ts` |
+| The list, its lamp, no match, the first index, a locked tag, a selected track, Revert, a suggestion, a note, a silent service, Fix, each refusal's state, an undo's confirm, custom fields, a deleted tag, keys, keys behind a dialog, a pasted release, a failed anchor, the long editor, the transcode retry, Open in Library | `web/src/components/library.test.ts` |
 | The files' release: release fields with one value and the anchor, catalogs that agree, track ID fills, held values left out, covers, the `.lrc` note, stored answers | `TestSuggestionsFromTheFilesRelease` |
 | Anchors by barcode, ISRC and search, with a compilation and a live album; a staged link; a files ID that fails the threshold or names no release; a bad anchor | `TestAnchorWays` |
 | A classical album searched without its artist, read with works, with composers | `TestClassicalSuggestsComposers` |

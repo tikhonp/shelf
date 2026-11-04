@@ -45,15 +45,24 @@ export const useHistory = defineStore('history', () => {
     details.value = { ...details.value, [id]: await get<LibraryChange>(`/api/library/changes/${id}`) }
   }
 
-  async function reverse(c: LibraryChange) {
+  // reverse asks first, as a Save does, when putting tracks back would split
+  // or merge albums or rename an album artist in Navidrome.
+  async function reverse(c: LibraryChange, confirm: string[] = []) {
     error.value = ''
     const { [c.id]: _, ...rest } = conflicts.value
     conflicts.value = rest
+    const editor = useEditor()
     try {
-      const job = await post<LibraryChange>(`/api/library/changes/${c.id}/${c.undone ? 'redo' : 'undo'}`)
+      const job = await post<LibraryChange>(`/api/library/changes/${c.id}/${c.undone ? 'redo' : 'undo'}`, confirm.length > 0 ? { confirm } : undefined)
       running.value = { ...running.value, [job.id]: c.id }
+      if (confirm.length > 0) editor.cancelAsks()
     } catch (err) {
       const refusal = err instanceof ApiError ? (err.body as SaveRefusal | undefined) : undefined
+      if (refusal?.reason === 'confirm') {
+        editor.ask(refusal.confirm ?? [], (next) => reverse(c, next), c.undone ? 'Redo anyway' : 'Undo anyway')
+        return
+      }
+      if (confirm.length > 0) editor.cancelAsks()
       error.value = refusal?.error ?? errorText(err)
     }
   }

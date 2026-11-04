@@ -45,6 +45,8 @@ export const useEditor = defineStore('editor', () => {
   const saving = ref<LibraryChange | null>(null)
   const outcome = ref<Outcome | null>(null)
   const asks = ref<SaveWarning[] | null>(null)
+  // askKey is the dialog's confirm key, because an undo or redo uses the dialog too.
+  const askKey = ref('Save anyway')
   // coverRev changes the cover's address, so a new cover shows at once.
   const coverRev = ref(0)
   let pending: ((confirm: string[]) => Promise<void>) | null = null
@@ -159,8 +161,7 @@ export const useEditor = defineStore('editor', () => {
     } catch (err) {
       const refusal = err instanceof ApiError ? (err.body as SaveRefusal | undefined) : undefined
       if (refusal?.reason === 'confirm') {
-        asks.value = refusal.confirm ?? []
-        pending = again
+        ask(refusal.confirm ?? [], again)
         return
       }
       asks.value = null
@@ -183,6 +184,12 @@ export const useEditor = defineStore('editor', () => {
   }
 
   const failure = (reason: string, message: string): Outcome => ({ ok: false, reason, message, changes: 0, tracks: 0, cover: false })
+
+  function ask(warnings: SaveWarning[], again: (confirm: string[]) => Promise<void>, key = 'Save anyway') {
+    asks.value = warnings
+    askKey.value = key
+    pending = again
+  }
 
   const confirmAsks = () => pending?.(asks.value?.map((w) => w.kind) ?? [])
   const cancelAsks = () => {
@@ -273,9 +280,9 @@ export const useEditor = defineStore('editor', () => {
   }
 
   return {
-    album, loading, error, trackId, cursor, noteOn, suggestions, suggesting, suggestError, saving, outcome, asks, coverRev,
+    album, loading, error, trackId, cursor, noteOn, suggestions, suggesting, suggestError, saving, outcome, asks, askKey, coverRev,
     stage, cover, tracks, readable, selected, scope, staged, coverUrl,
     open, close, reload, loadSuggestions, edit, drop, add, take, stageCover, discard, fixable, applyFix,
-    save, saveCoverAlone, confirmAsks, cancelAsks, applyChange, recheck, follow, afterReverse,
+    save, saveCoverAlone, ask, confirmAsks, cancelAsks, applyChange, recheck, follow, afterReverse,
   }
 })
