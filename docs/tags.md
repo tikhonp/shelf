@@ -162,6 +162,29 @@ AcoustID comes after these in step 6.
 - **Cache.** shelf stores answers from MusicBrainz, the Cover Art Archive and LRCLIB in `library_lookups` by request. A found answer serves for 30 days and a "not found" for a day. shelf stores no other answer. The `library.retention` job removes old answers and old offers.
 - **Time.** An album's lookups stop after 40 seconds, and shelf lists a service still busy then as not answering.
 
+## The editor
+
+The Library tab holds staged edits in the browser, per album, so opening another album loses none. A reload of the page drops them. Nothing reaches a file until Save.
+
+- **Targets.** An edit names a field or a raw key. All fields edits the field when its key is the one a main row shows, so two rows never stage two edits on one tag. A second key that feeds the same field keeps its own row and edits that key. A field shows an edit staged on its key, so a Fix that stages `RELEASEDATE` shows on Release date, and Revert takes it back.
+- **Scope.** At All tracks an edit reaches every track shelf could read. A file it couldn't read is left out and shows a red lamp. A track that already holds the new value stages nothing, because a Save that changes nothing is refused. Retyping the old value drops the edit.
+- **Fixes.** The issue names only a kind and its fields, so the editor works out each Fix from the tracks and the suggestions, and an issue with nothing to stage shows no Fix.
+
+| Issue | Its Fix stages |
+| --- | --- |
+| `no_releasedate` | Per file: a key that already feeds the release date gives `RELEASEDATE` its value. Otherwise `RELEASEDATE` copies `DATE`, and `DATE` takes `ORIGINALDATE` when there is one. A file with no date stages nothing. |
+| `values_differ` | Each field's best suggestion, else the value most tracks hold. |
+| `tags_disagree` | Each field's best suggestion, else the value the file's first key holds, written as a field so every key that feeds it agrees. |
+| `various_artists` | The compilation flag on every track. |
+| `missing_tag`, `two_releases`, `artist_split` | Each field's best suggestion. |
+| `reissue_year`, `split_album` | No Fix. No rule can tell which the owner wants. |
+| `no_cover`, `bad_cover` | No Fix. The issue opens the cover dialog, and `bad_cover` offers Repair there. |
+
+- **After a Save.** A finished Save clears the stage and reads the album again. A Save or an undo that changes the Navidrome album ID gives the album a new row at the next walk. When the walk ends the editor asks the change for its `album_id`, moves there with any staged edits, and the address follows.
+- **A running Save.** The event stream has no replay, so a reconnect asks for the change.
+- **A release in the album ID field.** A MusicBrainz ID or link typed into `MUSICBRAINZ_ALBUMID` asks for the suggestions again with `?anchor=`. A release that fails to match shows its `reason`.
+- **Playback.** The player asks for the file as it is. When the browser refuses it, the player asks again with `?transcode=1`, and shelf streams it through ffmpeg as MP3. That stream has no length, so the position can't move. A second failure says the browser can't play the file.
+
 ## Navidrome's view
 
 `tagio.Rules` reads a file the way Navidrome 0.64.2's scanner does, and every check and every album uses that view. The rules start from `mappings.yaml` and apply the owner's Navidrome settings, which the navidrome module reads from `GET /api/config/` with the admin login: the `Tags` changes, `Scanner.ArtistSplitExceptions`, `Scanner.ArtistJoiner`, the old `Scanner.GenreSeparators`, `PID.Album` and `CoverArtPriority`. shelf keeps the last answer, so a start while Navidrome is down uses it, and with none it uses Navidrome's defaults. The rules have an ID, and the index reads a file again when it read the file under other rules.
@@ -286,6 +309,14 @@ Navidrome keeps the old `songCount` of an album that lost a track in a quick sca
 | Navidrome's view after a retag, a rename, an undo, a split, the date fix and a cover; a disc album's cover, disc art and Delete; a cover reaching the album that shares its folder | `TestNavidromeContract`, with `make contract` |
 | A download's folders are busy while its source writes, and folders inside them; folders outside the music folder are ignored | `TestBusyWhileTheSourceWrites`, `TestWorkingFolderOutsideTheMusicFolder` |
 | Qobuz's work folder and both names it ends with; Apple Music's whole folder | `TestDownloadResult` in `qobuz`, `TestDownloadAlbum` in `applemusic` |
+| An MP3 stream for a format the browser refuses; a file ffmpeg can't read | `TestAudioTranscode` |
+| The keys Navidrome reads | `TestKeysNavidromeReads` |
+| A request the client left is logged as info, and a canceled context with the client still there as an error | `TestAClientThatLeftIsNoError` in `httpx` |
+| Mixed values, a staged edit and what it was, a track that holds the value, retyping the old value, Revert, multi-value adds, fills, the Save body, a cover's tracks | `web/src/lib/tags.test.ts` |
+| Each Fix: the date pair, a key that feeds the release date, `DATE` alone, a file with no date, differing values, disagreeing tags, the flag, and the issues with no Fix | `web/src/lib/tags.test.ts` |
+| All fields: each key once, a row and a main field on one tag, a second key's own row, where a new key goes | `web/src/lib/tags.test.ts` |
+| A Save's confirm and Cancel, each refusal keeping the stage, a reload taking new revisions, a finished and a failed write, Save cover alone, following a new album ID, staged edits across albums, a reconnect | `web/src/stores/editor.store.test.ts` |
+| The list, its lamp, no match, the first index, a locked tag, a selected track, Revert, a suggestion, a note, a silent service, Fix, each refusal's state, custom fields, a deleted tag, keys, keys behind a dialog, a pasted release, a failed anchor, the long editor, the transcode retry, Open in Library | `web/src/components/library.test.ts` |
 | The files' release: release fields with one value and the anchor, catalogs that agree, track ID fills, held values left out, covers, the `.lrc` note, stored answers | `TestSuggestionsFromTheFilesRelease` |
 | Anchors by barcode, ISRC and search, with a compilation and a live album; a staged link; a files ID that fails the threshold or names no release; a bad anchor | `TestAnchorWays` |
 | A classical album searched without its artist, read with works, with composers | `TestClassicalSuggestsComposers` |

@@ -247,3 +247,12 @@ Help never shows on a screen at rest, and the design adds no helper text beside 
 - Status has no Rate limits module, and the Qobuz card has no last request time, because the API has neither.
 - A running track says Downloading, without a percentage, because the API has no per-track progress.
 - Between 720 and about 950 pixels the results and the history drop columns, and the menubar wraps.
+- A tag struck through for deletion uses `.lib-in.struck`, not the canvas's `.gone`, which `components.css` already uses to hide things.
+- The rotary labels, the rocker and the menu moved from one component's scoped style into `parts.css`, because the Library uses them too.
+- Below 1100 pixels each stacked panel stops at the window's height and scrolls by itself, so the Save bar stays in view.
+- A lossy file shows its codec, such as MP3, because the index has no bitrate. A lossless one that is neither CD nor Hi-Res says Lossless.
+- The list has no version beside the album's name, because the list API has none.
+- Select, the bulk preview, the bulk run and the `X` and `B` keys wait for step 6, so the screens show them and the app doesn't yet. History's second column says Album until runs exist.
+- The cover dialog shows no size for the current cover, because the API has none.
+- On the phone the cover dialog is the desktop's dialog in a narrower window. The canvas has no phone board for it.
+- Status's Library part has no line on whether MusicBrainz answers, because the API has no such check.

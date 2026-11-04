@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -234,6 +235,50 @@ func TestNavidromeSettingsChangeTheIndex(t *testing.T) {
 	fail = errors.New("down")
 	if st := r.walk(); st.Albums != 1 || st.Read != 0 || st.Rules != "cached" {
 		t.Errorf("Navidrome down %+v", st)
+	}
+}
+
+// A format the browser refuses comes through ffmpeg as MP3, and a file ffmpeg
+// can't read is refused before any audio.
+func TestAudioTranscode(t *testing.T) {
+	if _, err := exec.LookPath("ffmpeg"); err != nil {
+		t.Skip("ffmpeg is not installed")
+	}
+	r := newRig(t)
+	r.m.FFmpeg = "ffmpeg"
+	r.add("qobuz/Blue/01.wma", "track.wma", blue("1", nil))
+	r.walk()
+	var l listJSON
+	r.getJSON("/api/library/albums", &l)
+	var d detailJSON
+	r.getJSON("/api/library/albums/"+itoa(l.Albums[0].ID), &d)
+	url := "/api/library/tracks/" + itoa(d.Tracks[0].ID) + "/audio?transcode=1"
+	rec := r.do(http.MethodGet, url)
+	if rec.Code != http.StatusOK || rec.Header().Get("Content-Type") != "audio/mpeg" || rec.Body.Len() == 0 {
+		t.Fatalf("transcode: %d %q, %d bytes", rec.Code, rec.Header().Get("Content-Type"), rec.Body.Len())
+	}
+	if h := rec.Header().Get("Accept-Ranges"); h != "" {
+		t.Errorf("a stream with no length offers ranges: %q", h)
+	}
+	r.write("qobuz/Blue/01.wma", []byte("not audio"))
+	if rec := r.do(http.MethodGet, url); rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("a file ffmpeg can't read: %d", rec.Code)
+	}
+}
+
+func TestKeysNavidromeReads(t *testing.T) {
+	r := newRig(t)
+	var got struct {
+		Keys []string `json:"keys"`
+	}
+	r.getJSON("/api/library/keys", &got)
+	for _, k := range []string{"TITLE", "TRACKNUMBER", "RELEASEDATE"} {
+		if !slices.Contains(got.Keys, k) {
+			t.Errorf("%s is missing from %v", k, got.Keys)
+		}
+	}
+	if slices.Contains(got.Keys, "STUDIO") {
+		t.Error("STUDIO is listed, and Navidrome ignores it")
 	}
 }
 

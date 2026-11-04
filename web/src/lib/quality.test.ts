@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { sameQuality, short, tapes, words } from './quality'
+import { sameQuality, short, tapes, words, libraryTape } from './quality'
 
 test.each([
   ['Hi-Res 24/192', 'master'],
@@ -41,4 +41,15 @@ test('a tracklist of one quality says so', () => {
   const t = (badge: string) => ({ id: badge, position: 1, title: 't', quality: { badge } })
   expect(sameQuality([t('CD 16/44.1'), t('CD 16/44.1')])).toBe('All CD 16/44.1')
   expect(sameQuality([t('CD 16/44.1'), t('Hi-Res 24/96')])).toBe('')
+})
+
+test('a file quality gets the words and the tape of its group', () => {
+  expect(libraryTape('FLAC 24/96')).toEqual({ text: 'Hi-Res 24/96', cls: 'hi' })
+  expect(libraryTape('FLAC 24/192')).toEqual({ text: 'Hi-Res 24/192', cls: 'master' })
+  expect(libraryTape('ALAC 24/44.1')).toEqual({ text: 'Hi-Res 24/44.1', cls: 'hi' })
+  expect(libraryTape('FLAC 16/44.1')).toEqual({ text: 'CD 16/44.1', cls: '' })
+  expect(libraryTape('FLAC 16/48')).toEqual({ text: 'Lossless', cls: '' })
+  expect(libraryTape('MP3')).toEqual({ text: 'MP3', cls: 'lossy' })
+  expect(libraryTape('OPUS')).toEqual({ text: 'OPUS', cls: 'lossy' })
+  expect(libraryTape('')).toEqual({ text: '', cls: '' })
 })

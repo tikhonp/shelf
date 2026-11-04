@@ -174,8 +174,9 @@ JSON in and out. Errors are `{"error": "<message>"}` with a 4xx or 5xx status.
 | `POST /api/library/index` | Walk now. Answers 202 with the status. |
 | `GET /api/library/albums?q=&filter=&folder=&sort=&order=&limit=&offset=` | The album list. `q` matches every word in the album, artist or folder, folded. `filter` is `all`, `issues`, `guide`, `no_mbid` or a check's kind, `folder` a top folder such as `qobuz`, `sort` `album`, `artist`, `year` or `added`, `order` `asc` or `desc`, `limit` 1 to 500 with 100 by default. Answers `{"albums", "total", "limit", "offset"}`. |
 | `GET /api/library/filters` | What the filter menu offers: `{"albums", "issues", "no_mbid", "kinds": [{"name", "albums"}], "folders": [{"name", "albums"}]}`. |
+| `GET /api/library/keys` | `{"keys"}`: the keys Navidrome reads, so All fields knows where a new custom field goes. |
 | `GET /api/library/albums/{id}` | One album with its files read now: each track's tags in Standard and Extended, the fields each key feeds, its pictures, revision and issues, and the album's issues. `stale` says a file changed since the index read it. |
-| `GET /api/library/tracks/{id}/audio` | The track's file as it is, with ranges and its audio type. A file that became a symlink answers 404. |
+| `GET /api/library/tracks/{id}/audio` | The track's file as it is, with ranges and its audio type. `?transcode=1` streams it as MP3 instead, without ranges, for a browser that can't play the format, and answers 422 when ffmpeg can't read it. A file that became a symlink answers 404. |
 | `POST /api/library/covers` | An image as the raw body, up to 32 MiB. Answers 201 with `{"id", "mime", "width", "height", "size"}`, or 422 for anything but a JPEG or PNG that decodes. |
 | `GET /api/library/covers/{id}` | A stored cover, cached for good, since its ID is its hash. |
 | `GET /api/library/albums/{id}/cover` | The cover Navidrome shows for the album. 404 when it has none. |

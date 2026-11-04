@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { vVars } from '../lib/vars'
 
-const props = defineProps<{ color: 'red' | 'blue'; size: number; angle: number; label: string }>()
+const props = defineProps<{ color: 'red' | 'blue' | 'grey'; size: number; angle: number; label: string }>()
 defineEmits<{ press: [] }>()
 const vars = computed(() => ({ '--s': `${props.size}px`, '--a': `${props.angle}deg` }))
 </script>

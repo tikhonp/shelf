@@ -6,6 +6,7 @@ import { ago, clock } from '../lib/format'
 import { sourceLamp } from '../lib/lamps'
 import { usePhone } from '../lib/viewport'
 import { useDownloads } from '../stores/downloads'
+import { useHelp } from '../stores/help'
 import { useEvents } from '../stores/events'
 import { useSources } from '../stores/sources'
 import { useSettings } from '../stores/settings'
@@ -22,10 +23,12 @@ const status = useStatus()
 const events = useEvents()
 const theme = useTheme()
 const settings = useSettings()
+const help = useHelp()
 
 const tabs: { to: string; label: string; icon: IconName }[] = [
   { to: '/search', label: 'Search', icon: 'search' },
   { to: '/downloads', label: 'Downloads', icon: 'download' },
+  { to: '/library', label: 'Library', icon: 'library' },
   { to: '/status', label: 'Status', icon: 'status' },
 ]
 const isOn = (to: string) => route.path.startsWith(to)
@@ -63,7 +66,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="rs desk" :class="{ day: theme.day, console: !phone, compact: !phone && settings.density === 'compact', 'shell-phone': phone, 'shell-desk': !phone }">
+  <div class="rs desk" :class="{ day: theme.day, console: !phone, compact: !phone && settings.density === 'compact', 'shell-phone': phone, 'shell-desk': !phone, 'shell-fit': !phone && isOn('/library') }">
     <header v-if="!phone" class="menubar">
       <RouterLink class="brand" to="/search"><span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>Music Shelf</RouterLink>
       <nav class="tabs" aria-label="Main">
@@ -82,6 +85,7 @@ onMounted(() => {
           <button type="button" class="key sm" @click="status.check()">Check again</button>
         </template>
         <span class="leds" role="img" :aria-label="lampWords"><span v-for="l in lamps" :key="l.id" class="led" :class="l.cls" :title="l.title"></span></span>
+        <button v-if="section === '/library'" type="button" class="key sm icon" aria-label="Help" title="Help" @click="help.sheet = 'guide'">?</button>
         <button type="button" class="key sm icon" :aria-label="theme.day ? 'Switch to Night' : 'Switch to Day'" :title="theme.day ? 'Switch to Night' : 'Switch to Day'" @click="theme.day = !theme.day"><Icon :name="theme.day ? 'moon' : 'sun'" /></button>
         <span class="vfd num">{{ clock(now) }}</span>
       </div>
@@ -111,7 +115,7 @@ onMounted(() => {
 .rs .dock a .led { --c: var(--sun); position: absolute; top: 7px; right: 7px; }
 .rs .menubar nav .mb-item .led { --c: var(--sun); position: absolute; top: 4px; right: 4px; width: 9px; height: 9px; }
 .rs .dock { position: absolute; left: 8px; right: 12px; bottom: 14px; z-index: 30; display: flex; gap: 6px; padding: 7px; background: linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(0, 0, 0, .28)), repeating-linear-gradient(1deg, #4E2B18 0 2px, #5E351F 2px 5px, #53301B 5px 8px, #6A3D24 8px 12px, #573220 12px 15px); border: 1px solid var(--ink); border-radius: 12px; box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .08), 4px 8px 20px rgba(0, 0, 0, .5); }
-.rs .dock a { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 56px; border: 1px solid #07090C; border-radius: 4px; background: linear-gradient(180deg, var(--key-hi), var(--key) 60%, var(--key-lo)); box-shadow: inset 0 1px 0 var(--key-hl), inset 0 -2px 0 rgba(0, 0, 0, .1), 0 3px 0 #07090C; font-family: var(--label); font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--key-text); text-decoration: none; }
+.rs .dock a { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 56px; border: 1px solid #07090C; border-radius: 4px; background: linear-gradient(180deg, var(--key-hi), var(--key) 60%, var(--key-lo)); box-shadow: inset 0 1px 0 var(--key-hl), inset 0 -2px 0 rgba(0, 0, 0, .1), 0 3px 0 #07090C; font-family: var(--label); font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--key-text); text-decoration: none; }
 .rs .dock a.on { background: radial-gradient(ellipse at 50% 40%, var(--lit-hi), var(--lamp) 55%, var(--lit-lo)); color: var(--lit-text); box-shadow: inset 0 1px 0 #fff, inset 0 0 10px rgba(240, 150, 60, .35), 0 0 calc(12px * var(--glow)) var(--lit-glow); transform: translateY(3px); }
 .rs .menubar { flex-wrap: wrap; padding-top: 6px; padding-bottom: 6px; row-gap: 6px; }
 .rs .tabs { display: flex; gap: 6px; }
@@ -122,4 +126,6 @@ onMounted(() => {
   .rs .checked, .rs .now { display: none; }
 }
 .rs .dock { bottom: calc(14px + env(safe-area-inset-bottom)); }
+/* Library's panels scroll by themselves, so the page fits the window. */
+.rs.shell-fit { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
 </style>

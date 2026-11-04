@@ -212,3 +212,186 @@ export interface WrapperLogLine {
   time: string
   text: string
 }
+
+// The Library, as /api/library answers it.
+
+export interface LibraryIssue {
+  kind: string
+  fields?: string[]
+}
+
+export interface LibraryAlbum {
+  id: number
+  folder: string
+  title: string
+  artist: string
+  year: number
+  tracks: number
+  quality: string
+  duration: number
+  size: number
+  added_at: string
+  navidrome_id: string
+  has_mbid: boolean
+  lamp: boolean
+  issues: LibraryIssue[]
+}
+
+export interface LibraryPage {
+  albums: LibraryAlbum[]
+  total: number
+  limit: number
+  offset: number
+}
+
+export interface LibraryCount {
+  name: string
+  albums: number
+}
+
+export interface LibraryFilters {
+  albums: number
+  issues: number
+  no_mbid: number
+  kinds: LibraryCount[]
+  folders: LibraryCount[]
+}
+
+export interface LibraryIndex {
+  indexing: boolean
+  ready: boolean
+  albums: number
+  tracks: number
+  read: number
+  error: string
+}
+
+export interface TagKey {
+  key: string
+  fields?: string[]
+  values: string[]
+  read_only?: boolean
+}
+
+export interface LibraryTrack {
+  id: number
+  path: string
+  disc: number
+  track: number
+  title: string
+  artist: string
+  duration: number
+  quality: string
+  format: string
+  size: number
+  revision: string
+  error: string
+  issues: LibraryIssue[]
+  standard: TagKey[]
+  extended: TagKey[]
+  pictures: { type: string; mime: string; description: string }[]
+}
+
+export interface LibraryAlbumDetail extends Omit<LibraryAlbum, 'tracks'> {
+  tracks: LibraryTrack[]
+  stale: boolean
+}
+
+export interface Suggestion {
+  field: string
+  values?: string[]
+  tracks?: Record<string, string[]>
+  source: string
+  sources: string[]
+  confidence: number
+  anchor?: string
+}
+
+export interface CoverSuggestion {
+  image: string
+  source: string
+  confidence: number
+  anchor?: string
+}
+
+export interface LibraryAnchor {
+  id: string
+  by: string
+  title: string
+  artist: string
+  date: string
+  country: string
+  tracks: number
+  url: string
+  matched: boolean
+  reason?: string
+}
+
+export interface Suggestions {
+  anchor: LibraryAnchor | null
+  album: Suggestion[]
+  tracks: { id: number; suggestions: Suggestion[] }[]
+  covers: CoverSuggestion[]
+  notes: { track?: number; field: string; message: string }[]
+  unavailable: { source: string; message: string }[]
+}
+
+export interface CoverUpload {
+  id: string
+  mime: string
+  width: number
+  height: number
+  size: number
+}
+
+export type ChangeState = 'queued' | 'writing' | 'done' | 'partial' | 'failed'
+
+export interface ChangeConflict {
+  path: string
+  key: string
+}
+
+export interface ChangeFile {
+  track_id: number
+  path: string
+  kind: 'audio' | 'cover'
+  written: boolean
+  revision: string
+  keys: { key: string; before: string[]; after: string[] }[]
+  cover_before: string
+  cover_after: string
+}
+
+export interface LibraryChange {
+  id: number
+  kind: 'save' | 'undo' | 'redo'
+  target: number | null
+  album_id: number
+  folder: string
+  title: string
+  artist: string
+  state: ChangeState
+  reason: string
+  error: string
+  undone: boolean
+  tags: number
+  cover: boolean
+  conflicts: ChangeConflict[]
+  job_id: number | null
+  created_at: string
+  finished_at: string | null
+  files?: ChangeFile[]
+}
+
+export interface SaveWarning {
+  kind: string
+  message: string
+}
+
+// SaveRefusal is the body of a Save shelf won't run.
+export interface SaveRefusal {
+  error: string
+  reason: string
+  track?: number
+  confirm?: SaveWarning[]
+}
