@@ -73,9 +73,10 @@ func (e *ExitError) Error() string {
 var ErrTimeout = errors.New("amdl took too long")
 
 // Run runs amdl for one link with extra flags, such as --atmos. line hears
-// every line of its output; both \n and \r end a line, since amdl draws
-// progress bars with \r. Cancel and the timeout send SIGTERM to amdl's
-// process group, so ffmpeg stops too, and SIGKILL after KillAfter.
+// every line of its output but the closing list; both \n and \r end a
+// line, since amdl draws progress bars with \r. Cancel and the timeout
+// send SIGTERM to amdl's process group, so ffmpeg stops too, and SIGKILL
+// after KillAfter.
 func (r *Runner) Run(ctx context.Context, link string, flags []string, line func(string)) (Result, error) {
 	cache, tmp := filepath.Join(r.WorkDir, ".cache"), filepath.Join(r.WorkDir, "tmp")
 	for _, d := range []string{cache, tmp} {
@@ -134,6 +135,11 @@ func (r *Runner) Run(ctx context.Context, link string, flags []string, line func
 			if len(listed) > 5 {
 				listed = listed[1:]
 			}
+			// The list goes into the result, which reports each file.
+			var probe []Track
+			if json.Unmarshal([]byte(t), &probe) == nil {
+				return
+			}
 		}
 		if line != nil {
 			line(l)
@@ -178,7 +184,7 @@ func ErrorLines(tail []string) []string {
 	var out []string
 	for _, l := range tail {
 		if isFailure(l) {
-			out = append(out, strings.TrimSpace(l))
+			out = append(out, Text(l))
 		}
 	}
 	if len(out) > 3 {

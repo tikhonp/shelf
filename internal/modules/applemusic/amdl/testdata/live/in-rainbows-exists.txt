@@ -1,0 +1,35 @@
+lite-server regions: [ru]
+Queue 1 of 1: Album
+Radiohead - In Rainbows (2007)[16B-44.1kHz]
+Track 1 of 10: songs
+01. 15 Step
+Converted track already exists locally.
+Track 2 of 10: songs
+02. Bodysnatchers
+Converted track already exists locally.
+Track 3 of 10: songs
+03. Nude
+Converted track already exists locally.
+Track 4 of 10: songs
+04. Weird Fishes / Arpeggi
+Converted track already exists locally.
+Track 5 of 10: songs
+05. All I Need
+Converted track already exists locally.
+Track 6 of 10: songs
+06. Faust Arp
+Converted track already exists locally.
+Track 7 of 10: songs
+07. Reckoner
+Converted track already exists locally.
+Track 8 of 10: songs
+08. House of Cards
+Converted track already exists locally.
+Track 9 of 10: songs
+09. Jigsaw Falling Into Place
+Converted track already exists locally.
+Track 10 of 10: songs
+10. Videotape
+Converted track already exists locally.
+=======  [✔ ] Completed: 10/10  |  [⚠ ] Warnings: 0  |  [✖ ] Errors: 0  =======
+[{"path":"/music/apple-music/Radiohead - In Rainbows (2007)[16B-44.1kHz]/01. 15 Step.flac","artist":"Radiohead","artist_id":"657515","album":"In Rainbows","song":"15 Step"},{"path":"/music/apple-music/Radiohead - In Rainbows (2007)[16B-44.1kHz]/02. Bodysnatchers.flac","artist":"Radiohead","artist_id":"657515","album":"In Rainbows","song":"Bodysnatchers"},{"path":"/music/apple-music/Radiohead - In Rainbows (2007)[16B-44.1kHz]/03. Nude.flac","artist":"Radiohead","artist_id":"657515","album":"In Rainbows","song":"Nude"},{"path":"/music/apple-music/Radiohead - In Rainbows (2007)[16B-44.1kHz]/04. Weird Fishes _ Arpeggi.flac","artist":"Radiohead","artist_id":"657515","album":"In Rainbows","song":"Weird Fishes / Arpeggi"},{"path":"/music/apple-music/Radiohead - In Rainbows (2007)[16B-44.1kHz]/05. All I Need.flac","artist":"Radiohead","artist_id":"657515","album":"In Rainbows","song":"All I Need"},{"path":"/music/apple-music/Radiohead - In Rainbows (2007)[16B-44.1kHz]/06. Faust Arp.flac","artist":"Radiohead","artist_id":"657515","album":"In Rainbows","song":"Faust Arp"},{"path":"/music/apple-music/Radiohead - In Rainbows (2007)[16B-44.1kHz]/07. Reckoner.flac","artist":"Radiohead","artist_id":"657515","album":"In Rainbows","song":"Reckoner"},{"path":"/music/apple-music/Radiohead - In Rainbows (2007)[16B-44.1kHz]/08. House of Cards.flac","artist":"Radiohead","artist_id":"657515","album":"In Rainbows","song":"House of Cards"},{"path":"/music/apple-music/Radiohead - In Rainbows (2007)[16B-44.1kHz]/09. Jigsaw Falling Into Place.flac","artist":"Radiohead","artist_id":"657515","album":"In Rainbows","song":"Jigsaw Falling Into Place"},{"path":"/music/apple-music/Radiohead - In Rainbows (2007)[16B-44.1kHz]/10. Videotape.flac","artist":"Radiohead","artist_id":"657515","album":"In Rainbows","song":"Videotape"}]

@@ -59,6 +59,7 @@ func (r *ring) add(text string) {
 	for _, s := range r.secrets {
 		text = strings.ReplaceAll(text, s, redacted)
 	}
+	text = tokenPrefix.ReplaceAllString(text, "${1}="+redacted)
 	r.n++
 	l := wrapperapi.LogLine{N: r.n, Time: r.now().UTC(), Text: text}
 	r.lines = append(r.lines, l)
@@ -133,6 +134,11 @@ func message(line string) string {
 	}
 	return line
 }
+
+// tokenPrefix matches the token heads that wrapper-lite prints when it loads
+// its token cache and when it asks for a licence, as in
+// "token cache loaded (dev=eyJhbGciOiJFUzI1... music=AbCdEfGh12345678...)".
+var tokenPrefix = regexp.MustCompile(`\b(dev|music)=[^\s)]+`)
 
 // linePrefix is the time and level that lite/logger.h puts before a message.
 // The level is padded to five letters: "[INFO ]".

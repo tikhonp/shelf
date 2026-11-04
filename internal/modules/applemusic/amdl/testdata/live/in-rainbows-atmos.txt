@@ -1,0 +1,35 @@
+lite-server regions: [ru]
+Queue 1 of 1: Album
+Radiohead - In Rainbows (2007)[768Kbps]
+Track 1 of 10: songs
+01. 15 Step
+⚠ Failed to extract info from manifest: no codec found
+Track 2 of 10: songs
+02. Bodysnatchers
+⚠ Failed to extract info from manifest: no codec found
+Track 3 of 10: songs
+03. Nude
+⚠ Failed to extract info from manifest: no codec found
+Track 4 of 10: songs
+04. Weird Fishes / Arpeggi
+⚠ Failed to extract info from manifest: no codec found
+Track 5 of 10: songs
+05. All I Need
+⚠ Failed to extract info from manifest: no codec found
+Track 6 of 10: songs
+06. Faust Arp
+⚠ Failed to extract info from manifest: no codec found
+Track 7 of 10: songs
+07. Reckoner
+⚠ Failed to extract info from manifest: no codec found
+Track 8 of 10: songs
+08. House of Cards
+⚠ Failed to extract info from manifest: no codec found
+Track 9 of 10: songs
+09. Jigsaw Falling Into Place
+⚠ Failed to extract info from manifest: no codec found
+Track 10 of 10: songs
+10. Videotape
+⚠ Failed to extract info from manifest: no codec found
+=======  [✔ ] Completed: 0/10  |  [⚠ ] Warnings: 10  |  [✖ ] Errors: 0  =======
+null

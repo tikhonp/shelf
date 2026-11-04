@@ -1,0 +1,739 @@
+{
+ "data": [
+  {
+   "id": "1109714933",
+   "type": "albums",
+   "href": "/v1/catalog/ru/albums/1109714933?l=en-GB",
+   "attributes": {
+    "artistName": "Radiohead",
+    "artwork": {
+     "bgColor": "1e1807",
+     "hasP3": false,
+     "height": 4000,
+     "textColor1": "d0c741",
+     "textColor2": "e9872e",
+     "textColor3": "aca436",
+     "textColor4": "c07126",
+     "url": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/dd/50/c7/dd50c790-99ac-d3d0-5ab8-e3891fb8fd52/634904032463.png/{w}x{h}bb.jpg",
+     "width": 4000
+    },
+    "audioTraits": [
+     "lossless",
+     "lossy-stereo"
+    ],
+    "copyright": "℗ 2007 LLLP LLP under exclusive license to XL Recordings Ltd",
+    "genreNames": [
+     "Alternative",
+     "Music",
+     "Rock",
+     "Prog-Rock/Art Rock",
+     "Adult Alternative"
+    ],
+    "isCompilation": false,
+    "isComplete": true,
+    "isMasteredForItunes": false,
+    "isPrerelease": false,
+    "isSingle": false,
+    "name": "In Rainbows",
+    "playParams": {
+     "id": "1109714933",
+     "kind": "album"
+    },
+    "recordLabel": "XL Recordings",
+    "releaseDate": "2007-10-10",
+    "trackCount": 10,
+    "upc": "634904032463",
+    "url": "https://music.apple.com/ru/album/in-rainbows/1109714933?l=en-GB"
+   },
+   "relationships": {
+    "artists": {
+     "href": "/v1/catalog/ru/albums/1109714933/artists?l=en-GB",
+     "data": [
+      {
+       "id": "657515",
+       "type": "artists",
+       "href": "/v1/catalog/ru/artists/657515?l=en-GB",
+       "attributes": {
+        "artwork": {
+         "bgColor": "131313",
+         "defaultCropCode": "bb",
+         "hasP3": true,
+         "height": 1050,
+         "textColor1": "eba140",
+         "textColor2": "e29438",
+         "textColor3": "c08437",
+         "textColor4": "b87a31",
+         "url": "https://is1-ssl.mzstatic.com/image/thumb/AMCArtistImages211/v4/8a/49/84/8a498443-718e-40c0-404e-d1380c2352b7/ami-identity-531db02daa273271c643ba631a46b9d5-2026-09-07T07-12-12.872Z_cropped.png/{w}x{h}bb.jpg",
+         "width": 1050
+        },
+        "genreNames": [
+         "Alternative"
+        ],
+        "name": "Radiohead",
+        "url": "https://music.apple.com/ru/artist/radiohead/657515?l=en-GB"
+       },
+       "relationships": {
+        "albums": {
+         "href": "/v1/catalog/ru/artists/657515/albums?l=en-GB",
+         "next": "/v1/catalog/ru/artists/657515/albums?l=en-GB&offset=25",
+         "data": [
+          {
+           "id": "1111577743",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1111577743?l=en-GB"
+          },
+          {
+           "id": "1097861387",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1097861387?l=en-GB"
+          },
+          {
+           "id": "1109714933",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1109714933?l=en-GB"
+          },
+          {
+           "id": "1097862703",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1097862703?l=en-GB"
+          },
+          {
+           "id": "1097864180",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1097864180?l=en-GB"
+          },
+          {
+           "id": "1097862870",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1097862870?l=en-GB"
+          },
+          {
+           "id": "1109714965",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1109714965?l=en-GB"
+          },
+          {
+           "id": "1097863576",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1097863576?l=en-GB"
+          },
+          {
+           "id": "1239489060",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1239489060?l=en-GB"
+          },
+          {
+           "id": "1097862062",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1097862062?l=en-GB"
+          },
+          {
+           "id": "1113546075",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1113546075?l=en-GB"
+          },
+          {
+           "id": "1446881820",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1446881820?l=en-GB"
+          },
+          {
+           "id": "1160370310",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1160370310?l=en-GB"
+          },
+          {
+           "id": "1114686637",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1114686637?l=en-GB"
+          },
+          {
+           "id": "1110448315",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1110448315?l=en-GB"
+          },
+          {
+           "id": "1111495817",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1111495817?l=en-GB"
+          },
+          {
+           "id": "1112414716",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1112414716?l=en-GB"
+          },
+          {
+           "id": "1166533619",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1166533619?l=en-GB"
+          },
+          {
+           "id": "1112425223",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1112425223?l=en-GB"
+          },
+          {
+           "id": "1167367262",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1167367262?l=en-GB"
+          },
+          {
+           "id": "1143391524",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1143391524?l=en-GB"
+          },
+          {
+           "id": "1097873905",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1097873905?l=en-GB"
+          },
+          {
+           "id": "1112408383",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1112408383?l=en-GB"
+          },
+          {
+           "id": "1581785974",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1581785974?l=en-GB"
+          },
+          {
+           "id": "1112419253",
+           "type": "albums",
+           "href": "/v1/catalog/ru/albums/1112419253?l=en-GB"
+          }
+         ]
+        }
+       }
+      }
+     ]
+    },
+    "tracks": {
+     "href": "/v1/catalog/ru/albums/1109714933/tracks?l=en-GB",
+     "data": [
+      {
+       "id": "1109715066",
+       "type": "songs",
+       "href": "/v1/catalog/ru/songs/1109715066?l=en-GB",
+       "attributes": {
+        "albumArtistName": "Radiohead",
+        "albumName": "In Rainbows",
+        "artistName": "Radiohead",
+        "artwork": {
+         "bgColor": "1e1807",
+         "hasP3": false,
+         "height": 4000,
+         "textColor1": "d0c741",
+         "textColor2": "e9872e",
+         "textColor3": "aca436",
+         "textColor4": "c07126",
+         "url": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/dd/50/c7/dd50c790-99ac-d3d0-5ab8-e3891fb8fd52/634904032463.png/{w}x{h}bb.jpg",
+         "width": 4000
+        },
+        "audioLocale": "en-US",
+        "audioTraits": [
+         "lossless",
+         "lossy-stereo"
+        ],
+        "composerName": "Colin Greenwood, Ed O'Brien, Jonny Greenwood, Phil Selway & Thom Yorke",
+        "discNumber": 1,
+        "durationInMillis": 237293,
+        "genreNames": [
+         "Alternative",
+         "Music"
+        ],
+        "hasLyrics": true,
+        "hasTimeSyncedLyrics": true,
+        "isAppleDigitalMaster": false,
+        "isMasteredForItunes": false,
+        "isVocalAttenuationAllowed": true,
+        "isrc": "GBSTK0700001",
+        "name": "15 Step",
+        "playParams": {
+         "id": "1109715066",
+         "kind": "song"
+        },
+        "previews": [
+         {
+          "url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/a5/79/90/a579906e-5bc2-24a8-43b6-81d2a042eb18/mzaf_18287743918929716905.plus.aac.ep.m4a"
+         }
+        ],
+        "releaseDate": "2007-10-10",
+        "trackNumber": 1,
+        "url": "https://music.apple.com/ru/album/15-step/1109714933?i=1109715066&l=en-GB"
+       }
+      },
+      {
+       "id": "1109715161",
+       "type": "songs",
+       "href": "/v1/catalog/ru/songs/1109715161?l=en-GB",
+       "attributes": {
+        "albumArtistName": "Radiohead",
+        "albumName": "In Rainbows",
+        "artistName": "Radiohead",
+        "artwork": {
+         "bgColor": "1e1807",
+         "hasP3": false,
+         "height": 4000,
+         "textColor1": "d0c741",
+         "textColor2": "e9872e",
+         "textColor3": "aca436",
+         "textColor4": "c07126",
+         "url": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/dd/50/c7/dd50c790-99ac-d3d0-5ab8-e3891fb8fd52/634904032463.png/{w}x{h}bb.jpg",
+         "width": 4000
+        },
+        "audioLocale": "en-US",
+        "audioTraits": [
+         "lossless",
+         "lossy-stereo"
+        ],
+        "composerName": "Colin Greenwood, Ed O'Brien, Jonny Greenwood, Phil Selway & Thom Yorke",
+        "discNumber": 1,
+        "durationInMillis": 242293,
+        "genreNames": [
+         "Alternative",
+         "Music"
+        ],
+        "hasLyrics": true,
+        "hasTimeSyncedLyrics": true,
+        "isAppleDigitalMaster": false,
+        "isMasteredForItunes": false,
+        "isVocalAttenuationAllowed": true,
+        "isrc": "GBSTK0700002",
+        "name": "Bodysnatchers",
+        "playParams": {
+         "id": "1109715161",
+         "kind": "song"
+        },
+        "previews": [
+         {
+          "url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/e4/2a/01/e42a018f-ec7b-e7fa-5034-6050d339a5ef/mzaf_18174400695604721939.plus.aac.ep.m4a"
+         }
+        ],
+        "releaseDate": "2007-10-10",
+        "trackNumber": 2,
+        "url": "https://music.apple.com/ru/album/bodysnatchers/1109714933?i=1109715161&l=en-GB"
+       }
+      },
+      {
+       "id": "1109715165",
+       "type": "songs",
+       "href": "/v1/catalog/ru/songs/1109715165?l=en-GB",
+       "attributes": {
+        "albumArtistName": "Radiohead",
+        "albumName": "In Rainbows",
+        "artistName": "Radiohead",
+        "artwork": {
+         "bgColor": "1e1807",
+         "hasP3": false,
+         "height": 4000,
+         "textColor1": "d0c741",
+         "textColor2": "e9872e",
+         "textColor3": "aca436",
+         "textColor4": "c07126",
+         "url": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/dd/50/c7/dd50c790-99ac-d3d0-5ab8-e3891fb8fd52/634904032463.png/{w}x{h}bb.jpg",
+         "width": 4000
+        },
+        "audioLocale": "en-US",
+        "audioTraits": [
+         "lossless",
+         "lossy-stereo"
+        ],
+        "composerName": "Colin Greenwood, Ed O'Brien, Jonny Greenwood, Phil Selway & Thom Yorke",
+        "discNumber": 1,
+        "durationInMillis": 255387,
+        "genreNames": [
+         "Alternative",
+         "Music"
+        ],
+        "hasLyrics": true,
+        "hasTimeSyncedLyrics": true,
+        "isAppleDigitalMaster": false,
+        "isMasteredForItunes": false,
+        "isVocalAttenuationAllowed": true,
+        "isrc": "GBSTK0700003",
+        "name": "Nude",
+        "playParams": {
+         "id": "1109715165",
+         "kind": "song"
+        },
+        "previews": [
+         {
+          "url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/b0/d6/9d/b0d69d33-0683-8f06-b768-95f0056af16f/mzaf_10809987429181093843.plus.aac.ep.m4a"
+         }
+        ],
+        "releaseDate": "2007-10-10",
+        "trackNumber": 3,
+        "url": "https://music.apple.com/ru/album/nude/1109714933?i=1109715165&l=en-GB"
+       }
+      },
+      {
+       "id": "1109715168",
+       "type": "songs",
+       "href": "/v1/catalog/ru/songs/1109715168?l=en-GB",
+       "attributes": {
+        "albumArtistName": "Radiohead",
+        "albumName": "In Rainbows",
+        "artistName": "Radiohead",
+        "artwork": {
+         "bgColor": "1e1807",
+         "hasP3": false,
+         "height": 4000,
+         "textColor1": "d0c741",
+         "textColor2": "e9872e",
+         "textColor3": "aca436",
+         "textColor4": "c07126",
+         "url": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/dd/50/c7/dd50c790-99ac-d3d0-5ab8-e3891fb8fd52/634904032463.png/{w}x{h}bb.jpg",
+         "width": 4000
+        },
+        "audioLocale": "en-US",
+        "audioTraits": [
+         "lossless",
+         "lossy-stereo"
+        ],
+        "composerName": "Colin Greenwood, Ed O'Brien, Jonny Greenwood, Phil Selway & Thom Yorke",
+        "discNumber": 1,
+        "durationInMillis": 318187,
+        "genreNames": [
+         "Alternative",
+         "Music"
+        ],
+        "hasLyrics": true,
+        "hasTimeSyncedLyrics": true,
+        "isAppleDigitalMaster": false,
+        "isMasteredForItunes": false,
+        "isVocalAttenuationAllowed": true,
+        "isrc": "GBSTK0700004",
+        "name": "Weird Fishes / Arpeggi",
+        "playParams": {
+         "id": "1109715168",
+         "kind": "song"
+        },
+        "previews": [
+         {
+          "url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/3a/12/eb/3a12ebaf-89c1-1ac9-6821-3a1de510ef51/mzaf_10989557132964733235.plus.aac.ep.m4a"
+         }
+        ],
+        "releaseDate": "2007-10-10",
+        "trackNumber": 4,
+        "url": "https://music.apple.com/ru/album/weird-fishes-arpeggi/1109714933?i=1109715168&l=en-GB"
+       }
+      },
+      {
+       "id": "1109715293",
+       "type": "songs",
+       "href": "/v1/catalog/ru/songs/1109715293?l=en-GB",
+       "attributes": {
+        "albumArtistName": "Radiohead",
+        "albumName": "In Rainbows",
+        "artistName": "Radiohead",
+        "artwork": {
+         "bgColor": "1e1807",
+         "hasP3": false,
+         "height": 4000,
+         "textColor1": "d0c741",
+         "textColor2": "e9872e",
+         "textColor3": "aca436",
+         "textColor4": "c07126",
+         "url": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/dd/50/c7/dd50c790-99ac-d3d0-5ab8-e3891fb8fd52/634904032463.png/{w}x{h}bb.jpg",
+         "width": 4000
+        },
+        "audioLocale": "en-US",
+        "audioTraits": [
+         "lossless",
+         "lossy-stereo"
+        ],
+        "composerName": "Colin Greenwood, Ed O'Brien, Jonny Greenwood, Phil Selway & Thom Yorke",
+        "discNumber": 1,
+        "durationInMillis": 228747,
+        "genreNames": [
+         "Alternative",
+         "Music"
+        ],
+        "hasLyrics": true,
+        "hasTimeSyncedLyrics": true,
+        "isAppleDigitalMaster": false,
+        "isMasteredForItunes": false,
+        "isVocalAttenuationAllowed": true,
+        "isrc": "GBSTK0700005",
+        "name": "All I Need",
+        "playParams": {
+         "id": "1109715293",
+         "kind": "song"
+        },
+        "previews": [
+         {
+          "url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/8e/c3/d5/8ec3d546-17d7-3322-662d-e09a89fbefd8/mzaf_16052388602002126493.plus.aac.ep.m4a"
+         }
+        ],
+        "releaseDate": "2007-10-10",
+        "trackNumber": 5,
+        "url": "https://music.apple.com/ru/album/all-i-need/1109714933?i=1109715293&l=en-GB"
+       }
+      },
+      {
+       "id": "1109715308",
+       "type": "songs",
+       "href": "/v1/catalog/ru/songs/1109715308?l=en-GB",
+       "attributes": {
+        "albumArtistName": "Radiohead",
+        "albumName": "In Rainbows",
+        "artistName": "Radiohead",
+        "artwork": {
+         "bgColor": "1e1807",
+         "hasP3": false,
+         "height": 4000,
+         "textColor1": "d0c741",
+         "textColor2": "e9872e",
+         "textColor3": "aca436",
+         "textColor4": "c07126",
+         "url": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/dd/50/c7/dd50c790-99ac-d3d0-5ab8-e3891fb8fd52/634904032463.png/{w}x{h}bb.jpg",
+         "width": 4000
+        },
+        "audioLocale": "en-US",
+        "audioTraits": [
+         "lossless",
+         "lossy-stereo"
+        ],
+        "composerName": "Colin Greenwood, Ed O'Brien, Jonny Greenwood, Phil Selway & Thom Yorke",
+        "discNumber": 1,
+        "durationInMillis": 129680,
+        "genreNames": [
+         "Alternative",
+         "Music"
+        ],
+        "hasLyrics": true,
+        "hasTimeSyncedLyrics": true,
+        "isAppleDigitalMaster": false,
+        "isMasteredForItunes": false,
+        "isVocalAttenuationAllowed": true,
+        "isrc": "GBSTK0700006",
+        "name": "Faust Arp",
+        "playParams": {
+         "id": "1109715308",
+         "kind": "song"
+        },
+        "previews": [
+         {
+          "url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/9c/82/92/9c82920e-c90a-1e0a-1e60-bf604bae80d9/mzaf_3298592383350408547.plus.aac.p.m4a"
+         }
+        ],
+        "releaseDate": "2007-10-10",
+        "trackNumber": 6,
+        "url": "https://music.apple.com/ru/album/faust-arp/1109714933?i=1109715308&l=en-GB"
+       }
+      },
+      {
+       "id": "1109715309",
+       "type": "songs",
+       "href": "/v1/catalog/ru/songs/1109715309?l=en-GB",
+       "attributes": {
+        "albumArtistName": "Radiohead",
+        "albumName": "In Rainbows",
+        "artistName": "Radiohead",
+        "artwork": {
+         "bgColor": "1e1807",
+         "hasP3": false,
+         "height": 4000,
+         "textColor1": "d0c741",
+         "textColor2": "e9872e",
+         "textColor3": "aca436",
+         "textColor4": "c07126",
+         "url": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/dd/50/c7/dd50c790-99ac-d3d0-5ab8-e3891fb8fd52/634904032463.png/{w}x{h}bb.jpg",
+         "width": 4000
+        },
+        "audioLocale": "en-US",
+        "audioTraits": [
+         "lossless",
+         "lossy-stereo"
+        ],
+        "composerName": "Colin Greenwood, Ed O'Brien, Jonny Greenwood, Phil Selway & Thom Yorke",
+        "discNumber": 1,
+        "durationInMillis": 290213,
+        "genreNames": [
+         "Alternative",
+         "Music"
+        ],
+        "hasLyrics": true,
+        "hasTimeSyncedLyrics": true,
+        "isAppleDigitalMaster": false,
+        "isMasteredForItunes": false,
+        "isVocalAttenuationAllowed": true,
+        "isrc": "GBSTK0700007",
+        "name": "Reckoner",
+        "playParams": {
+         "id": "1109715309",
+         "kind": "song"
+        },
+        "previews": [
+         {
+          "url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/d9/84/2b/d9842b3d-350e-3c36-3681-df31588ab202/mzaf_9851505034401428657.plus.aac.ep.m4a"
+         }
+        ],
+        "releaseDate": "2007-10-10",
+        "trackNumber": 7,
+        "url": "https://music.apple.com/ru/album/reckoner/1109714933?i=1109715309&l=en-GB"
+       }
+      },
+      {
+       "id": "1109715467",
+       "type": "songs",
+       "href": "/v1/catalog/ru/songs/1109715467?l=en-GB",
+       "attributes": {
+        "albumArtistName": "Radiohead",
+        "albumName": "In Rainbows",
+        "artistName": "Radiohead",
+        "artwork": {
+         "bgColor": "1e1807",
+         "hasP3": false,
+         "height": 4000,
+         "textColor1": "d0c741",
+         "textColor2": "e9872e",
+         "textColor3": "aca436",
+         "textColor4": "c07126",
+         "url": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/dd/50/c7/dd50c790-99ac-d3d0-5ab8-e3891fb8fd52/634904032463.png/{w}x{h}bb.jpg",
+         "width": 4000
+        },
+        "audioLocale": "en-US",
+        "audioTraits": [
+         "lossless",
+         "lossy-stereo"
+        ],
+        "composerName": "Colin Greenwood, Ed O'Brien, Jonny Greenwood, Phil Selway & Thom Yorke",
+        "discNumber": 1,
+        "durationInMillis": 328293,
+        "genreNames": [
+         "Alternative",
+         "Music"
+        ],
+        "hasLyrics": true,
+        "hasTimeSyncedLyrics": true,
+        "isAppleDigitalMaster": false,
+        "isMasteredForItunes": false,
+        "isVocalAttenuationAllowed": true,
+        "isrc": "GBSTK0700008",
+        "name": "House of Cards",
+        "playParams": {
+         "id": "1109715467",
+         "kind": "song"
+        },
+        "previews": [
+         {
+          "url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/e7/7f/49/e77f4904-d37a-deed-9237-6fd6f88615e3/mzaf_725621834507688039.plus.aac.ep.m4a"
+         }
+        ],
+        "releaseDate": "2007-10-10",
+        "trackNumber": 8,
+        "url": "https://music.apple.com/ru/album/house-of-cards/1109714933?i=1109715467&l=en-GB"
+       }
+      },
+      {
+       "id": "1109715469",
+       "type": "songs",
+       "href": "/v1/catalog/ru/songs/1109715469?l=en-GB",
+       "attributes": {
+        "albumArtistName": "Radiohead",
+        "albumName": "In Rainbows",
+        "artistName": "Radiohead",
+        "artwork": {
+         "bgColor": "1e1807",
+         "hasP3": false,
+         "height": 4000,
+         "textColor1": "d0c741",
+         "textColor2": "e9872e",
+         "textColor3": "aca436",
+         "textColor4": "c07126",
+         "url": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/dd/50/c7/dd50c790-99ac-d3d0-5ab8-e3891fb8fd52/634904032463.png/{w}x{h}bb.jpg",
+         "width": 4000
+        },
+        "audioLocale": "en-US",
+        "audioTraits": [
+         "lossless",
+         "lossy-stereo"
+        ],
+        "composerName": "Colin Greenwood, Ed O'Brien, Jonny Greenwood, Phil Selway & Thom Yorke",
+        "discNumber": 1,
+        "durationInMillis": 248893,
+        "genreNames": [
+         "Alternative",
+         "Music"
+        ],
+        "hasLyrics": true,
+        "hasTimeSyncedLyrics": true,
+        "isAppleDigitalMaster": false,
+        "isMasteredForItunes": false,
+        "isVocalAttenuationAllowed": true,
+        "isrc": "GBSTK0700009",
+        "name": "Jigsaw Falling Into Place",
+        "playParams": {
+         "id": "1109715469",
+         "kind": "song"
+        },
+        "previews": [
+         {
+          "url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/76/0b/04/760b0415-ed76-cc02-b688-1a49789dbc34/mzaf_11882321334120712367.plus.aac.ep.m4a"
+         }
+        ],
+        "releaseDate": "2007-10-10",
+        "trackNumber": 9,
+        "url": "https://music.apple.com/ru/album/jigsaw-falling-into-place/1109714933?i=1109715469&l=en-GB"
+       }
+      },
+      {
+       "id": "1109715479",
+       "type": "songs",
+       "href": "/v1/catalog/ru/songs/1109715479?l=en-GB",
+       "attributes": {
+        "albumArtistName": "Radiohead",
+        "albumName": "In Rainbows",
+        "artistName": "Radiohead",
+        "artwork": {
+         "bgColor": "1e1807",
+         "hasP3": false,
+         "height": 4000,
+         "textColor1": "d0c741",
+         "textColor2": "e9872e",
+         "textColor3": "aca436",
+         "textColor4": "c07126",
+         "url": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/dd/50/c7/dd50c790-99ac-d3d0-5ab8-e3891fb8fd52/634904032463.png/{w}x{h}bb.jpg",
+         "width": 4000
+        },
+        "audioLocale": "en-US",
+        "audioTraits": [
+         "lossless",
+         "lossy-stereo"
+        ],
+        "composerName": "Colin Greenwood, Ed O'Brien, Jonny Greenwood, Phil Selway & Thom Yorke",
+        "discNumber": 1,
+        "durationInMillis": 279634,
+        "genreNames": [
+         "Alternative",
+         "Music"
+        ],
+        "hasLyrics": true,
+        "hasTimeSyncedLyrics": true,
+        "isAppleDigitalMaster": false,
+        "isMasteredForItunes": false,
+        "isVocalAttenuationAllowed": true,
+        "isrc": "GBSTK0700010",
+        "name": "Videotape",
+        "playParams": {
+         "id": "1109715479",
+         "kind": "song"
+        },
+        "previews": [
+         {
+          "url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/8f/04/26/8f0426ef-4d1b-c1e7-dcde-dfb868f2c52a/mzaf_11154163380691095259.plus.aac.ep.m4a"
+         }
+        ],
+        "releaseDate": "2007-10-10",
+        "trackNumber": 10,
+        "url": "https://music.apple.com/ru/album/videotape/1109714933?i=1109715479&l=en-GB"
+       }
+      }
+     ]
+    }
+   }
+  }
+ ]
+}

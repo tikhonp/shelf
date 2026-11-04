@@ -32,8 +32,13 @@ func (s *Source) Formats() []source.Format {
 
 var formatFlags = map[string][]string{FormatALAC: nil, FormatAtmos: {"--atmos"}, FormatAAC: {"--aac"}}
 
-// barEvery is how often a progress bar's redraw reaches the job log.
-const barEvery = 5 * time.Second
+// barEvery is how often a progress bar's redraw reaches the job log, and
+// progressEvery how often it reaches the song's progress. A bar's last
+// redraw, at 100%, always does.
+const (
+	barEvery      = 5 * time.Second
+	progressEvery = time.Second
+)
 
 // Download runs amdl once for an album, playlist or song. amdl skips the
 // files it finds complete, so a run after a restart picks up where the
@@ -64,27 +69,49 @@ func (s *Source) Download(ctx context.Context, req source.DownloadRequest, rep s
 	if len(rel.item.Tracks) == 0 {
 		return res, fmt.Errorf("%s has no songs; music videos are not supported yet", rel.item.Title)
 	}
+	// amdl would fail every song, and leave a folder of lyrics and a cover.
+	if f.ID == FormatAtmos && !hasAtmos(rel.item) {
+		return res, fmt.Errorf("%s has no Dolby Atmos version", rel.item.Title)
+	}
 	rep.Plan(rel.item.Tracks)
 	link := downloadLink(sf, req.Ref)
 	log := rep.Log()
 	log.Info("Running amdl %s for %s", strings.Join(append([]string{"--json"}, formatFlags[f.ID]...), " "), link)
 
 	tr := amdl.NewTracker()
-	var lastBar time.Time
-	out, err := s.runner.Run(ctx, link, formatFlags[f.ID], func(l string) {
-		if amdl.IsBar(l) {
-			if time.Since(lastBar) < barEvery && !strings.Contains(l, "100%") {
+	var lastBar, lastProgress time.Time
+	pos := 0
+	line := func(l string) {
+		if n := tr.Line(l); n > 0 {
+			if pos = rel.position(n); pos > 0 {
+				rep.Start(pos)
+			}
+		}
+		if bar, rest := amdl.SplitBar(l); bar != "" {
+			full := strings.Contains(bar, "100%")
+			if n, ok := amdl.Bar(bar); ok && pos > 0 && (full || time.Since(lastProgress) >= progressEvery) {
+				lastProgress = time.Now()
+				rep.Progress(pos, n)
+			}
+			// A failure that cut the bar short always reaches the log.
+			if rest == "" && !full && time.Since(lastBar) < barEvery {
 				return
 			}
 			lastBar = time.Now()
 		}
 		log.Info("%s", l)
-		if n := tr.Line(l); n > 0 {
-			if pos := rel.position(n); pos > 0 {
-				rep.Start(pos)
-			}
-		}
-	})
+	}
+	out, err := s.runner.Run(ctx, link, formatFlags[f.ID], line)
+	// A song can fail once and pass on the next try, as when Apple's key
+	// server refuses a key. amdl skips the files it finished, so a second
+	// run costs little.
+	var ee *amdl.ExitError
+	if errors.As(err, &ee) && amdl.FailedPass(out.Tail) {
+		log.Warn("A song failed, so amdl runs once more: %s", strings.Join(ee.Lines, " | "))
+		tr.Again()
+		pos = 0
+		out, err = s.runner.Run(ctx, link, formatFlags[f.ID], line)
+	}
 	if err != nil {
 		return res, err
 	}
@@ -99,6 +126,21 @@ func (s *Source) Download(ctx context.Context, req source.DownloadRequest, rep s
 		return res, errors.New(reason)
 	}
 	return res, nil
+}
+
+// hasAtmos reports whether an item may have a Dolby Atmos version. It may
+// when the item or one of its songs says so, or when a song's traits are
+// unknown.
+func hasAtmos(it source.Item) bool {
+	if it.Quality.Atmos {
+		return true
+	}
+	for _, t := range it.Tracks {
+		if t.Quality.Atmos || t.Quality.IsZero() {
+			return true
+		}
+	}
+	return false
 }
 
 // position is the track position of amdl's item number n.

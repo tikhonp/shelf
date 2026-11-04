@@ -136,6 +136,8 @@ func (f *fakeApple) serve(w http.ResponseWriter, r *http.Request) {
 		f.fixture(w, "album.json")
 	case p == "albums/1440000000/tracks" && q.Get("offset") == "2":
 		f.fixture(w, "album-tracks-2.json")
+	case p == "albums/1109714933" && q.Get("include") == "tracks,artists":
+		f.fixture(w, "live/album-1109714933.json")
 	case p == "songs/1440000002":
 		f.fixture(w, "song.json")
 	case p == "playlists/pl.0123456789abcdef":
@@ -373,6 +375,9 @@ func fakeAMDL(mode string, args []string) int {
 		_ = os.WriteFile(p, flacHeader(24, 96000), 0o644)
 		list = append(list, added{Path: p, Artist: "Northern Static", ArtistID: "111", Album: "Low Tide Hymns", Song: song})
 	}
+	if mode == "replay" {
+		return replayAMDL(cfg.Paths.ALAC)
+	}
 	fmt.Println("lite-server regions: [ru]")
 	switch mode {
 	case "early":
@@ -383,7 +388,7 @@ func fakeAMDL(mode string, args []string) int {
 		fmt.Println(filepath.Base(dir))
 		fmt.Println("Track 1 of 3: songs")
 		fmt.Println("01. Shoreline")
-		fmt.Print("Downloading...  50% |█████     | (1.0/2.0 MB)\rDownloading... 100% |██████████| (2.0/2.0 MB)\n")
+		fmt.Print("Decrypting...  50%  (1.0/2.0 MB, 4.0 MB/s) \rDecrypting... 100%  (2.0/2.0 MB, 4.0 MB/s) [0s] Decrypted\n")
 		write(1, "Shoreline")
 		fmt.Println("Track 2 of 3: songs")
 		fmt.Println("Unavailable")
@@ -401,6 +406,39 @@ func fakeAMDL(mode string, args []string) int {
 		fmt.Println("Unavailable")
 		fmt.Println("Track 3 of 3: songs")
 		fmt.Println("Unavailable")
+	case "flaky":
+		// Song 2 fails in the first FAKE_FAILS runs, with the failure on its
+		// bar's line, as when Apple's key server refused a key in a live run.
+		runs := 1
+		if b, err := os.ReadFile(os.Getenv("FAKE_STATE")); err == nil {
+			_, _ = fmt.Sscan(string(b), &runs)
+			runs++
+		}
+		_ = os.WriteFile(os.Getenv("FAKE_STATE"), []byte(fmt.Sprint(runs)), 0o644)
+		fails := 0
+		_, _ = fmt.Sscan(os.Getenv("FAKE_FAILS"), &fails)
+		fmt.Println("Queue 1 of 1: Album")
+		fmt.Println(filepath.Base(dir))
+		for i, song := range []string{"Shoreline", "Undertow", "Breakwater"} {
+			n := i + 1
+			fmt.Printf("Track %d of 3: songs\n%02d. %s\n", n, n, song)
+			if _, err := os.Stat(filepath.Join(dir, fmt.Sprintf("%02d. %s.flac", n, song))); err == nil {
+				fmt.Println("Converted track already exists locally.")
+				list = append(list, added{Path: filepath.Join(dir, fmt.Sprintf("%02d. %s.flac", n, song)), Artist: "Northern Static", ArtistID: "111", Album: "Low Tide Hymns", Song: song})
+				continue
+			}
+			if n == 2 && runs <= fails {
+				fmt.Print("Decrypting...  10%  (1.0/9.9 MB, 5.0 MB/s) \rDecrypting...  20%  (2.0/9.9 MB, 5.0 MB/s) Failed to run v4: lite-server /key returned code=500 msg=internal error\n")
+				continue
+			}
+			fmt.Print("Decrypting... 100%  (9.9/9.9 MB, 5.0 MB/s) [1s] Decrypted\n")
+			write(n, song)
+		}
+		if runs <= fails {
+			fmt.Println("=======  [✔ ] Completed: 2/3  |  [⚠ ] Warnings: 0  |  [✖ ] Errors: 1  =======")
+			fmt.Println("Error detected, exiting...")
+			return 1
+		}
 	case "fail":
 		fmt.Println("Track 1 of 3: songs")
 		fmt.Println("Failed to run v4: key retrieval failed")
@@ -410,6 +448,31 @@ func fakeAMDL(mode string, args []string) int {
 	fmt.Println("=======  [✔ ] Completed")
 	out, _ := json.Marshal(list)
 	fmt.Println(string(out))
+	return 0
+}
+
+// replayAMDL prints the recorded run in FAKE_REPLAY with its folder moved
+// to alac, and writes the FLAC files it lists, as amdl did.
+func replayAMDL(alac string) int {
+	b, err := os.ReadFile(os.Getenv("FAKE_REPLAY"))
+	if err != nil {
+		fmt.Println(err)
+		return 1
+	}
+	out := strings.ReplaceAll(string(b), "/music/apple-music", alac)
+	lines := strings.Split(strings.TrimSpace(out), "\n")
+	var list []struct {
+		Path string `json:"path"`
+	}
+	_ = json.Unmarshal([]byte(lines[len(lines)-1]), &list)
+	for _, a := range list {
+		if _, err := os.Stat(a.Path); err == nil {
+			continue
+		}
+		_ = os.MkdirAll(filepath.Dir(a.Path), 0o755)
+		_ = os.WriteFile(a.Path, flacHeader(16, 44100), 0o644)
+	}
+	_, _ = os.Stdout.WriteString(out)
 	return 0
 }
 
