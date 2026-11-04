@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -57,6 +58,42 @@ func TestCoalescingQueuesOneFollowUp(t *testing.T) {
 	h.Drain()
 	if n := count(t, h, `SELECT count(*) FROM jobs`); n != 2 {
 		t.Fatalf("%d jobs", n)
+	}
+}
+
+func TestDeferTakesInACoalescedFollowUp(t *testing.T) {
+	h := newH(t)
+	g := newGate()
+	var runs atomic.Int32
+	reg(t, h.Sys, simple("test.slice", func(ctx context.Context, r *jobs.Run) error {
+		if runs.Add(1) == 1 {
+			if err := g.wait(ctx); err != nil {
+				return err
+			}
+			return jobs.Defer(0, "the next slice")
+		}
+		return nil
+	}))
+	h.Start(h.Sys)
+	first := enq(t, h, jobs.Request{Type: "test.slice", Payload: map[string]any{"a": 1}, CoalescingKey: "k", ResourceKey: "r"})
+	waitInt(t, h, "first slice running", g.reached.Load, 1)
+	enq(t, h, jobs.Request{Type: "test.slice", Payload: map[string]any{"b": 2}, CoalescingKey: "k", ResourceKey: "r"})
+	g.release()
+	h.Drain()
+	if st := h.State(first.ID); st != jobs.Succeeded {
+		t.Fatalf("state %s", st)
+	}
+	if n := count(t, h, `SELECT count(*) FROM jobs`); n != 1 {
+		t.Fatalf("%d jobs", n)
+	}
+	j, err := h.Sys.Job(bg, first.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var p map[string]int
+	_ = json.Unmarshal(j.Payload, &p)
+	if p["a"] != 1 || p["b"] != 2 || j.Merged != 1 {
+		t.Fatalf("payload %s merged %d", j.Payload, j.Merged)
 	}
 }
 

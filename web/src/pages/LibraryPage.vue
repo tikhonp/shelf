@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import LibAsk from '../components/LibAsk.vue'
+import LibBulk from '../components/LibBulk.vue'
 import LibCoverDialog from '../components/LibCoverDialog.vue'
 import Icon from '../components/Icon.vue'
 import LibEditor from '../components/LibEditor.vue'
@@ -13,6 +14,7 @@ import LibPhoneAlbum from '../components/LibPhoneAlbum.vue'
 import LibPhoneField from '../components/LibPhoneField.vue'
 import LibPhoneIssues from '../components/LibPhoneIssues.vue'
 import LibPlayer from '../components/LibPlayer.vue'
+import LibRun from '../components/LibRun.vue'
 import LibSaveBar from '../components/LibSaveBar.vue'
 import LibSplit from '../components/LibSplit.vue'
 import LibTracks from '../components/LibTracks.vue'
@@ -20,6 +22,7 @@ import { libraryAction } from '../lib/libraryKeys'
 import { fieldView, isGuide, mainFields, offersFor } from '../lib/tags'
 import { usePhone } from '../lib/viewport'
 import { vVars } from '../lib/vars'
+import { useBulk } from '../stores/bulk'
 import { useEditor } from '../stores/editor'
 import { useHelp } from '../stores/help'
 import { usePlayer } from '../stores/player'
@@ -30,6 +33,7 @@ const phone = usePhone()
 const editor = useEditor()
 const player = usePlayer()
 const help = useHelp()
+const bulk = useBulk()
 const list = ref<InstanceType<typeof LibList>>()
 const editorPanel = ref<InstanceType<typeof LibEditor>>()
 const playerPanel = ref<InstanceType<typeof LibPlayer>>()
@@ -45,8 +49,18 @@ watch(
   id,
   (next) => {
     player.stop()
+    if (next) bulk.panel = false
     if (next) void editor.open(next)
     else editor.close()
+  },
+  { immediate: true },
+)
+
+// A page that opens while a run works shows it, unless it opened on an album.
+watch(
+  () => bulk.working,
+  (working) => {
+    if (working && bulk.run?.kind === 'save' && !id.value) bulk.panel = true
   },
   { immediate: true },
 )
@@ -86,6 +100,7 @@ function leave() {
   if (help.sheet) help.sheet = null
   else if (coverOpen.value) coverOpen.value = false
   else if (document.activeElement instanceof HTMLElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur()
+  else if (bulk.panel) bulk.panel = false
   else if (historyOpen.value) historyOpen.value = false
   else if (id.value) void router.push({ name: 'library' })
 }
@@ -94,6 +109,8 @@ const actions: Record<string, () => void> = {
   search: () => list.value?.focusSearch(),
   filter: () => list.value?.toggleFilter(),
   history: () => (historyOpen.value = !historyOpen.value),
+  bulk: () => (bulk.panel = !bulk.panel && (bulk.count > 0 || !!bulk.run)),
+  'select-row': () => list.value?.pickRow(),
   guide: () => (help.sheet = 'guide'),
   keys: () => (help.sheet = 'keys'),
   'all-fields': () => editorPanel.value?.toggleAll(),
@@ -205,10 +222,18 @@ const saveSlot = computed(() => editor.staged > 0 || !!editor.saving || !!editor
     <div v-else-if="id && saveSlot" class="win slot tall"><LibSaveBar /></div>
   </div>
   <main v-else v-vars="widths" class="lib-main">
-    <LibList ref="list" class="list" :class="{ wide: !id && !historyOpen }" :current="id">
-      <template #caps><button type="button" class="wbtn txt" :aria-pressed="historyOpen" @click="historyOpen = !historyOpen">History</button></template>
+    <LibList ref="list" class="list" :class="{ wide: !id && !historyOpen && !bulk.panel }" :current="id">
+      <template #caps>
+        <button type="button" class="wbtn txt" :aria-pressed="bulk.selecting" @click="bulk.toggleSelecting()">Select</button>
+        <button type="button" class="wbtn txt" :aria-pressed="historyOpen" @click="historyOpen = !historyOpen">History</button>
+      </template>
     </LibList>
-    <template v-if="historyOpen">
+    <template v-if="bulk.panel">
+      <LibSplit label="album list" @move="moveList" />
+      <LibRun v-if="bulk.run" class="editor" />
+      <LibBulk v-else class="editor" />
+    </template>
+    <template v-else-if="historyOpen">
       <LibSplit label="album list" @move="moveList" />
       <LibHistory class="editor" @close="historyOpen = false" />
     </template>

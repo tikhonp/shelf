@@ -211,7 +211,48 @@ CREATE TABLE library_remote (
 ) STRICT;
 ```
 
-- `library_lookups` keeps answers from MusicBrainz, the Cover Art Archive and LRCLIB. A 200 serves for 30 days and a 404 for one day. No request holds a secret.
+- `library_lookups` keeps answers from MusicBrainz, the Cover Art Archive and LRCLIB, and the releases AcoustID found for an album, under `acoustid:` with its folder and Navidrome ID. A 200 serves for 30 days and a 404 for one day. No request holds a secret.
 - `library_remote` keeps each cover a suggestion offered, so the editor names an image by ID and shelf fetches only images it found itself. An offer lasts 30 days.
 - The `library.retention` job removes lookups and offers older than 30 days.
+
+`00006_runs.sql` holds bulk runs and ReplayGain's measures.
+
+```sql
+ALTER TABLE library_changes ADD COLUMN parent INTEGER REFERENCES library_changes (id) ON DELETE CASCADE;
+
+CREATE TABLE library_runs (
+    change_id    INTEGER PRIMARY KEY REFERENCES library_changes (id) ON DELETE CASCADE,
+    fixes        TEXT NOT NULL,                     -- JSON: the kinds chosen, and 'replaygain'
+    cancelled    INTEGER NOT NULL DEFAULT 0 CHECK (cancelled IN (0, 1)),
+    analysis_job INTEGER                            -- a platform table, so no foreign key
+) STRICT;
+
+CREATE TABLE library_run_albums (
+    run         INTEGER NOT NULL REFERENCES library_changes (id) ON DELETE CASCADE,
+    position    INTEGER NOT NULL,
+    album_id    INTEGER NOT NULL,                  -- the index's row when the run started
+    target      INTEGER REFERENCES library_changes (id) ON DELETE SET NULL, -- the album's save an undo or redo works on
+    change_id   INTEGER REFERENCES library_changes (id) ON DELETE SET NULL, -- this album's write
+    title       TEXT NOT NULL,
+    artist      TEXT NOT NULL,
+    state       TEXT NOT NULL CHECK (state IN ('waiting', 'analyzing', 'ready', 'writing', 'done', 'skipped', 'failed', 'cancelled')),
+    gains       TEXT NOT NULL DEFAULT '',          -- JSON: what the analysis measured
+    fixes       INTEGER NOT NULL DEFAULT 0,
+    files       INTEGER NOT NULL DEFAULT 0,
+    message     TEXT NOT NULL DEFAULT '' CHECK (length(message) <= 1000),
+    finished_at TEXT,
+    PRIMARY KEY (run, position)
+) STRICT;
+
+CREATE TABLE library_gains (
+    audio       TEXT PRIMARY KEY,                  -- the hash a write checks, which a retag doesn't move
+    peak        REAL NOT NULL,
+    blocks      TEXT NOT NULL,                     -- JSON: the loudness histogram
+    measured_at TEXT NOT NULL
+) STRICT;
+```
+
+- A run is a `save`, `undo` or `redo` row in `library_changes` with a `library_runs` row and no files. Each album's write is a change with the run as its `parent`. The history lists only rows without a parent, and deleting a run takes its albums' changes with it.
+- An album starts `waiting` when the run measures ReplayGain, else `ready`. It moves through `analyzing` and `writing` to `done`, `skipped`, `failed` or `cancelled`. `done` with no `files` had nothing to change.
+- `library_gains` has no retention. It holds about 3 KB a track, and a row of audio that left the library costs only that.
 

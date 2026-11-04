@@ -27,6 +27,16 @@ const issues: Record<string, string> = {
   bad_cover: "ffmpeg can't decode it. Repair stages a cover and writes nothing.",
 }
 
+// A run takes each album alone, with no suggestions, so a note says what it does there.
+const fixes: Record<string, string> = {
+  no_releasedate: 'Writes RELEASEDATE so the year Navidrome shows stays the same.',
+  values_differ: 'Gives every track the value most of them hold. A tie stays as it is.',
+  tags_disagree: "Writes the first key's value to every key that feeds the field.",
+  various_artists: 'Sets the compilation flag on every track.',
+  replaygain: 'Measures each track with one decode, and writes track and album gain to -18 LUFS. It replaces gains already there.',
+}
+
 export const fieldNote = (field: string) => fields[field] ?? ''
 export const issueNote = (kind: string) => issues[kind] ?? ''
+export const fixNote = (fix: string) => fixes[fix] ?? ''
 export const scopeNote = 'What an edit reaches. Select a track to edit that track alone.'

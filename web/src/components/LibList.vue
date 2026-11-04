@@ -7,6 +7,7 @@ import { typeAngles } from '../lib/formats'
 import { libraryTape } from '../lib/quality'
 import { isGuide, issueName } from '../lib/tags'
 import { usePhone } from '../lib/viewport'
+import { useBulk } from '../stores/bulk'
 import { useLibrary, type LibrarySort } from '../stores/library'
 import Cover from './Cover.vue'
 import Icon from './Icon.vue'
@@ -16,6 +17,7 @@ import LibFilterMenu from './LibFilterMenu.vue'
 const props = defineProps<{ current?: number }>()
 const phone = usePhone()
 const library = useLibrary()
+const bulk = useBulk()
 const router = useRouter()
 const menu = ref(false)
 
@@ -55,7 +57,13 @@ function openRow() {
   const a = library.albums[row.value]
   if (a) void open(a)
 }
-defineExpose({ focusSearch: () => search.value?.focus(), toggleFilter: () => (menu.value = !menu.value), moveRow, openRow })
+function pickRow() {
+  const a = library.albums[row.value]
+  if (!a) return
+  bulk.selecting = true
+  bulk.toggle(a.id)
+}
+defineExpose({ focusSearch: () => search.value?.focus(), toggleFilter: () => (menu.value = !menu.value), moveRow, openRow, pickRow })
 
 const open = (a: LibraryAlbum) => router.push({ name: 'album', params: { id: a.id } })
 const lit = (a: LibraryAlbum) => a.lamp && a.issues.some((i) => !isGuide(i.kind))
@@ -123,8 +131,12 @@ onMounted(() => {
     </div>
 
     <div v-else class="lib-list" role="grid" aria-label="Albums">
-      <div class="lib-h top-h"><span class="num">{{ count(library.total, 'album') }}</span></div>
-      <div class="row thead g-lib" role="row">
+      <div class="lib-h top-h">
+        <span class="num">{{ bulk.selecting ? `${bulk.count.toLocaleString('en')} selected` : count(library.total, 'album') }}</span>
+        <label v-if="bulk.selecting" class="low pick-all"><input class="lib-ck" type="checkbox" :checked="bulk.all" @change="bulk.toggleAll()" />Select all {{ library.total.toLocaleString('en') }}</label>
+      </div>
+      <div class="row thead g-lib" :class="{ pick: bulk.selecting }" role="row">
+        <span v-if="bulk.selecting"></span>
         <span role="columnheader"><span class="sr">Cover</span></span>
         <span role="columnheader">Album</span>
         <span role="columnheader" class="lib-w">Artist</span>
@@ -133,7 +145,8 @@ onMounted(() => {
         <span role="columnheader">Quality</span>
         <span role="columnheader"><span class="sr">Issues</span></span>
       </div>
-      <div v-for="(a, n) in library.albums" :key="a.id" class="row g-lib" :class="{ cur: a.id === current, kc: n === row }" role="row">
+      <div v-for="(a, n) in library.albums" :key="a.id" class="row g-lib" :class="{ cur: a.id === current, kc: n === row, pick: bulk.selecting }" role="row">
+        <input v-if="bulk.selecting" class="lib-ck" type="checkbox" :checked="bulk.has(a.id)" :aria-label="`Select ${a.title}`" @change="bulk.toggle(a.id)" />
         <Cover :url="cover(a)" :size="46" />
         <button type="button" class="lib-open two" @click="open(a)">
           <span class="ttl"><span class="ell">{{ a.title }}</span></span>
@@ -155,6 +168,7 @@ onMounted(() => {
 .rs .top .srcbtn { max-width: 170px; }
 .rs .sorts { margin-top: 12px; border-bottom: 0; }
 .rs .top-h { border-top: 0; }
+.rs .pick-all { display: inline-flex; align-items: center; gap: 8px; min-height: 30px; cursor: pointer; }
 .rs .slash { padding: 0 8px; font-size: 15px; }
 .rs .row.kc:not(.cur) { outline: 2px solid var(--focus); outline-offset: -2px; }
 .rs .name { max-width: 190px; }

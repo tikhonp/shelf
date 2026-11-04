@@ -100,6 +100,25 @@ func TestEventsStream(t *testing.T) {
 	}
 }
 
+func TestEventsStreamCarriesARun(t *testing.T) {
+	r := newRig(t)
+	_, s := r.stream("/api/events", nil)
+	if e := s.next(); !e.comment {
+		t.Fatalf("first %+v", e)
+	}
+	r.hub.Publish("run", map[string]int{"id": 1})
+	r.hub.Publish("suggestions", map[string]int{"album": 2})
+	var got []sseEvent
+	for len(got) < 2 {
+		if e := s.next(); !e.comment {
+			got = append(got, e)
+		}
+	}
+	if got[0].event != "run" || got[1].event != "suggestions" || got[1].data != `{"album":2}` {
+		t.Fatalf("%+v", got)
+	}
+}
+
 func TestLogStreamResumes(t *testing.T) {
 	r := newRig(t)
 	r.start()

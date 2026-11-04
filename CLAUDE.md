@@ -22,7 +22,7 @@ State: phase 1 is done, and shelf runs in production on blackberry. `docs/status
 - Nothing slow or remote happens inside a database transaction. Read, act, then write.
 - Schema changes go only into new goose migrations. Tables are STRICT. Stored times are UTC text.
 - The music folder belongs to UID 10001. shelf runs as that user with umask 022, never changes the owner or mode of a file it did not create, and deletes only its own temp files and, when the owner replaces or deletes a cover, a folder's `cover.*`.
-- Secrets never reach logs, job logs, `shelf.txt` or API answers. That covers the Qobuz token, the Telegram token, the Navidrome password, the wrapper token, and Apple ID passwords and codes.
+- Secrets never reach logs, job logs, `shelf.txt` or API answers. That covers the Qobuz token, the Telegram token, the Navidrome password, the wrapper token, the AcoustID key, and Apple ID passwords and codes.
 - Comments say why, not what. Match the surrounding code.
 - There is no error reporting service. Errors are logged with slog.
 
@@ -116,5 +116,7 @@ Use these words in code, UI, docs and conversation.
 **Anchor.** The one MusicBrainz release an album's release fields come from. _Avoid_: match, for the release.
 
 **Change.** One tag write and its record: a Save, or the undo or redo of one. _Avoid_: edit, for the record.
+
+**Run.** Chosen fixes, or ReplayGain, applied to many albums as one undo step. _Avoid_: batch, job, for the run.
 
 **Status message.** The Telegram message the bot edits while one download moves.

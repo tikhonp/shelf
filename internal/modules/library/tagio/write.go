@@ -438,6 +438,18 @@ func resolve(f File, edits []Edit) (map[string][]string, error) {
 	return ops, nil
 }
 
+// Apply gives a copy of f with the edits made, and the keys they change with
+// their new values, none for a key they remove. Fixes that build on each other
+// go through it, because a field and a key can reach the same tag.
+func (f File) Apply(edits []Edit) (File, map[string][]string, error) {
+	ops, err := resolve(f, edits)
+	if err != nil {
+		return f, nil, err
+	}
+	f.Tags = apply(f.Tags, ops)
+	return f, ops, nil
+}
+
 // existingKey finds the file's spelling of a key. TagLib reads keys in
 // uppercase, so a new key is uppercase too.
 func existingKey(tags map[string][]string, key string) string {

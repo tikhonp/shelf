@@ -33,6 +33,9 @@ type Config struct {
 	Apple     Apple
 	Navidrome Navidrome
 	Telegram  Telegram
+	// AcoustIDKey lets the library identify an album by its audio. Empty
+	// leaves AcoustID out of the suggestions.
+	AcoustIDKey Secret
 
 	DevFakeSource bool
 	LogLevel      slog.Level
@@ -140,6 +143,7 @@ func Load(lookup func(string) (string, bool)) (*Config, error) {
 			Users:    p.userIDs("SHELF_TELEGRAM_USERS"),
 			UseProxy: p.boolean("SHELF_TELEGRAM_USE_PROXY", false),
 		},
+		AcoustIDKey:   Secret(p.str("SHELF_ACOUSTID_KEY", "")),
 		DevFakeSource: p.boolean("SHELF_DEV_FAKE_SOURCE", false),
 		LogLevel:      p.level("SHELF_LOG_LEVEL", "info"),
 	}

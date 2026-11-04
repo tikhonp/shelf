@@ -100,18 +100,66 @@ The history lists the saves newest first, `GET /api/library/history?before=&limi
 - **Clear history.** `DELETE /api/library/history` deletes every change that has ended, except a save whose undo or redo is still to run. It answers `{"deleted"}`.
 - **Retention.** A `library.retention` job at 05:15 keeps the newest 1,000 saves. Each save takes its undos and redos with it. The job then removes stored covers no change refers to, except uploads younger than a day.
 
+## Bulk runs
+
+A run applies chosen fixes, or ReplayGain, to many albums as one undo step. Only the owner starts one, on the desktop. Select in the list's title bar shows a push button on each row, and `X` picks the row under the cursor. The panel opens with the first album picked, and `B` opens or closes it.
+
+**Selection.** A body names albums as `{"albums": [ids]}`, or as `{"all": true, "q", "filter", "folder", "except": [ids]}`. Select all uses the second form, because the list holds only the pages already loaded. The selection is stored in `library_run_albums`, since a job's payload stops at 64 KiB.
+
+**Preview.** `POST /api/library/runs/preview` takes `{"selection", "fixes"}` and answers `{"selected", "fixes": [{"fix", "albums"}], "albums", "files", "bytes", "samples"}`. Each fix counts the selected albums the index says have its issue, and ReplayGain counts every selected album. `albums`, `files` and `bytes` add up the albums the chosen fixes reach. A retag rewrites every file, and the backups copy each one again, so whole albums count. These numbers are a ceiling, because an album may turn out to have nothing to change. `samples` lists `{"album", "key", "before", "after"}`: shelf plans the first five albums for real and shows up to six changes. ReplayGain's values aren't known yet, so its sample says so.
+
+**Fixes.** The server applies the editor's Fixes, in this order, each on what the one before left:
+
+| Fix | What a run does |
+| --- | --- |
+| `tags_disagree` | Writes the first key's value to every key that feeds the field. |
+| `values_differ` | Gives every track the value most tracks hold. A tie leaves the field alone. |
+| `no_releasedate` | The same rule as the editor's Fix. A file with no date changes nothing. |
+| `various_artists` | Sets the compilation flag on every track. |
+| `replaygain` | Writes the album's measured values, as [ReplayGain](#replaygain) says. |
+
+A run asks no service, because nobody reads each album before it writes. So a Fix that would rather take a suggestion uses its rule, and a run doesn't offer `missing_tag`, `two_releases` or `artist_split`, whose Fixes are only suggestions.
+
+**Slices.** `POST /api/library/runs` stores the run and answers 202 with its progress. A `library.run` job on the `tags` queue plans one album from the files as they are, writes it through the same writer as a Save, and defers itself. A Save queued meanwhile goes next, so it waits for one album at most. One run works at a time, and a second answers 409. A selection with nothing to fix answers 422.
+
+**What a run skips.** Each album is checked as a Save is. A conflict, a locked file or a folder a download works in skips the album. So does anything a Save would ask about, a split, a merge or an album artist rename, because Start asks nothing more. An album that left the index since the selection is skipped too. A write that fails verification fails that album, and the run goes on. The run's log says why, and the album keeps its files as they were.
+
+**Progress.** A `run` event carries `{"id", "kind", "fixes", "state", "reason", "error", "cancelling", "total", "done", "skipped", "failed", "files", "now", "now_state", "log", "created_at", "finished_at"}` as each album starts and ends. `log` holds the last 100 albums that ended. `GET /api/library/runs/current` answers `{"run"}`, null when none works, and `GET /api/library/runs/{id}` answers one run, for a page that opens or reconnects.
+
+**Cancel.** `POST /api/library/runs/{id}/cancel` stops a decode at once and lets a running write finish, so a run stops after the album it is writing. What it wrote stays, and the run ends `partial` with reason `cancelled`, or `failed` if it wrote nothing.
+
+**How a run ends.** `done` when no album was skipped or failed, `partial` when some wrote and some didn't, and `failed` when none wrote and some were skipped. Albums with nothing to change count for neither side. A run asks for one walk and one Navidrome scan when it ends, not one per album.
+
+**A stop.** A run outlives a restart. Its job resumes at the next album, and a write the stop cut off is settled from its files first.
+
+**History.** A run is one row, `Run: No RELEASEDATE` or `Run: 2 fixes`, with its albums and files. Its `tags` add up all its albums, its answer has `run`, `{"fixes", "albums", "files", "skipped", "failed"}`, and its detail lists its first 40 files. Each album's write is a change of its own under the run, and retention and Clear history treat the whole run as one save. An album's change can't be undone alone.
+
+**Undo.** Undo and Redo on a run queue a run of the same shape, with the same progress and the same cancel. They work on every album's save that needs it, follow the rules of [History](#history), and keep up to 200 conflicts on the row. They ask nothing, because the owner pressed Undo on the whole run. A cancelled undo leaves the run as not undone, and pressing Undo again finishes the rest.
+
+## ReplayGain
+
+A run's ReplayGain measures each track with one ffmpeg `ebur128` decode, on the `analysis` queue, so hours of decoding hold back no write. A `library.analyze` job works ahead of the writes, one album per slice, and asks for the `library.run` job as each album is ready.
+
+- **Measure.** ffmpeg prints the loudness of every 400 ms block, 10 a second. shelf keeps them as a histogram in 0.1 LU bins, and gates them as ITU BS.1770 says: an absolute gate at -70 LUFS and a relative one 10 LU under the mean.
+- **Album gain.** The blocks of all an album's tracks are pooled and gated together. Averaging the tracks' results would give another number.
+- **Values.** The gain is -18 LUFS minus the loudness, as `+3.21 dB`, and the peak is the highest sample, as `0.987000`. ffmpeg reports a peak to three places. Each file gets `REPLAYGAIN_TRACK_GAIN`, `_TRACK_PEAK`, `_ALBUM_GAIN` and `_ALBUM_PEAK` in one write, and these replace values already there.
+- **Silence.** A silent track has no loudness, so it gets the album's values and no track values. A silent album is skipped.
+- **Results.** `library_gains` keeps each measure by the hash of the audio, the same hash a write checks, which a retag doesn't move. So a run cut off or asked for again decodes nothing twice, and a second run on the same audio writes nothing.
+- **Failure.** A file ffmpeg can't measure skips its album, because an album gain needs every track.
+
 **Write probe.** At start, shelf creates and removes a temp file in each top folder of the music folder. `GET /api/library/index` lists the top folders with `writable` and the reason when not. Each walk counts the files shelf can't write, because another UID owns them or their group isn't one of shelf's, as `locked`, per folder and in all. The probe runs once a start, because it moves each folder's mtime.
 
 ## Suggestions
 
 A suggestion is a value for a field, shown beside it with its source and a confidence. `GET /api/library/albums/{id}/suggestions` answers an album's suggestions. The editor asks for them after it opens the album, so a slow service never holds the album up. Nothing is written until the owner accepts a suggestion and saves it.
 
-The answer is `{"anchor", "album", "tracks", "covers", "notes", "unavailable"}`:
+The answer is `{"anchor", "album", "tracks", "covers", "notes", "unavailable", "fingerprinting"}`:
 
 - `album` lists the album's suggestions, and `tracks` lists `{"id", "suggestions"}` per track. Each suggestion is `{"field", "values", "source", "sources", "confidence", "anchor"}`. A fill has `tracks` in place of `values`: one accept gives every track its own value, as a release's track IDs need.
 - `covers` lists `{"image", "source", "confidence", "anchor"}`. `GET /api/library/remote/{image}` serves a preview through shelf, so the CSP stays as it is. `POST /api/library/remote/{image}/cover` fetches the full image and stores it as an upload, which a Save names as the cover. shelf fetches only images a suggestion offered, and an offer lasts 30 days.
 - `notes` say where Navidrome shows something else. An `.lrc` file beside a track hides its embedded lyrics.
 - `unavailable` lists `{"source", "message"}` for each service that didn't answer. The other suggestions still come.
+- `fingerprinting` says a job is identifying the album by its audio, as [AcoustID](#the-anchor) says.
 
 A field shows its three best suggestions. A suggestion that every track already holds is left out.
 
@@ -146,7 +194,9 @@ Every MusicBrainz suggestion comes from one release, the anchor. Accepting field
 4. `isrc`: a recording search for up to three of the album's ISRCs, with the release most of them share first. 60%, plus up to 30% by the share of codes that agree.
 5. `search`: a search for the album and the album artist, of releases MusicBrainz scores at 60 or more. 40%, plus up to 40% by its score.
 
-AcoustID comes after these in step 6.
+6. `acoustid`: the releases the album's audio is on, only after the others found nothing and every lookup answered. 50%, plus up to 35% by the share of tracks that agree.
+
+**AcoustID.** It works with `SHELF_ACOUSTID_KEY` set, and the album's suggestions don't wait for it. The first asking answers `"fingerprinting": true` and queues a `library.fingerprint` job on the `analysis` queue. The job runs `fpcalc` on up to four tracks spread over the album, and asks AcoustID for the releases of matches scoring 70% or more. shelf stores the releases with the share of tracks on each, and a `suggestions` event `{"album"}` tells the editor to ask again. The search then reads up to three of them, and a release must pass the threshold below. Finding nothing is stored as a miss for a day. A failure stores nothing, so the next opening tries again. shelf calls AcoustID at most three times a second, and the key travels in the body of a POST.
 
 **Matching.** A release must have the album's number of tracks. The tracks pair by disc and track number, else in order, and each length must be within 10 seconds of the release's, with 3 seconds or less on average. A release that passes is `matched`, and the average difference scales its p from 100% down to 85% at 3 seconds. A release found by search, barcode or ISRC must pass, and shelf reads up to three of each kind, skipping hits whose track count differs. A release named by ID, staged or in the files, stays the anchor even when it fails, since the owner or the files chose it. It then suggests nothing, and `reason` says why, such as "The release has 12 tracks and the album 10."
 
@@ -236,8 +286,13 @@ After each step the test runs a quick scan, as production asks for, and holds ev
 5. Moving one track to a new album takes the album's star with it, as the Save's warning says.
 6. The `RELEASEDATE` fix's pair on an album under the legacy date rule keeps the year shown.
 7. A new cover is the one Navidrome serves.
+8. A run's date fix keeps the album's year and star, Navidrome reports the run's ReplayGain on each song, and the run's undo brings the old gain and the album ID back.
 
 Navidrome keeps the old `songCount` of an album that lost a track in a quick scan, though `getAlbum` lists the right songs. The test counts the songs.
+
+Navidrome serves its placeholder for a few seconds after a scan ends, then the new cover, with no other scan. The test waits for a cover up to 30 seconds. Reading it once failed about one run in three.
+
+The test's container installs Alpine's ffmpeg, the one production has, because a run reads that ffmpeg's output.
 
 ## Edge cases and their tests
 
@@ -322,10 +377,25 @@ Navidrome keeps the old `songCount` of an album that lost a track in a quick sca
 | A classical album searched without its artist, read with works, with composers | `TestClassicalSuggestsComposers` |
 | File and folder names, other tracks, `shelf.txt` and the catalog it names | `TestLocalSuggestions`, `TestParseNames` |
 | Services that fail, a source's own reason, nothing stored | `TestSuggestionsWhenServicesFail` |
+| A deferred job with a follow-up waiting, and the stream carrying a run | `jobs`: `TestDeferTakesInACoalescedFollowUp`; `downloads`: `TestEventsStreamCarriesARun` |
 | Lyrics per track, held lyrics, LRCLIB down | `TestLyrics` |
 | Cover previews and uploads through shelf, an unknown or broken image, retention | `TestRemoteCovers` |
 | Two anchors in a Save; an anchor beside another release's album ID, also on a track left out | `TestSaveRefusesTwoReleases` |
 | Agreement, one count per source, release fields held to one value, three per field | `TestMerge` |
+| A run's fixes, one undo step, redo, one scan per run, an album of a run refused alone | `TestRunFixesAlbumsAsOneUndoStep` |
+| Fixes in order on each other's results; a tie; each date case; M4A's date | `TestRunFixesBuildOnEachOther`, `TestCommonValues`, `TestReleaseDateEdits` |
+| Preview counts, samples, each selection form, bad fixes and filters | `TestRunPreview` |
+| No fix, nothing to fix, a second run at once, the working run | `TestStartRunRefuses` |
+| A busy folder, a split a Save would ask about, nothing to change, an album gone from the index | `TestRunSkipsWhatItCantDecide`, `TestRunWithNothingToChangeEndsWell`, `TestRunSkipsAnAlbumThatLeftTheIndex` |
+| A Save between two slices | `TestSaveGoesBetweenSlices` |
+| A restart mid-run, a write cut off, a start leaving the head alone | `TestRunSurvivesARestart`, `TestRunSettlesAWriteAStopCutOff`, `TestStartLeavesARunningRunAlone` |
+| Cancel of a write, of a waiting analysis, of an undo, and a job that fails | `TestCancelRun`, `TestCancelStopsTheAnalysis`, `TestCancelledUndoFinishesOnTheNextPress`, `TestFailedAnalysisClosesTheRun` |
+| An undo that meets a tag changed since | `TestRunUndoLeavesWhatChangedSince` |
+| Retention and Clear history keep a run whole | `TestHistoryRetentionKeepsARunWhole` |
+| ReplayGain in FLAC and M4A, audio not decoded twice, a file ffmpeg can't read | `TestRunWritesReplayGain`, `TestRunMeasureFailureSkipsTheAlbum` |
+| Gates, pooled blocks against one decode, no signal, a stopped decode, tag formats | `loudness`: `TestIntegratedGates`, `TestPoolMatchesOneDecode`, `TestParseKeepsThePeakAndSkipsNoSignal`, `TestAnalyzeStopsWithItsContext`, `TestFormats` |
+| AcoustID as the last resort, a miss, a failure, no key, MusicBrainz down | `TestAudioFindsTheAnchorWhenTextFindsNothing`, `TestAudioThatFindsNothingIsKeptAsAMiss`, `TestFailedFingerprintStoresNothing`, `TestNoKeyNoFingerprint`, `TestAudioDoesNothingWhenMusicBrainzFails`, `TestAudioWaitsForTextLookups` |
+| The key out of the address, the service's errors, fpcalc failing | `acoustid`: `TestLookupKeepsTheKeyOutOfTheAddress`, `TestLookupReportsTheServiceError`, `TestFingerprint` |
 | The client's cache, retries and decoding; links; the limiter's spacing and the editor going first | `TestReleaseAndCache`, `TestShapes`, `TestParseRelease`, `TestLimiterSpacesCalls`, `TestLimiterLetsTheEditorGoFirst` in `musicbrainz`, `TestGet` in `lrclib` |
 
 The fixtures in `tagio/testdata` are half a second of a sine per format, written by `testdata/make.sh`. Tests that need ffmpeg skip where it isn't installed. `musicbrainz/testdata` holds answers in MusicBrainz's and the Cover Art Archive's shapes, written by hand with made-up IDs.

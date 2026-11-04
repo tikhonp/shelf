@@ -105,6 +105,9 @@ type suggestionsJSON struct {
 	Covers      []coverSuggestion  `json:"covers"`
 	Notes       []note             `json:"notes"`
 	Unavailable []unavailable      `json:"unavailable"`
+	// Fingerprinting says a job is identifying the album by its audio. A
+	// suggestions event follows when there is something new to ask for.
+	Fingerprinting bool `json:"fingerprinting"`
 }
 
 // subject is an album as read now, the thing suggestions are for.
@@ -113,6 +116,8 @@ type subject struct {
 	tracks []*subjectTrack
 	// Strategies change how shelf searches MusicBrainz and what it suggests.
 	compilation, live, classical bool
+	// fingerprinting is set when the search asked for a fingerprint job.
+	fingerprinting bool
 }
 
 type subjectTrack struct {
@@ -308,7 +313,7 @@ func (m *Module) suggest(ctx context.Context, s *subject, staged string) (sugges
 	wg.Wait()
 
 	out := suggestionsJSON{Album: []Suggestion{}, Tracks: []trackSuggestions{}, Covers: []coverSuggestion{},
-		Notes: m.notes(s), Unavailable: []unavailable{}}
+		Notes: m.notes(s), Unavailable: []unavailable{}, Fingerprinting: s.fingerprinting}
 	out.Unavailable = append(out.Unavailable, col.unavailable...)
 	if col.anchor != nil {
 		out.Anchor = col.anchor.json()

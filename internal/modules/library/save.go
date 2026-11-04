@@ -504,6 +504,15 @@ func (m *Module) JobTypes() []jobs.Type {
 		Name: WriteJob, Queue: jobs.QueueTags, MaxAttempts: 1,
 		Steps: []jobs.Step{{Name: "write", Run: m.write}},
 	}, {
+		Name: RunJob, Queue: jobs.QueueTags, MaxAttempts: 1, OnFailed: m.runFailed, OnCancelled: m.runCancelled,
+		Steps: []jobs.Step{{Name: "album", Run: m.runSlice}},
+	}, {
+		Name: AnalyzeJob, Queue: jobs.QueueAnalysis, MaxAttempts: 1, OnFailed: m.runFailed,
+		Steps: []jobs.Step{{Name: "album", Run: m.analyzeSlice}},
+	}, {
+		Name: FingerprintJob, Queue: jobs.QueueAnalysis, MaxAttempts: 1, Quiet: true,
+		Steps: []jobs.Step{{Name: "listen", Run: m.fingerprint}},
+	}, {
 		Name: RetentionJob, Queue: jobs.QueueSystem, MaxAttempts: 1, Quiet: true,
 		Steps: []jobs.Step{{Name: "trim", Run: m.retain}},
 	}}
@@ -537,6 +546,16 @@ func (m *Module) write(ctx context.Context, r *jobs.Run) error {
 	default:
 		return nil
 	}
+	if err := m.writeChange(ctx, c, r.Log()); err != nil {
+		return err
+	}
+	m.afterWrite(ctx, c.ID)
+	return nil
+}
+
+// writeChange writes a queued change and records how it went. A write that
+// the checks stopped fails its change and answers nil.
+func (m *Module) writeChange(ctx context.Context, c changeRow, log *jobs.Logger) error {
 	var sc storedChange
 	if err := json.Unmarshal([]byte(c.Request), &sc); err != nil {
 		return jobs.Permanent(err)
@@ -569,11 +588,10 @@ func (m *Module) write(ctx context.Context, r *jobs.Run) error {
 		}
 	}
 	if werr != nil {
-		r.Log().Warn("The write stopped: %s", j.message(werr))
+		log.Warn("The write stopped: %s", j.message(werr))
 	} else {
-		r.Log().Info("Wrote %d files of %s", len(res.Files), c.Folder)
+		log.Info("Wrote %d files of %s", len(res.Files), c.Folder)
 	}
-	m.afterWrite(ctx, c.ID)
 	return nil
 }
 

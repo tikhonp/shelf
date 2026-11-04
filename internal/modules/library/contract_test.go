@@ -19,12 +19,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"image"
+	_ "image/jpeg"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -192,9 +195,14 @@ type ndAlbum struct {
 	SongCount int    `json:"songCount"`
 	Starred   string `json:"starred"`
 	Song      []struct {
-		ID      string `json:"id"`
-		Title   string `json:"title"`
-		Starred string `json:"starred"`
+		ID         string `json:"id"`
+		Title      string `json:"title"`
+		Starred    string `json:"starred"`
+		ReplayGain struct {
+			TrackGain float64 `json:"trackGain"`
+			AlbumGain float64 `json:"albumGain"`
+			AlbumPeak float64 `json:"albumPeak"`
+		} `json:"replayGain"`
 	} `json:"song"`
 }
 
@@ -211,6 +219,24 @@ func (nd *navidrome) albums() map[string]ndAlbum {
 		out[a.Name] = a
 	}
 	return out
+}
+
+// cover waits until Navidrome serves an album's cover at a width, and answers
+// the width it last served. Its artwork catches up seconds after a scan ends,
+// with the placeholder until then.
+func (nd *navidrome) cover(id string, want int) int {
+	nd.t.Helper()
+	deadline := time.Now().Add(30 * time.Second)
+	for {
+		w := 0
+		if cfg, _, err := image.DecodeConfig(bytes.NewReader(nd.raw("getCoverArt", url.Values{"id": {id}}))); err == nil {
+			w = cfg.Width
+		}
+		if w == want || time.Now().After(deadline) {
+			return w
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
 }
 
 func (nd *navidrome) album(id string) ndAlbum {
@@ -248,6 +274,11 @@ func TestNavidromeContract(t *testing.T) {
 	}
 	r.add("jazz/Moanin/01.flac", "track.flac", legacy("1"))
 	r.add("jazz/Moanin/02.flac", "track.flac", legacy("2"))
+	for _, n := range []string{"1", "2"} {
+		tags := legacy(n)
+		tags["ALBUM"] = []string{"Somethin' Else"}
+		r.add("jazz/Else/0"+n+".flac", "track.flac", tags)
+	}
 	r.write("folk/Blue/.shelf-tmp-0123456789abcdef", []byte("half a write"))
 	// An album whose discs each have a cover, and two albums in one folder.
 	disc := func(n string) map[string][]string {
@@ -365,9 +396,8 @@ func TestNavidromeContract(t *testing.T) {
 	b := ours["Blue"]
 	r.saved(b.ID, saveBody{Tracks: everyTrack(r.open(b.ID)), Confirm: []string{ConfirmSharedCover}, Cover: &coverEdit{Upload: up.ID}})
 	reindex()
-	art := nd.raw("getCoverArt", url.Values{"id": {"al-" + ours["Blue"].NavidromeID}})
-	if w, h := size(t, art); w != 64 || h != 64 {
-		t.Errorf("Navidrome serves a %dx%d cover", w, h)
+	if w := nd.cover("al-"+ours["Blue"].NavidromeID, 64); w != 64 {
+		t.Errorf("Navidrome serves a %d wide cover", w)
 	}
 
 	// Navidrome and shelf agree on the cover of an album with disc folders.
@@ -376,29 +406,32 @@ func TestNavidromeContract(t *testing.T) {
 		return nd.raw("getCoverArt", url.Values{"id": {"al-" + ours[name].NavidromeID}})
 	}
 	placeholder := shows("Moanin'")
+	if w := nd.cover("al-"+ours["Discs"].NavidromeID, 100); w != 100 {
+		t.Errorf("Navidrome shows a %d wide cover for Discs", w)
+	}
 	if !bytes.Equal(shows("Discs"), r.shown(ours["Discs"].ID)) {
 		t.Errorf("shelf and Navidrome show different covers for Discs")
-	}
-	if w, _ := size(t, shows("Discs")); w != 100 {
-		t.Errorf("Navidrome shows a %d wide cover for Discs", w)
 	}
 	// A new cover in the release folder beats the discs' own.
 	up = r.upload(jpegOf(t, 72, 72))
 	discs := ours["Discs"]
 	r.saved(discs.ID, saveBody{Tracks: everyTrack(r.open(discs.ID)), Cover: &coverEdit{Upload: up.ID}})
 	reindex()
-	if w, _ := size(t, shows("Discs")); w != 72 {
+	if w := nd.cover("al-"+ours["Discs"].NavidromeID, 72); w != 72 {
 		t.Errorf("Navidrome shows a %d wide cover after a replace", w)
 	}
 	// Each disc keeps its own art through the replace.
-	art = nd.raw("getCoverArt", url.Values{"id": {"dc-" + ours["Discs"].NavidromeID + ":2"}})
-	if w, _ := size(t, art); w != 110 {
+	if w := nd.cover("dc-"+ours["Discs"].NavidromeID+":2", 110); w != 110 {
 		t.Errorf("Navidrome shows a %d wide cover for disc 2", w)
 	}
 	// Delete leaves Navidrome nothing to fall back to.
 	discs = ours["Discs"]
 	r.saved(discs.ID, saveBody{Tracks: everyTrack(r.open(discs.ID)), Cover: &coverEdit{Delete: true}})
 	reindex()
+	// The placeholder is WebP, which has no width here.
+	if w := nd.cover("al-"+ours["Discs"].NavidromeID, 0); w != 0 {
+		t.Errorf("Navidrome still shows a %d wide cover for Discs after a Delete", w)
+	}
 	if !bytes.Equal(shows("Discs"), placeholder) {
 		t.Error("Navidrome still shows a cover for Discs after a Delete")
 	}
@@ -407,8 +440,52 @@ func TestNavidromeContract(t *testing.T) {
 	one := ours["One"]
 	r.saved(one.ID, saveBody{Tracks: everyTrack(r.open(one.ID)), Confirm: []string{ConfirmSharedCover}, Cover: &coverEdit{Upload: up.ID}})
 	reindex()
-	if w, _ := size(t, shows("Two")); w != 72 {
+	if w := nd.cover("al-"+ours["Two"].NavidromeID, 72); w != 72 {
 		t.Errorf("Navidrome shows a %d wide cover for the album sharing the folder", w)
+	}
+
+	// A run's date fix keeps the year and the star, and Navidrome plays by the
+	// run's ReplayGain.
+	name := "Somethin' Else"
+	before := ours[name]
+	nd.call("star", url.Values{"albumId": {before.NavidromeID}}, nil)
+	run := r.startRun(runBody{Selection: selection{Albums: []int64{before.ID}}, Fixes: []string{string(NoReleaseDate), FixReplayGain}})
+	r.drain()
+	if got := r.run(run.ID); got.State != StateDone || got.Files != 2 {
+		t.Fatalf("run %+v", got)
+	}
+	reindex()
+	a := check("after a run")[name]
+	if a.Year != 1958 || a.Starred == "" {
+		t.Errorf("after a run %+v", a)
+	}
+	tags := tagsOf(t, filepath.Join(r.root, "jazz", "Else", "01.flac"))
+	want, err := strconv.ParseFloat(strings.Fields(tags["REPLAYGAIN_ALBUM_GAIN"][0])[0], 64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range nd.album(a.ID).Song {
+		g := s.ReplayGain
+		// The fixture's -6 dB track gain is gone, and the album's is the run's.
+		if g.AlbumGain != want || g.AlbumPeak == 0 || g.TrackGain == -6 || g.TrackGain == 0 {
+			t.Errorf("after a run Navidrome has %+v, the file %v", g, tags)
+		}
+	}
+
+	// Its undo is one step, and the old gain comes back.
+	if rec := r.post("/api/library/changes/"+itoa(run.ID)+"/undo", nil); rec.Code != http.StatusAccepted {
+		t.Fatalf("undo: %d %s", rec.Code, rec.Body)
+	}
+	r.drain()
+	reindex()
+	a = check("after a run's undo")[name]
+	if a.ID != before.NavidromeID || a.Year != 1958 || a.Starred == "" {
+		t.Errorf("after a run's undo %+v", a)
+	}
+	for _, s := range nd.album(a.ID).Song {
+		if g := s.ReplayGain; g.TrackGain != -6 || g.AlbumGain != 0 {
+			t.Errorf("after a run's undo Navidrome has %+v", g)
+		}
 	}
 
 	if _, err := os.Stat(p1); err != nil {

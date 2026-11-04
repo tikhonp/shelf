@@ -19,3 +19,8 @@ test('a cover edit is a line of its own, and a folder cover alone counts', () =>
   expect(historyLines([file('a/1.flac', []), file('a/cover.jpg', [], { kind: 'cover' })]).map((l) => l.key)).toEqual(['Cover'])
   expect(historyLines([file('a/1.flac', [])])).toEqual([])
 })
+
+test('a run names the album folder too', () => {
+  const lines = historyLines([file('rock/Blue/01.flac', [k('DATE', ['1'], ['2'])]), file('rock/Hejira/01.flac', [k('DATE', ['3'], ['4'])])], true)
+  expect(lines.map((l) => l.track)).toEqual(['Blue/01.flac', 'Hejira/01.flac'])
+})

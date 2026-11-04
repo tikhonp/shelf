@@ -5,7 +5,7 @@ These docs describe shelf as it runs now.
 | Doc | What it holds |
 | --- | --- |
 | [status.md](status.md) | Where things stand and what is open. |
-| [phase-2.md](phase-2.md) | The approved plan for phase 2, tags. Steps 1 to 4 are built. |
+| [phase-2.md](phase-2.md) | The approved plan for phase 2, tags. Steps 1, 2 and 4 are done, and steps 3, 5 and 6 are built. |
 | [vision.md](vision.md) | What Music Shelf is for, and the directions after phase 1. |
 | [decisions.md](decisions.md) | The decisions in force and why. |
 | [architecture.md](architecture.md) | Containers, modules, source interfaces, downloads, events, the HTTP API, configuration. |

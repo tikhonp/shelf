@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v5"
+	"github.com/tikhonp/shelf/internal/modules/library/acoustid"
 	"github.com/tikhonp/shelf/internal/modules/library/lrclib"
 	"github.com/tikhonp/shelf/internal/modules/library/musicbrainz"
 	"github.com/tikhonp/shelf/internal/modules/library/tagio"
@@ -46,6 +47,10 @@ type Module struct {
 	MB     *musicbrainz.Client
 	Lyrics *lrclib.Client
 	HTTP   *http.Client
+	// Prints identifies audio. It stays nil without an AcoustID key.
+	Prints *acoustid.Client
+	// afterSlice runs when a run's slice ends. Tests stop a run with it.
+	afterSlice func()
 
 	root  string
 	log   *slog.Logger
@@ -56,6 +61,7 @@ type Module struct {
 	// covers keeps uploads and the covers changes replaced.
 	covers    coverStore
 	sources   *source.Registry
+	lookups   lookups
 	userAgent string
 	// kick asks for a walk. It holds one signal, so a burst asks once.
 	kick chan struct{}
@@ -120,6 +126,10 @@ func (m *Module) Init(d module.Deps) error {
 	m.MB = musicbrainz.New(m.userAgent, cache)
 	m.Lyrics = lrclib.New(m.userAgent, cache)
 	m.HTTP = &http.Client{}
+	if d.Cfg.AcoustIDKey != "" {
+		m.Prints = acoustid.New(d.Cfg.AcoustIDKey.Reveal(), m.userAgent)
+	}
+	m.lookups = cache
 	m.mu.Lock()
 	config := m.config
 	m.mu.Unlock()

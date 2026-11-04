@@ -62,7 +62,12 @@ export const useHistory = defineStore('history', () => {
   // it, and staged edits go out with the new revisions.
   function applyChange(c: LibraryChange) {
     const save = running.value[c.id]
-    if (save === undefined || c.state === 'queued' || c.state === 'writing') return
+    if (c.state === 'queued' || c.state === 'writing') return
+    // A run nobody here started ends in the list too.
+    if (save === undefined) {
+      if (c.run) void load()
+      return
+    }
     const { [c.id]: _, ...rest } = running.value
     running.value = rest
     if (c.conflicts.length > 0) conflicts.value = { ...conflicts.value, [save]: c.conflicts }

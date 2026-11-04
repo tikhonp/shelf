@@ -1,6 +1,7 @@
 package library
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -37,6 +38,11 @@ func (m *Module) routes(api *echo.Group) {
 	api.DELETE("/library/history", m.clearHistory)
 	api.GET("/library/albums/:id/suggestions", m.suggestions)
 	api.GET("/library/tracks/:id/suggestions", m.trackSuggestions)
+	api.POST("/library/runs/preview", m.previewRun)
+	api.POST("/library/runs", m.startRun)
+	api.GET("/library/runs/current", m.currentRun)
+	api.GET("/library/runs/:id", m.getRun)
+	api.POST("/library/runs/:id/cancel", m.cancelRun)
 	api.GET("/library/remote/:id", m.remoteImage)
 	api.POST("/library/remote/:id/cover", m.remoteCover)
 }
@@ -307,7 +313,7 @@ func (m *Module) get(c *echo.Context) error {
 		return strings.Compare(a.Path, b.Path)
 	})
 	if len(fresh) > 0 {
-		a, err := m.recheck(c, row, fresh, rules)
+		a, err := m.recheck(ctx, row, fresh, rules)
 		if err != nil {
 			return err
 		}
@@ -333,8 +339,7 @@ func (m *Module) get(c *echo.Context) error {
 
 // recheck runs the album checks on files read now. The split check needs
 // the other albums of the folder, which come from the index.
-func (m *Module) recheck(c *echo.Context, row albumRow, fresh []*file, rules *tagio.Rules) (*album, error) {
-	ctx := c.Request().Context()
+func (m *Module) recheck(ctx context.Context, row albumRow, fresh []*file, rules *tagio.Rules) (*album, error) {
 	a := &album{Folder: row.Folder, AlbumID: row.NDID, Files: fresh}
 	a.summarize()
 	a.check(folderImages(m.root, a.folders()), rules)

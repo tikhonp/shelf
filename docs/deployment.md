@@ -6,7 +6,7 @@ shelf runs on blackberry from `shelf.yaml` in `~/projects/sh-blackberry`. The sh
 
 | Image | Built from | Runs as |
 | --- | --- | --- |
-| `code.tikhonnnnn.com/tikhon/shelf` | `Dockerfile`, target `prod`: `alpine:3.22` with `ca-certificates`, `ffmpeg`, `tzdata`, amdl copied from `ghcr.io/zhaarey/apple-music-downloader:0.1.4`, and the shelf binary | `10001:10001` |
+| `code.tikhonnnnn.com/tikhon/shelf` | `Dockerfile`, target `prod`: `alpine:3.22` with `ca-certificates`, `chromaprint` for `fpcalc`, `ffmpeg`, `tzdata`, amdl copied from `ghcr.io/zhaarey/apple-music-downloader:0.1.4`, and the shelf binary | `10001:10001` |
 | `code.tikhonnnnn.com/tikhon/shelf-wrapper` | `Dockerfile`, target `wrapper`: the pinned `ghcr.io/tikhonp/wrapper-lite` image plus tini and `shelf-wrapper`, amd64 only | root, privileged |
 
 Forgejo CI builds both on every push to `main` and tags them with the SHA, `main` and `latest`.
@@ -36,6 +36,7 @@ SHELF_NAVIDROME_USER=       a Navidrome admin
 SHELF_NAVIDROME_PASSWORD=
 SHELF_TELEGRAM_TOKEN=       the token of `@music_shelf_bot`
 SHELF_TELEGRAM_USERS=       the user IDs the bot answers
+SHELF_ACOUSTID_KEY=         an application key from acoustid.org, optional
 ```
 
 and `blackberry/shelf-wrapper.env` with the same `SHELF_WRAPPER_TOKEN`. Commit changes in sh-secrets first, then bump the submodule pointer.
