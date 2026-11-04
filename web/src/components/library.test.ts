@@ -339,3 +339,26 @@ test('a file the browser refuses plays through the transcode, and a second failu
   expect(w.find('.lib-player').text()).toContain("THIS BROWSER CAN'T PLAY THIS FILE.")
   w.unmount()
 })
+
+test('Delete asks in a dialog, shows the delete running, and goes back to the list when it ends', async () => {
+  let n = 0
+  const deleted = { files: 2, bytes: 2, albums: [], forgot: 0, navidrome: 'waiting', navidrome_tracks: 0 }
+  const queued = { id: 4, kind: 'delete', album_id: 7, state: 'queued', deleted, conflicts: [] }
+  const { w, router, calls } = await at('/library/7', {
+    '/api/library/albums/7/delete': () => (n++ === 0 ? new Reply(409, { error: 'c', reason: 'confirm', confirm: [{ kind: 'delete', message: 'This deletes 2 files.' }] }) : queued),
+  })
+  await button(w, 'Delete').trigger('click')
+  await flushPromises()
+  const dialog = w.find('[role=alertdialog]')
+  expect(dialog.text()).toContain('Delete this album?')
+  expect(dialog.text()).toContain('This deletes 2 files.')
+  await dialog.findAll('button').find((b) => b.text() === 'Delete')!.trigger('click')
+  await flushPromises()
+  expect(w.find('[role=alertdialog]').exists()).toBe(false)
+  expect(JSON.parse(calls.filter((c) => c.url.endsWith('/delete'))[1]!.init!.body as string).confirm).toEqual(['delete'])
+  expect(w.text()).toContain('DELETING 2 FILES')
+  FakeEventSource.all[0]!.emit('change', { ...queued, state: 'done' })
+  await flushPromises()
+  expect(router.currentRoute.value.name).toBe('library')
+  w.unmount()
+})

@@ -21,7 +21,7 @@ State: phases 1 and 2 are done, and shelf runs in production on blackberry. `doc
 - A source is a module that implements the interfaces in `internal/source`. Code outside that module never knows which source it talks to.
 - Nothing slow or remote happens inside a database transaction. Read, act, then write.
 - Schema changes go only into new goose migrations. Tables are STRICT. Stored times are UTC text.
-- The music folder belongs to UID 10001. shelf runs as that user with umask 022, never changes the owner or mode of a file it did not create, and deletes only its own temp files and, when the owner replaces or deletes a cover, a folder's `cover.*`.
+- The music folder belongs to UID 10001. shelf runs as that user with umask 022, never changes the owner or mode of a file it did not create, and deletes only its own temp files, a folder's `cover.*` when the owner replaces or deletes a cover, and a release folder the owner deletes, when shelf's UID owns everything in it.
 - Secrets never reach logs, job logs, `shelf.txt` or API answers. That covers the Qobuz token, the Telegram token, the Navidrome password, the wrapper token, the AcoustID key, and Apple ID passwords and codes.
 - Comments say why, not what. Match the surrounding code.
 - There is no error reporting service. Errors are logged with slog.

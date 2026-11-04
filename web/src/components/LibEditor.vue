@@ -27,6 +27,7 @@ defineExpose({ toggleAll: () => (all.value = !all.value) })
       <h2 id="ld-e">Editor</h2>
       <span class="stripes"></span>
       <button type="button" class="rocker mini" role="switch" :aria-checked="all" @click="all = !all"><span class="rk" aria-hidden="true"><span class="rk-case"><span class="rk-paddle"></span></span></span><span class="rk-name">All fields</span></button>
+      <button v-if="editor.album" type="button" class="wbtn txt" :disabled="!!editor.saving || !!editor.deleting" @click="editor.remove()">Delete</button>
       <button type="button" class="wbtn" aria-label="Close the editor" @click="$emit('close')"><Icon name="close" /></button>
     </div>
     <LibLoading v-if="editor.loading" />

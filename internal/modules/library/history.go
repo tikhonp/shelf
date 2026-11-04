@@ -39,6 +39,8 @@ type changeJSON struct {
 	Files []changeFileJSON `json:"files,omitempty"`
 	// Run says this row is a bulk run, whose Tags count all its albums.
 	Run *runSummaryJSON `json:"run,omitempty"`
+	// Deleted says what a delete removed, and how Navidrome took it.
+	Deleted *storedDelete `json:"deleted,omitempty"`
 }
 
 // conflictJSON is a key an undo or redo left alone, because the file no
@@ -84,6 +86,16 @@ func (m *Module) changeJSON(ctx context.Context, c changeRow) changeJSON {
 	_ = json.Unmarshal([]byte(c.Conflicts), &j.Conflicts)
 	if j.Conflicts == nil {
 		j.Conflicts = []conflictJSON{}
+	}
+	if c.Kind == KindDelete {
+		var sd storedDelete
+		if err := json.Unmarshal([]byte(c.Request), &sd); err == nil {
+			if sd.Albums == nil {
+				sd.Albums = []deletedAlbum{}
+			}
+			j.Deleted = &sd
+		}
+		return j
 	}
 	var sc storedChange
 	if json.Unmarshal([]byte(c.Request), &sc) == nil {

@@ -21,6 +21,8 @@ const (
 	KindSave = "save"
 	KindUndo = "undo"
 	KindRedo = "redo"
+	// KindDelete removes an album's release folder, and nothing undoes it.
+	KindDelete = "delete"
 
 	StateQueued  = "queued"
 	StateWriting = "writing"
@@ -192,11 +194,12 @@ func (s store) insertChange(ctx context.Context, tx *sqlx.Tx, c *changeRow) erro
 }
 
 // writingChanges are the changes a stop cut off between their first and
-// last write. A run's head has no files, and its job carries on by itself.
+// last write. A run's head has no files, and its job carries on by itself,
+// as a delete's does.
 func (s store) writingChanges(ctx context.Context) ([]changeRow, error) {
 	var rows []changeRow
 	err := s.db.R.SelectContext(ctx, &rows, `SELECT `+changeCols+` FROM library_changes WHERE state = ?
-		AND id NOT IN (SELECT change_id FROM library_runs)`, StateWriting)
+		AND kind != ? AND id NOT IN (SELECT change_id FROM library_runs)`, StateWriting, KindDelete)
 	return rows, err
 }
 

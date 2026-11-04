@@ -28,9 +28,11 @@ End-to-end checks that only the real deployment can answer: real accounts, the r
 15. The Library tab on a real album, on the desktop and on a real phone behind basic auth. Open an album with issues. Press Fix on No RELEASEDATE, read the amber fields, Save, and see Navidrome show the same year. Rename the album artist, confirm, and see the address follow the album after the walk. Undo both from History on the desktop. Replace a cover with Save cover alone while an edit stays staged. On the phone, edit a field from a suggestion, Save, and play a track. Play a file the browser refuses, and see it play through the transcode.
 16. Bulk runs, on the desktop. In the Library tab press Select, and pick 20 albums with No RELEASEDATE. The preview's numbers match the albums, and Start with No RELEASEDATE and ReplayGain on. The Library tab's lamp lights, and a Save on another album finishes between two albums. Restart the shelf container during the run: the run goes on, and the album it was writing ends as `done` or starts over. Navidrome scans once when the run ends, shows the same years, and reports the new gains on a song. History shows one row. Undo it, and Navidrome shows the old values. Run it again, and the next night's backups finish with the 20 albums copied. Set `SHELF_ACOUSTID_KEY`, open an album that MusicBrainz can't find by text, and see its suggestions appear by AcoustID a few seconds later.
 
+17. Delete, on a test download. Star the album in Navidrome and download it again in shelf to see it skipped. Press Delete in the Library tab. The dialog gives the file count and size, and for a playlist folder or a folder of singles it names the other albums. Confirm. The folder is gone from `/music`, the album leaves the list, and within a few minutes it leaves Navidrome with nothing under Missing Files. History shows the delete with Navidrome's count. Ask for the album again, and it downloads instead of being skipped.
+
 ## Last run
 
-Every check passed in production.
+Every check up to 16 passed in production. Check 17 waits for its first run.
 
 - Checks 1 to 12: 2026-11-04 on `be76a2d`, through the API, over SSH and on the owner's phone and tablet. The owner accepted check 9 after one bot download and check 12 without waiting for the backup.
 - Check 13: 2026-11-04 on `0bcd479`. The index matched Navidrome's 11,461 songs and 1,008 albums, and no file changed after the marker.

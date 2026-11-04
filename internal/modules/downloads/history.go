@@ -1,6 +1,8 @@
 package downloads
 
 import (
+	"strings"
+
 	"context"
 
 	"github.com/jmoiron/sqlx"
@@ -64,4 +66,26 @@ func (s *Service) addDownloaded(ctx context.Context, rows []Downloaded, imported
 		return nil
 	})
 	return added, err
+}
+
+// Forget drops the downloaded items in folder, given inside the music
+// folder, and in the folders under it, so a request for one of them
+// downloads it again. It is the library's port, for a deleted folder. The
+// downloads themselves stay. It says how many items it dropped.
+func (s *Service) Forget(ctx context.Context, folder string) (int64, error) {
+	folder = strings.Trim(folder, "/")
+	if folder == "" || folder == "." {
+		return 0, nil
+	}
+	var n int64
+	err := s.db.Write(ctx, func(tx *sqlx.Tx) error {
+		res, err := tx.ExecContext(ctx, `DELETE FROM downloaded_items WHERE path = ? OR substr(path, 1, ?) = ?`,
+			folder, len(folder)+1, folder+"/")
+		if err != nil {
+			return err
+		}
+		n, err = res.RowsAffected()
+		return err
+	})
+	return n, err
 }

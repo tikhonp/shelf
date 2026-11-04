@@ -365,9 +365,21 @@ export interface ChangeFile {
   cover_after: string
 }
 
+// DeletedFolder is what a delete removed, and how Navidrome took it.
+export interface DeletedFolder {
+  files: number
+  bytes: number
+  // albums are the other albums the folder held, which went with it.
+  albums: { title: string; artist: string }[]
+  // forgot counts the downloaded items that download again now.
+  forgot: number
+  navidrome: '' | 'waiting' | 'removed' | 'purges' | 'none' | 'failed' | 'off'
+  navidrome_tracks: number
+}
+
 export interface LibraryChange {
   id: number
-  kind: 'save' | 'undo' | 'redo'
+  kind: 'save' | 'undo' | 'redo' | 'delete'
   target: number | null
   album_id: number
   folder: string
@@ -386,6 +398,7 @@ export interface LibraryChange {
   files?: ChangeFile[]
   // run says this row is a bulk run, and its tags count all its albums.
   run?: RunSummary
+  deleted?: DeletedFolder
 }
 
 export interface RunSummary {

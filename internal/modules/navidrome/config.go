@@ -42,6 +42,9 @@ type configAnswer struct {
 			ArtistJoiner          string
 			ArtistSplitExceptions []string
 			GenreSeparators       string
+			// PurgeMissing is never, always or full: when Navidrome's own scan
+			// forgets files that are gone.
+			PurgeMissing string
 		}
 		PID struct {
 			Album string
@@ -58,20 +61,28 @@ func (c *Client) Config(ctx context.Context) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.base.JoinPath("api", "config").String()+"/", nil)
+	a, err := c.config(ctx, token)
 	if err != nil {
-		return Config{}, fmt.Errorf("navidrome: config: %w", err)
-	}
-	req.Header.Set("X-ND-Authorization", "Bearer "+token)
-	var a configAnswer
-	if err := c.native(req, &a); err != nil {
-		return Config{}, fmt.Errorf("navidrome: config: %w", err)
+		return Config{}, err
 	}
 	s := a.Config
 	return Config{
 		Tags: s.Tags, ArtistSplitExceptions: s.Scanner.ArtistSplitExceptions, ArtistJoiner: s.Scanner.ArtistJoiner,
 		GenreSeparators: s.Scanner.GenreSeparators, AlbumPID: s.PID.Album, CoverArtPriority: s.CoverArtPriority,
 	}, nil
+}
+
+func (c *Client) config(ctx context.Context, token string) (configAnswer, error) {
+	var a configAnswer
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.base.JoinPath("api", "config").String()+"/", nil)
+	if err != nil {
+		return a, fmt.Errorf("navidrome: config: %w", err)
+	}
+	req.Header.Set("X-ND-Authorization", "Bearer "+token)
+	if err := c.native(req, &a); err != nil {
+		return a, fmt.Errorf("navidrome: config: %w", err)
+	}
+	return a, nil
 }
 
 func (c *Client) login(ctx context.Context) (string, error) {
@@ -95,14 +106,17 @@ func (c *Client) login(ctx context.Context) (string, error) {
 		return "", errors.New("navidrome: login answered without a token")
 	}
 	if !a.IsAdmin {
-		return "", errors.New("navidrome: the user is not an admin, so the settings stay unread")
+		return "", errors.New("navidrome: the user is not an admin")
 	}
 	return a.Token, nil
 }
 
 // native sends a request to Navidrome's own API and decodes the answer. A
 // refusal says only its status, since the body may echo the request.
-func (c *Client) native(req *http.Request, into any) error {
+func (c *Client) native(req *http.Request, into any) error { return c.nativeUpTo(req, into, maxAnswer) }
+
+// nativeUpTo is native for an answer of up to limit bytes.
+func (c *Client) nativeUpTo(req *http.Request, into any, limit int64) error {
 	resp, err := c.http.Do(req)
 	if err != nil {
 		var ue *url.Error
@@ -115,7 +129,7 @@ func (c *Client) native(req *http.Request, into any) error {
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("answered %s", resp.Status)
 	}
-	if err := json.NewDecoder(io.LimitReader(resp.Body, maxAnswer)).Decode(into); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, limit)).Decode(into); err != nil {
 		return fmt.Errorf("the answer is not JSON: %w", err)
 	}
 	return nil

@@ -18,8 +18,8 @@ import (
 	"github.com/tikhonp/shelf/internal/platform/jobs"
 )
 
-// HistoryLimit is how many saves the history keeps. The retention job
-// trims older ones.
+// HistoryLimit is how many saves and deletes the history keeps. The
+// retention job trims older ones.
 const HistoryLimit = 1000
 
 // RetentionJob trims the history every night.
@@ -276,7 +276,7 @@ type historyJSON struct {
 	Next *int64 `json:"next"`
 }
 
-// history lists the saves, newest first.
+// history lists the saves and deletes, newest first.
 func (m *Module) history(c *echo.Context) error {
 	limit, err := intParam(c, "limit", 50, 1, 200)
 	if err != nil {
@@ -314,7 +314,7 @@ func (m *Module) clearHistory(c *echo.Context) error {
 }
 
 func (s store) saves(ctx context.Context, before int64, limit int) ([]changeRow, error) {
-	q := `SELECT ` + changeCols + ` FROM library_changes WHERE kind = 'save' AND parent IS NULL`
+	q := `SELECT ` + changeCols + ` FROM library_changes WHERE kind IN ('save', 'delete') AND parent IS NULL`
 	args := []any{}
 	if before > 0 {
 		q += ` AND id < ?`
@@ -325,9 +325,9 @@ func (s store) saves(ctx context.Context, before int64, limit int) ([]changeRow,
 	return rows, err
 }
 
-// trim deletes the ended changes beyond the newest keep saves, or all of
-// them when keep is 0. A save keeps its row while an undo or redo of it is
-// still to run, and each save takes its undos and redos with it.
+// trim deletes the ended changes beyond the newest keep saves and deletes,
+// or all of them when keep is 0. A save keeps its row while an undo or redo
+// of it is still to run, and each save takes its undos and redos with it.
 func (s store) trim(ctx context.Context, keep int) (int64, error) {
 	var n int64
 	err := s.db.Write(ctx, func(tx *sqlx.Tx) error {
@@ -339,8 +339,8 @@ func (s store) trim(ctx context.Context, keep int) (int64, error) {
 		if keep == 0 {
 			res, err = tx.ExecContext(ctx, `DELETE FROM library_changes WHERE `+cond)
 		} else {
-			res, err = tx.ExecContext(ctx, `DELETE FROM library_changes WHERE kind = 'save' AND `+cond+` AND id < (
-				SELECT id FROM library_changes WHERE kind = 'save' AND parent IS NULL ORDER BY id DESC LIMIT 1 OFFSET ?)`, keep-1)
+			res, err = tx.ExecContext(ctx, `DELETE FROM library_changes WHERE kind IN ('save', 'delete') AND `+cond+` AND id < (
+				SELECT id FROM library_changes WHERE kind IN ('save', 'delete') AND parent IS NULL ORDER BY id DESC LIMIT 1 OFFSET ?)`, keep-1)
 		}
 		if err != nil {
 			return err

@@ -90,6 +90,7 @@ Rules:
 - A track a cancel or a shutdown cut off goes back to `pending`, even when the source ends it as failed or never reports it, as a killed amdl does. So `tracks_failed` of a `canceled` download counts only tracks that failed before the cancel.
 - An artist or label download has children and no tracks. Its counts are the sums of its children's counts. Children share their parent's origin, format and force flag, with an empty `origin_ref`.
 - `downloaded_items` gets a row when an album, playlist or track download ends `done`, and one for each track of a Qobuz playlist, without a `download_id`. A `partial` download writes no row, so asking for it again fetches the missing tracks; the sources skip files that are already complete. `skipped` downloads read the table and never write it.
+- A delete in the library removes the rows of its folder and the folders under it, so asking for one of them downloads it again.
 - `shelf manage import-qobuz-db` writes rows with `imported = 1`, no `download_id`, and the title and artist the old bot's database knew. See [sources/qobuz.md](sources/qobuz.md).
 - `origin_ref` holds what the bot needs to edit its status message. `status_is_text` marks a status message sent as text, without a cover, whose edits change the text and not a caption. The bot sends the message before it queues, so a download from Telegram has its message from the start. It never holds tokens.
 - Paths are relative to `SHELF_MUSIC_DIR`, so the database stays valid if the mount point changes.
@@ -150,12 +151,12 @@ Rules:
 - `kinds` lists the issue kinds between commas, so the filter matches `,kind,`. `search` is the title, artist and folder, lowercased with typographic quotes and dashes made plain.
 - `library_state` holds one row, `navidrome_config`, with the tag settings last read from Navidrome as JSON.
 
-`00002_changes.sql`, with columns from `00003_covers.sql` and `00005_cover_descriptions.sql`, holds every tag write. Unlike the index, the files can't rebuild it. `00006_runs.sql` below adds `parent` to `library_changes`.
+`00002_changes.sql`, with columns from `00003_covers.sql` and `00005_cover_descriptions.sql`, holds every tag write and every delete. Unlike the index, the files can't rebuild it. `00006_runs.sql` below adds `parent` to `library_changes`, and `00007_deletes.sql` builds the table again to add the kind `delete`, with foreign keys off so the old table's drop deletes nothing, and the ID sequence kept.
 
 ```sql
 CREATE TABLE library_changes (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    kind        TEXT NOT NULL CHECK (kind IN ('save', 'undo', 'redo')),
+    kind        TEXT NOT NULL CHECK (kind IN ('save', 'undo', 'redo', 'delete')),
     target      INTEGER REFERENCES library_changes (id) ON DELETE CASCADE, -- the save an undo or redo works on
     album_id    INTEGER NOT NULL,          -- the index's album row when asked for; no foreign key
     folder      TEXT NOT NULL,
@@ -165,7 +166,7 @@ CREATE TABLE library_changes (
     reason      TEXT NOT NULL DEFAULT '',  -- 'conflict', 'locked', 'busy', 'refused', 'verify', 'interrupted', 'error'
     error       TEXT NOT NULL DEFAULT '' CHECK (length(error) <= 4100),
     undone      INTEGER NOT NULL DEFAULT 0 CHECK (undone IN (0, 1)),
-    request     TEXT NOT NULL DEFAULT '{}', -- JSON: the edits as asked
+    request     TEXT NOT NULL DEFAULT '{}', -- JSON: the edits as asked, or what a delete removed
     conflicts   TEXT NOT NULL DEFAULT '[]', -- JSON: what an undo or redo left alone
     tags        INTEGER NOT NULL DEFAULT 0, -- keys changed, over all files
     job_id      INTEGER,
@@ -189,13 +190,14 @@ CREATE TABLE library_change_files (
 ) STRICT;
 ```
 
+- A delete is a change with no files. Its `request` holds `{"files", "bytes", "albums", "forgot", "navidrome", "navidrome_tracks"}`, which the job fills in as it goes. Nothing undoes it.
 - A change moves from `queued` to `writing` when its journal begins, then to `done`, `partial` or `failed` by how many of its files were replaced. A change the checks stopped goes from `queued` to `failed` and has no files.
 - `request` holds the edits with each file's path and revision, because a job's payload stops at 64 KiB. The job's payload names only the change.
 - A file row holds the full tag map before and after, so an undo can restore any key. `after` is the plan until the write ends, then what the file read back.
 - An `audio` row holds its front cover's hash and description before and after. The hashes are equal when the change left the cover alone. An undo that puts a removed cover back gives it its description. A `cover` row is a folder's cover file, with `{}` for its tags. The images live in `/data/library/covers` under their hashes.
 - History has no foreign key to the index, which a walk rebuilds. Paths are relative to the music folder, as in the index.
 - An undo or redo has its save as `target` and lists the keys it left alone in `conflicts`. When it replaces any file, it sets its save's `undone`, to 1 for an undo and 0 for a redo.
-- The `library.retention` job at 05:15 keeps the newest 1,000 saves, and `ON DELETE CASCADE` takes their undos, redos and files with them. Clear history deletes every ended change, except a save whose undo or redo is still to run. The same job removes stored covers no change refers to, except uploads younger than a day.
+- The `library.retention` job at 05:15 keeps the newest 1,000 saves and deletes, and `ON DELETE CASCADE` takes their undos, redos and files with them. Clear history deletes every ended change, except a save whose undo or redo is still to run. The same job removes stored covers no change refers to, except uploads younger than a day.
 
 `00004_lookups.sql` holds what suggestions looked up. The services can answer again, so nothing here is a record.
 
