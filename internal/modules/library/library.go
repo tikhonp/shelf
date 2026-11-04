@@ -10,16 +10,22 @@ import (
 	"embed"
 	"io/fs"
 	"log/slog"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/labstack/echo/v5"
+	"github.com/tikhonp/shelf/internal/modules/library/lrclib"
+	"github.com/tikhonp/shelf/internal/modules/library/musicbrainz"
 	"github.com/tikhonp/shelf/internal/modules/library/tagio"
 	"github.com/tikhonp/shelf/internal/platform/hub"
 	"github.com/tikhonp/shelf/internal/platform/jobs"
 	"github.com/tikhonp/shelf/internal/platform/module"
+	"github.com/tikhonp/shelf/internal/platform/obs"
+	"github.com/tikhonp/shelf/internal/source"
 )
 
 //go:embed migrations/*.sql
@@ -35,6 +41,11 @@ type Module struct {
 	Every time.Duration
 	// FFmpeg judges and repairs covers.
 	FFmpeg string
+	// MB, Lyrics and HTTP reach the services behind suggestions. Init
+	// points them at the public services, and tests at their own.
+	MB     *musicbrainz.Client
+	Lyrics *lrclib.Client
+	HTTP   *http.Client
 
 	root  string
 	log   *slog.Logger
@@ -43,7 +54,9 @@ type Module struct {
 	jobs  *jobs.System
 	hub   *hub.Hub
 	// covers keeps uploads and the covers changes replaced.
-	covers coverStore
+	covers    coverStore
+	sources   *source.Registry
+	userAgent string
 	// kick asks for a walk. It holds one signal, so a burst asks once.
 	kick chan struct{}
 
@@ -101,6 +114,12 @@ func (m *Module) Init(d module.Deps) error {
 	m.root, m.log, m.jobs, m.hub = d.Cfg.MusicDir, d.Log, d.Jobs, d.Hub
 	m.store = store{db: d.DB}
 	m.covers = coverStore{dir: filepath.Join(d.Cfg.DataDir, "library", "covers")}
+	m.sources = d.Sources
+	m.userAgent = userAgent(d.Cfg.PublicURL)
+	cache := lookups{db: d.DB, now: time.Now}
+	m.MB = musicbrainz.New(m.userAgent, cache)
+	m.Lyrics = lrclib.New(m.userAgent, cache)
+	m.HTTP = &http.Client{}
 	m.mu.Lock()
 	config := m.config
 	m.mu.Unlock()
@@ -111,6 +130,16 @@ func (m *Module) Init(d module.Deps) error {
 			}
 		}}
 	return nil
+}
+
+// userAgent names shelf to MusicBrainz and LRCLIB, as both ask, with the
+// address the owner set or the code's.
+func userAgent(public *url.URL) string {
+	contact := "https://code.tikhonnnnn.com/tikhon/shelf"
+	if public != nil {
+		contact = public.String()
+	}
+	return "MusicShelf/" + obs.AppVersion + " ( " + contact + " )"
 }
 
 // Routes serves /api/library.

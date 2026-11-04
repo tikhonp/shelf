@@ -33,6 +33,10 @@ func (m *Module) routes(api *echo.Group) {
 	api.POST("/library/albums/:id/cover/repair", m.repair)
 	api.GET("/library/history", m.history)
 	api.DELETE("/library/history", m.clearHistory)
+	api.GET("/library/albums/:id/suggestions", m.suggestions)
+	api.GET("/library/tracks/:id/suggestions", m.trackSuggestions)
+	api.GET("/library/remote/:id", m.remoteImage)
+	api.POST("/library/remote/:id/cover", m.remoteCover)
 }
 
 func (m *Module) getIndex(c *echo.Context) error { return c.JSON(http.StatusOK, m.ix.status()) }

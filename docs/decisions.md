@@ -92,7 +92,7 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 
 ## Tags
 
-Phase 2 is being built. Step 1, tag IO and the safe writer, and step 2, the read-only library, are built, and step 3, the editing backend, is under way. [tags.md](tags.md) describes them.
+Phase 2 is being built. Steps 1 to 4 are built: tag IO and the safe writer, the read-only library, the editing backend, and suggestions. [tags.md](tags.md) describes them.
 
 | Decision | Why |
 | --- | --- |
@@ -149,6 +149,20 @@ Phase 2 is being built. Step 1, tag IO and the safe writer, and step 2, the read
 | The write probe runs once at start, in each top folder of the music folder. | Each probe moves the folder's mtime, which Navidrome's watcher hears. |
 | A change cut off while it wrote is settled from its files: one that holds the planned tags was replaced. | The renames run back to back, so a crash leaves each file old or new, and the read tells which. |
 | A bulk run has no nightly limit. Its preview shows the files and GB touched, and the owner sizes each run. | Nothing runs by itself. The HDD backup recopies each changed file and keeps no history, and the remote one keeps overwritten files for 30 days. |
+| A pasted release ID is the anchor ahead of the one in the files, then barcode, ISRC and search. | The plan listed the files first, but pasting an ID is how the owner moves the album to another release, and the files still name the old one until the Save. |
+| A release named by ID, pasted or in the files, stays the anchor when it fails the threshold, and then suggests nothing. A release found by barcode, ISRC or search must pass. | The owner or the files chose the first. Searching for another release would offer IDs the files don't name. |
+| A release passes with the album's number of tracks, each within 10 seconds of the release's length and 3 seconds on average. | Editions differ by tracks or by seconds of silence, and a remaster within a second or two is still the same tracklist. |
+| A Save refuses edits that name two anchors, and a track that would keep another release's album ID beside the anchor's fields. Only release fields carry an anchor, and typed values never do. | Release fields are what mixes two releases. A title from another edition mixes nothing, so it needs no rule. |
+| Without a matched anchor, a release field shows the most confident value, from a catalog or `shelf.txt`. | 12% of tracks have no MusicBrainz ID, and a catalog's label and UPC still help there. |
+| Confidence is 1 − (1 − p1)(1 − p2)… over the sources that give a value, each with a base p from a table in [tags.md](tags.md#sources), shown from 1% to 99%. | A documented formula the owner can check, in which agreement raises confidence. |
+| File and folder names suggest a field only where the tracks lack it. | Names are cut and cleaned copies of the tags, so where a tag exists a name only offers a worse version. |
+| A catalog reads the album its own `shelf.txt` block names, and searches otherwise. | The download's ID is certain, and a search can find another edition. |
+| Lyrics are asked per track, when the editor opens them, not with the album. | On 2026-11-04 LRCLIB answered 503 or timed out after 15 seconds on 8 of 10 tracks, which held the album's other suggestions for 30 seconds. One opening also shouldn't make 20 calls to a free service. |
+| shelf stores a lookup for 30 days, a "not found" for a day, and a failure not at all. | Releases change little, new ones appear daily, and the next opening should try a failed service again. |
+| Suggested covers reach the editor through `/api/library/remote/{id}`, by an ID shelf gave out. | The CSP stays `'self'`, and shelf never fetches a URL the browser chose. |
+| MusicBrainz tests use answers written by hand in the API's shape, with made-up IDs. The client read real answers once on 2026-11-04 to check the shapes. | MusicBrainz answered "busy" while the tests were written, and made-up IDs can't be mistaken for real data. |
+| The ISRC way uses a recording search by `isrc:`, not the ISRC lookup. | The lookup's JSON leaves out releases, even with `inc=releases`. |
+| Suggestions don't use `SHELF_PROXY_URL`. | MusicBrainz, the Cover Art Archive and LRCLIB need no account and serve every country. |
 
 ### Evidence from step 0
 
