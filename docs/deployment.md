@@ -59,17 +59,24 @@ sudo install -d -o 10001 -g 10001 -m 755 ~/.local/share/swingmusic/shelf
 
 ## Music folder permissions
 
-- shelf runs as `10001:10001`, the user that owns the music folder today. The old bot, `apple-music-api` and Picard all write as 10001.
+- shelf runs as `10001:10001`. The old bot, `apple-music-api` and Picard write as 10001 too.
+- On 2026-11-04 the music folder had mixed owners: UID 1000 (the login user) for the genre folders and older `qobuz/` albums, 10001 for newer downloads, and root for the top folders and copyparty's uploads. Most entries were 0777, which is why every writer worked.
+- shelf writes only into its source folders, `qobuz/` and `apple-music/`, so only those two belong to 10001. The genre folders keep their owners and modes, so the login user and Picard keep writing there.
 - At startup shelf sets umask 022, so new folders are 0755 and new files 0644. amdl and ffmpeg inherit the umask. qobuz-dl-go passes 0755 and 0644 explicitly.
 - shelf never changes the owner or mode of a file it did not create.
 - Navidrome keeps its read-only mount. The files are world-readable, so Navidrome reads them whatever user it runs as.
 - At startup shelf creates and removes a probe file in each source folder. The Status page reports a folder shelf can't write to or one owned by another UID.
 
-Before the first start, run this on blackberry and fix what it lists once, by hand:
+Before the first start, give the source folders to 10001, with 0755 folders and 0644 files, on blackberry:
 
 ```sh
-find "${SWINGMUSIC_DATA}/music" \( ! -uid 10001 -o -type d ! -perm -0555 -o -type f ! -perm -0444 \) -print | head -50
+M=~/.local/share/swingmusic/music
+sudo chown -R 10001:10001 "$M/qobuz" "$M/apple-music"
+sudo chmod -R u+rwX,go+rX,go-w "$M/qobuz" "$M/apple-music"
+find "$M/qobuz" "$M/apple-music" \( ! -uid 10001 -o -type d ! -perm -0555 -o -type f ! -perm -0444 \) -print | head
 ```
+
+The last command prints nothing when the folders are right. After the fix the login user can't write into those two folders without sudo.
 
 ## Backups
 
@@ -81,7 +88,7 @@ find "${SWINGMUSIC_DATA}/music" \( ! -uid 10001 -o -type d ! -perm -0555 -o -typ
 The old pipeline keeps running through all of this, so nothing needs a rollback. Stopping shelf leaves the old pipeline as it was.
 
 1. CI publishes `shelf` and `shelf-wrapper`.
-2. Run the permission check above and fix what it lists.
+2. Give `qobuz/` and `apple-music/` to 10001 as above, and check that the `find` prints nothing.
 3. Create shelf's data folders as above, add the DNS record, deploy sh-main, and start `shelf.yaml` with `SHELF_TELEGRAM_TOKEN` empty.
 4. Sign `shelf-wrapper` in from the Status page.
 5. Run `docker exec shelf shelf manage import-qobuz-db /import/qobuz_dl.db`. The old bot keeps writing to its database, so the import is a snapshot. An album the old bot gets later isn't in shelf's history, so shelf doesn't skip it outright, but every track already on disk ends `skipped`.

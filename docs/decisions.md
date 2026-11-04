@@ -12,6 +12,7 @@ Newest first. A changed decision gets a new entry that names the one it replaces
 | Telegram | shelf gets a new bot. The old bot keeps its token. | The user's choice. Two processes can't poll one token. |
 | Image updates | Neither `shelf` nor `shelf-wrapper` has `dev.dozzle.update=auto`. Both are pulled together by hand. | They share the control API's types, and a nightly update could move one without the other. |
 | Data folders | `${SWINGMUSIC_DATA}/shelf` and `${SWINGMUSIC_DATA}/shelf-wrapper`, not `${DATA_VOLUME}/shelf`. The swingmusic backup task leaves out `shelf.db*` and `amdl/` and carries `backups/`. There is no backup task of shelf's own. | The user's choice, like the other music services. The exclude keeps rsync off the live database, as `${DATA_VOLUME}/shelf` with only `backups/` mounted did. |
+| Music folder owners | Only `qobuz/` and `apple-music/` move to 10001 with 0755 and 0644. The genre folders keep their mixed owners and 0777. | shelf writes only into its source folders. A change to the whole tree would take write access from the login user and from Picard in folders shelf never touches. |
 | Secrets | `shelf.env` takes the Qobuz token, the Navidrome user and the whitelist from the old bot's env. | They are the same accounts. |
 
 ## 2026-11-04: web UI
