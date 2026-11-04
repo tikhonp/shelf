@@ -80,5 +80,5 @@ sudo chmod -R u+rwX,go+rX,go-w "$M/qobuz" "$M/apple-music"
 2. Create shelf's data folder for UID 10001, or Docker creates it as root and shelf can't write: `sudo install -d -o 10001 -g 10001 -m 755 ~/.local/share/swingmusic/shelf`.
 3. Deploy sh-main and start `shelf.yaml`.
 4. Sign `shelf-wrapper` in from the Status page.
-5. To bring in the old bot's history, mount `${SWINGMUSIC_DATA}/music-downloader-bot` at `/import` and run `docker exec shelf shelf manage import-qobuz-db /import/qobuz_dl.db`. A second run changes nothing. Remove the mount afterwards.
+5. To bring in the old bot's history, mount a folder holding `qobuz_dl.db` at `/import` and run `docker exec shelf shelf manage import-qobuz-db /import/qobuz_dl.db`. A second run changes nothing. Remove the mount afterwards. Production has imported it, and the host no longer keeps the file.
 6. Run [manual-checklist.md](manual-checklist.md).
