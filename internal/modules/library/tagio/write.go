@@ -58,6 +58,9 @@ type Edit struct {
 // it. Other pictures stay.
 type Cover struct {
 	Data []byte
+	// Description goes with an added cover. A replaced one keeps its own,
+	// because another tool wrote it and the owner didn't ask to change it.
+	Description string
 }
 
 // FileChange is what one file of a write should end with.
@@ -156,6 +159,7 @@ type plan struct {
 type coverOp struct {
 	index int
 	data  []byte // nil removes
+	desc  string
 	mime  string
 }
 
@@ -492,15 +496,20 @@ func planCover(f File, c *Cover) (*coverOp, []Picture, error) {
 	if f.Format.flac && len(c.Data) > flacPictureMax {
 		return nil, nil, fmt.Errorf("%w: FLAC holds pictures up to 16 MiB", ErrRefused)
 	}
-	pic := Picture{Type: frontCover, MIME: mime}
-	if f.Format.mp4 {
-		pic.Type = ""
+	pic := Picture{Type: frontCover, Description: c.Description, MIME: mime}
+	if front >= 0 {
+		pic.Description = pics[front].Description
 	}
+	if f.Format.mp4 {
+		pic.Type, pic.Description = "", ""
+	}
+	op := &coverOp{index: front, data: c.Data, desc: pic.Description, mime: mime}
 	if front < 0 {
-		return &coverOp{index: len(pics), data: c.Data, mime: mime}, append(pics, pic), nil
+		op.index = len(pics)
+		return op, append(pics, pic), nil
 	}
 	pics[front] = pic
-	return &coverOp{index: front, data: c.Data, mime: mime}, pics, nil
+	return op, pics, nil
 }
 
 // stage writes and verifies one file's temp copy.
@@ -551,7 +560,7 @@ func (w *Writer) stage(ctx context.Context, p *plan) error {
 		if err := w.at(stageCover, p.tmp); err != nil {
 			return err
 		}
-		if err := writeImage(p.tmp, c.data, c.index, c.mime); err != nil {
+		if err := writeImage(p.tmp, c.data, c.index, c.desc, c.mime); err != nil {
 			return err
 		}
 	}

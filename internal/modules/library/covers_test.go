@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -226,6 +227,59 @@ func TestSaveCover(t *testing.T) {
 	}
 	if rec := r.do(http.MethodGet, "/api/library/albums/"+itoa(id)+"/cover"); rec.Code != http.StatusNotFound {
 		t.Errorf("album cover after delete: %d", rec.Code)
+	}
+}
+
+// A cover another tool described, such as Kraftwerk's "Cover", keeps its
+// description through a replace and its undo, and an undo of a Delete puts
+// the description back with the picture.
+func TestSaveCoverKeepsDescription(t *testing.T) {
+	r := newRig(t)
+	p := r.add("electronic/Kraftwerk/01.flac", "track.flac", blue("1", nil))
+	old := pngOf(t, 50, 50)
+	if err := taglib.WriteImageOptions(p, old, 0, "Front Cover", "Cover", "image/png"); err != nil {
+		t.Fatal(err)
+	}
+	r.walk()
+	r.startJobs()
+	// The part of a revision after the last dash hashes the tags and pictures.
+	tagHash := func() string {
+		f, err := tagio.Read(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rev := f.Revision()
+		return rev[strings.LastIndex(rev, "-")+1:]
+	}
+	desc := func() string {
+		_, pic, err := tagio.FrontPicture(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return pic.Description
+	}
+	was := tagHash()
+
+	id := r.albums("").Albums[0].ID
+	s := r.saved(id, saveBody{Tracks: everyTrack(r.open(id)), Cover: &coverEdit{Upload: r.upload(jpegOf(t, 300, 300)).ID}})
+	if s.State != StateDone || desc() != "Cover" {
+		t.Fatalf("replace: %s, description %q", s.State, desc())
+	}
+	if u := r.reversed(KindUndo, s.ID); u.State != StateDone || !bytes.Equal(front(t, p), old) || tagHash() != was {
+		t.Fatalf("undo of the replace: %+v, description %q", u, desc())
+	}
+
+	r.walk()
+	id = r.albums("").Albums[0].ID
+	d := r.saved(id, saveBody{Tracks: everyTrack(r.open(id)), Cover: &coverEdit{Delete: true}})
+	if d.State != StateDone || front(t, p) != nil {
+		t.Fatalf("delete %+v", d)
+	}
+	if u := r.reversed(KindUndo, d.ID); u.State != StateDone || !bytes.Equal(front(t, p), old) || desc() != "Cover" || tagHash() != was {
+		t.Fatalf("undo of the delete: %+v, description %q", u, desc())
+	}
+	if rd := r.reversed(KindRedo, d.ID); rd.State != StateDone || front(t, p) != nil {
+		t.Fatalf("redo of the delete %+v", rd)
 	}
 }
 

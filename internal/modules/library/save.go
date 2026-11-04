@@ -533,9 +533,9 @@ func (m *Module) write(ctx context.Context, r *jobs.Run) error {
 // prepare builds the writer's change from a stored one. It reads each cover
 // to write from the store and keeps every cover it replaces there, so an
 // undo can put it back, and checks the folder's cover files.
-func (m *Module) prepare(ctx context.Context, sc storedChange) (tagio.Change, map[string][2]string, error) {
+func (m *Module) prepare(ctx context.Context, sc storedChange) (tagio.Change, map[string]coverRecord, error) {
 	var ch tagio.Change
-	covers := map[string][2]string{}
+	covers := map[string]coverRecord{}
 	for _, f := range sc.Files {
 		abs := m.abs(f.Path)
 		fc := tagio.FileChange{Path: abs, Revision: f.Revision}
@@ -551,18 +551,27 @@ func (m *Module) prepare(ctx context.Context, sc storedChange) (tagio.Change, ma
 				}
 				data = b
 			}
-			fc.Cover = &tagio.Cover{Data: data}
-			old, err := tagio.FrontCover(abs)
+			fc.Cover = &tagio.Cover{Data: data, Description: f.Cover.Description}
+			old, pic, err := tagio.FrontPicture(abs)
 			if err != nil {
 				return ch, nil, &tagio.FileError{Path: abs, Err: err}
 			}
-			before := ""
+			cv := coverRecord{after: f.Cover.ID}
 			if old != nil {
-				if before, err = m.covers.put(old); err != nil {
+				if cv.before, err = m.covers.put(old); err != nil {
 					return ch, nil, err
 				}
+				cv.beforeDesc = pic.Description
 			}
-			covers[f.Path] = [2]string{before, f.Cover.ID}
+			// The writer keeps a replaced cover's description.
+			switch {
+			case data == nil:
+			case old != nil:
+				cv.afterDesc = cv.beforeDesc
+			default:
+				cv.afterDesc = f.Cover.Description
+			}
+			covers[f.Path] = cv
 		}
 		ch.Files = append(ch.Files, fc)
 	}
