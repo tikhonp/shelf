@@ -37,7 +37,7 @@ var backoff429 = []time.Duration{2 * time.Second, 4 * time.Second, 8 * time.Seco
 const maxRetryAfter = time.Minute
 
 // ErrRateLimited is a call Apple kept answering with 429.
-var ErrRateLimited = errors.New("apple music: too many requests; try again in a minute")
+var ErrRateLimited = fmt.Errorf("apple music: try again in a minute: %w", source.ErrRateLimited)
 
 // Catalog calls Apple's web catalog API, the requests amdl makes, written
 // from scratch.

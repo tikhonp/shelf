@@ -49,7 +49,7 @@ func TestLinksQueue(t *testing.T) {
 		if d.Origin != downloads.OriginTelegram || d.OriginRef != want || d.URL == "" {
 			t.Fatalf("download %+v", d)
 		}
-		if p.replyTo != msg.ID || p.photo != "https://fake.test/covers/"+d.Ref.ID+".jpg" || !strings.Contains(p.text, "Fake, Hi-Res 24/96") {
+		if p.replyTo != msg.ID || !strings.HasPrefix(p.photo, "data:image/svg+xml,") || !strings.Contains(p.photo, d.Ref.ID) || !strings.Contains(p.text, "Fake, Hi-Res 24/96") {
 			t.Fatalf("status message %+v", p)
 		}
 	}

@@ -166,3 +166,8 @@ Quality labels look like masking tape. The words always name the quality, and th
 - The covers are made-up CSS art (the `a-*` classes). The app shows the real artwork.
 - Names, numbers and dates are sample data.
 - Each screen shows its board's first state. On the canvas the boards are interactive: knobs turn, rows open panels, Download all asks and confirms, and the Sources switch opens.
+- The phone's theme switch is on Status, because the phone has no menubar.
+- Error text on a module is a pale red at night and a dark red by day, not `--red`, which is about 2:1 there. Lamps and pills keep `--red`.
+- Status has no Rate limits module, and the Qobuz card has no last request time, because the API has neither.
+- A running track says Downloading, without a percentage, because the API has no per-track progress.
+- Between 720 and about 950 pixels the results and the history drop columns, and the menubar wraps.

@@ -1,0 +1,41 @@
+/* The app's own layout, in place of the inline styles of the design's screens, which the CSP refuses. */
+.rs h4 { margin: 0; }
+.rs .col { display: flex; flex-direction: column; min-width: 0; }
+.rs .line { display: flex; align-items: center; min-width: 0; }
+.rs .grow { flex: 1; min-width: 0; }
+.rs .g4 { gap: 4px; }
+.rs .g8 { gap: 8px; }
+.rs .g10 { gap: 10px; }
+.rs .g12 { gap: 12px; }
+.rs .g14 { gap: 14px; }
+.rs .g16 { gap: 16px; }
+.rs .center { text-align: center; }
+.rs .between { justify-content: space-between; }
+.rs .bold { font-weight: 600; }
+.rs .link { padding: 0; border: 0; background: none; color: var(--sun-text); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.rs .plain { color: inherit; text-decoration: none; }
+.rs .ttl-btn { padding: 0; border: 0; background: none; text-align: left; cursor: pointer; }
+.rs .sec-h { display: flex; align-items: baseline; justify-content: space-between; padding: 0 2px 8px; border-bottom: 2px solid var(--ink); }
+.rs .sec-h h2, .rs .sec-h h3, .rs .sec-h h4 { font-size: 18px; }
+.rs .small-h { font-size: 12px; }
+/* The design's red is about 2:1 on a module, so error text is a pale red by night and a dark one by day. */
+.rs .bad-text { color: #FFEDEA; }
+.rs.day .bad-text { color: #3A0500; }
+.rs .lcd-state { flex: none; align-items: center; min-height: 92px; text-align: center; }
+.rs .lcd-state .lcd-big { font-size: 30px; }
+.rs .lcd-row { display: flex; justify-content: space-between; gap: 10px; }
+.rs .lcd.tight { flex: none; gap: 4px; }
+
+/* Desktop: the page below the menubar. The side column wraps under the main one when the window is narrow. */
+.rs .shell-desk { display: flex; flex-direction: column; min-height: 100dvh; }
+.rs .page { position: relative; flex: 1; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px; padding: 20px var(--gutter) 28px; }
+.rs .page-main { flex: 999 1 560px; min-width: 0; }
+.rs .page-side { flex: 1 1 400px; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+
+/* Phone: the stack fills the window between the top edge and the tab bar. */
+.rs .shell-phone { height: 100dvh; overflow: hidden; }
+.rs .stack { bottom: calc(96px + env(safe-area-inset-bottom)); }
+.rs .win-body { padding: 12px; }
+.rs .win-scroll { padding: 14px 12px; gap: 14px; }
+.rs .slot-tb { min-height: 46px; }
+.rs .slot-tb h2 { font-size: 16px; }

@@ -2,6 +2,18 @@
 
 Newest first. A changed decision gets a new entry that names the one it replaces.
 
+## 2026-11-04: web UI
+
+| Topic | Decision | Why |
+| --- | --- | --- |
+| Shared styles | Parts that many components use stay in one `parts.css`, generated from the design's `components.css`. Parts one component owns are scoped. Replaces "each component gets a scoped stylesheet". | A scoped copy of `.key` or `.row` would repeat in most components. |
+| Address | An open panel is `?open=`, the sign-in `?signin=1`, and the type `?type=`. | A phone's back button closes them, and a link keeps its state. |
+| Links | Any `http` or `https` link goes to `/api/resolve`, and shelf's answer shows. | shelf knows its sources, and the UI shouldn't repeat that list to refuse a link. |
+| Rate limits | A source wraps `source.ErrRateLimited`, and search and lookups answer 429 with a readable message. Status has no Rate limits module. | Apple Music knew it was limited and the API hid that. Nothing reports a limit before a call hits one, so a module could only say "not limited" without knowing. |
+| Who asked | Downloads answer `origin_user`. | The brief shows the Telegram user's name, and shelf already stores it. |
+| Error text | Error text on a module is a pale red at night and a dark red by day. | `--red` is about 2:1 there, below the AA the brief asks for. |
+| Fake covers | The fake source's covers are data URLs. | `fake.test` broke the rule of no CSP violations. |
+
 ## 2026-11-04: open issues from the first Qobuz run
 
 | Topic | Decision | Why |

@@ -3,6 +3,8 @@ package fakesource
 import (
 	"context"
 	"fmt"
+	"hash/fnv"
+	"net/url"
 	"strings"
 
 	"github.com/tikhonp/shelf/internal/source"
@@ -34,7 +36,13 @@ var artists = []artist{
 
 var hiRes = source.Quality{Codec: "flac", BitDepth: 24, SampleRate: 96000, HiRes: true, Badge: "Hi-Res 24/96"}
 
-func (s *Source) cover(id string) string { return "https://" + s.id + ".test/covers/" + id + ".jpg" }
+// cover is a data URL, which the CSP allows, in a color that follows the ID.
+func (s *Source) cover(id string) string {
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(s.id + id))
+	svg := fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><title>%s</title><rect width="1" height="1" fill="hsl(%d 45%% 45%%)"/></svg>`, id, h.Sum32()%360)
+	return "data:image/svg+xml," + url.PathEscape(svg)
+}
 
 func cannedAlbum(id string) album {
 	for _, a := range albums {

@@ -2,7 +2,7 @@
 
 ## Now
 
-Phase 1. Steps 0, 1a, 1b, 1c, 1d, 1e and 1f are done. 1a built the shelf skeleton: the trimmed platform from proxier, `serve`, `manage migrate`, `healthcheck` and `version`, a placeholder Vue page, the image and the Forgejo CI workflow. CI passed on its first run and pushed `code.tikhonnnnn.com/tikhon/shelf` with the tags `latest`, `main` and the commit SHA.
+Phase 1. Steps 0, 1a, 1b, 1c, 1d, 1e, 1f and 1g are done. 1a built the shelf skeleton: the trimmed platform from proxier, `serve`, `manage migrate`, `healthcheck` and `version`, a placeholder Vue page, the image and the Forgejo CI workflow. CI passed on its first run and pushed `code.tikhonnnnn.com/tikhon/shelf` with the tags `latest`, `main` and the commit SHA.
 
 1b built the downloads core: the jobs system, the daily backup and the event hub in the platform, the source types and registry in `internal/source`, and the `downloads`, `catalog` and `fakesource` modules. With `SHELF_DEV_FAKE_SOURCE=true`, shelf searches, resolves and downloads canned items, writes `shelf.txt`, and streams progress and logs. `shelf manage download <url>` queues from the shell.
 
@@ -16,7 +16,9 @@ Step 1c is done. qobuz-dl-go `v0.1.0` is tagged, ports qobuz-dl 2.5.9, and resol
 
 1d built the qobuz module over qobuz-dl-go `v0.1.0`. It logs in behind the start, searches, resolves and downloads albums, tracks and playlists with their m3u8, and marks the source unhealthy when the token expires. `shelf manage import-qobuz-db` brings in the old bot's history. Its tests run against `qobuzdltest`. A local run with a real token searched, resolved and downloaded from the live Qobuz, and five albums came out byte for byte the same as `qobuz-dl`'s, apart from `shelf.txt`. That run left four open issues, which [decisions.md](decisions.md) settles.
 
-Next: 1g, the web UI.
+1g built the web UI: Search, Downloads and Status with live updates, at phone and desktop widths, in both themes.
+
+Next: 1h, deployment and cutover.
 
 ## Remotes
 
@@ -36,13 +38,16 @@ Next: 1g, the web UI.
 | 1d | Qobuz module | done; run locally with a real token |
 | 1e | Apple Music module and shelf-wrapper | done; run on blackberry |
 | 1f | Navidrome and Telegram | done |
-| 1g | Web UI | next; the design is done |
-| 1h | Deployment and cutover | last |
+| 1g | Web UI | done; run with the fake source |
+| 1h | Deployment and cutover | next |
 
 ## Log
 
 ### 2026-11-04
 
+- Step 1g: the web UI. `make check`, `make lint`, `make web-check` and `docker build .` pass, with 108 Vitest tests. The manual lines ran in headless Chrome against the binary with the fake source: real downloads, Retry, the log and Download all, with stubbed lists for the running screens and stubbed answers for sign-in and the rate-limit wait. The console showed no CSP violation, and seven widths from 320 to 1920 pixels stay inside the window. A real phone, real covers and a real wrapper wait for 1h. See the As built section of [build/1g.md](build/1g.md).
+- The first of those runs inherited `SHELF_QOBUZ_TOKEN` from the shell, so it logged in to the owner's Qobuz account and sent a few searches. It queued no download, and the token reached no file of the run. Later runs unset the variable.
+- The supervisor now keeps Apple's readable `server message` when an `auth error` follows it. `/api/search` and `/api/items` answer 429 for a rate-limited source, and downloads answer `origin_user`.
 - Step 1e, staging run on blackberry: In Rainbows downloaded through `shelf-staging`, 10 of 10 tracks, and the Apple Music parts of checks 3, 5, 6, 7, 10 and 11 of [manual-checklist.md](manual-checklist.md) ran. The run found two bugs: music video and station links got the generic error from the API, and a cancel left amdl's current track `running`. Both are fixed, and a second run on `e95e5ad` passed them. See the As built section of [build/1e.md](build/1e.md).
 - CI: `TestStopSequence/SIGKILL` had failed on every push since `4353edf`, so the image job was skipped and shelf-wrapper was never published. The test counted a zombie as alive. With `d54a2f9` CI passed and published both images.
 - The four open issues from the first Qobuz run are settled. Force keeps its behaviour and the bot's button now says Fetch missing, a cancel no longer counts unfinished tracks as failed, the import keeps the old artist and album, and a skip asks the source for what it lacks, such as the cover. MP3 frame order stays as it is. See [decisions.md](decisions.md).
@@ -72,8 +77,9 @@ Next: 1g, the web UI.
 
 ## Notes for the next step
 
-- For 1g's sign-in dialog: a failed sign-in's `error` clears within about 20 seconds when the wrapper has an old session, because a region clears it, so the dialog has to keep the message it saw.
 - Sign in only a wrapper with its own data folder and its own `--device-info`: wrapper-lite's device ID comes from the Apple ID.
 - The As built sections of [build/1b.md](build/1b.md) and [build/1f.md](build/1f.md) end with notes for the later steps. The main ones: a source module logs in and starts goroutines in `Run` from `module.Runner`, never in `Init`, because `manage` opens the platform too; a source registers with `Switch` when its settings are missing; Apple Music implements `source.LinkRefuser` for music videos and stations; and the Status page reads `/api/telegram` and the health fields of `/api/library/scan`.
 - The As built section of [build/1d.md](build/1d.md) ends with notes for 1g and 1h: what the Status page reads of the Qobuz source, the 503 a search can answer, and what the import prints during the cutover.
-- The open issues from the first run with a real token are settled in [decisions.md](decisions.md). For 1g: force fetches what is missing, so its button says Fetch missing, and a canceled download's unfinished tracks are `pending`, not failed. MP3 files still differ byte for byte between runs, and that stays.
+- MP3 files still differ byte for byte between runs, and that stays. See [decisions.md](decisions.md).
+- The As built section of [build/1g.md](build/1g.md) ends with notes for 1h: check the sign-in dialog and the covers on the real deployment with a phone and a tablet, and unset `SHELF_QOBUZ_TOKEN` for a local run with only the fake source.
+- Two choices for the owner, listed there: table densities, and notices when a download finishes or fails.

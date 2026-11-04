@@ -112,13 +112,11 @@ The design has every screen this brief asked for, at phone and desktop widths, w
 
 ## Not designed yet
 
-The design session left these out. Step 1g builds them in the design's style, or the owner drops them.
+The design session left these out, and step 1g decided each one.
 
-- Compact and comfortable table densities.
-- The Compilations and Appears on groups of the artist panel.
-- A playlist's description in its panel.
-- In Downloads, an artist download as one row that expands into its albums.
-- Notices when a download finishes or fails. The design has only Queued, and the Downloads tab lamp doesn't light for a finished or failed download.
+- Built: the Compilations and Appears on groups of the artist panel, and on the desktop an artist download as one row that opens into its albums. The phone shows the albums in the download panel.
+- Left out, because the API has no such field: a playlist's description.
+- Left out, for the owner to decide: compact and comfortable table densities, and notices when a download finishes or fails.
 
 ## Sample data
 

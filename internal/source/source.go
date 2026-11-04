@@ -67,6 +67,10 @@ func ParseRef(s string) (Ref, error) {
 // ErrNotFound is what a Resolver answers for an item its catalog doesn't have.
 var ErrNotFound = errors.New("source: no such item")
 
+// ErrRateLimited is a source that kept refusing calls as too many. A source
+// wraps it, so the API can say so.
+var ErrRateLimited = errors.New("source: too many requests")
+
 // Unavailable is a source that can't answer now, with a reason people may
 // read. Other source errors stay in the logs, since they may hold a URL with
 // a token.

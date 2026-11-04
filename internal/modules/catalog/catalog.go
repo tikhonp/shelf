@@ -188,6 +188,9 @@ func (m *Module) sourceError(ctx context.Context, s source.Source, what string, 
 	if errors.Is(err, source.ErrNotFound) {
 		return echo.NewHTTPError(http.StatusNotFound, s.Name()+" has no such item")
 	}
+	if errors.Is(err, source.ErrRateLimited) {
+		return echo.NewHTTPError(http.StatusTooManyRequests, s.Name()+" is slowing us down, try again in a minute")
+	}
 	var un *source.Unavailable
 	if errors.As(err, &un) {
 		return echo.NewHTTPError(http.StatusServiceUnavailable, s.Name()+": "+un.Reason)
