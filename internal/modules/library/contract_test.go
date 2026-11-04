@@ -249,6 +249,17 @@ func TestNavidromeContract(t *testing.T) {
 	r.add("jazz/Moanin/01.flac", "track.flac", legacy("1"))
 	r.add("jazz/Moanin/02.flac", "track.flac", legacy("2"))
 	r.write("folk/Blue/.shelf-tmp-0123456789abcdef", []byte("half a write"))
+	// An album whose discs each have a cover, and two albums in one folder.
+	disc := func(n string) map[string][]string {
+		return blue("1", map[string][]string{"ALBUM": {"Discs"}, "DISCNUMBER": {n}})
+	}
+	r.add("folk/Discs/CD1/01.flac", "track.flac", disc("1"))
+	r.add("folk/Discs/CD2/01.flac", "track.flac", disc("2"))
+	r.write("folk/Discs/CD1/cover.jpg", jpegOf(t, 100, 100))
+	r.write("folk/Discs/CD2/cover.jpg", jpegOf(t, 110, 110))
+	r.add("singles/a.flac", "track.flac", blue("1", map[string][]string{"ALBUM": {"One"}}))
+	r.add("singles/b.flac", "track.flac", blue("1", map[string][]string{"ALBUM": {"Two"}}))
+	r.write("singles/cover.jpg", jpegOf(t, 120, 120))
 	music, err := filepath.EvalSymlinks(r.root)
 	if err != nil {
 		t.Fatal(err)
@@ -348,15 +359,58 @@ func TestNavidromeContract(t *testing.T) {
 		t.Errorf("Moanin' shows %d after the date fix", y)
 	}
 
-	// A new cover is what Navidrome serves for the album.
+	// A new cover is what Navidrome serves for the album. The split left
+	// Blue Too in the folder, so the Save asks first.
 	up := r.upload(jpegOf(t, 64, 64))
 	b := ours["Blue"]
-	r.saved(b.ID, saveBody{Tracks: everyTrack(r.open(b.ID)), Cover: &coverEdit{Upload: up.ID}})
+	r.saved(b.ID, saveBody{Tracks: everyTrack(r.open(b.ID)), Confirm: []string{ConfirmSharedCover}, Cover: &coverEdit{Upload: up.ID}})
 	reindex()
 	art := nd.raw("getCoverArt", url.Values{"id": {"al-" + ours["Blue"].NavidromeID}})
 	if w, h := size(t, art); w != 64 || h != 64 {
 		t.Errorf("Navidrome serves a %dx%d cover", w, h)
 	}
+
+	// Navidrome and shelf agree on the cover of an album with disc folders.
+	shows := func(name string) []byte {
+		t.Helper()
+		return nd.raw("getCoverArt", url.Values{"id": {"al-" + ours[name].NavidromeID}})
+	}
+	placeholder := shows("Moanin'")
+	if !bytes.Equal(shows("Discs"), r.shown(ours["Discs"].ID)) {
+		t.Errorf("shelf and Navidrome show different covers for Discs")
+	}
+	if w, _ := size(t, shows("Discs")); w != 100 {
+		t.Errorf("Navidrome shows a %d wide cover for Discs", w)
+	}
+	// A new cover in the release folder beats the discs' own.
+	up = r.upload(jpegOf(t, 72, 72))
+	discs := ours["Discs"]
+	r.saved(discs.ID, saveBody{Tracks: everyTrack(r.open(discs.ID)), Cover: &coverEdit{Upload: up.ID}})
+	reindex()
+	if w, _ := size(t, shows("Discs")); w != 72 {
+		t.Errorf("Navidrome shows a %d wide cover after a replace", w)
+	}
+	// Each disc keeps its own art through the replace.
+	art = nd.raw("getCoverArt", url.Values{"id": {"dc-" + ours["Discs"].NavidromeID + ":2"}})
+	if w, _ := size(t, art); w != 110 {
+		t.Errorf("Navidrome shows a %d wide cover for disc 2", w)
+	}
+	// Delete leaves Navidrome nothing to fall back to.
+	discs = ours["Discs"]
+	r.saved(discs.ID, saveBody{Tracks: everyTrack(r.open(discs.ID)), Cover: &coverEdit{Delete: true}})
+	reindex()
+	if !bytes.Equal(shows("Discs"), placeholder) {
+		t.Error("Navidrome still shows a cover for Discs after a Delete")
+	}
+
+	// A folder's cover reaches every album in the folder.
+	one := ours["One"]
+	r.saved(one.ID, saveBody{Tracks: everyTrack(r.open(one.ID)), Confirm: []string{ConfirmSharedCover}, Cover: &coverEdit{Upload: up.ID}})
+	reindex()
+	if w, _ := size(t, shows("Two")); w != 72 {
+		t.Errorf("Navidrome shows a %d wide cover for the album sharing the folder", w)
+	}
+
 	if _, err := os.Stat(p1); err != nil {
 		t.Fatal(err)
 	}

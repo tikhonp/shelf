@@ -151,7 +151,7 @@ func TestSaveCover(t *testing.T) {
 	info := r.upload(up)
 
 	s := r.saved(id, saveBody{Tracks: everyTrack(r.open(id)), Cover: &coverEdit{Upload: info.ID}})
-	if s.State != StateDone || s.Tags != 3 {
+	if s.State != StateDone || s.Tags != 0 || !s.Cover {
 		t.Fatalf("save %+v", s)
 	}
 	if w, h := size(t, front(t, p1)); w != 1000 || h != 750 {
@@ -319,6 +319,289 @@ func TestSaveCoverRefuses(t *testing.T) {
 	}
 	if b, _ := os.ReadFile(filepath.Join(r.root, "folk/Blue/cover.jpg")); !bytes.Equal(b, theirs) {
 		t.Error("their cover.jpg was replaced")
+	}
+}
+
+// shown is the cover shelf says Navidrome shows for an album, or nil.
+func (r *rig) shown(id int64) []byte {
+	r.t.Helper()
+	rec := r.do(http.MethodGet, "/api/library/albums/"+itoa(id)+"/cover")
+	if rec.Code != http.StatusOK {
+		return nil
+	}
+	return rec.Body.Bytes()
+}
+
+func exists(t *testing.T, r *rig, rel string) bool {
+	t.Helper()
+	_, err := os.Stat(filepath.Join(r.root, filepath.FromSlash(rel)))
+	return err == nil
+}
+
+// An album with no embedded art changes only its cover file, so the audio
+// files keep their revisions.
+func TestSaveCoverOfTheFolderOnly(t *testing.T) {
+	r := newRig(t)
+	r.add("folk/Blue/01.flac", "track.flac", blue("1", nil))
+	r.add("folk/Blue/02.flac", "track.flac", blue("2", nil))
+	old := pngOf(t, 40, 40)
+	r.write("folk/Blue/cover.png", old)
+	r.walk()
+	r.startJobs()
+	id := r.albums("").Albums[0].ID
+	loaded := r.open(id)
+	img := jpegOf(t, 300, 300)
+
+	s := r.saved(id, saveBody{Tracks: everyTrack(loaded), Cover: &coverEdit{Upload: r.upload(img).ID}})
+	if s.State != StateDone || s.Tags != 0 || !s.Cover || len(s.Files) != 2 {
+		t.Fatalf("save %+v", s)
+	}
+	if !bytes.Equal(r.shown(id), img) || exists(t, r, "folk/Blue/cover.png") {
+		t.Error("the folder's cover didn't change")
+	}
+	for i, tr := range r.open(id).Tracks {
+		if tr.Revision != loaded.Tracks[i].Revision {
+			t.Errorf("%s moved", tr.Path)
+		}
+	}
+	if u := r.reversed(KindUndo, s.ID); u.State != StateDone || len(u.Conflicts) != 0 {
+		t.Fatalf("undo %+v", u)
+	}
+	if !bytes.Equal(r.shown(id), old) || exists(t, r, "folk/Blue/cover.jpg") {
+		t.Error("the undo didn't put cover.png back")
+	}
+	if rd := r.reversed(KindRedo, s.ID); rd.State != StateDone || !bytes.Equal(r.shown(id), img) {
+		t.Fatalf("redo %+v", rd)
+	}
+}
+
+// Save cover alone moves the revision of each track with embedded art, so
+// edits staged before it need the revisions the change reports. Those are
+// the files as shelf left them, so another tool's change still conflicts.
+func TestStagedEditsAfterSaveCoverAlone(t *testing.T) {
+	r := newRig(t)
+	p1 := r.add("folk/Blue/01.flac", "track.flac", blue("1", nil))
+	r.add("folk/Blue/02.flac", "track.flac", blue("2", nil))
+	old := jpegOf(t, 50, 50)
+	embedCover(t, p1, old)
+	r.walk()
+	r.startJobs()
+	id := r.albums("").Albums[0].ID
+	loaded := r.open(id)
+	save := "/api/library/albums/" + itoa(id) + "/save"
+	staged := everyTrack(loaded, editJSON{Key: "MOOD", Values: []string{"calm"}})
+	rebased := func(c changeJSON) []trackEdits {
+		out := slices.Clone(staged)
+		for i := range out {
+			for _, f := range c.Files {
+				if f.Kind == fileAudio && f.TrackID == out[i].ID && f.Written {
+					out[i].Revision = f.Revision
+				}
+			}
+		}
+		return out
+	}
+
+	c := r.saved(id, saveBody{Tracks: everyTrack(loaded), Cover: &coverEdit{Upload: r.upload(jpegOf(t, 300, 300)).ID}})
+	if c.State != StateDone {
+		t.Fatalf("cover %+v", c)
+	}
+	rec := r.post(save, saveBody{Tracks: staged})
+	if f := decode[refusal](t, rec); rec.Code != http.StatusConflict || f.Reason != ReasonConflict {
+		t.Fatalf("the old revisions: %d %+v", rec.Code, f)
+	}
+	s := r.saved(id, saveBody{Tracks: rebased(c)})
+	if s.State != StateDone || s.Tags != 2 || s.Cover {
+		t.Fatalf("staged edits %+v", s)
+	}
+
+	var h historyJSON
+	r.getJSON("/api/library/history", &h)
+	if len(h.Changes) != 2 || h.Changes[1].ID != c.ID || !h.Changes[1].Cover || h.Changes[1].Tags != 0 || h.Changes[0].Cover {
+		t.Errorf("history %+v", h.Changes)
+	}
+
+	// The cover is its own undo step: the tags written after it stay.
+	if u := r.reversed(KindUndo, c.ID); u.State != StateDone || len(u.Conflicts) != 0 {
+		t.Fatalf("undo %+v", u)
+	}
+	if !bytes.Equal(front(t, p1), old) {
+		t.Error("the old cover isn't back")
+	}
+	f, err := tagio.Read(p1)
+	if err != nil || !slices.Equal(f.Tags["MOOD"], []string{"calm"}) {
+		t.Errorf("the undo took the tags too: %v %v", err, f.Tags)
+	}
+
+	c = r.saved(id, saveBody{Tracks: everyTrack(r.open(id)), Cover: &coverEdit{Upload: r.upload(jpegOf(t, 200, 200)).ID}})
+	if err := taglib.WriteTags(p1, map[string][]string{"TITLE": {"Picard's"}}, 0); err != nil {
+		t.Fatal(err)
+	}
+	if rec := r.post(save, saveBody{Tracks: rebased(c)}); rec.Code != http.StatusConflict {
+		t.Errorf("another tool's change: %d %s", rec.Code, rec.Body)
+	}
+}
+
+// Navidrome finds an album's cover in its disc folders too, and shows a
+// disc's cover as that disc's art. A replace goes to the release folder and
+// leaves them, and Delete takes them, or Navidrome falls back to them.
+func TestDiscFolderCovers(t *testing.T) {
+	r := newRig(t)
+	r.add("folk/Blue/CD1/01.flac", "track.flac", blue("1", map[string][]string{"DISCNUMBER": {"1"}}))
+	r.add("folk/Blue/CD2/01.flac", "track.flac", blue("1", map[string][]string{"DISCNUMBER": {"2"}}))
+	one, two := jpegOf(t, 100, 100), jpegOf(t, 110, 110)
+	r.write("folk/Blue/CD1/cover.jpg", one)
+	r.write("folk/Blue/CD2/cover.jpg", two)
+	r.write("folk/Blue/CD2/folder.jpg", two)
+	r.walk()
+	r.startJobs()
+	id := r.albums("").Albums[0].ID
+	if !bytes.Equal(r.shown(id), one) {
+		t.Error("shelf doesn't show the first disc's cover")
+	}
+	if _, ok := issue(r.open(id).Issues, NoCover); ok {
+		t.Error("the album has covers")
+	}
+
+	img := jpegOf(t, 300, 300)
+	s := r.saved(id, saveBody{Tracks: everyTrack(r.open(id)), Cover: &coverEdit{Upload: r.upload(img).ID}})
+	if s.State != StateDone || !bytes.Equal(r.shown(id), img) {
+		t.Fatalf("replace %+v", s)
+	}
+	if b, _ := os.ReadFile(filepath.Join(r.root, "folk/Blue/CD1/cover.jpg")); !bytes.Equal(b, one) {
+		t.Error("the replace changed a disc's art")
+	}
+
+	// A download working in one disc folder keeps a Delete out of the album.
+	save := "/api/library/albums/" + itoa(id) + "/save"
+	r.m.SetBusy(func(dir string) bool { return filepath.Base(dir) == "CD2" })
+	rec := r.post(save, saveBody{Tracks: everyTrack(r.open(id)), Cover: &coverEdit{Delete: true}})
+	if f := decode[refusal](t, rec); rec.Code != http.StatusConflict || f.Reason != ReasonBusy {
+		t.Fatalf("busy: %d %+v", rec.Code, f)
+	}
+	r.m.SetBusy(nil)
+
+	d := r.saved(id, saveBody{Tracks: everyTrack(r.open(id)), Cover: &coverEdit{Delete: true}})
+	if d.State != StateDone {
+		t.Fatalf("delete %+v", d)
+	}
+	for _, rel := range []string{"folk/Blue/cover.jpg", "folk/Blue/CD1/cover.jpg", "folk/Blue/CD2/cover.jpg"} {
+		if exists(t, r, rel) {
+			t.Errorf("%s stayed", rel)
+		}
+	}
+	if !exists(t, r, "folk/Blue/CD2/folder.jpg") || !bytes.Equal(r.shown(id), two) {
+		t.Error("Navidrome shows folder.jpg once no cover file is left")
+	}
+	if u := r.reversed(KindUndo, d.ID); u.State != StateDone || len(u.Conflicts) != 0 {
+		t.Fatalf("undo %+v", u)
+	}
+	if b, _ := os.ReadFile(filepath.Join(r.root, "folk/Blue/CD2/cover.jpg")); !bytes.Equal(b, two) {
+		t.Error("the undo didn't put the disc's cover back")
+	}
+	if !bytes.Equal(r.shown(id), img) {
+		t.Error("the undo didn't put the album's cover back")
+	}
+}
+
+// Repair has to clear a damaged disc cover, so a replace takes that one
+// file, and only that one.
+func TestDamagedDiscCover(t *testing.T) {
+	if _, err := exec.LookPath("ffmpeg"); err != nil {
+		t.Skip("no ffmpeg")
+	}
+	r := newRig(t)
+	r.add("folk/Blue/CD1/01.flac", "track.flac", blue("1", map[string][]string{"DISCNUMBER": {"1"}}))
+	r.add("folk/Blue/CD2/01.flac", "track.flac", blue("1", map[string][]string{"DISCNUMBER": {"2"}}))
+	good := jpegOf(t, 100, 100)
+	broken := jpegOf(t, 400, 400)
+	broken = broken[:len(broken)/2]
+	r.write("folk/Blue/CD1/cover.jpg", good)
+	r.write("folk/Blue/CD2/cover.jpg", broken)
+	r.walk()
+	r.startJobs()
+	id := r.albums("").Albums[0].ID
+	is, ok := issue(r.open(id).Issues, BadCover)
+	if !ok || !slices.Equal(is.Fields, []string{"folk/Blue/CD2/cover.jpg"}) {
+		t.Fatalf("issue %+v", is)
+	}
+	rec := r.raw(http.MethodPost, "/api/library/albums/"+itoa(id)+"/cover/repair", nil)
+	f := decode[imageInfo](t, rec)
+	if rec.Code != http.StatusCreated || f.ID != hashOf(good) {
+		t.Fatalf("repair: %d %+v", rec.Code, f)
+	}
+	s := r.saved(id, saveBody{Tracks: everyTrack(r.open(id)), Cover: &coverEdit{Upload: f.ID}})
+	if s.State != StateDone {
+		t.Fatalf("save %+v", s)
+	}
+	if exists(t, r, "folk/Blue/CD2/cover.jpg") || !exists(t, r, "folk/Blue/CD1/cover.jpg") {
+		t.Error("the replace should take only the damaged disc cover")
+	}
+	if _, ok := issue(r.open(id).Issues, BadCover); ok {
+		t.Error("the issue stayed after the repair")
+	}
+	r.reversed(KindUndo, s.ID)
+	if b, _ := os.ReadFile(filepath.Join(r.root, "folk/Blue/CD2/cover.jpg")); !bytes.Equal(b, broken) {
+		t.Error("the undo didn't put the damaged cover back")
+	}
+}
+
+// Navidrome shows a folder's cover file for every album in the folder, so
+// a cover edit that touches the file asks first. Editing only the embedded
+// art reaches no other album.
+func TestSaveCoverAsksInASharedFolder(t *testing.T) {
+	r := newRig(t)
+	named := func(n string) map[string][]string { return blue("1", map[string][]string{"ALBUM": {n}}) }
+	p1 := r.add("singles/a.flac", "track.flac", named("One"))
+	r.add("singles/b.flac", "track.flac", named("Two"))
+	r.add("singles/c.flac", "track.flac", named("Three"))
+	r.add("duo/a.flac", "track.flac", named("Four"))
+	r.add("duo/b.flac", "track.flac", named("Five"))
+	old := jpegOf(t, 50, 50)
+	r.write("singles/cover.jpg", old)
+	embedCover(t, p1, jpegOf(t, 60, 60))
+	r.walk()
+	r.startJobs()
+	ids := map[string]int64{}
+	for _, a := range r.albums("").Albums {
+		ids[a.Title] = a.ID
+	}
+	img := jpegOf(t, 300, 300)
+	up := r.upload(img)
+	asks := func(name string, ce coverEdit, want string) {
+		t.Helper()
+		id := ids[name]
+		rec := r.post("/api/library/albums/"+itoa(id)+"/save", saveBody{Tracks: everyTrack(r.open(id)), Cover: &ce})
+		f := decode[refusal](t, rec)
+		if rec.Code != http.StatusConflict || f.Reason != "confirm" || len(f.Confirm) != 1 ||
+			f.Confirm[0].Kind != ConfirmSharedCover || !strings.Contains(f.Confirm[0].Message, want) {
+			t.Fatalf("%s: %d %+v", name, rec.Code, f)
+		}
+	}
+
+	asks("One", coverEdit{Upload: up.ID}, "2 other albums")
+	if b, _ := os.ReadFile(filepath.Join(r.root, "singles/cover.jpg")); !bytes.Equal(b, old) {
+		t.Error("the Save ran before the owner confirmed")
+	}
+	// A folder with no cover file yet gets one that every album there shows.
+	asks("Four", coverEdit{Upload: up.ID}, "Another album")
+
+	s := r.saved(ids["One"], saveBody{Tracks: everyTrack(r.open(ids["One"])), Confirm: []string{ConfirmSharedCover},
+		Cover: &coverEdit{Upload: up.ID}})
+	if s.State != StateDone || !bytes.Equal(r.shown(ids["Two"]), img) {
+		t.Fatalf("confirmed %+v", s)
+	}
+	asks("Two", coverEdit{Delete: true}, "2 other albums")
+
+	// An undo puts back what the owner confirmed, so it asks nothing.
+	if u := r.reversed(KindUndo, s.ID); u.State != StateDone || !bytes.Equal(r.shown(ids["Two"]), old) {
+		t.Fatalf("undo %+v", u)
+	}
+
+	// The folder already holds this image, so only the embedded art changes.
+	s = r.saved(ids["One"], saveBody{Tracks: everyTrack(r.open(ids["One"])), Cover: &coverEdit{Upload: r.upload(old).ID}})
+	if s.State != StateDone || !bytes.Equal(front(t, p1), old) {
+		t.Fatalf("embedded only %+v", s)
 	}
 }
 

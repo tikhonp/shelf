@@ -38,6 +38,11 @@ const (
 	ConfirmArtist = "album_artist"
 )
 
+// ConfirmSharedCover is a cover edit that also changes the albums sharing
+// its release folder, because Navidrome shows a folder's cover file for
+// every album in it.
+const ConfirmSharedCover = "shared_cover"
+
 // saveBody is a Save as the editor sends it. Each track names the
 // revision the editor loaded, so a file another tool changed since is a
 // conflict.
@@ -153,7 +158,7 @@ func (m *Module) save(c *echo.Context) error {
 		trackOf[abs] = t.ID
 	}
 	if b.Cover != nil {
-		if err := m.planCover(row, files, b, &ch, &stored); err != nil {
+		if err := m.planCover(ctx, row, files, b, &ch, &stored); err != nil {
 			return m.refuse(c, err, trackOf)
 		}
 	}
@@ -174,7 +179,11 @@ func (m *Module) save(c *echo.Context) error {
 	if err != nil {
 		return err
 	}
-	if ok, err := confirmed(c, warns, b.Confirm); !ok {
+	shared, err := m.sharedCover(ctx, row, stored)
+	if err != nil {
+		return err
+	}
+	if ok, err := confirmed(c, append(warns, shared...), b.Confirm); !ok {
 		return err
 	}
 	req, err := json.Marshal(stored)
@@ -232,10 +241,10 @@ func (m *Module) otherRelease(files []*file, planned tagio.Result, anchor string
 }
 
 // planCover adds a cover edit to a Save: a front cover for the tracks and
-// the ops on the folder's cover files. The folder keeps one cover file,
+// the ops on the cover files. The release folder keeps one cover file,
 // named after the image's format, because Navidrome shows the first it
 // finds.
-func (m *Module) planCover(row albumRow, files []*file, b saveBody, ch *tagio.Change, stored *storedChange) error {
+func (m *Module) planCover(ctx context.Context, row albumRow, files []*file, b saveBody, ch *tagio.Change, stored *storedChange) error {
 	ce := b.Cover
 	refuse := func(msg string) error { return fmt.Errorf("%w: %s", tagio.ErrRefused, msg) }
 	if (ce.Upload == "") == !ce.Delete {
@@ -273,16 +282,28 @@ func (m *Module) planCover(row albumRow, files []*file, b saveBody, ch *tagio.Ch
 	if full != nil {
 		target = path.Join(row.Folder, "cover"+storeExt(full))
 	}
-	dir := m.abs(row.Folder)
-	if busy := m.writer(nil).Busy; busy != nil && busy(dir) {
-		return &tagio.FileError{Path: dir, Err: tagio.ErrBusy}
+	// The writer checks each track's folder, and a disc album's release
+	// folder may hold no track.
+	release := m.abs(row.Folder)
+	if busy := m.writer(nil).Busy; busy != nil && busy(release) {
+		return &tagio.FileError{Path: release, Err: tagio.ErrBusy}
 	}
-	names := m.folderCovers(row.Folder)
-	if target != "" && !slices.Contains(names, path.Base(target)) {
-		names = append(names, path.Base(target))
+	var rels []string
+	for _, dir := range albumFolders(row.Folder, pathsOf(files)) {
+		for _, name := range m.folderCovers(dir) {
+			// A disc folder's cover is that disc's art in Navidrome, and the
+			// release folder's cover outranks it for the album. Delete takes
+			// it too, or Navidrome falls back to it. A replace takes it only
+			// when it's damaged, or bad_cover would never clear.
+			if rel := path.Join(dir, name); dir == row.Folder || ce.Delete || m.damaged(ctx, rel) {
+				rels = append(rels, rel)
+			}
+		}
 	}
-	for _, name := range names {
-		rel := path.Join(row.Folder, name)
+	if target != "" && !slices.Contains(rels, target) {
+		rels = append(rels, target)
+	}
+	for _, rel := range rels {
 		abs := m.abs(rel)
 		was, _, err := fileHash(abs)
 		if err != nil {
@@ -301,6 +322,32 @@ func (m *Module) planCover(row albumRow, files []*file, b saveBody, ch *tagio.Ch
 		stored.Folder = append(stored.Folder, op)
 	}
 	return nil
+}
+
+// sharedCover is the warning of a Save that changes cover files the other
+// albums of its release folder show too.
+func (m *Module) sharedCover(ctx context.Context, row albumRow, stored storedChange) ([]warning, error) {
+	if len(stored.Folder) == 0 {
+		return nil, nil
+	}
+	albums, err := m.store.folderAlbums(ctx, row.Folder)
+	if err != nil {
+		return nil, err
+	}
+	others := 0
+	for _, a := range albums {
+		if a.ID != row.ID {
+			others++
+		}
+	}
+	switch others {
+	case 0:
+		return nil, nil
+	case 1:
+		return []warning{{Kind: ConfirmSharedCover, Message: "Another album shares this folder, and Navidrome shows the folder's cover for it too, so this changes that album's cover."}}, nil
+	}
+	return []warning{{Kind: ConfirmSharedCover, Message: fmt.Sprintf(
+		"%d other albums share this folder, and Navidrome shows the folder's cover for them too, so this changes their covers.", others)}}, nil
 }
 
 // queueChange stores a change and its write job together.

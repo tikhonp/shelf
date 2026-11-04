@@ -112,6 +112,11 @@ type storedChange struct {
 	Folder []folderOp   `json:"folder,omitempty"`
 }
 
+// changesCover reports whether the change writes a cover.
+func (sc storedChange) changesCover() bool {
+	return len(sc.Folder) > 0 || slices.ContainsFunc(sc.Files, func(f storedFile) bool { return f.Cover != nil })
+}
+
 type storedFile struct {
 	Path     string     `json:"path"` // inside the music folder
 	Revision string     `json:"revision"`
@@ -254,16 +259,12 @@ func (j *journal) Begin(ctx context.Context, r tagio.Result) (int64, error) {
 				return err
 			}
 			tags += keysChanged(f.Before, f.After)
-			if cv.before != cv.after {
-				tags++
-			}
 		}
 		for _, op := range j.folder {
 			if _, err := tx.ExecContext(ctx, `INSERT INTO library_change_files (change_id, path, kind, before, after, cover_before, cover_after)
 				VALUES (?, ?, ?, '{}', '{}', ?, ?)`, j.id, op.Path, fileCover, op.Was, op.ID); err != nil {
 				return err
 			}
-			tags++
 		}
 		res, err := tx.ExecContext(ctx, `UPDATE library_changes SET state = ?, tags = ? WHERE id = ? AND state = ?`,
 			StateWriting, tags, j.id, StateQueued)
