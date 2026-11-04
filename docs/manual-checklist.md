@@ -23,6 +23,7 @@ End-to-end checks that only the real deployment can answer: real accounts, the r
 10. Every finished download's folder has a `shelf.txt` with the right IDs and links, and a second download into the same folder appends a block.
 11. New folders are 0755 and new files 0644, owned by 10001, and Navidrome lists the new albums.
 12. The next morning a backup is in `${SWINGMUSIC_DATA}/shelf/backups`, and the morning after it is on the HDD.
+13. Library index. Before the deploy, touch a marker file outside the music folder. After the first walk, `GET /api/library/index` shows `ready`, `rules: navidrome` and no `error`. `navidrome_albums` equals Navidrome's album count, from `getAlbumList2` paged to the end, and `tracks` plus `unreadable` equals its song count, from `getScanStatus`. Only a folder the walk can't see, such as one under an `.ndignore` with patterns, may explain a difference. `find /music -newer <marker>` lists no file shelf wrote. An album opens with every track's tags, and a track plays in the browser behind basic auth.
 
 ## Last run
 

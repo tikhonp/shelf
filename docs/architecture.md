@@ -37,14 +37,14 @@ Modules:
 | `catalog` | `/api/sources`, `/api/search`, `/api/resolve`, `/api/items` over every registered source. |
 | `qobuz` | The Qobuz source, an adapter over qobuz-dl-go. |
 | `applemusic` | The Apple Music source: catalog client, amdl runner, wrapper control client. |
-| `navidrome` | The library port: scans and their state. |
+| `navidrome` | The library port: scans and their state. It also reads Navidrome's tag settings for the library module. |
 | `telegram` | The bot. It implements the downloads module's notifier port. |
 | `fakesource` | A source with canned data for tests, and for UI work when `SHELF_DEV_FAKE_SOURCE` is on. |
-| `library` | The tag editor of phase 2, built in steps. Its `tagio` package reads tags and writes them through verified temp copies, as [tags.md](tags.md) describes. So far the module only sweeps leftover temp files at start. |
+| `library` | The tag editor of phase 2, built in steps. Its `tagio` package reads tags as Navidrome does and writes them through verified temp copies. The module sweeps leftover temp files at start, keeps an index of the music folder with its albums and checks, and serves `/api/library` and the audio for the player. It writes no file yet. [tags.md](tags.md) describes it. |
 
 A module implements `Name()` and `Migrations()` and declares the rest through optional interfaces, found by type assertion, as in `proxier/internal/platform/module/module.go`: `Initializer`, `Migrated`, `RouteDeclarer`, `JobDeclarer`, `SourceDeclarer` and `Runner`. Only serve calls a `Runner`'s `Run`, which holds work that lasts as long as the server, such as the bot's long polling. `manage` opens the platform too, so `Init` never logs in or reaches the network. The platform logs a `Run` that fails, and the server goes on without it. `module.Deps` gives a module the config, the logger, the database, the jobs system, the hub, the source registry, and a `Closing` channel that long-lived responses end on. The platform registers job types, schedules and sources after every `Init`. Adding a source means one new module and one line in `main`.
 
-Modules reach each other through ports that `main` wires. The catalog module's `Statuses` port is the downloads module. The downloads module's `Notifier` port is the bot, and its `Scanner` port is the navidrome module. The bot reaches the downloads module through its own `Downloads` port, which the downloads service implements. The downloads service exists from `downloads.New`, so `main` wires these before `Init`.
+Modules reach each other through ports that `main` wires. The catalog module's `Statuses` port is the downloads module. The downloads module's `Notifier` port is the bot, and its `Scanner` port is the navidrome module and the library module together, so a finished download asks for a scan and a walk of the index. The library module's `ConfigReader` port is the navidrome module's `Config`, converted in `main` to `tagio`'s types. The bot reaches the downloads module through its own `Downloads` port, which the downloads service implements. The downloads service exists from `downloads.New`, so `main` wires these before `Init`.
 
 ## Source interfaces
 
@@ -136,16 +136,18 @@ The navidrome module's `navidrome.Client` is the `Library`. It calls Navidrome's
 - When Navidrome doesn't answer, the job defers for a minute without counting an attempt, so it stays the one queued scan that requests merge into. After ten failures in a row the job fails. A Subsonic error, such as a wrong password, fails it at once.
 - The hub gets a `scan` event when a scan starts, and when a poll sees it end. Polling runs every 10 seconds only while a scan is known to run: after the job started one, after the job found one running, or after `GET /api/library/scan` saw one. It stops after about five minutes without an answer.
 - With `SHELF_NAVIDROME_URL` empty the module is off: downloads queue no scan, and `POST /api/library/scan` answers 422.
+- `Config` logs in to Navidrome's own API with the same account and reads `GET /api/config/`, with the trailing slash. shelf decodes only the tag settings, because the rest may hold other services' keys. `Config` refuses a user who isn't an admin, and the library module then falls back to the settings it read last.
 
 ## Events
 
-The hub carries three kinds of event. `GET /api/events` streams them as server-sent events, and the bot subscribes to `download`.
+The hub carries four kinds of event. `GET /api/events` streams them as server-sent events, and the bot subscribes to `download`.
 
 | Event | Fields |
 | --- | --- |
 | `download` | `id`, `parent_id`, `status`, `tracks_done`, `tracks_total`, `tracks_failed`, `current`, the title of the track being fetched, `bytes`, `error` |
 | `scan` | `scanning`, `count`, `last_scan` |
 | `source` | `id`, `ok`, `message`; for Apple Music also `wrapper`, the wrapper state, null when it doesn't answer |
+| `library` | The index's status, as `GET /api/library/index` answers it, when a walk starts, every 200 files it reads, and when it ends |
 
 Streams send `Cache-Control: no-store`, `X-Accel-Buffering: no` and a keepalive comment every 15 seconds, and end when serve stops. A client that reconnects reloads the lists, so the stream needs no replay. The per-download log stream, `GET /api/downloads/{id}/log`, sends the latest job's lines as `line` events with `time`, `level`, `step` and `text`, and the line's row ID as the event ID. It resumes after `Last-Event-ID`, or after `?after=` on a fresh connection, as proxier's job log does. When the job has ended and every line is sent, it sends a `done` event with the job's `state`, and the client closes the stream, or `EventSource` would reconnect.
 
@@ -167,15 +169,23 @@ JSON in and out. Errors are `{"error": "<message>"}` with a 4xx or 5xx status.
 | `GET /api/downloads/{id}/log` | Server-sent log lines. |
 | `GET /api/library/scan` | The scan state read from Navidrome now, and whether it answers: `{"enabled", "ok", "message", "address", "latency_ms", "scanning", "count", "last_scan"}`. A Navidrome that doesn't answer is `ok: false` with a message, not a failed request. |
 | `POST /api/library/scan` | Start a scan now. Answers 202 with `{"job_id"}`; 422 when Navidrome is not set up. |
+| `GET /api/library/index` | The index: `{"indexing", "ready", "albums", "tracks", "navidrome_albums", "unreadable", "read", "last_index", "rules", "error"}`. `navidrome_albums` counts distinct Navidrome album IDs, and `rules` says where Navidrome's settings came from: `navidrome`, `cached` or `default`. |
+| `POST /api/library/index` | Walk now. Answers 202 with the status. |
+| `GET /api/library/albums?q=&filter=&folder=&sort=&order=&limit=&offset=` | The album list. `q` matches every word in the album, artist or folder, folded. `filter` is `all`, `issues`, `guide`, `no_mbid` or a check's kind, `folder` a top folder such as `qobuz`, `sort` `album`, `artist`, `year` or `added`, `order` `asc` or `desc`, `limit` 1 to 500 with 100 by default. Answers `{"albums", "total", "limit", "offset"}`. |
+| `GET /api/library/filters` | What the filter menu offers: `{"albums", "issues", "no_mbid", "kinds": [{"name", "albums"}], "folders": [{"name", "albums"}]}`. |
+| `GET /api/library/albums/{id}` | One album with its files read now: each track's tags in Standard and Extended, the fields each key feeds, its pictures, revision and issues, and the album's issues. `stale` says a file changed since the index read it. |
+| `GET /api/library/tracks/{id}/audio` | The track's file as it is, with ranges and its audio type. A file that became a symlink answers 404. |
 | `GET /api/telegram` | The bot for the Status page: `{"enabled", "connected", "username", "users"}`. |
 | `GET /api/applemusic/wrapper` | The wrapper state for the Status page: `{"state", "storefront", "since", "error", "code_deadline"}`. 503 when the wrapper doesn't answer. |
 | `POST /api/applemusic/wrapper/login`, `/code`, `/restart` | Sign-in and restart, passed to the supervisor. Its 409 and 400 answers come through with their message; 502 when it refuses shelf's token. 422 when Apple Music is not set up. |
 | `GET /api/applemusic/wrapper/log?after=` | The wrapper's kept log lines after a line number, for the Status page's log tail: `{"lines": [{"n", "time", "text"}]}`. |
-| `GET /api/events` | Server-sent `download`, `scan` and `source` events. |
+| `GET /api/events` | Server-sent `download`, `scan`, `source` and `library` events. |
 | `GET /api/version` | `{"version"}` for the UI. |
 | `GET /healthz` | Liveness for Docker and `shelf healthcheck`. |
 
 Every other GET or HEAD path gets the file at that path from the embedded Vue build, or `index.html` when there is no such file, so the Vue router handles it. Files under `/assets/` have hashed names and get `Cache-Control: public, max-age=31536000, immutable`. A missing one is a 404, not `index.html`. The rest of the build gets `no-cache`. Without a build, shelf serves a short "UI not built" page.
+
+The API answers an album as `{"id", "folder", "title", "artist", "year", "tracks", "quality", "duration", "size", "added_at", "navidrome_id", "has_mbid", "lamp", "issues"}`, where `duration` is in seconds, `lamp` marks an issue that isn't style only, and each issue is `{"kind", "fields"}`.
 
 An unknown `/api` path answers a JSON 404 for any method. The client sees only an `echo.HTTPError`'s own message. For any other error it gets the status text, and the request log gets the error.
 
