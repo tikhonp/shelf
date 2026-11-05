@@ -149,7 +149,7 @@ const artistSearch = () => void router.push({ path: '/search', query: { q: item.
 .rs .by { font-size: 15px; font-weight: 600; text-align: left; }
 .rs .wide { width: 80%; }
 .rs .half { width: 55%; }
-.rs .extra { margin-top: 3px; }
+.rs .extra { flex-wrap: wrap; row-gap: 4px; margin-top: 3px; }
 .rs .release { grid-template-columns: 46px minmax(0, 1fr) 132px 36px; min-height: 60px; padding: 6px 10px; }
 .rs.compact .release { grid-template-columns: 30px minmax(0, 1fr) 132px 36px; }
 @media (max-width: 719px) {
