@@ -42,3 +42,4 @@ Every check passed in production.
 - Check 15: 2026-11-04 on `f0fadf1`, on the desktop and on a real phone. The owner skipped the transcode step, because the library holds only FLAC and AAC.
 - Check 16: 2026-11-04 on `0fb5a7f`, on the 20 smallest 16/44.1 albums with No RELEASEDATE and a MusicBrainz ID, with the backup on 2026-11-05. AcoustID found an anchor for *Cookin' With The Miles Davis Quintet*.
 - Check 17: 2026-11-05 on `a7359e1`, in production.
+- Check 18: 2026-11-05 on `d228255`, through the API and Playwright on the desktop and a phone viewport. The counts matched exactly: 759 Qobuz, 76 Apple Music, 183 without a source. Each of the 13 albums shelf downloaded links to its download and its page.
