@@ -42,10 +42,17 @@ async function mountAt(path: string) {
 
 const tab = (w: Awaited<ReturnType<typeof mountAt>>['wrapper'], name: string) => w.findAll('nav a').find((a) => a.text().startsWith(name))!
 
-test('/ opens Search and unknown paths too', async () => {
-  stubApi(routes())
-  expect((await mountAt('/')).router.currentRoute.value.path).toBe('/search')
-  expect((await mountAt('/nowhere')).router.currentRoute.value.path).toBe('/search')
+test('/ opens the Library and unknown paths too, and Library is the first tab', async () => {
+  stubApi(routes({
+    '/api/library/index': { indexing: false, ready: true, albums: 0, tracks: 0, read: 0, error: '' },
+    '/api/library/filters': { albums: 0, issues: 0, no_mbid: 0, kinds: [], folders: [], sources: [], no_source: 0 },
+    '/api/library/albums': { albums: [], total: 0, limit: 100, offset: 0 },
+  }))
+  const { wrapper, router } = await mountAt('/')
+  expect(router.currentRoute.value.path).toBe('/library')
+  expect(wrapper.findAll('nav a').map((a) => a.text())[0]).toMatch(/^Library/)
+  expect(wrapper.find('a.brand').attributes('href')).toBe('/')
+  expect((await mountAt('/nowhere')).router.currentRoute.value.path).toBe('/library')
 })
 
 test('the Downloads lamp lights only while a download runs or waits', async () => {

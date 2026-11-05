@@ -72,8 +72,9 @@ type albumJSON struct {
 	NavidromeID string `json:"navidrome_id"`
 	HasMBID     bool   `json:"has_mbid"`
 	// Lamp is true when the album has an issue that isn't style only.
-	Lamp   bool    `json:"lamp"`
-	Issues []Issue `json:"issues"`
+	Lamp   bool        `json:"lamp"`
+	Issues []Issue     `json:"issues"`
+	Source AlbumSource `json:"source"`
 }
 
 func toJSON(r albumRow) albumJSON {
@@ -83,6 +84,8 @@ func toJSON(r albumRow) albumJSON {
 	if err := json.Unmarshal([]byte(r.Issues), &j.Issues); err != nil || j.Issues == nil {
 		j.Issues = []Issue{}
 	}
+	// A row the walk hasn't reached since the migration has no source yet.
+	_ = json.Unmarshal([]byte(r.SourceInfo), &j.Source)
 	return j
 }
 
@@ -95,7 +98,10 @@ type listJSON struct {
 
 func (m *Module) list(c *echo.Context) error {
 	q := listQuery{Search: strings.TrimSpace(c.QueryParam("q")), Folder: strings.Trim(c.QueryParam("folder"), "/"),
-		Sort: "album", Limit: 100}
+		Source: c.QueryParam("source"), Sort: "album", Limit: 100}
+	if !m.validSource(q.Source) {
+		return echo.NewHTTPError(http.StatusBadRequest, "unknown source "+strconv.Quote(q.Source))
+	}
 	switch f := c.QueryParam("filter"); {
 	case f == "" || f == "all":
 	case f == "issues" || f == "guide" || f == "no_mbid" || slices.Contains(Kinds, Kind(f)):
@@ -152,6 +158,12 @@ type countJSON struct {
 	Albums int    `json:"albums"`
 }
 
+type sourceCountJSON struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Albums int    `json:"albums"`
+}
+
 // filtersJSON is what the filter menu offers, with each entry's albums.
 type filtersJSON struct {
 	Albums  int         `json:"albums"`
@@ -159,6 +171,22 @@ type filtersJSON struct {
 	NoMBID  int         `json:"no_mbid"`
 	Kinds   []countJSON `json:"kinds"`
 	Folders []countJSON `json:"folders"`
+	// Sources lists the registered sources that have albums.
+	Sources []sourceCountJSON `json:"sources"`
+	// NoSource counts the albums no source is known for.
+	NoSource int `json:"no_source"`
+}
+
+// validSource is a filter by a registered source, or by none.
+func (m *Module) validSource(id string) bool {
+	if id == "" || id == "none" {
+		return true
+	}
+	if m.sources == nil {
+		return false
+	}
+	_, ok := m.sources.Get(id)
+	return ok
 }
 
 func (m *Module) filters(c *echo.Context) error {
@@ -171,7 +199,13 @@ func (m *Module) filters(c *echo.Context) error {
 	if err != nil {
 		return err
 	}
-	out := filtersJSON{Albums: n.Albums, Issues: issues, NoMBID: n.NoMBID, Kinds: []countJSON{}, Folders: []countJSON{}}
+	out := filtersJSON{Albums: n.Albums, Issues: issues, NoMBID: n.NoMBID, Kinds: []countJSON{}, Folders: []countJSON{},
+		Sources: []sourceCountJSON{}, NoSource: n.Sources[""]}
+	for _, s := range sourcesOf(m.sources) {
+		if a := n.Sources[s.id]; a > 0 {
+			out.Sources = append(out.Sources, sourceCountJSON{ID: s.id, Name: s.name, Albums: a})
+		}
+	}
 	for _, k := range Kinds {
 		out.Kinds = append(out.Kinds, countJSON{Name: string(k), Albums: n.Kinds[k]})
 	}

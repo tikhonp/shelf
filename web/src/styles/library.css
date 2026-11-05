@@ -31,12 +31,12 @@
 .rs .row:has(> .lib-open) { position: relative; }
 .rs .row > .key, .rs .row > .lib-ck { position: relative; z-index: 1; }
 
-/* Album list. Below 640px of panel width the year and the track count move into the second line. */
+/* Album list. Below 640px of panel width the year moves into the second line, and the source and the track count under the quality. */
 .rs .lib-list { container-type: inline-size; flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; border-top: 1px solid var(--ink); }
-.rs .g-lib { grid-template-columns: 46px minmax(0, 1.5fr) minmax(0, 1fr) 46px 52px 132px 12px; }
-.rs .g-lib.pick { grid-template-columns: 22px 46px minmax(0, 1.5fr) minmax(0, 1fr) 46px 52px 132px 12px; }
+.rs .g-lib { grid-template-columns: 46px minmax(0, 1.5fr) minmax(0, 1fr) 46px 52px 132px 104px 12px; }
+.rs .g-lib.pick { grid-template-columns: 22px 46px minmax(0, 1.5fr) minmax(0, 1fr) 46px 52px 132px 104px 12px; }
 .rs .g-lib .lib-n { display: none; }
-/* The cell under Quality. In a narrow panel it also holds the track count, so the artist and year keep the second line. */
+/* The cell under Quality. In a narrow panel it also holds the source and the track count, so the artist and year keep the second line. */
 .rs .lib-q { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
 /* A version gives way before the album's name does */
 .rs .g-lib .ver, .rs .lib-prow .ver { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -47,8 +47,8 @@
   .rs .g-lib .lib-n { display: block; }
   .rs .lib-q { align-items: flex-end; }
 }
-.rs.compact .g-lib { grid-template-columns: 30px minmax(0, 1.5fr) minmax(0, 1fr) 46px 52px 132px 12px; }
-.rs.compact .g-lib.pick { grid-template-columns: 22px 30px minmax(0, 1.5fr) minmax(0, 1fr) 46px 52px 132px 12px; }
+.rs.compact .g-lib { grid-template-columns: 30px minmax(0, 1.5fr) minmax(0, 1fr) 46px 52px 132px 104px 12px; }
+.rs.compact .g-lib.pick { grid-template-columns: 22px 30px minmax(0, 1.5fr) minmax(0, 1fr) 46px 52px 132px 104px 12px; }
 @container (max-width: 640px) {
   .rs.compact .g-lib { grid-template-columns: 30px minmax(0, 1fr) auto 12px; }
   .rs.compact .g-lib.pick { grid-template-columns: 22px 30px minmax(0, 1fr) auto 12px; }

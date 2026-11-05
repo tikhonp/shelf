@@ -70,7 +70,7 @@ export const useBulk = defineStore('bulk', () => {
   function selection(): RunSelection {
     if (!all.value) return { albums: [...picked.value] }
     const l = library()
-    return { all: true, q: l.query, filter: l.filter, folder: l.folder, except: [...except.value] }
+    return { all: true, q: l.query, filter: l.filter, folder: l.folder, source: l.source, except: [...except.value] }
   }
 
   function toggleFix(fix: string) {

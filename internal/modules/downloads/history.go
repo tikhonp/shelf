@@ -1,11 +1,12 @@
 package downloads
 
 import (
-	"strings"
-
 	"context"
+	"strings"
+	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/tikhonp/shelf/internal/platform/db"
 	"github.com/tikhonp/shelf/internal/source"
 )
 
@@ -66,6 +67,49 @@ func (s *Service) addDownloaded(ctx context.Context, rows []Downloaded, imported
 		return nil
 	})
 	return added, err
+}
+
+// Record is a downloaded item and the release folder it went to.
+type Record struct {
+	Ref source.Ref
+	// Path is the release folder, relative to the music root.
+	Path string
+	// DownloadID is the download that wrote it, 0 for an older tool's row.
+	DownloadID int64
+	// Quality is what was delivered, such as "FLAC 24/96".
+	Quality string
+	// Imported is a row from an older tool's history.
+	Imported bool
+	// At is when the row was written: the download's finish, or the import.
+	At time.Time
+}
+
+// Records lists the downloaded items that name a release folder. It is the
+// library's port, which tells the source of each album from them.
+func (s *Service) Records(ctx context.Context) ([]Record, error) {
+	var rows []struct {
+		Source     string  `db:"source"`
+		Kind       string  `db:"kind"`
+		ItemID     string  `db:"item_id"`
+		DownloadID *int64  `db:"download_id"`
+		Quality    string  `db:"quality"`
+		Path       string  `db:"path"`
+		Imported   bool    `db:"imported"`
+		At         db.Time `db:"at"`
+	}
+	if err := s.db.R.SelectContext(ctx, &rows, `SELECT source, kind, item_id, download_id, quality, path, imported, at
+		FROM downloaded_items WHERE path <> '' ORDER BY at, source, kind, item_id`); err != nil {
+		return nil, err
+	}
+	out := make([]Record, len(rows))
+	for i, r := range rows {
+		out[i] = Record{Ref: source.Ref{Source: r.Source, Kind: source.Kind(r.Kind), ID: r.ItemID}, Path: r.Path,
+			Quality: r.Quality, Imported: r.Imported, At: r.At.Time}
+		if r.DownloadID != nil {
+			out[i].DownloadID = *r.DownloadID
+		}
+	}
+	return out, nil
 }
 
 // Forget drops the downloaded items in folder, given inside the music

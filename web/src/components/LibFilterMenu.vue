@@ -12,6 +12,7 @@ interface Entry {
   label: string
   filter: string
   folder?: string
+  source?: string
   count: number
 }
 
@@ -23,13 +24,20 @@ const groups = computed(() => {
     { name: 'Show', entries: [{ label: 'All albums', filter: 'all', count: f.albums }, { label: 'Has issues', filter: 'issues', count: f.issues }] },
     { name: 'Issues', entries: kinds(false) },
     { name: 'Guide', entries: [...kinds(true), { label: 'No MusicBrainz ID', filter: 'no_mbid', count: f.no_mbid }] },
+    {
+      name: 'Sources',
+      entries: [
+        ...f.sources.map<Entry>((s) => ({ label: s.name, filter: 'all', source: s.id, count: s.albums })),
+        ...(f.no_source > 0 ? [{ label: 'No known source', filter: 'all', source: 'none', count: f.no_source }] : []),
+      ],
+    },
     { name: 'Folders', entries: f.folders.map<Entry>((d) => ({ label: d.name, filter: 'all', folder: d.name, count: d.albums })) },
   ].filter((g) => g.entries.length > 0)
 })
 
-const isOn = (e: Entry) => e.filter === library.filter && (e.folder ?? '') === library.folder
+const isOn = (e: Entry) => e.filter === library.filter && (e.folder ?? '') === library.folder && (e.source ?? '') === library.source
 function pick(e: Entry) {
-  library.setFilter(e.filter, e.folder)
+  library.setFilter(e.filter, e.folder, e.source)
   emit('close')
 }
 

@@ -117,9 +117,12 @@ CREATE TABLE library_albums (
     issues    TEXT NOT NULL DEFAULT '[]',        -- JSON: [{kind, fields}]
     kinds     TEXT NOT NULL DEFAULT ',',         -- ',no_cover,split_album,' for the filter
     search    TEXT NOT NULL,                     -- folded title, artist and folder
+    source      TEXT NOT NULL DEFAULT '',        -- a source's ID; empty when nothing tells (00008)
+    source_info TEXT NOT NULL DEFAULT '{}',      -- JSON: the album's source as the API answers it (00008)
     UNIQUE (folder, nd_id)
 ) STRICT;
 CREATE INDEX library_albums_title ON library_albums (title COLLATE NOCASE);
+CREATE INDEX library_albums_source ON library_albums (source);
 
 CREATE TABLE library_files (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,

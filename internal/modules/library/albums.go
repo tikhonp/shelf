@@ -45,6 +45,8 @@ type album struct {
 	Added    time.Time
 	HasMBID  bool
 	Issues   []Issue
+	// Source is where it came from. The walk sets it after group.
+	Source AlbumSource
 }
 
 // key names an album in the index.

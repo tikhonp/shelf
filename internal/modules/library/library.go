@@ -72,6 +72,7 @@ type Module struct {
 
 	mu     sync.Mutex
 	config ConfigReader
+	recs   RecordsReader
 	rules  *tagio.Rules
 	busy   func(dir string) bool
 	scan   func(ctx context.Context) error
@@ -96,6 +97,15 @@ func (*Module) Migrations() fs.FS {
 func (m *Module) SetConfig(c ConfigReader) {
 	m.mu.Lock()
 	m.config = c
+	m.mu.Unlock()
+}
+
+// SetRecords wires the downloads' records, which tell each album's source.
+// main sets it before Init. Without it only shelf.txt and the source
+// folders tell.
+func (m *Module) SetRecords(r RecordsReader) {
+	m.mu.Lock()
+	m.recs = r
 	m.mu.Unlock()
 }
 
@@ -137,9 +147,9 @@ func (m *Module) Init(d module.Deps) error {
 	}
 	m.lookups = cache
 	m.mu.Lock()
-	config := m.config
+	config, recs := m.config, m.recs
 	m.mu.Unlock()
-	m.ix = &index{root: m.root, uid: os.Getuid(), store: m.store, config: config, log: d.Log,
+	m.ix = &index{root: m.root, uid: os.Getuid(), store: m.store, config: config, recs: recs, sources: d.Sources, log: d.Log,
 		publish: func(s Status) {
 			if d.Hub != nil {
 				d.Hub.Publish(Topic, s)

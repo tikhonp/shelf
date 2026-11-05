@@ -17,6 +17,8 @@ export const useLibrary = defineStore('library', () => {
   const query = ref('')
   const filter = ref('all')
   const folder = ref('')
+  // A source's ID, or 'none' for the albums no source is known for.
+  const source = ref('')
   const sort = ref<LibrarySort>('album')
   const filters = ref<LibraryFilters | null>(null)
   const index = ref<LibraryIndex | null>(null)
@@ -30,6 +32,7 @@ export const useLibrary = defineStore('library', () => {
     if (query.value.trim()) p.set('q', query.value.trim())
     if (filter.value !== 'all') p.set('filter', filter.value)
     if (folder.value) p.set('folder', folder.value)
+    if (source.value) p.set('source', source.value)
     return `/api/library/albums?${p}`
   }
 
@@ -65,9 +68,10 @@ export const useLibrary = defineStore('library', () => {
     void load()
   }
 
-  function setFilter(f: string, inFolder = '') {
+  function setFilter(f: string, inFolder = '', fromSource = '') {
     filter.value = f
     folder.value = inFolder
+    source.value = fromSource
     void load()
   }
 
@@ -94,7 +98,7 @@ export const useLibrary = defineStore('library', () => {
     return ended
   }
 
-  const filtering = computed(() => filter.value !== 'all' || folder.value !== '')
+  const filtering = computed(() => filter.value !== 'all' || folder.value !== '' || source.value !== '')
 
-  return { albums, total, loading, error, query, filter, folder, sort, filters, index, hasMore, filtering, load, more, search, setSort, setFilter, clear, loadFilters, loadIndex, applyIndex }
+  return { albums, total, loading, error, query, filter, folder, source, sort, filters, index, hasMore, filtering, load, more, search, setSort, setFilter, clear, loadFilters, loadIndex, applyIndex }
 })

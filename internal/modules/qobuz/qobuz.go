@@ -76,6 +76,7 @@ func (m *Module) Init(d module.Deps) error {
 	m.log = d.Log
 	s := m.src
 	s.log, s.hub, s.quality = d.Log, d.Hub, d.Cfg.Qobuz.Quality
+	s.folder = filepath.ToSlash(d.Cfg.Qobuz.Dir)
 	if !d.Cfg.Qobuz.Enabled() {
 		return nil
 	}
@@ -141,6 +142,8 @@ type Source struct {
 	cfg       config.Qobuz
 	quality   int
 	root, dir string
+	// folder is dir inside the music folder, set while switched off too.
+	folder    string
 	http      *http.Client
 	history   History
 	tweak     func(*qobuzdl.Options)
@@ -165,9 +168,10 @@ type Source struct {
 	dls  map[variant]*qobuzdl.DL
 }
 
-func (s *Source) ID() string    { return ID }
-func (s *Source) Name() string  { return "Qobuz" }
-func (s *Source) Enabled() bool { return !s.off }
+func (s *Source) ID() string     { return ID }
+func (s *Source) Name() string   { return "Qobuz" }
+func (s *Source) Enabled() bool  { return !s.off }
+func (s *Source) Folder() string { return s.folder }
 
 // options are the old bot's settings, listed in docs/sources/qobuz.md.
 // DefaultOptions has the rest of them.

@@ -1,0 +1,29 @@
+import type { LibrarySource } from '../api/types'
+
+const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+function day(time?: string): string {
+  if (!time) return ''
+  const d = new Date(time)
+  if (Number.isNaN(d.getTime())) return ''
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
+}
+
+// sourceWords says where an album came from and how shelf knows it.
+export function sourceWords(s: LibrarySource): string {
+  if (!s.id) return 'No known source'
+  const on = day(s.at)
+  const when = on ? ` on ${on}` : ''
+  switch (s.by) {
+    case 'download':
+      return `Downloaded from ${s.name}${when}`
+    case 'import':
+      return `From ${s.name}, in the old bot's history`
+    case 'file':
+      return `Downloaded from ${s.name}${when}, says its shelf.txt`
+    case 'folder':
+      return `From ${s.name}, going by its folder`
+    default:
+      return s.name
+  }
+}

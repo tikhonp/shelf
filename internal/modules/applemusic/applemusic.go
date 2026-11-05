@@ -88,6 +88,7 @@ func (m *Module) Source() *Source { return m.src }
 func (m *Module) Init(d module.Deps) error {
 	m.log, m.hub = d.Log, d.Hub
 	cfg := d.Cfg.Apple
+	m.src.folder = filepath.ToSlash(cfg.Dir)
 	if !cfg.Enabled() {
 		return nil
 	}
@@ -116,7 +117,9 @@ func (m *Module) Init(d module.Deps) error {
 type Source struct {
 	off bool
 	// dir is the folder amdl writes in, relative to the music root.
-	dir     string
+	dir string
+	// folder is dir, set while switched off too.
+	folder  string
 	catalog *Catalog
 	runner  *amdl.Runner
 	render  *amdl.Renderer
@@ -130,9 +133,10 @@ type Source struct {
 	lastSent *SourceEvent
 }
 
-func (s *Source) ID() string    { return ID }
-func (s *Source) Name() string  { return "Apple Music" }
-func (s *Source) Enabled() bool { return !s.off }
+func (s *Source) ID() string     { return ID }
+func (s *Source) Name() string   { return "Apple Music" }
+func (s *Source) Enabled() bool  { return !s.off }
+func (s *Source) Folder() string { return s.folder }
 
 func (s *Source) baseNow() amdl.Base {
 	if b := s.base.Load(); b != nil {

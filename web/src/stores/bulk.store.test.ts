@@ -15,7 +15,7 @@ const routes = (over: Record<string, unknown> = {}) => ({
   '/api/library/runs/preview': preview(),
   '/api/library/runs/current': { run: null },
   '/api/library/runs': run(),
-  '/api/library/filters': { albums: 0, issues: 0, no_mbid: 0, kinds: [], folders: [] },
+  '/api/library/filters': { albums: 0, issues: 0, no_mbid: 0, kinds: [], folders: [], sources: [], no_source: 0 },
   '/api/library/albums': { albums: [], total: 0, limit: 100, offset: 0 },
   ...over,
 })
@@ -41,12 +41,13 @@ test('picks and unpicks albums, and the panel follows', async () => {
   expect(b.preview).toBe(null)
 })
 
-test('Select all sends the query, with the albums taken out', async () => {
+test('Select all sends the query and the source filter, with the albums taken out', async () => {
   const calls = stubApi(routes())
   const library = useLibrary()
   library.total = 1099
   library.query = 'blue'
   library.filter = 'no_releasedate'
+  library.source = 'qobuz'
   const b = useBulk()
   b.toggleAll()
   b.toggle(5)
@@ -54,7 +55,7 @@ test('Select all sends the query, with the albums taken out', async () => {
   expect(b.count).toBe(1098)
   expect(b.has(5)).toBe(false)
   expect(b.has(6)).toBe(true)
-  expect(bodies(calls, '/api/library/runs/preview').at(-1)).toEqual({ selection: { all: true, q: 'blue', filter: 'no_releasedate', folder: '', except: [5] }, fixes: [] })
+  expect(bodies(calls, '/api/library/runs/preview').at(-1)).toEqual({ selection: { all: true, q: 'blue', filter: 'no_releasedate', folder: '', source: 'qobuz', except: [5] }, fixes: [] })
 })
 
 test('a slow preview never replaces a newer one', async () => {

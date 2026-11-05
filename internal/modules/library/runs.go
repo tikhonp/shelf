@@ -98,6 +98,7 @@ type selection struct {
 	Q      string  `json:"q"`
 	Filter string  `json:"filter"`
 	Folder string  `json:"folder"`
+	Source string  `json:"source"`
 	Except []int64 `json:"except"`
 }
 
@@ -124,7 +125,10 @@ func (m *Module) selected(ctx context.Context, sel selection) ([]albumRow, error
 	if !validFilter(sel.Filter) {
 		return nil, echo.NewHTTPError(http.StatusBadRequest, "unknown filter "+strconv.Quote(sel.Filter))
 	}
-	q := listQuery{Search: strings.TrimSpace(sel.Q), Folder: strings.Trim(sel.Folder, "/"), Sort: "album", Limit: 1 << 30}
+	if !m.validSource(sel.Source) {
+		return nil, echo.NewHTTPError(http.StatusBadRequest, "unknown source "+strconv.Quote(sel.Source))
+	}
+	q := listQuery{Search: strings.TrimSpace(sel.Q), Folder: strings.Trim(sel.Folder, "/"), Source: sel.Source, Sort: "album", Limit: 1 << 30}
 	if sel.Filter != "all" {
 		q.Filter = sel.Filter
 	}

@@ -227,6 +227,25 @@ export interface LibraryIssue {
   fields?: string[]
 }
 
+// How shelf knows an album's source: shelf's own download, an older tool's
+// history, the folder's shelf.txt, or the source folder the album sits in.
+export type LibrarySourceBy = 'download' | 'import' | 'file' | 'folder'
+
+export interface LibrarySource {
+  // Empty when nothing tells.
+  id: string
+  name: string
+  by?: LibrarySourceBy
+  kind?: string
+  item_id?: string
+  download_id?: number
+  quality?: string
+  at?: string
+  link?: string
+  // The folder the record names, when the album was moved out of it.
+  recorded?: string
+}
+
 export interface LibraryAlbum {
   id: number
   folder: string
@@ -242,6 +261,7 @@ export interface LibraryAlbum {
   has_mbid: boolean
   lamp: boolean
   issues: LibraryIssue[]
+  source: LibrarySource
 }
 
 export interface LibraryPage {
@@ -262,6 +282,8 @@ export interface LibraryFilters {
   no_mbid: number
   kinds: LibraryCount[]
   folders: LibraryCount[]
+  sources: { id: string; name: string; albums: number }[]
+  no_source: number
 }
 
 export interface LibraryIndex {
@@ -422,6 +444,7 @@ export interface RunSelection {
   q?: string
   filter?: string
   folder?: string
+  source?: string
   except?: number[]
 }
 

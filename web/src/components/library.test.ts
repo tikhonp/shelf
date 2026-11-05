@@ -24,7 +24,7 @@ function track(id: number, over: Partial<LibraryTrack> = {}): LibraryTrack {
 }
 const row = (over: Partial<LibraryAlbum> = {}): LibraryAlbum => ({
   id: 7, folder: 'rock/x', title: 'Blue', artist: 'Joni', year: 1971, tracks: 2, quality: 'FLAC 24/96', duration: 122, size: 2, added_at: '', navidrome_id: 'n', has_mbid: false, lamp: true,
-  issues: [{ kind: 'no_releasedate', fields: ['releasedate'] }, { kind: 'guide_replaygain' }], ...over,
+  issues: [{ kind: 'no_releasedate', fields: ['releasedate'] }, { kind: 'guide_replaygain' }], source: { id: 'qobuz', name: 'Qobuz', by: 'download', download_id: 418, at: '2026-11-03T11:05:11Z' }, ...over,
 })
 const detail = (over: Partial<LibraryAlbumDetail> = {}): LibraryAlbumDetail => ({ ...row(), tracks: [track(1), track(2)], stale: false, ...over })
 const suggestions = {
@@ -38,7 +38,7 @@ const routes = (over: Record<string, unknown> = {}) => ({
   '/api/telegram': { enabled: false, connected: false, username: '', users: 0 },
   '/api/library/index': { indexing: false, ready: true, albums: 1, tracks: 2, read: 2, error: '' },
   '/api/library/musicbrainz': { ok: true, message: '', latency_ms: 120, checked_at: '' },
-  '/api/library/filters': { albums: 1, issues: 1, no_mbid: 1, kinds: [{ name: 'no_releasedate', albums: 1 }], folders: [{ name: 'rock', albums: 1 }] },
+  '/api/library/filters': { albums: 1, issues: 1, no_mbid: 1, kinds: [{ name: 'no_releasedate', albums: 1 }], folders: [{ name: 'rock', albums: 1 }], sources: [{ id: 'qobuz', name: 'Qobuz', albums: 1 }], no_source: 2 },
   '/api/library/keys': { keys: ['TITLE', 'BPM'] },
   '/api/library/albums/7/suggestions': suggestions,
   '/api/library/albums/7': detail(),
@@ -76,6 +76,45 @@ test('the Library tab lists albums with their quality and a lamp for real issues
   expect(rows[0]!.text()).toContain('Hi-Res 24/96')
   expect(rows[0]!.find('.led.iss').exists()).toBe(true)
   expect(rows[1]!.find('.led.iss').exists()).toBe(false)
+  w.unmount()
+})
+
+test('the list shows each album\'s source, and the filter menu picks a source or none', async () => {
+  const { w, calls } = await at('/library', { '/api/library/albums': { albums: [row(), row({ id: 8, title: 'Hejira', source: { id: '', name: '' } })], total: 2, limit: 100, offset: 0 } })
+  const rows = w.findAll('.g-lib:not(.thead)')
+  expect(rows[0]!.find('.lib-src').text()).toBe('Qobuz')
+  expect(rows[0]!.find('.lib-src').attributes('title')).toContain('Downloaded from Qobuz')
+  expect(rows[1]!.find('.lib-src').text()).toBe('—')
+  await button(w, 'Filter: All albums').trigger('click')
+  const menu = w.find('[role=menu]')
+  expect(menu.text()).toContain('Sources')
+  expect(menu.text()).toContain('No known source')
+  await menu.findAll('button').find((b) => b.text().startsWith('Qobuz'))!.trigger('click')
+  await flushPromises()
+  expect(calls.some((c) => c.url.includes('/api/library/albums?') && c.url.includes('source=qobuz'))).toBe(true)
+  expect(button(w, 'Filter: Qobuz').exists()).toBe(true)
+  await button(w, 'Filter: Qobuz').trigger('click')
+  await w.find('[role=menu]').findAll('button').find((b) => b.text().startsWith('No known source'))!.trigger('click')
+  await flushPromises()
+  expect(calls.some((c) => c.url.includes('source=none'))).toBe(true)
+  w.unmount()
+})
+
+test('an opened album says where it came from, with links to its download and its page', async () => {
+  const { w } = await at('/library/7', { '/api/library/albums/7': detail({ source: { id: 'qobuz', name: 'Qobuz', by: 'download', download_id: 418, at: '2026-11-03T11:05:11Z', link: 'https://www.qobuz.com/album/x/1' } }) })
+  const from = w.find('.lib-from')
+  expect(from.text()).toContain('Downloaded from Qobuz on 3 November 2026')
+  expect(from.find('a[href="/downloads/418"]').text()).toBe('Download 418')
+  expect(from.find('a[href="https://www.qobuz.com/album/x/1"]').text()).toBe('Open on Qobuz')
+  w.unmount()
+})
+
+test('an album moved out of its recorded folder says where the record has it, and an import has no download link', async () => {
+  const { w } = await at('/library/7', { '/api/library/albums/7': detail({ source: { id: 'qobuz', name: 'Qobuz', by: 'import', recorded: 'qobuz/Blue' } }) })
+  const from = w.find('.lib-from')
+  expect(from.text()).toContain("From Qobuz, in the old bot's history")
+  expect(from.text()).toContain('Recorded in qobuz/Blue')
+  expect(from.find('a').exists()).toBe(false)
   w.unmount()
 })
 

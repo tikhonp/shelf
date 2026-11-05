@@ -278,6 +278,21 @@ The library module keeps an index of the music folder. A walk runs at start, eve
 - **Rows.** An album keeps its row ID while its folder and Navidrome ID stay the same. Every file and album has a row ID, so the API never puts a path in a URL. "Date added" is the earliest file's mtime when the index first saw it, which a retag doesn't move.
 - **An opened album.** `GET /api/library/albums/{id}` reads every file of the album again. When a file changed since the walk, the answer says `stale` and the module asks for a walk.
 
+## Album sources
+
+Each walk works out where each album came from and keeps it with the album, so the list shows it, the filter menu filters by it and a run selects by it. The first thing that matches decides:
+
+1. **A record by folder.** The downloads module's records name the release folder of every item a download or the old bot's history brought. The library reads them through the downloads service's `Records` port, since it never reads another module's tables. When records of an album and a track share the folder, the album's record wins, since the folder holds the whole album.
+2. **A record by folder name.** A record whose folder holds no album any more, and whose last path element matches the folder of exactly one album and no other record, names that album's source. The owner moved 33 albums from `qobuz/` to `jazz/`, and their names stayed the same. The album keeps the recorded folder as `recorded`.
+3. **The folder's `shelf.txt`.** Its latest album block, else its latest block, names the source by name. Only a name a registered source has counts. When a record already names the source and the same item, the block adds only its `Source link`.
+4. **The source's folder.** An album inside the folder a source writes into, `qobuz/` or `apple-music/`, is that source's, because the tools before shelf wrote into the same folders.
+
+Otherwise the album has no known source. A failed read of the records keeps the ones read last, so one failed read changes no album's source. In production, the records named 179 of their 182 folders.
+
+The source is `{"id", "name", "by", "kind", "item_id", "download_id", "quality", "at", "link", "recorded"}`, with every field but `id` and `name` left out when empty. `by` is `download`, `import`, `file` or `folder`. `at` is the download's finish, from the record or from `shelf.txt`. An import has none, because the old bot kept no dates. `quality` is what the source delivered, which a retag never changes.
+
+The list shows the source's name in its own column, and under the quality in a narrow panel and on the phone. The editor's head says it in words, with links to the download and to the item's page when it knows them. The filter menu's Sources group lists each source with albums, and No known source.
+
 ## Checks
 
 Each check is a kind that the filter menu offers. Guide kinds are style only and never light a lamp.
@@ -373,6 +388,10 @@ The test's container installs Alpine's ffmpeg, the one production has, because a
 | A delete's History lines | `web/src/lib/history.test.ts` |
 | Delete's confirm and its kinds, another change's event, leaving the album, a refusal, a partial delete | `web/src/stores/editor.store.test.ts` |
 | Delete's dialog, its progress and the list after it | `web/src/components/library.test.ts` |
+| Album sources: a download, an import without a date, the album over its single, a moved folder, a folder name two albums or two records share, a record whose folder still holds an album, `shelf.txt` alone or adding its link, `shelf.txt` of another item or of an unknown source, a source's folder, a nested one, a folder that only starts like one, a source no longer registered, nothing | `TestTellSources` |
+| A walk tells sources; the list, an opened album, the filter counts and a run select by them; an unknown source is refused; a failed read of the records keeps the last | `TestWalkTellsSources` |
+| The records of downloads and imports, and a row with no folder left out | `downloads`: `TestFinishDone`, `TestRecordsNameTheirFolders` |
+| The source in the list, its words in a row's title, the Sources group and No known source in the filter menu, the editor's links, a moved album, an import with no link | `web/src/components/library.test.ts`, `web/src/lib/source.test.ts` |
 | A Save writes every track, stores before and after, asks for a scan and a walk, and follows the album's new ID | `TestSaveWritesTheAlbum` |
 | Bad bodies, another album's track, a conflict, an unknown field, nothing to change, too many edits, a busy folder, a locked folder | `TestSaveRefuses` |
 | Split, merge, album artist renames and their confirmations; an `ALBUMARTIST` edit under `ALBUMARTISTS`; a whole-album change that asks nothing | `TestSaveAsksBeforeNavidromeMovesAStar` |
