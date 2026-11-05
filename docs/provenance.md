@@ -1,6 +1,6 @@
 # Provenance file
 
-Every download writes `shelf.txt` into its release folder: the album folder, the playlist folder, or the folder a single track landed in. It records where the files came from, so a person browsing the library can tell, and a later phase can link folders to catalog items again without the database.
+Every download writes `shelf.txt` into its release folder: the album folder, the playlist folder, or the folder a single track landed in. It records where the files came from, so a person browsing the library can tell, and the Library tab can tell an album's source when the database has no record of the folder, as [tags.md](tags.md#album-sources) describes.
 
 ## When it is written
 

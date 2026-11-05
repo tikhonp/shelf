@@ -140,21 +140,26 @@ func (s store) saveAlbums(ctx context.Context, albums []*album) error {
 			if err != nil {
 				return err
 			}
+			src, err := json.Marshal(a.Source)
+			if err != nil {
+				return err
+			}
 			kinds := ","
 			for _, is := range a.Issues {
 				kinds += string(is.Kind) + ","
 			}
 			var id int64
 			err = tx.GetContext(ctx, &id, `INSERT INTO library_albums
-				(folder, nd_id, title, artist, year, tracks, quality, length_ms, size, added_at, has_mbid, lamp, issues, kinds, search)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+				(folder, nd_id, title, artist, year, tracks, quality, length_ms, size, added_at, has_mbid, lamp, issues, kinds, search,
+				source, source_info)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				ON CONFLICT (folder, nd_id) DO UPDATE SET title = excluded.title, artist = excluded.artist, year = excluded.year,
 					tracks = excluded.tracks, quality = excluded.quality, length_ms = excluded.length_ms, size = excluded.size,
 					added_at = excluded.added_at, has_mbid = excluded.has_mbid, lamp = excluded.lamp, issues = excluded.issues,
-					kinds = excluded.kinds, search = excluded.search
+					kinds = excluded.kinds, search = excluded.search, source = excluded.source, source_info = excluded.source_info
 				RETURNING id`,
 				a.Folder, a.AlbumID, a.Title, a.Artist, a.Year, len(a.Files), a.Quality, a.LengthMS, a.Size, db.At(a.Added),
-				a.HasMBID, a.lamp(), string(issues), kinds, searchText(a.Title, a.Artist, a.Folder))
+				a.HasMBID, a.lamp(), string(issues), kinds, searchText(a.Title, a.Artist, a.Folder), a.Source.ID, string(src))
 			if err != nil {
 				return fmt.Errorf("library: save album %s: %w", a.Folder, err)
 			}
@@ -234,9 +239,11 @@ type albumRow struct {
 	HasMBID  bool    `db:"has_mbid"`
 	Lamp     bool    `db:"lamp"`
 	Issues   string  `db:"issues"`
+	// SourceInfo is the AlbumSource as JSON.
+	SourceInfo string `db:"source_info"`
 }
 
-const albumCols = `id, folder, nd_id, title, artist, year, tracks, quality, length_ms, size, added_at, has_mbid, lamp, issues`
+const albumCols = `id, folder, nd_id, title, artist, year, tracks, quality, length_ms, size, added_at, has_mbid, lamp, issues, source_info`
 
 // listQuery is what the album list asks for.
 type listQuery struct {
@@ -245,6 +252,8 @@ type listQuery struct {
 	Filter string
 	// Folder is a top folder, such as "qobuz".
 	Folder string
+	// Source is a source's ID, or "none" for albums no source is known for.
+	Source string
 	// Sort is "album", "artist", "year" or "added".
 	Sort   string
 	Desc   bool
@@ -280,6 +289,14 @@ func (s store) albums(ctx context.Context, q listQuery) ([]albumRow, int, error)
 	if q.Folder != "" {
 		where = append(where, `(folder = ? OR substr(folder, 1, ?) = ?)`)
 		args = append(args, q.Folder, len(q.Folder)+1, q.Folder+"/")
+	}
+	switch q.Source {
+	case "":
+	case "none":
+		where = append(where, `source = ''`)
+	default:
+		where = append(where, `source = ?`)
+		args = append(args, q.Source)
 	}
 	cond := ""
 	if where != nil {
@@ -328,17 +345,21 @@ type counts struct {
 	Kinds  map[Kind]int
 	// Folders maps each top folder to its albums.
 	Folders map[string]int
+	// Sources maps each source's ID to its albums, and "" to the albums no
+	// source is known for.
+	Sources map[string]int
 	NoMBID  int
 }
 
 func (s store) counts(ctx context.Context) (counts, error) {
-	c := counts{Kinds: map[Kind]int{}, Folders: map[string]int{}}
+	c := counts{Kinds: map[Kind]int{}, Folders: map[string]int{}, Sources: map[string]int{}}
 	var rows []struct {
 		Folder  string `db:"folder"`
 		Kinds   string `db:"kinds"`
 		HasMBID bool   `db:"has_mbid"`
+		Source  string `db:"source"`
 	}
-	if err := s.db.R.SelectContext(ctx, &rows, `SELECT folder, kinds, has_mbid FROM library_albums`); err != nil {
+	if err := s.db.R.SelectContext(ctx, &rows, `SELECT folder, kinds, has_mbid, source FROM library_albums`); err != nil {
 		return c, err
 	}
 	for _, r := range rows {
@@ -348,6 +369,7 @@ func (s store) counts(ctx context.Context) (counts, error) {
 			top = ""
 		}
 		c.Folders[top]++
+		c.Sources[r.Source]++
 		for k := range strings.SplitSeq(strings.Trim(r.Kinds, ","), ",") {
 			if k != "" {
 				c.Kinds[Kind(k)]++

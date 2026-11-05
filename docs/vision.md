@@ -25,12 +25,13 @@ shelf has a Library tab with a full tag editor, so tagging no longer needs Picar
 - History keeps every Save, and any Save can be undone, after a restart too.
 - ReplayGain runs in the background.
 
+After phase 2 the Library tab became the home screen, and its list shows every album's source and quality.
+
 shelf changes tags and covers, deletes a release folder when the owner asks, and never renames or moves a file. Nothing changes after a download on its own.
 
 ## Later
 
 Directions, not commitments. Each phase gets its own plan.
 
-- The library table as the home screen, with every album's source, quality and provenance.
 - Settings in the UI, such as the Qobuz token, and a login in the app instead of the gateway's basic auth.
 - More sources behind the same interfaces, and lyrics from qobuz-dl's newer releases.

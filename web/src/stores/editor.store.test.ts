@@ -12,7 +12,7 @@ function track(id: number, over: Partial<LibraryTrack> = {}): LibraryTrack {
   }
 }
 const album = (id = 7, tracks = [track(1), track(2)]): LibraryAlbumDetail => ({
-  id, folder: 'a', title: 'X', artist: 'A', year: 2000, quality: 'FLAC 16/44.1', duration: 120, size: 2, added_at: '', navidrome_id: 'n', has_mbid: false, lamp: false, issues: [], tracks, stale: false,
+  id, folder: 'a', title: 'X', artist: 'A', year: 2000, quality: 'FLAC 16/44.1', duration: 120, size: 2, added_at: '', navidrome_id: 'n', has_mbid: false, lamp: false, issues: [], source: { id: '', name: '' }, tracks, stale: false,
 })
 const noSuggestions = { anchor: null, album: [], tracks: [], covers: [], notes: [], unavailable: [] }
 const change = (over: Partial<LibraryChange> = {}): LibraryChange => ({

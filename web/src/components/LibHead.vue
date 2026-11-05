@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { libraryTape } from '../lib/quality'
 import { useEditor } from '../stores/editor'
 import Cover from './Cover.vue'
+import LibSource from './LibSource.vue'
 
 defineEmits<{ cover: [] }>()
 const editor = useEditor()
@@ -16,6 +17,7 @@ const url = computed(() => (editor.cover?.delete ? '' : (editor.cover?.preview ?
       <h3>{{ editor.album.title }}</h3>
       <span class="sub by">{{ editor.album.artist }}</span>
       <span class="q"><span class="stk" :class="libraryTape(editor.album.quality).cls">{{ libraryTape(editor.album.quality).text }}</span></span>
+      <LibSource :source="editor.album.source" />
     </div>
   </div>
 </template>

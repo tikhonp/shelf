@@ -5,6 +5,7 @@ import type { LibraryAlbum } from '../api/types'
 import { count } from '../lib/format'
 import { typeAngles } from '../lib/formats'
 import { libraryTape } from '../lib/quality'
+import { sourceWords } from '../lib/source'
 import { isGuide, issueName } from '../lib/tags'
 import { usePhone } from '../lib/viewport'
 import { useBulk } from '../stores/bulk'
@@ -32,6 +33,8 @@ const turn = () => library.setSort(sorts[(at.value + 1) % sorts.length]!.id)
 
 const filterName = computed(() => {
   if (library.folder) return library.folder
+  if (library.source === 'none') return 'No known source'
+  if (library.source) return library.filters?.sources.find((s) => s.id === library.source)?.name ?? library.source
   if (library.filter === 'all') return 'All albums'
   if (library.filter === 'issues') return 'Has issues'
   if (library.filter === 'no_mbid') return 'No MusicBrainz ID'
@@ -68,6 +71,7 @@ defineExpose({ focusSearch: () => search.value?.focus(), toggleFilter: () => (me
 const open = (a: LibraryAlbum) => router.push({ name: 'album', params: { id: a.id } })
 const lit = (a: LibraryAlbum) => a.lamp && a.issues.some((i) => !isGuide(i.kind))
 const cover = (a: LibraryAlbum) => `/api/library/albums/${a.id}/cover`
+const sourceTitle = (a: LibraryAlbum) => (a.source.id ? sourceWords(a.source) : 'No known source')
 const line = (a: LibraryAlbum) => [a.artist, a.year || ''].filter(Boolean).join(' · ')
 
 onMounted(() => {
@@ -123,7 +127,7 @@ onMounted(() => {
         <button type="button" class="lib-open two" @click="open(a)">
           <span class="ttl"><span class="ell">{{ a.title }}</span></span>
           <span class="sub ell">{{ line(a) }} · {{ count(a.tracks, 'track') }}</span>
-          <span class="q"><span class="stk" :class="libraryTape(a.quality).cls">{{ libraryTape(a.quality).text }}</span></span>
+          <span class="q"><span class="stk" :class="libraryTape(a.quality).cls">{{ libraryTape(a.quality).text }}</span><span v-if="a.source.name" class="sub">{{ a.source.name }}</span></span>
         </button>
         <span v-if="lit(a)" class="led iss" role="img" aria-label="Has issues"></span>
       </div>
@@ -143,6 +147,7 @@ onMounted(() => {
         <span role="columnheader" class="lib-w">Year</span>
         <span role="columnheader" class="r lib-w">Tracks</span>
         <span role="columnheader">Quality</span>
+        <span role="columnheader" class="lib-w">Source</span>
         <span role="columnheader"><span class="sr">Issues</span></span>
       </div>
       <div v-for="(a, n) in library.albums" :key="a.id" class="row g-lib" :class="{ cur: a.id === current, kc: n === row, pick: bulk.selecting }" role="row">
@@ -155,7 +160,8 @@ onMounted(() => {
         <span class="sub ell lib-w">{{ a.artist }}</span>
         <span class="t2 num sm lib-w">{{ a.year || '' }}</span>
         <span class="t2 num sm r lib-w">{{ a.tracks }}</span>
-        <span class="lib-q"><span class="stk" :class="libraryTape(a.quality).cls">{{ libraryTape(a.quality).text }}</span><span class="sub num lib-n">{{ count(a.tracks, 'track') }}</span></span>
+        <span class="lib-q"><span class="stk" :class="libraryTape(a.quality).cls">{{ libraryTape(a.quality).text }}</span><span class="sub num lib-n">{{ [a.source.name, count(a.tracks, 'track')].filter(Boolean).join(' · ') }}</span></span>
+        <span class="sub ell lib-w lib-src" :title="sourceTitle(a)">{{ a.source.name || '—' }}</span>
         <span v-if="lit(a)" class="led iss" role="img" aria-label="Has issues"></span>
       </div>
       <div v-if="library.hasMore" class="more"><button type="button" class="key block" :disabled="library.loading" @click="library.more()">Load more</button></div>
@@ -175,7 +181,7 @@ onMounted(() => {
 .rs .state { flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 12px; border-top: 1px solid var(--ink); }
 .rs .list-phone { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; }
 .rs .lib-prow .two { gap: 3px; }
-.rs .lib-prow .q { margin-top: 4px; }
+.rs .lib-prow .q { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 .rs .more { padding: 12px; }
 .rs .list-phone .more { width: calc(100% - 24px); margin: 12px; padding: 0; }
 </style>

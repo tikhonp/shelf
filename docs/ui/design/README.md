@@ -64,7 +64,7 @@ The two CSS files are the canvas stylesheet `project/retro.css`, cut in two. Eac
 | Screen | Shows | Route |
 | --- | --- | --- |
 | `MS-desk-library` | The list, the Editor and the track list at All tracks | `/library/:id` |
-| `MS-desk-library-list` | The wide list with no album open | `/library` |
+| `MS-desk-library-list` | The wide list with no album open. The app adds a Source column after Quality, and `/` opens this tab. | `/library` |
 | `MS-desk-library-all` | All fields | `/library/:id` |
 | `MS-desk-library-track` | A selected track, playing, with two Genre values | `/library/:id` |
 | `MS-desk-library-day` | Staged changes in the Day theme | `/library/:id` |

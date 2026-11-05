@@ -10,14 +10,14 @@ export function createAppRouter(history: RouterHistory) {
   return createRouter({
     history,
     routes: [
-      { path: '/', redirect: '/search' },
+      { path: '/', redirect: '/library' },
       { path: '/search', name: 'search', component: SearchPage },
       { path: '/downloads', name: 'downloads', component: DownloadsPage },
       { path: '/downloads/:id(\\d+)', name: 'download', component: DownloadsPage },
       { path: '/library', name: 'library', component: LibraryPage },
       { path: '/library/:id(\\d+)', name: 'album', component: LibraryPage },
       { path: '/status', name: 'status', component: StatusPage },
-      { path: '/:pathMatch(.*)*', redirect: '/search' },
+      { path: '/:pathMatch(.*)*', redirect: '/library' },
     ],
   })
 }

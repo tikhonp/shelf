@@ -43,7 +43,8 @@ import (
 // library index both hear when downloads end, Navidrome's tag settings
 // reach the library, and the library's writes keep out of the folders
 // downloads work in and ask Navidrome for a scan. A deleted folder's
-// downloads are forgotten, and Navidrome forgets its tracks.
+// downloads are forgotten, and Navidrome forgets its tracks. The downloads'
+// records tell the library each album's source.
 func modules(cfg *config.Config) []module.Module {
 	dl := downloads.New()
 	nav := navidrome.New()
@@ -53,6 +54,7 @@ func modules(cfg *config.Config) []module.Module {
 	dl.Service().SetNotifier(bot)
 	lib.SetBusy(dl.Service().Busy)
 	lib.SetForget(dl.Service().Forget)
+	lib.SetRecords(downloadRecords(dl.Service()))
 	if cfg.Navidrome.Enabled() {
 		lib.SetConfig(navidromeConfig(nav))
 		lib.SetScanner(func(ctx context.Context) error { return nav.RequestScanFor(ctx, "library") })
@@ -83,6 +85,23 @@ func (ss scanners) RequestScan(ctx context.Context) error {
 		errs = append(errs, s.RequestScan(ctx))
 	}
 	return errors.Join(errs...)
+}
+
+// downloadRecords hands the downloads' records to the library in the
+// library's own type.
+func downloadRecords(svc *downloads.Service) library.RecordsReader {
+	return func(ctx context.Context) ([]library.Record, error) {
+		recs, err := svc.Records(ctx)
+		if err != nil {
+			return nil, err
+		}
+		out := make([]library.Record, len(recs))
+		for i, r := range recs {
+			out[i] = library.Record{Source: r.Ref.Source, Kind: string(r.Ref.Kind), ItemID: r.Ref.ID, Folder: r.Path,
+				DownloadID: r.DownloadID, Quality: r.Quality, Imported: r.Imported, At: r.At}
+		}
+		return out, nil
+	}
 }
 
 // navidromeConfig hands the navidrome module's settings to the library in

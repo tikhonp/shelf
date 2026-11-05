@@ -192,9 +192,14 @@ func siblingSuggestions(s *subject) []cand {
 
 // provenance is one block of shelf.txt.
 type provenance struct {
+	// DownloadID is the number on the block's first line.
+	DownloadID                     int64
 	Source, Kind, SourceID         string
 	Title, Artist, Label, Released string
 	UPC                            string
+	// Link is the item's page, Delivered the quality in words, and
+	// Finished the time in RFC 3339.
+	Link, Delivered, Finished string
 	// ISRCs are the tracks' codes by file name.
 	ISRCs map[string]string
 }
@@ -211,7 +216,8 @@ func parseProvenance(b []byte) []provenance {
 		line := sc.Text()
 		switch {
 		case strings.HasPrefix(line, "Music Shelf download "):
-			out = append(out, provenance{ISRCs: map[string]string{}})
+			id, _ := strconv.ParseInt(strings.TrimPrefix(line, "Music Shelf download "), 10, 64)
+			out = append(out, provenance{DownloadID: id, ISRCs: map[string]string{}})
 			cur, inTracks = &out[len(out)-1], false
 			continue
 		case cur == nil || strings.TrimSpace(line) == "":
@@ -252,6 +258,12 @@ func parseProvenance(b []byte) []provenance {
 			cur.Released = val
 		case "UPC":
 			cur.UPC = val
+		case "Source link":
+			cur.Link = val
+		case "Delivered":
+			cur.Delivered = val
+		case "Finished":
+			cur.Finished = val
 		}
 	}
 	return out

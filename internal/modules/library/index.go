@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/tikhonp/shelf/internal/modules/library/tagio"
+	"github.com/tikhonp/shelf/internal/source"
 )
 
 // Timings of the index.
@@ -77,6 +78,12 @@ type index struct {
 	uid    int
 	store  store
 	config ConfigReader
+	// recs reads the downloads' records, and sources is the registry the
+	// walk names sources from. Either may be nil.
+	recs    RecordsReader
+	sources *source.Registry
+	// lastRecs are the records last read, for a walk whose read fails.
+	lastRecs []Record
 	// publish sends a status to the hub.
 	publish func(Status)
 	log     interface {
@@ -175,6 +182,23 @@ func (ix *index) rules(ctx context.Context) (*tagio.Rules, string) {
 	return tagio.DefaultRules(), "default"
 }
 
+// records reads the downloads' records, or keeps the ones last read, so one
+// failed read changes no album's source.
+func (ix *index) records(ctx context.Context) []Record {
+	if ix.recs == nil {
+		return nil
+	}
+	recs, err := ix.recs(ctx)
+	if err != nil {
+		if ctx.Err() == nil {
+			ix.log.Warn("library: read the downloads' records", "error", err)
+		}
+		return ix.lastRecs
+	}
+	ix.lastRecs = recs
+	return recs
+}
+
 // entry is an audio file the walk found.
 type entry struct {
 	rel  string
@@ -205,7 +229,7 @@ func (ix *index) run(ctx context.Context) error {
 	ix.cur = rules
 	ix.mu.Unlock()
 	ix.set(func(s *Status) { s.Rules = from })
-	entries, images, err := scan(ix.root, ix.log)
+	entries, images, notes, err := scan(ix.root, ix.log)
 	if err != nil {
 		return err
 	}
@@ -265,6 +289,7 @@ func (ix *index) run(ctx context.Context) error {
 		}
 	}
 	albums := group(all, images, rules)
+	tellSources(albums, ix.records(ctx), readBlocks(ix.root, notes), sourcesOf(ix.sources))
 	if sum := albumsSum(albums); sum != ix.saved {
 		if err := ix.store.saveAlbums(ctx, albums); err != nil {
 			return err
@@ -327,7 +352,7 @@ func albumsSum(albums []*album) [32]byte {
 			ids[i] = f.ID
 		}
 		_ = enc.Encode([]any{a.Folder, a.AlbumID, a.Title, a.Artist, a.Year, a.Quality, a.LengthMS, a.Size,
-			a.Added, a.HasMBID, a.Issues, ids})
+			a.Added, a.HasMBID, a.Issues, ids, a.Source})
 	}
 	var out [32]byte
 	h.Sum(out[:0])
@@ -353,15 +378,16 @@ func readFile(rules *tagio.Rules, abs, rel string, info fs.FileInfo) *file {
 var imageExts = map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".webp": true, ".bmp": true, ".avif": true}
 
 // scan lists the audio files under root as Navidrome sees them, and the
-// image files of each folder. It skips what Navidrome skips: names with one
+// image files of each folder, and the folders that hold a shelf.txt. It skips what Navidrome skips: names with one
 // leading dot, its list of system folders, and folders whose .ndignore holds
 // no pattern. shelf also skips symlinks, and the census found none.
-func scan(root string, log interface{ Warn(string, ...any) }) ([]entry, map[string][]string, error) {
+func scan(root string, log interface{ Warn(string, ...any) }) ([]entry, map[string][]string, map[string]bool, error) {
 	if _, err := os.Stat(root); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	var entries []entry
 	images := map[string][]string{}
+	notes := map[string]bool{}
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			if p == root {
@@ -394,6 +420,10 @@ func scan(root string, log interface{ Warn(string, ...any) }) ([]entry, map[stri
 			return err
 		}
 		rel = filepath.ToSlash(rel)
+		if name == "shelf.txt" {
+			notes[path.Dir(rel)] = true
+			return nil
+		}
 		ext := strings.ToLower(path.Ext(name))
 		if imageExts[ext] {
 			dir := path.Dir(rel)
@@ -413,7 +443,7 @@ func scan(root string, log interface{ Warn(string, ...any) }) ([]entry, map[stri
 		entries = append(entries, entry{rel: rel, info: info})
 		return nil
 	})
-	return entries, images, err
+	return entries, images, notes, err
 }
 
 // systemDirs are the folders Navidrome never scans.

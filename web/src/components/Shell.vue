@@ -28,9 +28,9 @@ const help = useHelp()
 const bulk = useBulk()
 
 const tabs: { to: string; label: string; icon: IconName }[] = [
+  { to: '/library', label: 'Library', icon: 'library' },
   { to: '/search', label: 'Search', icon: 'search' },
   { to: '/downloads', label: 'Downloads', icon: 'download' },
-  { to: '/library', label: 'Library', icon: 'library' },
   { to: '/status', label: 'Status', icon: 'status' },
 ]
 const isOn = (to: string) => route.path.startsWith(to)
@@ -71,7 +71,7 @@ onMounted(() => {
 <template>
   <div class="rs desk" :class="{ day: theme.day, console: !phone, compact: !phone && settings.density === 'compact', 'shell-phone': phone, 'shell-desk': !phone, 'shell-fit': !phone && isOn('/library') }">
     <header v-if="!phone" class="menubar">
-      <RouterLink class="brand" to="/search"><span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>Music Shelf</RouterLink>
+      <RouterLink class="brand" to="/"><span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>Music Shelf</RouterLink>
       <nav class="tabs" aria-label="Main">
         <RouterLink v-for="t in tabs" :key="t.to" class="mb-item" :class="{ on: isOn(t.to) }" :to="t.to" :aria-current="isOn(t.to) ? 'page' : undefined">
           {{ t.label }}<template v-if="lampFor(t.to)"><span class="led" :title="lampFor(t.to)"></span><span class="sr">, {{ lampFor(t.to) }}</span></template>

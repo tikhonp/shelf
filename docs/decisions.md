@@ -8,7 +8,7 @@ The decisions in force and why. When one changes, edit its row and the docs it t
 | --- | --- |
 | The name is shelf, shown as Music Shelf: Go module `github.com/tikhonp/shelf`, image `code.tikhonnnnn.com/tikhon/shelf`, env prefix `SHELF_`, host `shelf.music.tikhonnnnn.com`. | The owner's choice. |
 | Qobuz writes to `music/qobuz` and Apple Music to `music/apple-music`, with the old tools' folder and file names. | Navidrome, Picard and AudioMuse see no change. |
-| Every download writes `shelf.txt` into its release folder. | The owner asked for it, and a later phase can link folders to catalog items again without the database. |
+| Every download writes `shelf.txt` into its release folder. | The owner asked for it, and the Library tab can tell an album's source from it without the database. |
 | Access is nginx `auth_basic` on the gateway, with no login in the app. | The gateway's pattern for apps without their own login. |
 | shelf is AGPL-3.0 like proxier, and qobuz-dl-go GPL-3.0 like qobuz-dl. | GPL-3.0 code can be combined with AGPL-3.0 code. |
 
@@ -20,7 +20,7 @@ The decisions in force and why. When one changes, edit its row and the docs it t
 | `config.Load` takes a lookup function with `os.LookupEnv`'s signature. Unset takes the default, and empty is empty. | `SHELF_AMDL_CONFIG` and `SHELF_NAVIDROME_URL` have defaults, and an empty value must turn their part off. |
 | A module with work that lasts as long as the server implements `module.Runner`. Only serve calls `Run`, and one that fails is logged while the server goes on. | `manage` opens the platform too, and a bot that can't reach Telegram must not stop downloads. |
 | The jobs table has no subject columns. A download points at its job. | They served proxier's events and Jobs page. |
-| Vue 3, Vite and TypeScript, embedded with `embed.FS`, under a strict CSP. | htmx would fall short for the library table of later phases. |
+| Vue 3, Vite and TypeScript, embedded with `embed.FS`, under a strict CSP. | htmx would fall short for the library table. |
 | The runtime image is `alpine:3.22` with ffmpeg, running as UID 10001 with umask 022. Existing files keep their owner and mode. | amdl's FLAC conversion and Qobuz's segmented fallback call ffmpeg, and 10001 owns the source folders. |
 | A `fakesource` module with canned data, on with `SHELF_DEV_FAKE_SOURCE`. | Tests and UI work without real accounts. |
 | A request the client left is logged as info. | A search aborts the one before it, and each abort logged an error for a failure that wasn't shelf's. |
@@ -90,6 +90,7 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 | Any `http` or `https` link goes to `/api/resolve`. | shelf knows its sources, and the UI shouldn't repeat that list. |
 | Notices and table density are per-browser settings on Status. Notices default to Failures. | A failure needs a person, and phone and desktop may want different levels. |
 | The fake source's covers are data URLs. | Any other host breaks the CSP. |
+| The Library tab is the home screen and the first tab. `/` and unknown paths open it. | The owner asked for it after phase 2. The list shows every album's source and quality. |
 
 ## Tags
 
@@ -107,6 +108,8 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 | Delete removes the album's whole release folder, with every file in it, after a confirmation. When other albums share the folder, the confirmation names them and they go too. | The owner's choice. A release folder holds the cover, `shelf.txt` and lyrics beside the audio, and a folder left half empty would still show in Navidrome. |
 | Delete refuses a top folder, a folder with anything another UID owns or shelf can't write, and a folder a download works in. | A top folder holds a whole source's downloads. shelf never removes what isn't its own, and a download would write into the folder again. |
 | A delete is a row in History, of kind `delete`, and nothing undoes it. Retention counts it as a save. | The owner wanted a record of what went. The files are gone, so there is nothing to put back. |
+| An album's source comes from the downloads' records by folder, then by folder name, then `shelf.txt`, then the source folder it sits in. The walk stores it on the album. | In production only 13 folders had a `shelf.txt`, while the records named 179 folders, 33 of them moved to `jazz/` under the same name. The source folders account for the albums the tools before shelf wrote with no history. Stored on the album, it lets the list filter in SQL. |
+| A source names its folder through the optional `source.Folderer`. | The library never knows which source it talks to, and a switched-off source still names its folder. |
 | `00007_deletes.sql` builds `library_changes` again with foreign keys off, in one transaction on the write connection. | SQLite can't change a CHECK in place. With foreign keys on, dropping the old table would delete every change's files, runs and undos. |
 | After a delete, shelf asks Navidrome for a scan and removes the folder's missing tracks through `/api/missing`, looking every 30 seconds up to ten times. It leaves them when `Scanner.PurgeMissing` is `always`. | Navidrome keeps a missing track, with its star and plays, until an admin removes it, and its API removes only tracks its scan marked missing. Navidrome then drops the empty album, as the contract test shows. |
 | A delete forgets the folder's downloaded items, and the downloads keep their rows. | Otherwise a request for the deleted album would be skipped as already in the library. |

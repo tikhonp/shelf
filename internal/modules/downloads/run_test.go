@@ -110,6 +110,14 @@ func TestFinishDone(t *testing.T) {
 	if item.DownloadID != d.ID || item.Quality != "FLAC 24/96" || item.Path != det.Folder || item.Imported {
 		t.Fatalf("%+v", item)
 	}
+	recs, err := r.svc.Records(bg)
+	if err != nil || len(recs) != 1 {
+		t.Fatalf("records %+v: %v", recs, err)
+	}
+	if rec := recs[0]; rec.Ref != album("album-1") || rec.DownloadID != d.ID || rec.Path != det.Folder ||
+		rec.Quality != "FLAC 24/96" || rec.Imported || rec.At.IsZero() {
+		t.Fatalf("record %+v", rec)
+	}
 	txt, err := os.ReadFile(filepath.Join(r.cfg.MusicDir, det.ProvenancePath))
 	if err != nil {
 		t.Fatal(err)

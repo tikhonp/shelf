@@ -30,6 +30,8 @@ End-to-end checks that only the real deployment can answer: real accounts, the r
 
 17. Delete, on a test download. Star the album in Navidrome and download it again in shelf to see it skipped. Press Delete in the Library tab. The dialog gives the file count and size, and for a playlist folder or a folder of singles it names the other albums. Confirm. The folder is gone from `/music`, the album leaves the list, and within a few minutes it leaves Navidrome with nothing under Missing Files. History shows the delete with Navidrome's count. Ask for the album again, and it downloads instead of being skipped.
 
+18. Album sources, on the desktop and the phone. `shelf.music.tikhonnnnn.com/` opens the Library tab. After the first walk, the filter menu's Sources group counts about 759 Qobuz albums and 76 Apple Music albums, and No known source about 183, the genre folders' albums without a record. Kind of Blue under `jazz/` says it came from Qobuz by the old bot's history, recorded in `qobuz/`. An album shelf downloaded links to its download, and Open on links to its page when its folder has a `shelf.txt`. Filter by Qobuz, press Select and Select all, and the preview counts the same albums.
+
 ## Last run
 
 Every check passed in production.

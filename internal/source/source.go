@@ -137,6 +137,16 @@ type Downloader interface {
 	Download(ctx context.Context, req DownloadRequest, rep Reporter) (DownloadResult, error)
 }
 
+// Folderer is a Downloader that writes into one folder of the music folder.
+// When nothing else names an album's source, the library takes an album in
+// this folder as the source's, because the tools before shelf wrote into
+// the same folders.
+type Folderer interface {
+	// Folder is relative to the music folder, such as "qobuz". It is set
+	// while the source is switched off too.
+	Folder() string
+}
+
 // Library is the music server that serves the folder, such as Navidrome.
 type Library interface {
 	StartScan(ctx context.Context) error

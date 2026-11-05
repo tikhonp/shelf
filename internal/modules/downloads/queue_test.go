@@ -367,6 +367,42 @@ func TestDownloadedAt(t *testing.T) {
 
 // A deleted folder's items download again, and the folders beside it keep
 // theirs, even one whose name starts the same.
+func TestRecordsNameTheirFolders(t *testing.T) {
+	r := newRig(t)
+	rows := []Downloaded{
+		{Ref: album("album-1"), Path: "qobuz/Album", Quality: "FLAC 16/44.1"},
+		{Ref: album("album-2")},
+	}
+	if _, err := r.svc.ImportDownloaded(bg, rows); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.svc.RecordDownloaded(bg, Downloaded{Ref: source.Ref{Source: "fake", Kind: source.KindTrack, ID: "t-1"}, Path: "fake/List"}); err != nil {
+		t.Fatal(err)
+	}
+	recs, err := r.svc.Records(bg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A row with no folder names nothing.
+	if len(recs) != 2 {
+		t.Fatalf("%+v", recs)
+	}
+	for _, rec := range recs {
+		switch rec.Path {
+		case "qobuz/Album":
+			if !rec.Imported || rec.DownloadID != 0 || rec.Quality != "FLAC 16/44.1" || rec.Ref != album("album-1") {
+				t.Errorf("%+v", rec)
+			}
+		case "fake/List":
+			if rec.Imported || rec.Ref.Kind != source.KindTrack {
+				t.Errorf("%+v", rec)
+			}
+		default:
+			t.Errorf("%+v", rec)
+		}
+	}
+}
+
 func TestForgetADeletedFolder(t *testing.T) {
 	r := newRig(t)
 	rows := []Downloaded{
