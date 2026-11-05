@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import type { LibraryAlbum } from '../api/types'
 import { count } from '../lib/format'
 import { typeAngles } from '../lib/formats'
@@ -19,6 +19,7 @@ const props = defineProps<{ current?: number }>()
 const phone = usePhone()
 const library = useLibrary()
 const bulk = useBulk()
+const route = useRoute()
 const router = useRouter()
 const menu = ref(false)
 
@@ -74,7 +75,15 @@ const cover = (a: LibraryAlbum) => `/api/library/albums/${a.id}/cover`
 const sourceTitle = (a: LibraryAlbum) => (a.source.id ? sourceWords(a.source) : 'No known source')
 const line = (a: LibraryAlbum) => [a.artist, a.year || ''].filter(Boolean).join(' · ')
 
+// An address with ?q= searches the list, as /search?q= does on Search.
+const asked = () => (typeof route.query.q === 'string' ? route.query.q : undefined)
+watch(asked, (q) => {
+  if (q !== undefined) library.search(q)
+})
+
 onMounted(() => {
+  const q = asked()
+  if (q !== undefined) library.query = q
   void Promise.allSettled([library.load(), library.loadFilters(), library.loadIndex()])
 })
 </script>

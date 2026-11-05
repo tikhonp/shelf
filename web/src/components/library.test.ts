@@ -103,7 +103,7 @@ test('the list shows each album\'s source, and the filter menu picks a source or
 test('an opened album says where it came from, with links to its download and its page', async () => {
   const { w } = await at('/library/7', { '/api/library/albums/7': detail({ source: { id: 'qobuz', name: 'Qobuz', by: 'download', download_id: 418, at: '2026-11-03T11:05:11Z', link: 'https://www.qobuz.com/album/x/1' } }) })
   const from = w.find('.lib-from')
-  expect(from.text()).toContain('Downloaded from Qobuz on 3 November 2026')
+  expect(from.text()).toContain('Downloaded from Qobuz on 3\u00a0November\u00a02026')
   expect(from.find('a[href="/downloads/418"]').text()).toBe('Download 418')
   expect(from.find('a[href="https://www.qobuz.com/album/x/1"]').text()).toBe('Open on Qobuz')
   w.unmount()
@@ -129,6 +129,18 @@ test('no match says what was searched, and Clear brings the list back', async ()
   await button(w, 'Clear filter and search').trigger('click')
   await flushPromises()
   expect(w.findAll('.g-lib:not(.thead)').length).toBe(1)
+  w.unmount()
+})
+
+test('an address with ?q= fills the search and asks for it', async () => {
+  const { w, router, calls } = await at('/library?q=blue%20joni')
+  expect((w.find('input[type=search]').element as HTMLInputElement).value).toBe('blue joni')
+  expect(calls.some((c) => c.url.includes('/api/library/albums?') && c.url.includes('q=blue+joni'))).toBe(true)
+  await router.push('/library?q=hejira')
+  await new Promise((r) => setTimeout(r, 300))
+  await flushPromises()
+  expect(useLibrary().query).toBe('hejira')
+  expect(calls.some((c) => c.url.includes('q=hejira'))).toBe(true)
   w.unmount()
 })
 

@@ -39,7 +39,7 @@ const coverSize = (it: Item) => (it.ref.kind === 'track' ? 48 : it.ref.kind === 
 
 <style scoped>
 .rs .open { gap: 3px; color: inherit; }
-.rs .extra { margin-top: 4px; }
+.rs .extra { flex-wrap: wrap; row-gap: 4px; margin-top: 4px; }
 .rs .g-ph.k-track { grid-template-columns: 48px minmax(0, 1fr) 50px; }
 .rs .g-ph.k-artist { grid-template-columns: 56px minmax(0, 1fr) 50px; }
 .rs .key.go { width: 50px; height: 50px; }

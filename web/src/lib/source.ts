@@ -6,7 +6,8 @@ function day(time?: string): string {
   if (!time) return ''
   const d = new Date(time)
   if (Number.isNaN(d.getTime())) return ''
-  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
+  // No-break spaces keep the date on one line on the phone.
+  return `${d.getDate()}\u00a0${months[d.getMonth()]}\u00a0${d.getFullYear()}`
 }
 
 // sourceWords says where an album came from and how shelf knows it.
