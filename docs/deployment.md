@@ -43,7 +43,7 @@ and `blackberry/shelf-wrapper.env` with the same `SHELF_WRAPPER_TOKEN`. Commit c
 
 ## sh-main
 
-- `nginx/conf.d/shelf.music.conf`: upstream `ssh-server:10013`, `auth_basic` with the shared htpasswd, `proxy_buffering off` and `proxy_read_timeout 1h` for the event streams, `robots-disallow.conf`, and no CSP header, because shelf sends its own.
+- `nginx/conf.d/shelf.music.conf`: upstream `ssh-server:10013`, `auth_basic` with the shared htpasswd, `proxy_buffering off` and `proxy_read_timeout 1h` for the event streams, `robots-disallow.conf`, and no CSP header, because shelf sends its own. The icons and `manifest.webmanifest` get no basic auth, because Safari fetches them without the page's credentials.
 - Port 10013 in the `ssh-server` `expose` list in `compose.yaml` and on the `PermitListen` line of `ssh-server/sshd_config.d/tunnel-restrict.conf`.
 - `shelf.music.tikhonnnnn.com` has its own DNS record, since `*.music` has no wildcard, and its own certificate from `DOMAINS` in the `Makefile`.
 - A Music Shelf line in `nginx-contents/contents.html` and `contents-ru.html`.
