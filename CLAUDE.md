@@ -29,7 +29,7 @@ State: shelf is finished and runs in production on blackberry. `docs/status.md` 
 ## How to work
 
 - Run `/tikhon:unslop` on all prose before committing: docs, this file, READMEs, code comments, UI texts and bot texts.
-- Commit messages are one short line, such as `Add Qobuz search`, with no body. Commit on `main` and create no branches.
+- Commit messages are one short line, such as `Add Qobuz search`, with no body and no `Co-Authored-By` or other trailer. Commit on `main` and create no branches.
 - When work finishes, update `docs/status.md`, and `docs/decisions.md` if a decision changed.
 - When tests, lint, a build or a subagent's work fails, fix it and go on. Ask only when it can't be solved, and mention the fix in the summary.
 - Never run `caffeinate` or `pkill caffeinate`.
