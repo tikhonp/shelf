@@ -90,7 +90,7 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 | Any `http` or `https` link goes to `/api/resolve`. | shelf knows its sources, and the UI shouldn't repeat that list. |
 | Notices and table density are per-browser settings on Status. Notices default to Failures. | A failure needs a person, and phone and desktop may want different levels. |
 | The fake source's covers are data URLs. | Any other host breaks the CSP. |
-| The Library tab is the home screen and the first tab. `/` and unknown paths open it. | The owner asked for it after phase 2. The list shows every album's source and quality. |
+| The Library tab is the home screen and the first tab. `/` and unknown paths open it. | The owner asked for it. The list shows every album's source and quality. |
 
 ## Tags
 
