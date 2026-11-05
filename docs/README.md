@@ -4,8 +4,8 @@ These docs describe shelf as it runs now.
 
 | Doc | What it holds |
 | --- | --- |
-| [status.md](status.md) | Where things stand and what is open. |
-| [vision.md](vision.md) | What Music Shelf is for, what each phase brought, and what may come next. |
+| [status.md](status.md) | What runs in production, the remotes, and notes for later work. |
+| [vision.md](vision.md) | What Music Shelf is for and what it does. |
 | [decisions.md](decisions.md) | The decisions in force and why. |
 | [architecture.md](architecture.md) | Containers, modules, source interfaces, downloads, events, the HTTP API, configuration. |
 | [data-model.md](data-model.md) | Tables and their rules. |

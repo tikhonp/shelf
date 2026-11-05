@@ -1,8 +1,7 @@
-// Package library is the tag editor's module. Phase 2 builds it in steps.
-// It keeps an index of the music folder, read the way Navidrome reads it,
-// with the albums it forms and the checks they fail, serves it under
-// /api/library, and saves edits through jobs on the tags queue. The reading
-// and writing of tags is in tagio.
+// Package library is the tag editor's module. It keeps an index of the
+// music folder, read the way Navidrome reads it, with the albums it forms and
+// the checks they fail, serves it under /api/library, and saves edits through
+// jobs on the tags queue. The reading and writing of tags is in tagio.
 package library
 
 import (
