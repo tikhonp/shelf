@@ -13,6 +13,7 @@ import (
 
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
+	"github.com/tikhonp/shelf/internal/platform/identity"
 	"github.com/tikhonp/shelf/internal/platform/web"
 )
 
@@ -113,6 +114,9 @@ func RequestLogger(log *slog.Logger) echo.MiddlewareFunc {
 		LogValuesFunc: func(c *echo.Context, v middleware.RequestLoggerValues) error {
 			attrs := []any{"method", v.Method, "path", v.URIPath, "status", v.Status,
 				"latency_ms", v.Latency.Milliseconds(), "ip", v.RemoteIP, "request_id", v.RequestID}
+			if a := identity.From(c.Request().Context()); a.ID != "" {
+				attrs = append(attrs, "author_id", a.ID, "author", a.Name)
+			}
 			if v.Error != nil {
 				attrs = append(attrs, "error", v.Error.Error())
 			}

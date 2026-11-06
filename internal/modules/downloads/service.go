@@ -16,6 +16,7 @@ import (
 	"github.com/tikhonp/shelf/internal/platform/config"
 	"github.com/tikhonp/shelf/internal/platform/db"
 	"github.com/tikhonp/shelf/internal/platform/hub"
+	"github.com/tikhonp/shelf/internal/platform/identity"
 	"github.com/tikhonp/shelf/internal/platform/jobs"
 	"github.com/tikhonp/shelf/internal/platform/module"
 	"github.com/tikhonp/shelf/internal/source"
@@ -162,8 +163,19 @@ func (s *Service) Queue(ctx context.Context, r QueueRequest) (Download, error) {
 	if err != nil {
 		return Download{}, err
 	}
-	nd := newDownload{ref: ref, url: r.URL, format: f, force: r.Force, origin: r.Origin, originRef: r.OriginRef,
-		createdBy: createdBy(r.Origin, r.OriginRef)}
+	a := identity.From(ctx)
+	if r.Origin == OriginTelegram && r.OriginRef.UserID != 0 {
+		a = identity.Telegram(r.OriginRef.UserID, r.OriginRef.Username)
+	}
+	if a.ID == "" {
+		if r.Origin == OriginCLI {
+			a = identity.Author{ID: "cli", Name: "CLI"}
+		} else {
+			a = identity.Author{ID: "anonymous", Name: "Anonymous"}
+		}
+	}
+	nd := newDownload{author: a, ref: ref, url: r.URL, format: f, force: r.Force, origin: r.Origin, originRef: r.OriginRef,
+		createdBy: identity.Job(ctx, createdBy(r.Origin, r.OriginRef))}
 	var id int64
 	err = s.db.Write(ctx, func(tx *sqlx.Tx) (err error) {
 		id, err = s.create(ctx, tx, nd)
@@ -216,6 +228,7 @@ func (s *Service) fillSkipped(ctx context.Context, d Download, dl source.Downloa
 }
 
 type newDownload struct {
+	author    identity.Author
 	ref       source.Ref
 	url       string
 	format    string
@@ -231,6 +244,16 @@ type newDownload struct {
 // create inserts a download, and its job unless the item is already in the
 // library. It runs inside the caller's write transaction.
 func (s *Service) create(ctx context.Context, tx *sqlx.Tx, nd newDownload) (int64, error) {
+	if nd.parentID != 0 {
+		var parent struct {
+			ID   string `db:"author_id"`
+			Name string `db:"author"`
+		}
+		if err := tx.GetContext(ctx, &parent, `SELECT COALESCE(author_id,'') AS author_id, author FROM downloads WHERE id=?`, nd.parentID); err != nil {
+			return 0, err
+		}
+		nd.author = identity.Author{ID: parent.ID, Name: parent.Name}
+	}
 	oref, err := json.Marshal(nd.originRef)
 	if err != nil {
 		return 0, err
@@ -264,10 +287,10 @@ func (s *Service) create(ctx context.Context, tx *sqlx.Tx, nd newDownload) (int6
 			last.Title, last.Artist, last.CoverURL = first(nd.title, last.Title), first(nd.artist, last.Artist), first(nd.cover, last.CoverURL)
 			res, err := tx.ExecContext(ctx, `
 				INSERT INTO downloads (parent_id, source, kind, item_id, url, format, force, title, artist, cover_url,
-					status, folder, origin, origin_ref, created_at, finished_at)
-				VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, 'skipped', ?, ?, ?, ?, ?)`,
+					status, folder, origin, origin_ref, created_at, finished_at, author_id, author)
+				VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, 'skipped', ?, ?, ?, ?, ?, ?, ?)`,
 				parent, nd.ref.Source, nd.ref.Kind, nd.ref.ID, nd.url, nd.format, last.Title, last.Artist, last.CoverURL,
-				have.Path, nd.origin, string(oref), now, now)
+				have.Path, nd.origin, string(oref), now, now, authorID(nd.author.ID), nd.author.Name)
 			if err != nil {
 				return 0, err
 			}
@@ -280,10 +303,10 @@ func (s *Service) create(ctx context.Context, tx *sqlx.Tx, nd newDownload) (int6
 
 	res, err := tx.ExecContext(ctx, `
 		INSERT INTO downloads (parent_id, source, kind, item_id, url, format, force, title, artist, cover_url,
-			status, origin, origin_ref, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?)`,
+			status, origin, origin_ref, created_at, author_id, author)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?, ?)`,
 		parent, nd.ref.Source, nd.ref.Kind, nd.ref.ID, nd.url, nd.format, nd.force, nd.title, nd.artist, nd.cover,
-		nd.origin, string(oref), now)
+		nd.origin, string(oref), now, authorID(nd.author.ID), nd.author.Name)
 	if err != nil {
 		return 0, err
 	}
@@ -551,4 +574,11 @@ func (s *Service) DownloadedAt(ctx context.Context, ref source.Ref) (time.Time, 
 		return time.Time{}, ErrNotFound
 	}
 	return at.Time, err
+}
+
+func authorID(id string) any {
+	if id == "" {
+		return nil
+	}
+	return id
 }

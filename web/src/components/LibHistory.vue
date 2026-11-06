@@ -65,7 +65,7 @@ async function clear() {
       <template v-for="c in history.changes" :key="c.id">
         <div class="row g-lh" :class="{ cur: openId === c.id }" role="row">
           <span role="cell" class="t2 num sm">{{ finishedAt(c.created_at, now) }}</span>
-          <button type="button" class="lib-open two" :aria-expanded="openId === c.id" @click="toggle(c)"><span class="ttl"><span class="ell">{{ c.run ? runTitle(c.run.fixes) : c.kind === 'delete' ? `Deleted: ${c.title}` : c.title }}</span></span><span class="sub ell">{{ c.run ? runSub(c.run) : c.artist }}</span></button>
+          <button type="button" class="lib-open two" :aria-expanded="openId === c.id" @click="toggle(c)"><span class="ttl"><span class="ell">{{ c.run ? runTitle(c.run.fixes) : c.kind === 'delete' ? `Deleted: ${c.title}` : c.title }}</span></span><span class="sub ell">{{ [c.run ? runSub(c.run) : c.artist, `By ${c.author || 'Unknown'}`].filter(Boolean).join(' · ') }}</span></button>
           <span role="cell" class="num sm r">{{ what(c) }}</span>
           <span role="cell"><span class="pill" :class="stateClass(c)">{{ stateWord(c) }}</span></span>
           <button v-if="reversible(c)" type="button" class="key sm r" :disabled="busy(c)" @click="history.reverse(c)">{{ c.undone ? 'Redo' : 'Undo' }}</button>

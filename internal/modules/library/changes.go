@@ -14,6 +14,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/tikhonp/shelf/internal/modules/library/tagio"
 	"github.com/tikhonp/shelf/internal/platform/db"
+	"github.com/tikhonp/shelf/internal/platform/identity"
 )
 
 // The kinds and states of a change.
@@ -48,6 +49,8 @@ const ChangeTopic = "change"
 
 // changeRow is one tag write as stored.
 type changeRow struct {
+	AuthorID   *string `db:"author_id"`
+	Author     string  `db:"author"`
 	ID         int64   `db:"id"`
 	Kind       string  `db:"kind"`
 	Target     *int64  `db:"target"`
@@ -68,7 +71,7 @@ type changeRow struct {
 	FinishedAt db.Time `db:"finished_at"`
 }
 
-const changeCols = `id, kind, target, parent, album_id, folder, title, artist, state, reason, error, undone, request,
+const changeCols = `author_id, author, id, kind, target, parent, album_id, folder, title, artist, state, reason, error, undone, request,
 	conflicts, tags, job_id, created_at, finished_at`
 
 // The kinds of a change's file.
@@ -184,13 +187,27 @@ func (s store) changeFiles(ctx context.Context, id int64) ([]changeFile, error) 
 
 // insertChange stores a new change in tx and gives it its ID.
 func (s store) insertChange(ctx context.Context, tx *sqlx.Tx, c *changeRow) error {
+	if c.Parent != nil {
+		var parent struct {
+			ID   *string `db:"author_id"`
+			Name string  `db:"author"`
+		}
+		if err := tx.GetContext(ctx, &parent, `SELECT author_id, author FROM library_changes WHERE id=?`, *c.Parent); err != nil {
+			return err
+		}
+		c.AuthorID, c.Author = parent.ID, parent.Name
+	} else if a := identity.From(ctx); a.ID != "" {
+		c.AuthorID = &a.ID
+		c.Author = a.Name
+	}
+
 	if c.Conflicts == "" {
 		c.Conflicts = "[]"
 	}
 	return tx.GetContext(ctx, &c.ID, `INSERT INTO library_changes
-		(kind, target, parent, album_id, folder, title, artist, state, request, conflicts, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-		c.Kind, c.Target, c.Parent, c.AlbumID, c.Folder, c.Title, c.Artist, c.State, c.Request, c.Conflicts, c.CreatedAt)
+		(kind, target, parent, album_id, folder, title, artist, state, request, conflicts, created_at, author_id, author)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+		c.Kind, c.Target, c.Parent, c.AlbumID, c.Folder, c.Title, c.Artist, c.State, c.Request, c.Conflicts, c.CreatedAt, c.AuthorID, c.Author)
 }
 
 // writingChanges are the changes a stop cut off between their first and

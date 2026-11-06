@@ -252,3 +252,26 @@ func TestConfigErrorsHideTheProxyURL(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+func TestAuthConfiguration(t *testing.T) {
+	c, err := Load(env(nil))
+	if err != nil || c.AuthProvider != "none" {
+		t.Fatal(c, err)
+	}
+	for _, vars := range []map[string]string{
+		{"SHELF_AUTH_PROVIDER": ""}, {"SHELF_AUTH_PROVIDER": "other"},
+		{"SHELF_AUTH_PROVIDER": "simple"},
+		{"SHELF_AUTH_PROVIDER": "simple", "SHELF_PUBLIC_URL": "http://localhost:8080"},
+		{"SHELF_AUTH_PROVIDER": "simple", "SHELF_PUBLIC_URL": "https://user:pass@shelf.example.com"},
+		{"SHELF_AUTH_PROVIDER": "simple", "SHELF_PUBLIC_URL": "https://shelf.example.com/path"},
+		{"SHELF_AUTH_PROVIDER": "simple", "SHELF_PUBLIC_URL": "https://shelf.example.com?extra=1"},
+	} {
+		if _, err := Load(env(vars)); err == nil {
+			t.Fatalf("accepted invalid auth config %v", vars)
+		}
+	}
+	c, err = Load(env(map[string]string{"SHELF_AUTH_PROVIDER": "simple", "SHELF_PUBLIC_URL": "https://shelf.example.com"}))
+	if err != nil || c.AuthProvider != "simple" {
+		t.Fatal(c, err)
+	}
+}

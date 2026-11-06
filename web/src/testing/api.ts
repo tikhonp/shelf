@@ -12,6 +12,7 @@ export class Reply {
 
 // stubApi answers fetch from a list of path prefixes, longest first, and keeps the calls.
 export function stubApi(routes: Record<string, Answer>) {
+  routes = { '/api/auth': { provider: 'none', account: null, setup_needed: false }, ...routes }
   const calls: { url: string; init?: RequestInit }[] = []
   const paths = Object.keys(routes).sort((a, b) => b.length - a.length)
   vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {

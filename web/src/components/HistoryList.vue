@@ -56,7 +56,7 @@ watch(
       <Cover :url="d.cover_url" :size="44" />
       <RouterLink class="two plain" :to="`/downloads/${d.id}`">
         <span class="ttl small"><span class="ell">{{ d.title || d.url }}</span></span>
-        <span class="sub ell">{{ [d.artist, sources.name(d.source), finishedAt(d.finished_at, now)].filter(Boolean).join(' · ') }}</span>
+        <span class="sub ell">{{ [d.artist, sources.name(d.source), finishedAt(d.finished_at, now), `By ${d.author || 'Unknown'}`].filter(Boolean).join(' · ') }}</span>
         <span class="line g8 extra">
           <span class="pill" :class="pills[d.status]">{{ resultWord(d.status) }}</span>
           <span class="xs t2 ell">{{ d.status === 'failed' ? d.error : d.status === 'partial' ? `${d.tracks_done} of ${d.tracks_total}` : originWord(d.origin, d.origin_user) }}</span>
@@ -78,7 +78,7 @@ watch(
           <span class="ttl small"><span class="ell">{{ d.title || d.url }}</span></span>
           <span class="sub ell" :class="{ 'bad-text': d.status === 'failed' }">{{ note(d) }}</span>
         </span>
-        <span role="cell" class="two opt"><span class="src">{{ sources.name(d.source) }}</span><span class="xs t3">{{ originWord(d.origin, d.origin_user) }}</span></span>
+        <span role="cell" class="two opt"><span class="src">{{ sources.name(d.source) }}</span><span class="xs t3">{{ `${originWord(d.origin, d.origin_user)} · By ${d.author || 'Unknown'}` }}</span></span>
         <span role="cell" class="t2 sm opt">{{ kindWord(d.kind) }}</span>
         <span role="cell"><span class="pill" :class="pills[d.status]">{{ resultWord(d.status) }}</span></span>
         <span role="cell" class="r num t2 sm opt">{{ took(d.started_at, d.finished_at) }}</span>

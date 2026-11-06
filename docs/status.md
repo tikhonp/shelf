@@ -18,9 +18,15 @@ Every check in [manual-checklist.md](manual-checklist.md) passed in production, 
 
 ## Notes for later work
 
+- Optional app authentication and change authors are implemented locally. [auth.md](auth.md) describes setup. Production still uses gateway basic auth; the HTTPS cutover and real-device passkey check remain pending.
+
 - In production the index holds 11,461 tracks and 1,008 Navidrome album IDs, the same as Navidrome. They form 1,013 albums, because 5 Navidrome albums span two folders each.
 - A source module logs in and starts goroutines in `Run`, never in `Init`, and registers with `Switch` when its settings are missing.
 - A wrapper signed in to the owner's Apple ID needs its own data folder and `--device-info`.
 - Unset `SHELF_QOBUZ_TOKEN` for a local run with only the fake source, or it logs in to the owner's Qobuz account.
 - Files in the music folder belong to UID 10001. Delete test downloads from inside the shelf container.
 - Third, Portishead and Wish You Were Here 50 came from the checklist run, and the owner keeps them in the library.
+
+Claude Opus 5.5 reviewed the authentication implementation. The review found no confirmed bypass. Follow-up fixes cover login queueing, independent passkey limits, data refresh after reauthentication, Telegram author labels in events, full account-switch reloads, and registration proof timing.
+
+A focused Claude recheck confirmed both medium findings were addressed and caught a reconnect refresh that cleared Save results. Reconnect now rechecks pending writes without a second album reload and preserves existing results when refreshing an idle editor.

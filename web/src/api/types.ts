@@ -100,6 +100,8 @@ export interface Source {
 export type DownloadStatus = 'queued' | 'running' | 'done' | 'partial' | 'failed' | 'canceled' | 'skipped'
 
 export interface Download {
+  author?: string
+  author_id?: string | null
   id: number
   parent_id: number | null
   source: string
@@ -151,6 +153,8 @@ export interface DownloadList {
 }
 
 export interface DownloadEvent {
+  author?: string
+  author_id?: string | null
   id: number
   parent_id: number | null
   status: DownloadStatus
@@ -407,6 +411,8 @@ export interface DeletedFolder {
 }
 
 export interface LibraryChange {
+  author?: string
+  author_id?: string | null
   id: number
   kind: 'save' | 'undo' | 'redo' | 'delete'
   target: number | null

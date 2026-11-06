@@ -98,3 +98,17 @@ Afterwards `GET /api/library/index` shows `locked: 0` and every folder `writable
 4. Sign `shelf-wrapper` in from the Status page.
 5. To bring in the old bot's history, mount a folder holding `qobuz_dl.db` at `/import` and run `docker exec shelf shelf manage import-qobuz-db /import/qobuz_dl.db`. A second run changes nothing. Remove the mount afterwards. Production has imported it, and the host no longer keeps the file.
 6. Run [manual-checklist.md](manual-checklist.md).
+
+## Optional account authentication
+
+Production still uses gateway basic auth until this cutover. The default provider none keeps that deployment working.
+
+1. Back up `shelf.db` and deploy the new image with provider none. Starting the server applies migrations. If creating accounts before the first start, run `shelf manage migrate up`.
+2. Run `docker exec -it shelf shelf manage users add <username>` and enter the password twice. Create another account if needed.
+3. Set `SHELF_AUTH_PROVIDER=simple` and the public HTTPS origin in `SHELF_PUBLIC_URL`, then restart Shelf. Keep gateway basic auth during the check.
+4. Verify password access through the public address, add a passkey on Status, sign out, and verify passkey access. Verify logged-out audio, covers, logs, and events return 401.
+5. Remove `auth_basic` from the Shelf gateway once those checks pass. Keep TLS, streaming proxy settings, and the existing security headers. Gateway repository changes remain a draft for the owner to commit.
+
+The CLI can reset a password or all passkeys without the server running. Both revoke sessions. Switching serve back to none opens app access and clears sessions, so keep gateway protection if using that rollback. A database restore restores credentials and sessions from that backup. Treat backups as secrets.
+
+[auth.md](auth.md) lists commands, cookie behavior, and the effect of changing the hostname. Local HTTP development keeps provider none.

@@ -43,3 +43,16 @@ Every check passed in production.
 - Check 16: 2026-11-04 on `0fb5a7f`, on the 20 smallest 16/44.1 albums with No RELEASEDATE and a MusicBrainz ID, with the backup on 2026-11-05. AcoustID found an anchor for *Cookin' With The Miles Davis Quintet*.
 - Check 17: 2026-11-05 on `a7359e1`, in production.
 - Check 18: 2026-11-05 on `d228255`, through the API and Playwright on the desktop and a phone viewport. The counts matched exactly: 759 Qobuz, 76 Apple Music, 183 without a source. Each of the 13 albums shelf downloaded links to its download and its page.
+
+## Optional accounts, pending production check
+
+- Keep provider none and verify the current app and gateway still work with no Account panel.
+- Enable simple with the public HTTPS origin. Verify logged-out requests cannot read the API, media, logs, or events.
+- Sign in with a case-sensitive username. Verify a different case fails unless that separate account exists.
+- Add a named passkey on a phone and a desktop. Sign out and sign in with each. Verify canceling the browser prompt keeps password login available.
+- Rename and remove a passkey. Removal must end the current session and other sessions.
+- Change a password and test CLI password and passkey resets. Check another browser's event and log streams close within the next 30-second check.
+- Expire a session with staged edits. The same account resumes without an automatic Save. A different account reloads the page.
+- Save as one user and undo as another. Verify the two authors in History. Check download and bulk-run authors.
+- Delete an account and verify its old authors remain. Check the Telegram allowlist still works independently.
+- Remove gateway basic auth only after password and real-device passkey checks pass over HTTPS.

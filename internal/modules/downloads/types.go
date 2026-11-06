@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/tikhonp/shelf/internal/platform/db"
+	"github.com/tikhonp/shelf/internal/platform/identity"
 	"github.com/tikhonp/shelf/internal/source"
 )
 
@@ -53,6 +54,8 @@ type OriginRef struct {
 
 // Download is one request to fetch an item.
 type Download struct {
+	AuthorID            *string
+	Author              string
 	ID, ParentID, JobID int64
 	Ref                 source.Ref
 	URL                 string
@@ -118,12 +121,14 @@ type Filter struct {
 
 // Event is the hub's download event.
 type Event struct {
-	ID           int64  `json:"id"`
-	ParentID     *int64 `json:"parent_id"`
-	Status       Status `json:"status"`
-	TracksDone   int    `json:"tracks_done"`
-	TracksTotal  int    `json:"tracks_total"`
-	TracksFailed int    `json:"tracks_failed"`
+	Author       string  `json:"author"`
+	AuthorID     *string `json:"author_id"`
+	ID           int64   `json:"id"`
+	ParentID     *int64  `json:"parent_id"`
+	Status       Status  `json:"status"`
+	TracksDone   int     `json:"tracks_done"`
+	TracksTotal  int     `json:"tracks_total"`
+	TracksFailed int     `json:"tracks_failed"`
 	// Current is the title of the track being fetched.
 	Current string `json:"current"`
 	Bytes   int64  `json:"bytes"`
@@ -146,6 +151,8 @@ var (
 
 // row is a downloads row as stored.
 type row struct {
+	AuthorID     *string       `db:"author_id"`
+	Author       string        `db:"author"`
 	ID           int64         `db:"id"`
 	ParentID     sql.NullInt64 `db:"parent_id"`
 	JobID        sql.NullInt64 `db:"job_id"`
@@ -173,12 +180,12 @@ type row struct {
 	FinishedAt   db.Time       `db:"finished_at"`
 }
 
-const columns = `id, parent_id, job_id, source, kind, item_id, url, format, force, title, artist, cover_url, status,
+const columns = `author_id, author, id, parent_id, job_id, source, kind, item_id, url, format, force, title, artist, cover_url, status,
 	error, tracks_total, tracks_done, tracks_failed, bytes, folder, origin, origin_ref, notified, created_at,
 	started_at, finished_at`
 
 func (r row) download() Download {
-	d := Download{
+	d := Download{AuthorID: r.AuthorID, Author: r.Author,
 		ID: r.ID, ParentID: r.ParentID.Int64, JobID: r.JobID.Int64,
 		Ref: source.Ref{Source: r.Source, Kind: source.Kind(r.Kind), ID: r.ItemID}, URL: r.URL, Format: r.Format,
 		Force: r.Force, Title: r.Title, Artist: r.Artist, CoverURL: r.CoverURL, Status: Status(r.Status), Error: r.Error,
@@ -211,7 +218,8 @@ const trackColumns = `position, disc, item_id, title, artist, isrc, status, path
 
 // event is d as the hub carries it.
 func (d Download) event(current string) Event {
-	e := Event{ID: d.ID, Status: d.Status, TracksDone: d.TracksDone, TracksTotal: d.TracksTotal,
+
+	e := Event{Author: d.authorName(), AuthorID: d.AuthorID, ID: d.ID, Status: d.Status, TracksDone: d.TracksDone, TracksTotal: d.TracksTotal,
 		TracksFailed: d.TracksFailed, Current: current, Bytes: d.Bytes, Error: d.Error}
 	if d.ParentID != 0 {
 		p := d.ParentID
@@ -242,4 +250,14 @@ func cut(s string, n int) string {
 		return s
 	}
 	return string(r[:n])
+}
+
+func (d Download) authorName() string {
+	if d.Author != "" {
+		return d.Author
+	}
+	if d.OriginRef.UserID != 0 {
+		return identity.Telegram(d.OriginRef.UserID, d.OriginRef.Username).Name
+	}
+	return "Unknown"
 }

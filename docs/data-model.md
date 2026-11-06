@@ -265,3 +265,17 @@ CREATE TABLE library_gains (
 - An album starts `waiting` when the run measures ReplayGain, else `ready`. It moves through `analyzing` and `writing` to `done`, `skipped`, `failed` or `cancelled`. `done` with no `files` had nothing to change.
 - `library_gains` has no retention. It holds about 3 KB a track, and a row of audio that left the library costs only that.
 
+
+## Accounts and authors
+
+The platform owns these STRICT tables, added by migration 00002_accounts:
+
+| Table | Stored data |
+| --- | --- |
+| `accounts` | AUTOINCREMENT ID, case-sensitive unique username, salted password hash, opaque WebAuthn user handle, credential generation, creation time. |
+| `account_sessions` | Hashed token primary key, account ID, credential generation, last proof time, fixed expiry. Account deletion cascades. |
+| `account_passkeys` | Credential ID primary key, account ID, user-chosen credential name, verified public credential JSON, creation and last-use times. Account deletion cascades. |
+
+Passkey ceremonies stay in memory. Sessions survive restarts. A reset increments the account's credential generation and deletes its sessions atomically. See [auth.md](auth.md).
+
+Downloads migration 00003_authors and library migration 00009_authors add nullable `author_id` and a non-null `author` string. Existing rows have a null ID and an empty name. The API displays Unknown, or the existing Telegram identity for a download that has one. New rows capture both fields at request time. Child downloads and run children copy them from the parent row. No foreign key connects authors to accounts, so deletion preserves history. No new activity log exists.

@@ -103,7 +103,11 @@ Use these words in code, UI, docs and conversation.
 
 **Supervisor.** The shelf-wrapper process that runs the wrapper and serves the control API.
 
-**Sign-in.** Logging the wrapper into an Apple ID, including the 2FA code step. _Avoid_: login, in the UI.
+**Apple ID sign-in.** Logging the wrapper into an Apple ID, including the 2FA code step. Keep its SignIn.vue and signin helpers separate from account authentication.
+
+**Account.** A Shelf username, password and optional passkeys. A user is the person using an account. The CLI uses `manage users`. The account UI says "Sign in to Shelf".
+
+**Author.** The user, Telegram user, CLI or System recorded on an existing action or history row. Names are captured when the action starts.
 
 **Scan.** The Navidrome library scan that shelf starts after downloads.
 
