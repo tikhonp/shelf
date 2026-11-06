@@ -17,6 +17,7 @@ import (
 	"sync"
 
 	"github.com/labstack/echo/v5"
+	"github.com/tikhonp/shelf/internal/platform/auth"
 	"github.com/tikhonp/shelf/internal/platform/backup"
 	"github.com/tikhonp/shelf/internal/platform/config"
 	"github.com/tikhonp/shelf/internal/platform/db"
@@ -35,6 +36,7 @@ const Name = "platform"
 
 // App is the assembled platform with its modules.
 type App struct {
+	Auth    *auth.Service
 	Cfg     *config.Config
 	Log     *slog.Logger
 	DB      *db.DB
@@ -70,6 +72,15 @@ func Open(cfg *config.Config, log *slog.Logger, modules ...module.Module) (*App,
 	}
 	a := &App{Cfg: cfg, Log: log, DB: d, UI: ui.Dist, Modules: all,
 		Jobs: jobs.New(d, cfg.TZ, log), Hub: hub.New(), Sources: source.NewRegistry(), closing: make(chan struct{})}
+	origin := ""
+	if cfg.PublicURL != nil {
+		origin = cfg.PublicURL.Scheme + "://" + cfg.PublicURL.Host
+	}
+	a.Auth, err = auth.New(d, cfg.AuthProvider == "simple", origin)
+	if err != nil {
+		_ = d.Close()
+		return nil, err
+	}
 	a.Backup = backup.New(d, cfg.DataDir, cfg.TZ, log)
 	if err := a.register(); err != nil {
 		_ = d.Close()
@@ -163,7 +174,9 @@ func (a *App) HTTP() *echo.Echo {
 		}
 	}
 	e := httpx.New(httpx.Options{Log: a.Log, PublicURL: a.Cfg.PublicURL, Health: a.Health, BodyLimits: limits})
+	e.Use(a.Auth.Middleware)
 	api := e.Group("/api")
+	a.Auth.Routes(api)
 	api.GET("/version", version)
 	for _, m := range a.Modules {
 		if rd, ok := m.(module.RouteDeclarer); ok {
@@ -197,6 +210,15 @@ func (a *App) Serve(ctx context.Context, onListen func(net.Addr)) error {
 	// A listener that fails to start stops the jobs too.
 	ctx, stop := context.WithCancel(ctx)
 	defer stop()
+	n, err := a.Auth.StartServe(ctx)
+	if err != nil {
+		return err
+	}
+	if n > 0 {
+		a.Log.Info("disabled authentication cleared sessions", "count", n)
+	}
+	authDone := make(chan struct{})
+	go func() { defer close(authDone); a.Auth.Run(ctx) }()
 	jobsDone := make(chan error, 1)
 	go func() { jobsDone <- a.Jobs.Start(ctx) }()
 	go func() {
@@ -206,8 +228,9 @@ func (a *App) Serve(ctx context.Context, onListen func(net.Addr)) error {
 	runners := a.startRunners(ctx)
 	httpErr := httpx.Run(ctx, a.HTTP(), a.Cfg.HTTPAddr, onListen)
 	stop()
-	err := errors.Join(httpErr, <-jobsDone)
+	err = errors.Join(httpErr, <-jobsDone)
 	runners.Wait()
+	<-authDone
 	return err
 }
 

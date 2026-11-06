@@ -13,9 +13,11 @@ import (
 
 // changeJSON is a change as the editor and the history show it.
 type changeJSON struct {
-	ID     int64  `json:"id"`
-	Kind   string `json:"kind"`
-	Target *int64 `json:"target"`
+	Author   string  `json:"author"`
+	AuthorID *string `json:"author_id"`
+	ID       int64   `json:"id"`
+	Kind     string  `json:"kind"`
+	Target   *int64  `json:"target"`
 	// AlbumID is the album the change's files belong to now. A Save that
 	// changes the album's Navidrome ID gives it a new row after the next
 	// walk.
@@ -76,7 +78,11 @@ type keyChangeJSON struct {
 }
 
 func (m *Module) changeJSON(ctx context.Context, c changeRow) changeJSON {
-	j := changeJSON{ID: c.ID, Kind: c.Kind, Target: c.Target, AlbumID: c.AlbumID, Folder: c.Folder, Title: c.Title,
+	author := c.Author
+	if author == "" {
+		author = "Unknown"
+	}
+	j := changeJSON{Author: author, AuthorID: c.AuthorID, ID: c.ID, Kind: c.Kind, Target: c.Target, AlbumID: c.AlbumID, Folder: c.Folder, Title: c.Title,
 		Artist: c.Artist, State: c.State, Reason: c.Reason, Error: c.Error, Undone: c.Undone, Tags: c.Tags,
 		JobID: c.JobID, CreatedAt: c.CreatedAt.UTC().Format(time.RFC3339), Conflicts: []conflictJSON{}}
 	if !c.FinishedAt.IsZero() {

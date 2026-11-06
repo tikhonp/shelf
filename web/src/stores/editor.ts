@@ -116,10 +116,10 @@ export const useEditor = defineStore('editor', () => {
   }
 
   // reload reads the files again and keeps what is staged.
-  async function reload() {
+  async function reload(keepOutcome = false) {
     if (!album.value) return
     album.value = await read(album.value.id)
-    outcome.value = null
+    if (!keepOutcome) outcome.value = null
   }
 
   async function loadSuggestions(anchor?: string) {

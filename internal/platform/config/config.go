@@ -20,9 +20,10 @@ import (
 // verb, because the proxy URL may carry a password and the tokens are
 // secrets.
 type Config struct {
-	DataDir  string
-	MusicDir string
-	HTTPAddr string
+	AuthProvider string
+	DataDir      string
+	MusicDir     string
+	HTTPAddr     string
 	// PublicURL is nil when unset.
 	PublicURL *url.URL
 	TZ        *time.Location
@@ -109,12 +110,13 @@ func LoadFromEnv() (*Config, error) { return Load(os.LookupEnv) }
 func Load(lookup func(string) (string, bool)) (*Config, error) {
 	p := &parser{lookup: lookup}
 	c := &Config{
-		DataDir:   p.required("SHELF_DATA_DIR", "/data"),
-		MusicDir:  p.required("SHELF_MUSIC_DIR", "/music"),
-		HTTPAddr:  p.required("SHELF_HTTP_ADDR", ":8080"),
-		PublicURL: p.url("SHELF_PUBLIC_URL", "", false, "http", "https"),
-		TZ:        p.timeZone("SHELF_TIMEZONE", "Europe/Moscow"),
-		Proxy:     p.url("SHELF_PROXY_URL", "", true, "http", "https", "socks5", "socks5h"),
+		AuthProvider: p.required("SHELF_AUTH_PROVIDER", "none"),
+		DataDir:      p.required("SHELF_DATA_DIR", "/data"),
+		MusicDir:     p.required("SHELF_MUSIC_DIR", "/music"),
+		HTTPAddr:     p.required("SHELF_HTTP_ADDR", ":8080"),
+		PublicURL:    p.url("SHELF_PUBLIC_URL", "", false, "http", "https"),
+		TZ:           p.timeZone("SHELF_TIMEZONE", "Europe/Moscow"),
+		Proxy:        p.url("SHELF_PROXY_URL", "", true, "http", "https", "socks5", "socks5h"),
 		Qobuz: Qobuz{
 			Token:    Secret(p.str("SHELF_QOBUZ_TOKEN", "")),
 			Dir:      p.folder("SHELF_QOBUZ_DIR", "qobuz"),
@@ -146,6 +148,12 @@ func Load(lookup func(string) (string, bool)) (*Config, error) {
 		AcoustIDKey:   Secret(p.str("SHELF_ACOUSTID_KEY", "")),
 		DevFakeSource: p.boolean("SHELF_DEV_FAKE_SOURCE", false),
 		LogLevel:      p.level("SHELF_LOG_LEVEL", "info"),
+	}
+	if c.AuthProvider != "none" && c.AuthProvider != "simple" {
+		p.fail("SHELF_AUTH_PROVIDER must be none or simple")
+	}
+	if c.AuthProvider == "simple" && (c.PublicURL == nil || c.PublicURL.Scheme != "https" || c.PublicURL.User != nil || c.PublicURL.RawQuery != "" || c.PublicURL.Fragment != "" || c.PublicURL.Path != "" && c.PublicURL.Path != "/") {
+		p.fail("SHELF_PUBLIC_URL must be an HTTPS origin when authentication is simple")
 	}
 	if c.Proxy == nil {
 		if c.Qobuz.UseProxy {

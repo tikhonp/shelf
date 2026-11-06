@@ -16,24 +16,26 @@ import (
 
 // downloadJSON is a download as the API answers it.
 type downloadJSON struct {
-	ID           int64  `json:"id"`
-	ParentID     *int64 `json:"parent_id"`
-	Source       string `json:"source"`
-	Kind         string `json:"kind"`
-	ItemID       string `json:"item_id"`
-	URL          string `json:"url"`
-	Format       string `json:"format"`
-	Title        string `json:"title"`
-	Artist       string `json:"artist"`
-	CoverURL     string `json:"cover_url"`
-	Status       Status `json:"status"`
-	Error        string `json:"error"`
-	TracksTotal  int    `json:"tracks_total"`
-	TracksDone   int    `json:"tracks_done"`
-	TracksFailed int    `json:"tracks_failed"`
-	Bytes        int64  `json:"bytes"`
-	Folder       string `json:"folder"`
-	Origin       string `json:"origin"`
+	Author       string  `json:"author"`
+	AuthorID     *string `json:"author_id"`
+	ID           int64   `json:"id"`
+	ParentID     *int64  `json:"parent_id"`
+	Source       string  `json:"source"`
+	Kind         string  `json:"kind"`
+	ItemID       string  `json:"item_id"`
+	URL          string  `json:"url"`
+	Format       string  `json:"format"`
+	Title        string  `json:"title"`
+	Artist       string  `json:"artist"`
+	CoverURL     string  `json:"cover_url"`
+	Status       Status  `json:"status"`
+	Error        string  `json:"error"`
+	TracksTotal  int     `json:"tracks_total"`
+	TracksDone   int     `json:"tracks_done"`
+	TracksFailed int     `json:"tracks_failed"`
+	Bytes        int64   `json:"bytes"`
+	Folder       string  `json:"folder"`
+	Origin       string  `json:"origin"`
 	// OriginUser is the Telegram user who asked, when the bot knows the name.
 	OriginUser string     `json:"origin_user"`
 	CreatedAt  time.Time  `json:"created_at"`
@@ -78,7 +80,8 @@ func optTime(t time.Time) *time.Time {
 }
 
 func toJSON(d Download) downloadJSON {
-	j := downloadJSON{
+
+	j := downloadJSON{Author: d.authorName(), AuthorID: d.AuthorID,
 		ID: d.ID, Source: d.Ref.Source, Kind: string(d.Ref.Kind), ItemID: d.Ref.ID, URL: d.URL, Format: d.Format,
 		Title: d.Title, Artist: d.Artist, CoverURL: d.CoverURL, Status: d.Status, Error: d.Error,
 		TracksTotal: d.TracksTotal, TracksDone: d.TracksDone, TracksFailed: d.TracksFailed, Bytes: d.Bytes,

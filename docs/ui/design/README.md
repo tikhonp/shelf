@@ -258,3 +258,9 @@ Help never shows on a screen at rest, and the design adds no helper text beside 
 - On the phone the cover dialog is the desktop's dialog in a narrower window. The canvas has no phone board for it.
 - Status's Library part keeps the index's two lines and gives MusicBrainz a third, with its answer time when it answers. The note under it while MusicBrainz is down says "Suggestions from MusicBrainz" where the canvas says "Its suggestions".
 - Delete is new, with no canvas board. It is a text cap in the Editor's title bar on the desktop and in the album's title bar on the phone. It opens the confirm dialog, or the phone's slot, with Delete as its key. The title is "Delete this album?", or "Delete these albums?" when other albums share the folder. While the delete runs, the Save bar's place shows DELETING and the file count. A refusal uses the Not saved panel, titled Not deleted. In History a delete reads "Deleted: Blue", has a Deleted pill and no Undo, and opens to the folder, the files and size, the other albums, the downloads and Navidrome.
+
+## Account access
+
+With simple authentication, a centered window titled "Sign in to Shelf" has username and password fields and a separate passkey button. The app checks access before mounting the shell. An expired session opens a modal dialog over the inert app and preserves staged edits. The same account resumes without resending actions; another account reloads the page.
+
+Status has an Account window for password changes, named passkeys, and signing out. None mode has no account controls. Existing download and library history rows show their author beside the current secondary text. No activity page is added. [auth.md](../../auth.md) describes the flows and labels.

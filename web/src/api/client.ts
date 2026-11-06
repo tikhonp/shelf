@@ -1,3 +1,10 @@
+let unauthorized: (() => void) | undefined
+let paused: (() => boolean) | undefined
+export function setAuthHandling(onUnauthorized: () => void, isPaused: () => boolean) {
+  unauthorized = onUnauthorized
+  paused = isPaused
+}
+
 // ApiError is an answer that isn't 2xx, with the message shelf gave.
 export class ApiError extends Error {
   constructor(
@@ -11,7 +18,9 @@ export class ApiError extends Error {
 }
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
+  if (paused?.()) throw new ApiError(401, "Sign in to Shelf")
   const res = await fetch(path, init)
+  if (res.status === 401) unauthorized?.()
   if (res.ok) return (await res.json()) as T
   let message = res.statusText
   let body: { error?: string } | undefined

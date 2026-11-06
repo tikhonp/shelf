@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { useAuth } from '../stores/auth'
 import type { LogLine } from '../api/types'
 import { clockSeconds } from '../lib/format'
 
@@ -24,6 +25,7 @@ function open(id: number) {
   close()
   lines.value = []
   stream = new EventSource(`/api/downloads/${id}/log`)
+  stream.onerror = () => { void useAuth().check().catch(() => {}) }
   stream.addEventListener('line', (m) => {
     const follow = follows()
     lines.value.push(JSON.parse((m as MessageEvent<string>).data) as LogLine)
@@ -35,6 +37,7 @@ function open(id: number) {
 }
 
 watch(() => props.downloadId, open, { immediate: true })
+watch(() => useAuth().locked, (locked) => { if (locked) close(); else open(props.downloadId) })
 onBeforeUnmount(close)
 
 const tone = (level: string) => (level === 'error' ? 'er' : level === 'warn' ? 'wn' : '')

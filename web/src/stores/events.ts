@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { DownloadEvent, LibraryChange, LibraryIndex, RunProgress, ScanEvent, SourceEvent } from '../api/types'
+import { useAuth } from './auth'
 import { useBulk } from './bulk'
 import { useDownloads } from './downloads'
 import { useEditor } from './editor'
@@ -18,7 +19,12 @@ export const useEvents = defineStore('events', () => {
   function reload() {
     const downloads = useDownloads()
     const status = useStatus()
-    return Promise.allSettled([downloads.load(), status.check(), useEditor().recheck(), useBulk().check()])
+    const library = useLibrary()
+    const editor = useEditor()
+    return Promise.allSettled([
+      downloads.load(), status.check(), editor.saving || editor.deleting ? editor.recheck() : editor.reload(true), useBulk().check(),
+      library.loadIndex(), library.load(), library.loadFilters(), useHistory().load(),
+    ])
   }
 
   // A page kept for the back button would hold its stream, and browsers allow
@@ -26,6 +32,7 @@ export const useEvents = defineStore('events', () => {
   function leave() {
     stream?.close()
     stream = null
+    connected.value = false
   }
   function back(e: PageTransitionEvent) {
     if (e.persisted) connect()
@@ -43,6 +50,7 @@ export const useEvents = defineStore('events', () => {
     }
     stream.onerror = () => {
       connected.value = false
+      void useAuth().check().then(() => { if (useAuth().locked) disconnect() }).catch(() => {})
     }
     stream.addEventListener('download', (m) => useDownloads().applyEvent(read<DownloadEvent>(m)))
     stream.addEventListener('scan', (m) => useStatus().applyScan(read<ScanEvent>(m)))
@@ -66,8 +74,9 @@ export const useEvents = defineStore('events', () => {
   function disconnect() {
     window.removeEventListener('pagehide', leave)
     window.removeEventListener('pageshow', back)
+    // A stream closed for authentication missed events, even if it never opened.
+    opened ||= stream !== null
     leave()
-    opened = false
   }
 
   return { connected, connect, disconnect }

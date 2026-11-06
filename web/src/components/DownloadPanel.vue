@@ -135,7 +135,7 @@ function trackState(t: DownloadTrack): { led: string; text: string } {
 
         <dl class="meta panel" :class="{ wide: !phone }">
           <dt>Source</dt><dd><span class="src">{{ sources.name(d.source) }}</span></dd>
-          <dt>Asked by</dt><dd>{{ originWord(d.origin, d.origin_user) }}</dd>
+          <dt>Asked by</dt><dd>{{ d.author || 'Unknown' }} · {{ originWord(d.origin, d.origin_user) }}</dd>
           <dt>Format</dt><dd>{{ sources.formatLabel(d.source, d.format) }}</dd>
           <dt>Started</dt><dd class="num">{{ clockSeconds(d.started_at) }}</dd>
           <dt>Delivered</dt><dd class="num">{{ delivered }}</dd>

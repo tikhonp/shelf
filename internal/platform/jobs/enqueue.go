@@ -11,12 +11,16 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/tikhonp/shelf/internal/platform/db"
+	"github.com/tikhonp/shelf/internal/platform/identity"
 )
 
 // Enqueue inserts a job inside tx, the caller's write transaction, so a change
 // and the job it causes commit together. A request whose coalescing key
 // matches a queued job that has never started merges into it instead.
 func (s *System) Enqueue(ctx context.Context, tx *sqlx.Tx, r Request) (Enqueued, error) {
+	if r.CreatedBy == "web" {
+		r.CreatedBy = identity.Job(ctx, r.CreatedBy)
+	}
 	t, ok := s.typeOf(r.Type)
 	if !ok {
 		return Enqueued{}, fmt.Errorf("%w: %q", ErrUnknownType, r.Type)

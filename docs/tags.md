@@ -456,3 +456,7 @@ The test's container installs Alpine's ffmpeg, the one production has, because a
 | The Status probe: no cache, no retry, busy, errors, down, one probe for 30 seconds | `TestPing` in `musicbrainz`, `TestMusicBrainzStatus` |
 
 The fixtures in `tagio/testdata` are half a second of a sine per format, written by `testdata/make.sh`. Tests that need ffmpeg skip where it isn't installed. `musicbrainz/testdata` holds answers in MusicBrainz's and the Cover Art Archive's shapes, written by hand with made-up IDs.
+
+## History authors
+
+Library saves, undo, redo, album deletion, and bulk runs record the requesting author. Run children inherit their head's author. History shows that name beside the existing album or run text. Undo records its own author and preserves the original save's author. Account deletion does not erase names. Older records show Unknown; new unauthenticated web records show Anonymous. [auth.md](auth.md) describes account access. History retention and clearing keep their existing behavior.

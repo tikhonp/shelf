@@ -12,6 +12,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/tikhonp/shelf/internal/platform/db"
+	"github.com/tikhonp/shelf/internal/platform/identity"
 )
 
 const (
@@ -515,6 +516,9 @@ func (s *System) cancelTx(ctx context.Context, tx *sqlx.Tx, j Info, t *Type, by,
 // Cancel stops a job: at once when it is queued or interrupted, at the next
 // step boundary (or inside a step that watches Cancelling) when it runs.
 func (s *System) Cancel(ctx context.Context, id int64, by string) error {
+	if by == "web" {
+		by = identity.Job(ctx, by)
+	}
 	err := s.d.Write(ctx, func(tx *sqlx.Tx) error {
 		r, err := getRow(ctx, tx, id)
 		if err != nil {

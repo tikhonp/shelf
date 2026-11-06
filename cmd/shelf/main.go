@@ -135,6 +135,13 @@ const usage = `Usage:
                                           queue a download; F is a format ID such as 27 or qobuz:27
   shelf manage import-qobuz-db <path>     add the old bot's qobuz_dl.db to the download history
   shelf manage tags <file>                show an audio file's tags as Navidrome reads them, without changing it
+  shelf manage users add <username>       create an account with a prompted password
+  shelf manage users list                 list accounts
+  shelf manage users delete <username>    remove an account and revoke its sessions
+  shelf manage users set-password <username>
+                                          reset a password and revoke sessions
+  shelf manage users reset-passkeys <username>
+                                          remove passkeys and revoke sessions
   shelf healthcheck                       exit 0 when the running server is healthy, 1 otherwise
   shelf version
 `
@@ -152,10 +159,11 @@ func run(args []string, stdout, stderr io.Writer) int {
 // cli is one run of the command line. Its environment, output and modules
 // are fields, so tests run every command in-process.
 type cli struct {
-	lookup  func(string) (string, bool)
-	stdout  io.Writer
-	stderr  io.Writer
-	modules func(*config.Config) []module.Module
+	passwordReader func(string) (string, error)
+	lookup         func(string) (string, bool)
+	stdout         io.Writer
+	stderr         io.Writer
+	modules        func(*config.Config) []module.Module
 	// listening, when set, hears the address serve listens on.
 	listening func(net.Addr)
 }
@@ -276,6 +284,8 @@ func (c cli) manage(ctx context.Context, args []string) int {
 	}
 	var cmd func(*platform.App, *config.Config, *slog.Logger) error
 	switch {
+	case len(args) >= 2 && args[0] == "users" && validUsersArgs(args[1:]):
+		cmd = func(app *platform.App, _ *config.Config, _ *slog.Logger) error { return c.users(ctx, app, args[1:]) }
 	case len(args) == 2 && args[0] == "migrate" && args[1] == "up":
 		cmd = func(app *platform.App, _ *config.Config, _ *slog.Logger) error { return app.Migrate(ctx) }
 	case len(args) == 3 && args[0] == "migrate" && args[1] == "down":

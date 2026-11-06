@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { useAuth } from '../stores/auth'
 import { duration } from '../lib/format'
 import { usePlayer } from '../stores/player'
 import Icon from './Icon.vue'
@@ -46,7 +47,8 @@ defineExpose({ skip })
 function seek(e: Event) {
   if (audio.value) audio.value.currentTime = Number((e.target as HTMLInputElement).value)
 }
-function failed() {
+async function failed() {
+  try { await useAuth().check(); if (useAuth().locked) return } catch { return }
   if (!transcoded.value) {
     transcoded.value = true
     return

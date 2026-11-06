@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -98,7 +99,7 @@ func TestOptionalModuleInterfacesArePickedUp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(st) != 2 || st[0].Module != platform.Name || st[1].Module != "fake" || !st[1].Applied {
+	if len(st) != 3 || st[0].Module != platform.Name || st[2].Module != "fake" || !st[2].Applied {
 		t.Errorf("status = %+v", st)
 	}
 	if rec := get(a, http.MethodGet, "/api/fake"); rec.Code != http.StatusOK || rec.Body.String() != "fake" {
@@ -275,5 +276,52 @@ func TestManageStartsNoRunner(t *testing.T) {
 	case <-r.started:
 		t.Fatal("Run started outside Serve")
 	default:
+	}
+}
+
+func TestSimpleAuthenticationProtectsPlatformAndModuleRoutes(t *testing.T) {
+	cfg := testConfig(t)
+	cfg.AuthProvider = "simple"
+	cfg.PublicURL, _ = url.Parse("https://shelf.example.com")
+	a, err := platform.Open(cfg, discard, &fake{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = a.Close() })
+	if err := a.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Auth.Add(ctx, "Alice", "a sufficiently long password"); err != nil {
+		t.Fatal(err)
+	}
+	e := a.HTTP()
+	for _, path := range []string{"/api/version", "/api/fake", "/api/library/tracks/1/audio", "/api/downloads/1/log", "/api/events"} {
+		rec := httptest.NewRecorder()
+		e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		if rec.Code != 401 || rec.Header().Get("WWW-Authenticate") != "" {
+			t.Fatalf("unprotected %s: %d", path, rec.Code)
+		}
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(`{"username":"Alice","password":"a sufficiently long password"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("login: %d %s", rec.Code, rec.Body)
+	}
+	cookies := rec.Result().Cookies()
+	if len(cookies) == 0 {
+		t.Fatal("no session")
+	}
+	for _, path := range []string{"/api/version", "/api/fake"} {
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		rec := httptest.NewRecorder()
+		e.ServeHTTP(rec, req)
+		if rec.Code != 200 {
+			t.Fatalf("authenticated %s: %d", path, rec.Code)
+		}
 	}
 }

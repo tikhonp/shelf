@@ -221,7 +221,7 @@ The API answers a download as `{"id", "parent_id", "source", "kind", "item_id", 
 
 ## Security
 
-- The gateway asks for basic auth before any request reaches shelf.
+- Production currently uses gateway basic auth. Optional app authentication replaces it when `SHELF_AUTH_PROVIDER=simple`; [auth.md](auth.md) describes protected routes and sessions.
 - shelf checks unsafe methods with `http.NewCrossOriginProtection` and also trusts `SHELF_PUBLIC_URL`'s origin, because the gateway may rewrite `Host`. It limits request bodies to 1 MiB, except where a module's `BodyLimits` raises the limit of a route: 32 MiB for a cover upload and 8 MiB for a Save. It sends a CSP that allows only `'self'`, plus images from `static.qobuz.com` and `*.mzstatic.com`, with `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`.
 - Tokens and passwords live only in environment variables, never in the database, logs or `shelf.txt`. The Apple ID password passes through shelf to the supervisor, and neither stores it.
 - The supervisor's control API requires `SHELF_WRAPPER_TOKEN` and is reachable only on the compose network.
@@ -242,6 +242,7 @@ Tokens and passwords are `config.Secret`, which prints, logs and marshals as `[r
 | `SHELF_PUBLIC_URL` | | Base URL for links in Telegram messages and in `shelf.txt`. |
 | `SHELF_TIMEZONE` | `Europe/Moscow` | Display time zone for `shelf.txt`, the UI and the backup schedule. |
 | `SHELF_PROXY_URL` | | Proxy for modules that opt in. |
+| `SHELF_AUTH_PROVIDER` | `none` | `simple` enables accounts and requires an HTTPS `SHELF_PUBLIC_URL` origin. Empty or unknown values fail startup. |
 | `SHELF_QOBUZ_TOKEN` | | Qobuz `user_auth_token`. Empty disables Qobuz. |
 | `SHELF_QOBUZ_DIR` | `qobuz` | Folder under the music root. |
 | `SHELF_QOBUZ_QUALITY` | `27` | Requested format ID. |
@@ -266,3 +267,7 @@ Tokens and passwords are `config.Secret`, which prints, logs and marshals as `[r
 | `SHELF_LOG_LEVEL` | `info` | slog level. |
 
 The supervisor in shelf-wrapper reads `SHELF_WRAPPER_TOKEN`, plus optional `SHELF_WRAPPER_LITE_ARGS`: more wrapper-lite flags for service mode and sign-in, split on spaces, with quotes around a value that has spaces.
+
+## Account authentication
+
+The platform owns accounts, sessions, passkeys, and their migrations. `internal/platform/auth` guards all module API routes and exposes account endpoints. Its initialization starts no goroutines. `Serve` starts session revalidation and purges sessions only when it starts in none mode. `internal/platform/identity` carries the author on request contexts without requiring modules to read account tables. Modules persist authors in their existing history. [auth.md](auth.md) describes the routes, CLI and rules.
