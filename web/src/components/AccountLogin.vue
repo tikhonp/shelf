@@ -41,7 +41,7 @@ async function signIn(passkey = false) {
 </template>
 
 <style>
-.account-dialog { width: min(440px, calc(100% - 24px)); max-height: calc(100dvh - 24px); padding: 0; border: none; background: transparent; color: var(--text); }
+.account-dialog.rs { position: fixed; inset: 0; margin: auto; width: min(440px, calc(100% - 24px)); height: fit-content; min-height: 0; max-height: calc(100dvh - 24px); padding: 0; border: none; background: transparent; color: var(--text); }
 .account-dialog::backdrop { background: rgba(0, 0, 0, .8); }
 .rs .account-body { padding: 20px; }
 .rs .account-form { display: grid; gap: 16px; }

@@ -30,3 +30,5 @@ Every check in [manual-checklist.md](manual-checklist.md) passed in production, 
 Claude Opus 5.5 reviewed the authentication implementation. The review found no confirmed bypass. Follow-up fixes cover login queueing, independent passkey limits, data refresh after reauthentication, Telegram author labels in events, full account-switch reloads, and registration proof timing.
 
 A focused Claude recheck confirmed both medium findings were addressed and caught a reconnect refresh that cleared Save results. Reconnect now rechecks pending writes without a second album reload and preserves existing results when refreshing an idle editor.
+
+The account login dialog now fits its content and stays centered. Its styles override the app root's full-viewport height, which stretched the dialog into a narrow column.
