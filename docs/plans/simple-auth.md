@@ -61,7 +61,7 @@ shelf manage users reset-passkeys <username>
 
 Commands work in either provider mode so the operator can create an account before enabling simple mode. Account deletion removes its credentials and sessions but preserves authorship in old records. Deleting the last account leaves simple mode closed until the operator adds another account.
 
-Passwords contain 15 to 128 Unicode code points of valid UTF-8, with spaces allowed and no character-class rules. Do not trim or normalize a password. Store an Argon2id hash with a random salt and encoded parameters. Start with 64 MiB of memory, three iterations, and one lane. Measure verification on the production hardware before settling those values. Bound concurrent password checks so repeated requests cannot exhaust memory.
+Passwords contain 8 to 128 Unicode code points of valid UTF-8, with spaces allowed and no character-class rules. Do not trim or normalize a password. Store an Argon2id hash with a random salt and encoded parameters. Start with 64 MiB of memory, three iterations, and one lane. Measure verification on the production hardware before settling those values. Bound concurrent password checks so repeated requests cannot exhaust memory.
 
 ## Sessions and credential changes
 

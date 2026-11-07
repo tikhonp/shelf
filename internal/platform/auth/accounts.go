@@ -118,8 +118,8 @@ func tokenHash(t string) string { h := sha256.Sum256([]byte(t)); return hex.Enco
 
 func passwordHash(password string) (string, error) {
 	n := utf8.RuneCountInString(password)
-	if !utf8.ValidString(password) || n < 15 || n > 128 {
-		return "", errors.New("password must contain 15 to 128 Unicode characters")
+	if !utf8.ValidString(password) || n < 8 || n > 128 {
+		return "", errors.New("password must contain 8 to 128 Unicode characters")
 	}
 	salt := randomBytes(16)
 	key := argon2.IDKey([]byte(password), salt, 3, 64*1024, 1, 32)

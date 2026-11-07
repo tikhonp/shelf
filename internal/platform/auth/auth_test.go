@@ -123,9 +123,18 @@ func TestAccountsAreCaseSensitiveAndDoNotOverwrite(t *testing.T) {
 	}
 }
 func TestPasswordBoundsAndExactBytes(t *testing.T) {
-	for _, p := range []string{"short", strings.Repeat("a", 129), string([]byte{0xff})} {
+	for _, p := range []string{"", strings.Repeat("a", 7), strings.Repeat("é", 7), strings.Repeat("a", 129), strings.Repeat("é", 129), string([]byte{0xff})} {
 		if _, err := passwordHash(p); err == nil {
 			t.Fatal("invalid password accepted")
+		}
+	}
+	for _, p := range []string{"12345678", strings.Repeat("é", 8), strings.Repeat("é", 128)} {
+		h, err := passwordHash(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !passwordMatches(h, p) {
+			t.Fatal("valid password did not match")
 		}
 	}
 	p := "  exact spaces and Unicode é  "
