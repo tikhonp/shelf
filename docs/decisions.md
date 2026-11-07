@@ -10,6 +10,7 @@ The decisions in force and why. When one changes, edit its row and the docs it t
 | Qobuz writes to `music/qobuz` and Apple Music to `music/apple-music`, with the old tools' folder and file names. | Navidrome, Picard and AudioMuse see no change. |
 | Every download writes `shelf.txt` into its release folder. | The owner asked for it, and the Library tab can tell an album's source from it without the database. |
 | `SHELF_AUTH_PROVIDER` selects `none` by default or `simple` for CLI-managed accounts, passwords, and optional passkeys. All accounts share access. [auth.md](auth.md) describes sessions and recovery. | Opt-in authentication for deployments that replace gateway basic auth. Production keeps its gateway protection until cutover. |
+| Account passwords contain 8 to 128 Unicode code points, with spaces allowed and no character-class rules. | The owner chose an eight-character minimum. |
 | shelf is AGPL-3.0 like proxier, and qobuz-dl-go GPL-3.0 like qobuz-dl. | GPL-3.0 code can be combined with AGPL-3.0 code. |
 
 ## Stack

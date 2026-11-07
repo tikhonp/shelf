@@ -46,8 +46,8 @@ async function rename(key: Passkey) { await accountCall(`/passkeys/${encodeURICo
         <input type="text" name="username" :value="auth.account?.username" autocomplete="username" hidden />
         <label>Current password<input v-model="current" type="password" autocomplete="current-password" required /></label>
         <button class="key" type="button" :disabled="busy || !current" @click="run(verify)">Confirm password for passkey changes</button>
-        <label>New password<input v-model="password" type="password" autocomplete="new-password" minlength="15" required /></label>
-        <label>Confirm new password<input v-model="confirm" type="password" autocomplete="new-password" minlength="15" required /></label>
+        <label>New password<input v-model="password" type="password" autocomplete="new-password" minlength="8" required /></label>
+        <label>Confirm new password<input v-model="confirm" type="password" autocomplete="new-password" minlength="8" required /></label>
         <button class="key" type="submit" :disabled="busy">Change password and sign out</button>
       </form>
       <h3>Passkeys</h3>
