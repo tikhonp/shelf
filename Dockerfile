@@ -4,7 +4,7 @@ ARG GO_VERSION=1.27.3
 
 # web: the Vue build, which shelf embeds. Its output is the same for every
 # platform, so it runs on the build machine's.
-FROM --platform=$BUILDPLATFORM node:24-alpine AS web
+FROM --platform=$BUILDPLATFORM node:26-alpine AS web
 WORKDIR /src/web
 COPY web/package.json web/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
@@ -99,7 +99,7 @@ CMD []
 # amdl and the Qobuz segmented fallback call ffmpeg. amdl is the upstream
 # static binary, the one that runs in production today. chromaprint ships
 # fpcalc, which the library's AcoustID lookups call.
-FROM alpine:3.22 AS prod
+FROM alpine:3.24 AS prod
 RUN apk add --no-cache ca-certificates chromaprint ffmpeg tzdata
 COPY --from=ghcr.io/zhaarey/apple-music-downloader:0.1.4 /usr/local/bin/amdl /usr/local/bin/amdl
 COPY --from=build /out/shelf /usr/local/bin/shelf

@@ -22,7 +22,7 @@ The decisions in force and why. When one changes, edit its row and the docs it t
 | A module with work that lasts as long as the server implements `module.Runner`. Only serve calls `Run`, and one that fails is logged while the server goes on. | `manage` opens the platform too, and a bot that can't reach Telegram must not stop downloads. |
 | The jobs table has no subject columns. A download points at its job. | They served proxier's events and Jobs page. |
 | Vue 3, Vite and TypeScript, embedded with `embed.FS`, under a strict CSP. | htmx would fall short for the library table. |
-| The runtime image is `alpine:3.22` with ffmpeg, running as UID 10001 with umask 022. Existing files keep their owner and mode. | amdl's FLAC conversion and Qobuz's segmented fallback call ffmpeg, and 10001 owns the source folders. |
+| The runtime image is `alpine:3.24` with ffmpeg, running as UID 10001 with umask 022. Existing files keep their owner and mode. | amdl's FLAC conversion and Qobuz's segmented fallback call ffmpeg, and 10001 owns the source folders. |
 | A `fakesource` module with canned data, on with `SHELF_DEV_FAKE_SOURCE`. | Tests and UI work without real accounts. |
 | A request the client left is logged as info. | A search aborts the one before it, and each abort logged an error for a failure that wasn't shelf's. |
 

@@ -38,3 +38,7 @@ A focused Claude recheck confirmed both medium findings were addressed and caugh
 The account login dialog now fits its content and stays centered. Its styles override the app root's full-viewport height, which stretched the dialog into a narrow column.
 
 Account passwords now accept 8 to 128 Unicode code points. The same limits apply to account creation, CLI resets, and password changes in the app.
+
+Dependencies were refreshed on 2026-11-07, including Go modules, Vue, Vite, Vitest 5, jsdom 31, Node 26 LTS, and Alpine 3.24. TypeScript stays on 6.0.3 because vue-tsc 3.3.14 and its Volar dependencies do not support TypeScript 7. npm audit reports five moderate findings in the test-only Vue Test Utils dependency chain; its proposed fix downgrades Vue Test Utils.
+
+The dependency refresh passes `make check`, `make lint`, `make web-check`, and the production Docker build. npm reports no vulnerabilities in production dependencies.
