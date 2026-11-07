@@ -18,6 +18,8 @@ Every check in [manual-checklist.md](manual-checklist.md) passed in production, 
 
 ## Notes for later work
 
+- shelf-wrapper now builds from upstream's `ghcr.io/worldobservationlog/wrapper-lite` image, pinned by digest. Production needs a rebuild and an update of both Shelf images to pick it up.
+
 - Optional app authentication and change authors are implemented locally. [auth.md](auth.md) describes setup. Production still uses gateway basic auth; the HTTPS cutover and real-device passkey check remain pending.
 
 - In production the index holds 11,461 tracks and 1,008 Navidrome album IDs, the same as Navidrome. They form 1,013 albums, because 5 Navidrome albums span two folders each.

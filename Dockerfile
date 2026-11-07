@@ -70,10 +70,10 @@ RUN --mount=type=cache,target=/go/pkg/mod/ \
 # the image's entrypoint.sh, which checks an outdated account database path.
 # Build it with --platform linux/amd64: wrapper-lite is amd64 only. The base
 # is pinned by digest and bumped on purpose; look the digest up with
-# `docker buildx imagetools inspect ghcr.io/tikhonp/wrapper-lite:latest`.
+# `docker buildx imagetools inspect ghcr.io/worldobservationlog/wrapper-lite:latest`.
 # tini is PID 1, so it reaps the wrapper-lite processes a SIGKILL orphans,
 # and passes Docker's SIGTERM to the supervisor.
-FROM ghcr.io/tikhonp/wrapper-lite@sha256:b711e40347d5364935e72ab2ddd9907e00c7775b12ed9c621ae90e4ad2f97729 AS wrapper
+FROM ghcr.io/worldobservationlog/wrapper-lite@sha256:fa16685e73c95cce0400dce6eda3c6c8e524d16e9a2b146d9112d2f9df2d97a4 AS wrapper
 RUN apt-get update && apt-get install -y --no-install-recommends tini && rm -rf /var/lib/apt/lists/*
 COPY --from=build-wrapper /out/shelf-wrapper /usr/local/bin/shelf-wrapper
 ARG APP_VERSION=dev

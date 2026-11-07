@@ -111,7 +111,7 @@ shelf's `resolve` step expands an artist link into one album download per album 
 
 ## shelf-wrapper
 
-The image starts from the `ghcr.io/tikhonp/wrapper-lite` image, pinned by digest, and adds Debian's tini and the static `shelf-wrapper` binary from this repo. tini is PID 1: it passes Docker's SIGTERM to the supervisor and reaps the wrapper-lite processes a SIGKILL leaves behind. It replaces the image's `entrypoint.sh`, which checks an outdated account database path. Build it with `make build-wrapper-image`; it is amd64 only, and runs under emulation on an arm64 Mac.
+The image starts from the `ghcr.io/worldobservationlog/wrapper-lite` image, pinned by digest, and adds Debian's tini and the static `shelf-wrapper` binary from this repo. tini is PID 1: it passes Docker's SIGTERM to the supervisor and reaps the wrapper-lite processes a SIGKILL leaves behind. It replaces the image's `entrypoint.sh`, which checks an outdated account database path. Build it with `make build-wrapper-image`; it is amd64 only, and runs under emulation on an arm64 Mac.
 
 ### Supervisor
 
