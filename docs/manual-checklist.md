@@ -56,3 +56,20 @@ Every check passed in production.
 - Save as one user and undo as another. Verify the two authors in History. Check download and bulk-run authors.
 - Delete an account and verify its old authors remain. Check the Telegram allowlist still works independently.
 - Remove gateway basic auth only after password and real-device passkey checks pass over HTTPS.
+
+## Optional agents
+
+Keep production disabled until the agent-only gateway route is applied and checked.
+
+- Enable `SHELF_AGENT_ENABLED=true` on a disposable library. The Inbox and Agents panel appear; disable it and confirm both disappear while saved records remain.
+- Create a connection from the CLI, or from Status with Shelf sign-in enabled. Copy its secret separately from the setup prompt. Listing connections must never show that secret again.
+- Use a fresh external run to retrieve shared rules, context and pending work. Create a tag proposal and an artwork proposal. Confirm the music files stay unchanged before acceptance.
+- Edit one proposed value, save its proposal revision, and accept just that field. Confirm the other fields remain pending and History names the reviewer and links to the proposal.
+- Change a reviewed field using another tool, then accept the old preview. Confirm Shelf requires another review. Change an unrelated field and confirm an identical selected diff can still be accepted.
+- Decline a field, decline remaining fields, request changes and comment. Confirm the external agent retrieves those actions on its next run and no file changes occur.
+- Correct or delete a learned preference. Start a new agent run and confirm the correction or tombstone is still present. A learning commit with an old version must fail atomically.
+- Revoke a connection and confirm its next request fails. With account sign-in enabled, delete the account that created a connection and confirm that token is revoked on its next call.
+- Verify machine credentials cannot call ordinary Save, review acceptance, undo or delete. Verify a browser cookie alone cannot authenticate a machine endpoint.
+- At the gateway, try both encoded and literal traversal paths from the configuration draft without credentials. They must not reach an ordinary API handler.
+
+Automated tests cover proposal isolation, selected tag/artwork writes against real fixtures, concurrent acceptance, replay, rollback, changed previews, confirmations, memory versions and tombstones, learned feedback retention, auth isolation and CLI persistence. The checklist above covers the live external-agent and gateway setup, which local tests do not deploy.

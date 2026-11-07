@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v5"
@@ -47,6 +48,8 @@ func New(o Options) *echo.Echo {
 	e.Logger = o.Log
 	e.HTTPErrorHandler = web.ErrorHandler
 
+	// Before RemoveTrailingSlash, which would hide a path's own spelling.
+	e.Pre(pathGuard)
 	e.Pre(middleware.RemoveTrailingSlash())
 	e.Use(middleware.RequestID())
 	e.Use(RequestLogger(o.Log))
@@ -59,6 +62,43 @@ func New(o Options) *echo.Echo {
 	e.GET("/healthz", healthz(o.Health))
 	e.HEAD("/healthz", healthz(o.Health)) // uptime monitors often ask with HEAD
 	return e
+}
+
+// pathGuard refuses an /api path with dot segments, empty segments or an
+// unusual escaping. nginx matches locations on the normalized URI but
+// forwards the raw one, so /api/agent/../library/... would pass the
+// agent-only location without basic auth and reach an ordinary route here.
+func pathGuard(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c *echo.Context) error {
+		u := c.Request().URL
+		if !underAPI(u.Path) && !underAPI(u.RawPath) {
+			return next(c)
+		}
+		if !CleanPath(u.Path) || u.RawPath != "" && u.RawPath != (&url.URL{Path: u.Path}).EscapedPath() {
+			return echo.NewHTTPError(http.StatusBadRequest, "the path has dot segments, empty segments or unusual escapes")
+		}
+		return next(c)
+	}
+}
+
+func underAPI(p string) bool { return p == "/api" || strings.HasPrefix(p, "/api/") }
+
+// CleanPath reports a path without empty, "." or ".." segments. One
+// trailing slash is fine; RemoveTrailingSlash drops it.
+func CleanPath(p string) bool {
+	if !strings.HasPrefix(p, "/") {
+		return false
+	}
+	p = strings.TrimSuffix(p[1:], "/")
+	if p == "" {
+		return true
+	}
+	for seg := range strings.SplitSeq(p, "/") {
+		if seg == "" || seg == "." || seg == ".." {
+			return false
+		}
+	}
+	return true
 }
 
 // bodyLimit applies BodyLimit, or a route's own limit. It runs after the

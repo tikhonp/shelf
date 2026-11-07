@@ -6,6 +6,7 @@ import { useBulk } from './bulk'
 import { useDownloads } from './downloads'
 import { useEditor } from './editor'
 import { useHistory } from './history'
+import { useInbox } from './inbox'
 import { useLibrary } from './library'
 import { useSources } from './sources'
 import { useStatus } from './status'
@@ -23,7 +24,7 @@ export const useEvents = defineStore('events', () => {
     const editor = useEditor()
     return Promise.allSettled([
       downloads.load(), status.check(), editor.saving || editor.deleting ? editor.recheck() : editor.reload(true), useBulk().check(),
-      library.loadIndex(), library.load(), library.loadFilters(), useHistory().load(),
+      library.loadIndex(), library.load(), library.loadFilters(), useHistory().load(), useInbox().reload(),
     ])
   }
 
@@ -62,6 +63,7 @@ export const useEvents = defineStore('events', () => {
       useEditor().applyChange(c)
       useHistory().applyChange(c)
     })
+    stream.addEventListener('inbox', (m) => useInbox().applyHub(read<{ proposal?: number }>(m)))
     stream.addEventListener('run', (m) => useBulk().applyRun(read<RunProgress>(m)))
     stream.addEventListener('suggestions', (m) => useEditor().suggestionsChanged(read<{ album: number }>(m).album))
     stream.addEventListener('source', (m) => {

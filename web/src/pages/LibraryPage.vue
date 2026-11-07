@@ -43,7 +43,9 @@ const field = computed(() => (typeof route.query.field === 'string' ? route.quer
 const issues = computed(() => route.query.view === 'issues')
 const guide = computed(() => route.query.view === 'guide')
 const coverOpen = ref(false)
-const historyOpen = ref(false)
+// An outcome in the Inbox links here with ?history=1 to open History.
+const historyOpen = ref(route.query.history === '1')
+watch(() => route.query.history, (h) => { if (h === '1') historyOpen.value = true })
 
 watch(
   id,

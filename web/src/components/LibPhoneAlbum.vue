@@ -7,6 +7,7 @@ import { scopeNote } from '../lib/notes'
 import { fieldView, isGuide, mainFields, offersFor, type MainField } from '../lib/tags'
 import { useEditor } from '../stores/editor'
 import { useHelp } from '../stores/help'
+import AlbumProposals from './AlbumProposals.vue'
 import Cover from './Cover.vue'
 import Icon from './Icon.vue'
 import LibLoading from './LibLoading.vue'
@@ -55,6 +56,7 @@ const flagOn = (f: MainField) => view(f).values[0] === '1'
           <span class="sub by">{{ editor.album.artist }}</span>
           <span class="q"><span class="stk" :class="libraryTape(editor.album.quality).cls">{{ libraryTape(editor.album.quality).text }}</span></span>
           <LibSource :source="editor.album.source" />
+          <AlbumProposals :album-id="editor.album.id" />
         </div>
       </div>
       <button v-if="issues.length > 0" type="button" class="lib-irow gap" @click="router.push({ query: { view: 'issues' } })"><span class="led iss"></span><span>{{ count(issues.length, 'issue') }}</span><Icon name="next" /></button>

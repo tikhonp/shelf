@@ -46,6 +46,16 @@ A module implements `Name()` and `Migrations()` and declares the rest through op
 
 Modules reach each other through ports that `main` wires. The catalog module's `Statuses` port is the downloads module. The downloads module's `Notifier` port is the bot, and its `Scanner` port is the navidrome module and the library module together, so a finished download asks for a scan and a walk of the index. The library module reads the source registry for suggestions, as the catalog module does. Its `ConfigReader` port is the navidrome module's `Config`, converted in `main` to `tagio`'s types. Its busy port is the downloads service's `Busy`, its records port the downloads service's `Records`, which tells each album's source, and its scan port is the navidrome module's `RequestScanFor` with the label `library`. A delete reaches the downloads service's `Forget` and the navidrome module's `ScanNow` and `RemoveMissing`. The bot reaches the downloads module through its own `Downloads` port, which the downloads service implements. The downloads service exists from `downloads.New`, so `main` wires these before `Init`.
 
+## External library agents
+
+The always-registered `agents` module owns scoped connections, immutable proposals, per-operation decisions, acceptance records, durable feedback, and shared memory. `SHELF_AGENT_ENABLED` gates its routes and runner. Its own migrations still run while off. [agents.md](agents.md) describes setup and review.
+
+`internal/libraryport` defines the library port wired by main. It reads albums and retained history, prepares previews through the existing Save checks, manages cover pins, and enqueues a verified library change inside the caller's transaction. Acceptance records and the library change/job commit together. There is no separate tag writer.
+
+Machine requests use `/api/agent/v1/` with bearer authentication. Human review uses `/api/inbox/` with existing account or anonymous access. The platform rejects bearer credentials outside the agent prefix and ambiguous API paths before routing. Only the agents module may register routes on the machine prefix.
+
+The agents runner reconciles library outcomes at start, on change events, and periodically. Feedback persists in SQLite; the hub's `inbox` topic only prompts the browser to refresh. Learning commits use expected memory versions and a library-wide checkpoint. No hosted model runner, scheduling of agent sessions, or automatic library acceptance exists.
+
 ## Source interfaces
 
 `internal/source` holds the shared types and the interfaces. A source implements `Source` and any of the others.
@@ -242,6 +252,7 @@ Tokens and passwords are `config.Secret`, which prints, logs and marshals as `[r
 | `SHELF_PUBLIC_URL` | | Base URL for links in Telegram messages and in `shelf.txt`. |
 | `SHELF_TIMEZONE` | `Europe/Moscow` | Display time zone for `shelf.txt`, the UI and the backup schedule. |
 | `SHELF_PROXY_URL` | | Proxy for modules that opt in. |
+| `SHELF_AGENT_ENABLED` | `false` | Enables external agent connections and the review inbox. Accepts only `true` or `false`. |
 | `SHELF_AUTH_PROVIDER` | `none` | `simple` enables accounts and requires an HTTPS `SHELF_PUBLIC_URL` origin. Empty or unknown values fail startup. |
 | `SHELF_QOBUZ_TOKEN` | | Qobuz `user_auth_token`. Empty disables Qobuz. |
 | `SHELF_QOBUZ_DIR` | `qobuz` | Folder under the music root. |

@@ -304,3 +304,14 @@ func (s *Service) allow(name string) bool {
 	s.limits[name] = a
 	return a.limiter.AllowN(now, 1)
 }
+
+// AuthenticationEnabled reports provider simple, for module.Accounts. The
+// Enabled field holds the same; a method of that name would collide with it.
+func (s *Service) AuthenticationEnabled() bool { return s.Enabled }
+
+// Exists reports whether an account ID is still in use, for module.Accounts.
+func (s *Service) Exists(ctx context.Context, id int64) (bool, error) {
+	var n int
+	err := s.DB.R.GetContext(ctx, &n, `SELECT count(*) FROM accounts WHERE id = ?`, id)
+	return n > 0, err
+}

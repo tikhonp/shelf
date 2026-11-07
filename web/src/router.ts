@@ -1,6 +1,8 @@
 import { createRouter, type RouterHistory } from 'vue-router'
 import DownloadsPage from './pages/DownloadsPage.vue'
+import InboxPage from './pages/InboxPage.vue'
 import LibraryPage from './pages/LibraryPage.vue'
+import MemoryPage from './pages/MemoryPage.vue'
 import SearchPage from './pages/SearchPage.vue'
 import StatusPage from './pages/StatusPage.vue'
 
@@ -16,6 +18,9 @@ export function createAppRouter(history: RouterHistory) {
       { path: '/downloads/:id(\\d+)', name: 'download', component: DownloadsPage },
       { path: '/library', name: 'library', component: LibraryPage },
       { path: '/library/:id(\\d+)', name: 'album', component: LibraryPage },
+      { path: '/inbox', name: 'inbox', component: InboxPage },
+      { path: '/inbox/:id(\\d+)', name: 'proposal', component: InboxPage },
+      { path: '/inbox/memory', name: 'memory', component: MemoryPage },
       { path: '/status', name: 'status', component: StatusPage },
       { path: '/:pathMatch(.*)*', redirect: '/library' },
     ],

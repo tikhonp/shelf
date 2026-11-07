@@ -3,6 +3,7 @@ package library
 import (
 	"cmp"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"io"
@@ -325,6 +326,10 @@ func (s store) saves(ctx context.Context, before int64, limit int) ([]changeRow,
 	return rows, err
 }
 
+// trimmedKey holds the highest top-level change ID that trim removed, so a
+// reader of the history by ID can tell a gap from an empty page.
+const trimmedKey = "history_trimmed_through"
+
 // trim deletes the ended changes beyond the newest keep saves and deletes,
 // or all of them when keep is 0. A save keeps its row while an undo or redo
 // of it is still to run, and each save takes its undos and redos with it.
@@ -334,21 +339,50 @@ func (s store) trim(ctx context.Context, keep int) (int64, error) {
 		// A run's album changes go with its head.
 		cond := `parent IS NULL AND state NOT IN ('queued', 'writing') AND NOT EXISTS (SELECT 1 FROM library_changes x
 			WHERE x.target = library_changes.id AND x.state IN ('queued', 'writing'))`
-		var res interface{ RowsAffected() (int64, error) }
-		var err error
-		if keep == 0 {
-			res, err = tx.ExecContext(ctx, `DELETE FROM library_changes WHERE `+cond)
-		} else {
-			res, err = tx.ExecContext(ctx, `DELETE FROM library_changes WHERE kind IN ('save', 'delete') AND `+cond+` AND id < (
-				SELECT id FROM library_changes WHERE kind IN ('save', 'delete') AND parent IS NULL ORDER BY id DESC LIMIT 1 OFFSET ?)`, keep-1)
+		var args []any
+		if keep != 0 {
+			cond = `kind IN ('save', 'delete') AND ` + cond + ` AND id < (
+				SELECT id FROM library_changes WHERE kind IN ('save', 'delete') AND parent IS NULL ORDER BY id DESC LIMIT 1 OFFSET ?)`
+			args = append(args, keep-1)
 		}
+		// The undos and redos of a removed save go with it by cascade, and
+		// they are top-level rows of the history too.
+		var highest int64
+		if err := tx.GetContext(ctx, &highest, `SELECT coalesce(max(id), 0) FROM library_changes WHERE parent IS NULL AND (
+			id IN (SELECT id FROM library_changes WHERE `+cond+`) OR target IN (SELECT id FROM library_changes WHERE `+cond+`))`,
+			append(append([]any{}, args...), args...)...); err != nil {
+			return err
+		}
+		res, err := tx.ExecContext(ctx, `DELETE FROM library_changes WHERE `+cond, args...)
 		if err != nil {
 			return err
 		}
-		n, err = res.RowsAffected()
+		if n, err = res.RowsAffected(); err != nil {
+			return err
+		}
+		if highest == 0 {
+			return nil
+		}
+		_, err = tx.ExecContext(ctx, `INSERT INTO library_state (key, value) VALUES (?, ?)
+			ON CONFLICT (key) DO UPDATE SET value = CAST(max(CAST(value AS INTEGER), CAST(excluded.value AS INTEGER)) AS TEXT)`,
+			trimmedKey, strconv.FormatInt(highest, 10))
 		return err
 	})
 	return n, err
+}
+
+// trimmedThrough is the highest top-level change ID trim removed, 0 for
+// none.
+func (s store) trimmedThrough(ctx context.Context, q sqlx.QueryerContext) (int64, error) {
+	var v string
+	err := sqlx.GetContext(ctx, q, &v, `SELECT value FROM library_state WHERE key = ?`, trimmedKey)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	return strconv.ParseInt(v, 10, 64)
 }
 
 // retain is the retention job's step.
@@ -378,7 +412,7 @@ func (m *Module) retain(ctx context.Context, r *jobs.Run) error {
 	return err
 }
 
-// coverIDs are the covers the history refers to.
+// coverIDs are the covers the history refers to, and the pinned ones.
 func (s store) coverIDs(ctx context.Context) (map[string]bool, error) {
 	var ids []string
 	if err := s.db.R.SelectContext(ctx, &ids, `SELECT cover_before FROM library_change_files WHERE cover_before != ''
@@ -407,6 +441,14 @@ func (s store) coverIDs(ctx context.Context) (map[string]bool, error) {
 		for _, op := range sc.Folder {
 			out[op.ID], out[op.Was] = true, true
 		}
+	}
+	// Another module's pins, such as a pending proposal's cover.
+	var pinned []string
+	if err := s.db.R.SelectContext(ctx, &pinned, `SELECT DISTINCT cover FROM library_cover_pins`); err != nil {
+		return nil, err
+	}
+	for _, id := range pinned {
+		out[id] = true
 	}
 	delete(out, "")
 	return out, nil

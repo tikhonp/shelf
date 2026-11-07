@@ -22,6 +22,7 @@ import (
 	"time"
 	_ "time/tzdata" // the alpine image may lack zone files for SHELF_TIMEZONE
 
+	"github.com/tikhonp/shelf/internal/modules/agents"
 	"github.com/tikhonp/shelf/internal/modules/applemusic"
 	"github.com/tikhonp/shelf/internal/modules/catalog"
 	"github.com/tikhonp/shelf/internal/modules/downloads"
@@ -49,6 +50,8 @@ func modules(cfg *config.Config) []module.Module {
 	dl := downloads.New()
 	nav := navidrome.New()
 	lib := library.New()
+	agent := agents.New()
+	agent.SetLibrary(lib.Port())
 	bot := telegram.New(dl.Service())
 	dl.Service().SetScanner(scanners{nav, lib})
 	dl.Service().SetNotifier(bot)
@@ -69,7 +72,7 @@ func modules(cfg *config.Config) []module.Module {
 			},
 		})
 	}
-	ms := []module.Module{dl, catalog.New(dl), nav, bot, qobuz.New(dl.Service()), applemusic.New(), lib}
+	ms := []module.Module{dl, catalog.New(dl), nav, bot, qobuz.New(dl.Service()), applemusic.New(), lib, agent}
 	if cfg.DevFakeSource {
 		ms = append(ms, fakesource.New())
 	}
@@ -135,6 +138,9 @@ const usage = `Usage:
                                           queue a download; F is a format ID such as 27 or qobuz:27
   shelf manage import-qobuz-db <path>     add the old bot's qobuz_dl.db to the download history
   shelf manage tags <file>                show an audio file's tags as Navidrome reads them, without changing it
+  shelf manage agents add <name> [--ops op1,op2] create a scoped connection; token shown once
+  shelf manage agents list                 list connections
+  shelf manage agents revoke <id>          revoke a connection
   shelf manage users add <username>       create an account with a prompted password
   shelf manage users list                 list accounts
   shelf manage users delete <username>    remove an account and revoke its sessions
@@ -284,6 +290,13 @@ func (c cli) manage(ctx context.Context, args []string) int {
 	}
 	var cmd func(*platform.App, *config.Config, *slog.Logger) error
 	switch {
+	case len(args) >= 2 && args[0] == "agents":
+		parsed, err := parseAgents(args[1:])
+		if err != nil {
+			sayln(c.stderr, err)
+			return 2
+		}
+		cmd = func(app *platform.App, _ *config.Config, _ *slog.Logger) error { return c.agents(ctx, app, parsed) }
 	case len(args) >= 2 && args[0] == "users" && validUsersArgs(args[1:]):
 		cmd = func(app *platform.App, _ *config.Config, _ *slog.Logger) error { return c.users(ctx, app, args[1:]) }
 	case len(args) == 2 && args[0] == "migrate" && args[1] == "up":

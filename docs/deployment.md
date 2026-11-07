@@ -112,3 +112,12 @@ Production still uses gateway basic auth until this cutover. The default provide
 The CLI can reset a password or all passkeys without the server running. Both revoke sessions. Switching serve back to none opens app access and clears sessions, so keep gateway protection if using that rollback. A database restore restores credentials and sessions from that backup. Treat backups as secrets.
 
 [auth.md](auth.md) lists commands, cookie behavior, and the effect of changing the hostname. Local HTTP development keeps provider none.
+
+
+## Optional agent API
+
+Agent support is off unless `SHELF_AGENT_ENABLED=true`. [agents.md](agents.md) describes credentials and review. The application changes do not modify production configuration.
+
+While the gateway uses basic auth, external agents need the narrow exemption drafted in [plans/agent-gateway.conf](plans/agent-gateway.conf). Apply it only after deploying Shelf's token isolation and API path guards. It removes basic auth solely for the agent prefix; Shelf requires a scoped bearer token there. The ordinary API and Inbox keep their current protection. Do not give an agent the shared htpasswd credential.
+
+Test the raw traversal paths listed in the draft without credentials, plus valid agent calls, ordinary writes with an agent token, missing tokens, revocation, and feature disablement. The gateway matches normalized paths, so checking only a `location` prefix is insufficient. Draft changes in sh-main for the operator to commit, as with other infrastructure changes.

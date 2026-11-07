@@ -1,0 +1,14 @@
+/* Parts the Inbox, Memory and Agents panels share. They reuse the design's tokens and the Library's inputs. */
+.rs .ib-sec { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 10px 14px 8px; border-bottom: 2px solid var(--ink); }
+.rs .ib-sec h3 { font-family: var(--label); font-size: 14px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.rs .ib-check { display: inline-flex; align-items: flex-start; gap: 8px; min-height: 28px; cursor: pointer; }
+.rs .ib-check input { flex: none; width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--sun); }
+.rs .ib-text { width: 100%; min-height: 72px; padding: 8px 10px; background: var(--field); border: 1px solid var(--ink); border-radius: 5px; box-shadow: inset 1px 2px 3px rgba(0, 0, 0, .4); font: inherit; font-size: 14px; color: var(--text); resize: vertical; text-transform: none; letter-spacing: normal; }
+.rs .ib-sel select { height: 32px; padding: 0 8px; background: var(--field); border: 1px solid var(--ink); border-radius: 5px; font: inherit; font-size: 13px; color: var(--text); }
+.rs .lbl-f .lib-in { text-transform: none; letter-spacing: normal; font-family: var(--font); font-weight: 400; padding-right: 10px; }
+@media (max-width: 719px) {
+  .rs .ib-check { min-height: 44px; align-items: center; }
+  .rs .ib-sel select { height: 44px; font-size: 16px; }
+  .rs .ib-text, .rs .lbl-f .lib-in { font-size: 16px; }
+  .rs .lbl-f .lib-in { height: 44px; }
+}

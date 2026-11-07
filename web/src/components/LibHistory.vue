@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
+import { proposalOrigin } from '../api/agents'
 import type { LibraryChange } from '../api/types'
 import { useNow } from '../lib/clock'
 import { count, finishedAt } from '../lib/format'
 import { deletedLines, historyLines } from '../lib/history'
 import { runSub, runTitle } from '../lib/bulk'
 import { useHistory } from '../stores/history'
+import { useInbox } from '../stores/inbox'
 import Icon from './Icon.vue'
 
 defineEmits<{ close: [] }>()
 const history = useHistory()
+const inbox = useInbox()
 const now = useNow()
 const openId = ref<number | null>(null)
 const asking = ref(false)
@@ -70,6 +74,7 @@ async function clear() {
           <span role="cell"><span class="pill" :class="stateClass(c)">{{ stateWord(c) }}</span></span>
           <button v-if="reversible(c)" type="button" class="key sm r" :disabled="busy(c)" @click="history.reverse(c)">{{ c.undone ? 'Redo' : 'Undo' }}</button>
         </div>
+        <p v-if="proposalOrigin(c.origin ?? '') !== null" class="origin t2 sm">From a reviewed proposal: <RouterLink v-if="inbox.enabled" :to="`/inbox/${proposalOrigin(c.origin ?? '')}`">proposal {{ proposalOrigin(c.origin ?? '') }}</RouterLink><span v-else>proposal {{ proposalOrigin(c.origin ?? '') }}</span></p>
         <p v-if="history.conflicts[c.id]" class="conflict t2" role="status">{{ count(history.conflicts[c.id]!.length, 'field') }} changed since then and stayed: {{ [...new Set(history.conflicts[c.id]!.map((x) => x.key))].join(', ') }}.</p>
         <div v-if="openId === c.id && c.kind === 'delete'" class="lib-ba">
           <div v-for="l in deletedLines(c)" :key="l.label" class="row g-del"><span class="t2">{{ l.label }}</span><span class="ell">{{ l.value }}</span></div>
@@ -92,6 +97,7 @@ async function clear() {
 .rs .flat { position: static; }
 .rs .tag { font-size: 12.5px; }
 .rs .conflict { padding: 8px 14px; border-bottom: 1px solid var(--line); }
+.rs .origin { padding: 6px 14px; border-bottom: 1px solid var(--line); }
 .rs .g-del { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; align-items: center; min-height: 34px; padding: 4px 14px; font-size: 13px; }
 .rs .del-err { padding: 8px 14px; }
 </style>

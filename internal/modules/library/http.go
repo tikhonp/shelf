@@ -289,16 +289,42 @@ func (m *Module) get(c *echo.Context) error {
 		return err
 	}
 	ctx := c.Request().Context()
-	row, err := m.store.album(ctx, id)
+	out, opened, err := m.openAlbum(ctx, id)
 	if errors.Is(err, errNotFound) {
 		return echo.NewHTTPError(http.StatusNotFound, "no such album")
 	}
 	if err != nil {
 		return err
 	}
+	if bad := m.badCovers(ctx, out.Folder, opened.paths); bad != nil {
+		out.Issues = append(out.Issues, Issue{Kind: BadCover, Fields: bad})
+		out.Lamp = true
+	}
+	if out.Stale {
+		m.Kick()
+	}
+	return c.JSON(http.StatusOK, out)
+}
+
+// openedAlbum is what openAlbum read beside the editor's answer.
+type openedAlbum struct {
+	// paths are the files read now.
+	paths []string
+	// front holds the tracks with a front cover.
+	front map[int64]bool
+}
+
+// openAlbum reads an album's files now and runs the checks on them, except
+// the ffmpeg one, which the caller asks for.
+func (m *Module) openAlbum(ctx context.Context, id int64) (detailJSON, openedAlbum, error) {
+	opened := openedAlbum{front: map[int64]bool{}}
+	row, err := m.store.album(ctx, id)
+	if err != nil {
+		return detailJSON{}, opened, err
+	}
 	indexed, err := m.store.albumFiles(ctx, id)
 	if err != nil {
-		return err
+		return detailJSON{}, opened, err
 	}
 	rules := m.currentRules()
 	out := detailJSON{albumJSON: toJSON(row), Tracks: []trackJSON{}}
@@ -334,6 +360,7 @@ func (m *Module) get(c *echo.Context) error {
 		for _, k := range extended {
 			tj.Extended = append(tj.Extended, keyJSON{Key: k, Values: tf.Tags[k]})
 		}
+		opened.front[old.ID] = tf.HasFrontCover()
 		for _, p := range tf.Pictures {
 			tj.Pictures = append(tj.Pictures, pictureJSON{Type: p.Type, MIME: p.MIME, Description: p.Description})
 		}
@@ -351,7 +378,7 @@ func (m *Module) get(c *echo.Context) error {
 	if len(fresh) > 0 {
 		a, err := m.recheck(ctx, row, fresh, rules)
 		if err != nil {
-			return err
+			return detailJSON{}, opened, err
 		}
 		out.Issues = a.Issues
 		if out.Issues == nil {
@@ -359,18 +386,10 @@ func (m *Module) get(c *echo.Context) error {
 		}
 		out.Lamp = a.lamp()
 	}
-	var paths []string
 	for _, f := range fresh {
-		paths = append(paths, f.Path)
+		opened.paths = append(opened.paths, f.Path)
 	}
-	if bad := m.badCovers(ctx, row.Folder, paths); bad != nil {
-		out.Issues = append(out.Issues, Issue{Kind: BadCover, Fields: bad})
-		out.Lamp = true
-	}
-	if out.Stale {
-		m.Kick()
-	}
-	return c.JSON(http.StatusOK, out)
+	return out, opened, nil
 }
 
 // recheck runs the album checks on files read now. The split check needs

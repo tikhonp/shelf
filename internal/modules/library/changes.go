@@ -49,6 +49,9 @@ const ChangeTopic = "change"
 
 // changeRow is one tag write as stored.
 type changeRow struct {
+	// Origin is the proposal acceptance the change came from, nil for
+	// any other.
+	Origin     *string `db:"origin"`
 	AuthorID   *string `db:"author_id"`
 	Author     string  `db:"author"`
 	ID         int64   `db:"id"`
@@ -71,7 +74,7 @@ type changeRow struct {
 	FinishedAt db.Time `db:"finished_at"`
 }
 
-const changeCols = `author_id, author, id, kind, target, parent, album_id, folder, title, artist, state, reason, error, undone, request,
+const changeCols = `origin, author_id, author, id, kind, target, parent, album_id, folder, title, artist, state, reason, error, undone, request,
 	conflicts, tags, job_id, created_at, finished_at`
 
 // The kinds of a change's file.
@@ -205,9 +208,9 @@ func (s store) insertChange(ctx context.Context, tx *sqlx.Tx, c *changeRow) erro
 		c.Conflicts = "[]"
 	}
 	return tx.GetContext(ctx, &c.ID, `INSERT INTO library_changes
-		(kind, target, parent, album_id, folder, title, artist, state, request, conflicts, created_at, author_id, author)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-		c.Kind, c.Target, c.Parent, c.AlbumID, c.Folder, c.Title, c.Artist, c.State, c.Request, c.Conflicts, c.CreatedAt, c.AuthorID, c.Author)
+		(kind, target, parent, album_id, folder, title, artist, state, request, conflicts, created_at, author_id, author, origin)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+		c.Kind, c.Target, c.Parent, c.AlbumID, c.Folder, c.Title, c.Artist, c.State, c.Request, c.Conflicts, c.CreatedAt, c.AuthorID, c.Author, c.Origin)
 }
 
 // writingChanges are the changes a stop cut off between their first and

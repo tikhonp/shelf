@@ -36,6 +36,9 @@ const Name = "library"
 
 // Module is the library module.
 type Module struct {
+	// coverInputMu bounds allocations while decoding externally supplied artwork.
+	coverInputMu sync.Mutex
+
 	// Every is how often the index walks without being asked. Tests change
 	// it.
 	Every time.Duration
@@ -77,6 +80,9 @@ type Module struct {
 	scan   func(ctx context.Context) error
 	nav    *Navidrome
 	forget func(ctx context.Context, folder string) (int64, error)
+	// checkedCovers are the covers the port checked lately, which Pin
+	// takes without reading the store.
+	checkedCovers map[string]time.Time
 }
 
 // New returns the module.

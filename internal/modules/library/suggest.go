@@ -118,6 +118,10 @@ type subject struct {
 	compilation, live, classical bool
 	// fingerprinting is set when the search asked for a fingerprint job.
 	fingerprinting bool
+	// noPrints keeps the search from asking for a fingerprint job, for a
+	// caller other than the editor. A fingerprint already heard still
+	// counts.
+	noPrints bool
 }
 
 type subjectTrack struct {
@@ -296,21 +300,29 @@ func (m *Module) suggestions(c *echo.Context) error {
 
 // suggest runs every source on an album and merges what they found.
 func (m *Module) suggest(ctx context.Context, s *subject, staged string) (suggestionsJSON, error) {
+	return m.suggestFrom(ctx, s, staged, true)
+}
+
+// suggestFrom is suggest, with external false keeping to what the files,
+// the folder and shelf.txt say.
+func (m *Module) suggestFrom(ctx context.Context, s *subject, staged string, external bool) (suggestionsJSON, error) {
 	col := &collector{}
 	local := m.localSuggestions(s, col)
-	ctx, cancel := context.WithTimeout(ctx, suggestTimeout)
-	defer cancel()
-	var wg sync.WaitGroup
-	run := func(f func()) {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			f()
-		}()
+	if external {
+		ctx, cancel := context.WithTimeout(ctx, suggestTimeout)
+		defer cancel()
+		var wg sync.WaitGroup
+		run := func(f func()) {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				f()
+			}()
+		}
+		run(func() { m.mbSuggestions(ctx, s, staged, col) })
+		run(func() { m.catalogSuggestions(ctx, s, local.ref, col) })
+		wg.Wait()
 	}
-	run(func() { m.mbSuggestions(ctx, s, staged, col) })
-	run(func() { m.catalogSuggestions(ctx, s, local.ref, col) })
-	wg.Wait()
 
 	out := suggestionsJSON{Album: []Suggestion{}, Tracks: []trackSuggestions{}, Covers: []coverSuggestion{},
 		Notes: m.notes(s), Unavailable: []unavailable{}, Fingerprinting: s.fingerprinting}

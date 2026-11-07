@@ -434,6 +434,8 @@ export interface LibraryChange {
   // run says this row is a bulk run, and its tags count all its albums.
   run?: RunSummary
   deleted?: DeletedFolder
+  // origin names the proposal acceptance a Save came from: "proposal:<p>/acceptance:<a>".
+  origin?: string | null
 }
 
 export interface RunSummary {

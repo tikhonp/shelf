@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/labstack/echo/v5"
@@ -34,6 +35,9 @@ import (
 // Name is the platform's module name.
 const Name = "platform"
 
+// AgentsModule is the one module that may serve /api/agent.
+const AgentsModule = "agents"
+
 // App is the assembled platform with its modules.
 type App struct {
 	Auth    *auth.Service
@@ -52,7 +56,14 @@ type App struct {
 
 	closing   chan struct{}
 	closeOnce sync.Once
+	// routeOwners maps "METHOD path" to the module that registered it, as
+	// of the last HTTP.
+	routeOwners map[string]string
 }
+
+// RouteOwners maps each route of the last HTTP, as "METHOD path", to the
+// module that registered it.
+func (a *App) RouteOwners() map[string]string { return maps.Clone(a.routeOwners) }
 
 // Open builds the platform for modules: it creates the data directory,
 // opens the database, initializes every module, and registers their job
@@ -95,7 +106,7 @@ func (a *App) register() error {
 		a.Jobs.Register(Name, append(types, a.Backup.JobType())...),
 		a.Jobs.RegisterSchedules(Name, append(schedules, a.Backup.Schedule())...),
 	}
-	deps := module.Deps{Cfg: a.Cfg, Log: a.Log, DB: a.DB, Jobs: a.Jobs, Hub: a.Hub, Sources: a.Sources, Closing: a.closing}
+	deps := module.Deps{Cfg: a.Cfg, Log: a.Log, DB: a.DB, Jobs: a.Jobs, Hub: a.Hub, Sources: a.Sources, Accounts: a.Auth, Closing: a.closing}
 	for _, m := range a.Modules {
 		if in, ok := m.(module.Initializer); ok {
 			if err := in.Init(deps); err != nil {
@@ -178,11 +189,32 @@ func (a *App) HTTP() *echo.Echo {
 	api := e.Group("/api")
 	a.Auth.Routes(api)
 	api.GET("/version", version)
+	owners := map[string]string{}
+	claim := func(owner string) {
+		for _, r := range e.Router().Routes() {
+			key := r.Method + " " + r.Path
+			if _, ok := owners[key]; !ok {
+				owners[key] = owner
+			}
+		}
+	}
+	claim(Name)
 	for _, m := range a.Modules {
 		if rd, ok := m.(module.RouteDeclarer); ok {
 			rd.Routes(api)
+			claim(m.Name())
 		}
 	}
+	// The auth middleware lets /api/agent through without a session, so
+	// only the agents module, which checks its own tokens there, may serve
+	// it.
+	for key, owner := range owners {
+		_, path, _ := strings.Cut(key, " ")
+		if auth.AgentPath(path) && owner != AgentsModule {
+			panic(fmt.Sprintf("module %s registers %s, which only the %s module may serve", owner, key, AgentsModule))
+		}
+	}
+	a.routeOwners = owners
 	// Without this, an unknown /api path with a method other than GET would
 	// match the UI's GET route and answer 405. The error handler makes the
 	// 404 JSON.
@@ -256,6 +288,8 @@ func (a *App) closeStreams() { a.closeOnce.Do(func() { close(a.closing) }) }
 
 // Close closes the database.
 func (a *App) Close() error { return a.DB.Close() }
+
+var _ module.Accounts = (*auth.Service)(nil)
 
 // core is the platform as a module.
 type core struct{}

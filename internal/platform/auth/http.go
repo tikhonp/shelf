@@ -127,6 +127,20 @@ func (s *Service) StartServe(ctx context.Context) (int64, error) {
 func publicRoute(path, method string) bool {
 	return method == http.MethodGet && path == "/api/auth" || method == http.MethodPost && (path == "/api/auth/login" || path == "/api/auth/passkey/begin" || path == "/api/auth/passkey/finish")
 }
+
+// AgentPath reports a path of the agent API, which authenticates with its
+// own bearer tokens and never with a session.
+func AgentPath(path string) bool {
+	return path == "/api/agent" || strings.HasPrefix(path, "/api/agent/")
+}
+
+// bearer reports an Authorization header with the Bearer scheme, in any
+// case.
+func bearer(h string) bool {
+	scheme, _, _ := strings.Cut(strings.TrimSpace(h), " ")
+	return strings.EqualFold(scheme, "Bearer")
+}
+
 func current(c *echo.Context) session { v, _ := c.Get("account.session").(session); return v }
 
 // Middleware protects all module routes, including media and streams.
@@ -134,6 +148,17 @@ func (s *Service) Middleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c *echo.Context) error {
 		path := c.Request().URL.Path
 		if path != "/api" && !strings.HasPrefix(path, "/api/") {
+			return next(c)
+		}
+		// An agent's token works only on the agent API, which checks it
+		// itself. Anywhere else it is refused, not ignored, so it never
+		// passes as an anonymous request in provider none.
+		agent := AgentPath(path)
+		if !agent && bearer(c.Request().Header.Get("Authorization")) {
+			c.Response().Header().Set("Cache-Control", "no-store")
+			return echo.NewHTTPError(http.StatusUnauthorized, "agent credentials only work under /api/agent")
+		}
+		if agent {
 			return next(c)
 		}
 		if strings.HasPrefix(path, "/api/auth") {

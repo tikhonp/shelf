@@ -240,3 +240,42 @@ func TestHealthzIsLoggedOnlyWhenItFails(t *testing.T) {
 		t.Errorf("a failing /healthz is not logged:\n%s", logs.String())
 	}
 }
+
+func TestPathGuardRefusesDotSegmentsAndOddEscapes(t *testing.T) {
+	e := app(t, httpx.Options{})
+	e.GET("/api/agent/v1/runs", func(c *echo.Context) error { return c.String(http.StatusOK, "agent") })
+	e.GET("/api/library/albums", func(c *echo.Context) error { return c.String(http.StatusOK, "library") })
+	e.GET("/ui/*", func(c *echo.Context) error { return c.String(http.StatusOK, "ui") })
+	for _, target := range []string{
+		"/api/agent/v1/../../library/albums",
+		"/api/library/x/../../agent/v1/runs",
+		"/api/agent/v1/./runs",
+		"/api/agent//v1/runs",
+		"/api//library/albums",
+		"/api/agent/v1/runs/.",
+		"/api/agent/v1/runs/..",
+		"/api/agent/v1/%2e%2e/%2e%2e/library/albums",
+		"/api/agent%2Fv1/runs",
+		"/api/agent/v1/%72uns",
+		"/%61pi/library/albums",
+	} {
+		rec := do(e, httptest.NewRequest(http.MethodGet, target, nil))
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("%s: %d %s", target, rec.Code, rec.Body)
+		}
+	}
+	for target, want := range map[string]string{
+		"/api/agent/v1/runs":  "agent",
+		"/api/agent/v1/runs/": "agent",
+		"/api/library/albums": "library",
+		"/ui/a/../b":          "ui",
+	} {
+		rec := do(e, httptest.NewRequest(http.MethodGet, target, nil))
+		if rec.Code != http.StatusOK || rec.Body.String() != want {
+			t.Errorf("%s: %d %s", target, rec.Code, rec.Body)
+		}
+	}
+	if httpx.CleanPath("api") || !httpx.CleanPath("/") || !httpx.CleanPath("/api/a.b/c..d") {
+		t.Error("CleanPath")
+	}
+}

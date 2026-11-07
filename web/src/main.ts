@@ -7,6 +7,7 @@ import './styles/fonts.css'
 import './styles/tokens.css'
 import './styles/parts.css'
 import './styles/library.css'
+import './styles/inbox.css'
 import './styles/layout.css'
 
 createApp(App).use(createPinia()).use(createAppRouter(createWebHistory())).mount('#app')

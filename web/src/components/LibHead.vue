@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { libraryTape } from '../lib/quality'
 import { useEditor } from '../stores/editor'
+import AlbumProposals from './AlbumProposals.vue'
 import Cover from './Cover.vue'
 import LibSource from './LibSource.vue'
 
@@ -18,6 +19,7 @@ const url = computed(() => (editor.cover?.delete ? '' : (editor.cover?.preview ?
       <span class="sub by">{{ editor.album.artist }}</span>
       <span class="q"><span class="stk" :class="libraryTape(editor.album.quality).cls">{{ libraryTape(editor.album.quality).text }}</span></span>
       <LibSource :source="editor.album.source" />
+      <AlbumProposals :album-id="editor.album.id" />
     </div>
   </div>
 </template>

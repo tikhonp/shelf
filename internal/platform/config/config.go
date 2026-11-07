@@ -37,6 +37,9 @@ type Config struct {
 	// AcoustIDKey lets the library identify an album by its audio. Empty
 	// leaves AcoustID out of the suggestions.
 	AcoustIDKey Secret
+	// AgentEnabled turns on the library agent's API, the review inbox and
+	// the agents runner.
+	AgentEnabled bool
 
 	DevFakeSource bool
 	LogLevel      slog.Level
@@ -146,6 +149,7 @@ func Load(lookup func(string) (string, bool)) (*Config, error) {
 			UseProxy: p.boolean("SHELF_TELEGRAM_USE_PROXY", false),
 		},
 		AcoustIDKey:   Secret(p.str("SHELF_ACOUSTID_KEY", "")),
+		AgentEnabled:  p.strictBoolean("SHELF_AGENT_ENABLED", false),
 		DevFakeSource: p.boolean("SHELF_DEV_FAKE_SOURCE", false),
 		LogLevel:      p.level("SHELF_LOG_LEVEL", "info"),
 	}
@@ -214,6 +218,20 @@ func (p *parser) boolean(name string, def bool) bool {
 		p.fail("%s: %q is not true or false", name, v)
 	}
 	return b
+}
+
+// strictBoolean takes only true or false, for a switch whose typo must not
+// pass as one of strconv's other spellings.
+func (p *parser) strictBoolean(name string, def bool) bool {
+	v := p.str(name, strconv.FormatBool(def))
+	switch v {
+	case "true":
+		return true
+	case "false":
+		return false
+	}
+	p.fail("%s: %q is not true or false", name, v)
+	return def
 }
 
 func (p *parser) positive(name string, def int) int {

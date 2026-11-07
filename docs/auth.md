@@ -45,7 +45,7 @@ The server registers open authenticated requests. Web revocations cancel them di
 
 The UI files, `/healthz`, `GET /api/auth`, and password and passkey login endpoints are public. All other API routes require a session, including audio, covers, logs, and events. API refusals return JSON with status 401 and no `WWW-Authenticate` header. Existing cross-origin checks and body limits cover account endpoints. Auth responses use `no-store`. Protected media keeps its existing cache policy.
 
-There are no API tokens. Scripts calling a protected HTTP API need a valid session. The Telegram bot keeps its separate allowlist and calls Shelf services without a web login.
+Ordinary API routes do not accept API tokens. Scripts calling a protected ordinary HTTP API need a valid session. Optional [agent connections](agents.md) use scoped bearer tokens only under `/api/agent/v1/`. Those routes authenticate through the agents module in either account mode and ignore browser sessions. A bearer credential on any other API prefix is rejected, even in provider none. The Telegram bot keeps its separate allowlist and calls Shelf services without a web login.
 
 ## Passkeys
 

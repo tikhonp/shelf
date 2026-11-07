@@ -625,3 +625,97 @@ func TestRegistrationCanFinishAfterProofExpiresWithinCeremonyLifetime(t *testing
 	// The proof expired, so it cannot authorize a new ceremony.
 	requireStatus(t, r.request(t, "POST", "/api/auth/passkeys/begin", nil, c), 403)
 }
+
+func TestAgentBearerWorksOnlyUnderAgentAPI(t *testing.T) {
+	for _, enabled := range []bool{true, false} {
+		t.Run(map[bool]string{true: "simple", false: "none"}[enabled], func(t *testing.T) {
+			s, err := New(dbtest.Open(t), enabled, testOrigin)
+			if err != nil {
+				t.Fatal(err)
+			}
+			e := httpx.New(httpx.Options{Log: dbtest.Discard})
+			e.Use(s.Middleware)
+			api := e.Group("/api")
+			s.Routes(api)
+			ok := func(c *echo.Context) error {
+				return c.JSON(200, map[string]any{"author": identity.From(c.Request().Context()), "session": current(c).ID})
+			}
+			api.GET("/secret", ok)
+			api.POST("/library/albums/:id/save", ok)
+			api.GET("/inbox", ok)
+			api.POST("/agent/v1/runs", ok)
+			if enabled {
+				if err := s.Add(bg, "Alice", testPassword); err != nil {
+					t.Fatal(err)
+				}
+			}
+			send := func(method, path, authz string, cookies ...*http.Cookie) *httptest.ResponseRecorder {
+				req := httptest.NewRequest(method, path, strings.NewReader(`{}`))
+				req.Header.Set("Content-Type", "application/json")
+				if authz != "" {
+					req.Header.Set("Authorization", authz)
+				}
+				for _, c := range cookies {
+					req.AddCookie(c)
+				}
+				rec := httptest.NewRecorder()
+				e.ServeHTTP(rec, req)
+				return rec
+			}
+			for _, authz := range []string{"Bearer shelf_agent_x", "bearer shelf_agent_x", "BEARER x"} {
+				for _, p := range [][2]string{{"GET", "/api/secret"}, {"POST", "/api/library/albums/1/save"}, {"GET", "/api/inbox"},
+					{"GET", "/api/auth"}, {"POST", "/api/auth/login"}, {"GET", "/api/downloads"}} {
+					res := send(p[0], p[1], authz)
+					if res.Code != 401 || !strings.Contains(res.Body.String(), "agent credentials only work under /api/agent") {
+						t.Fatalf("%s %s with %q: %d %s", p[0], p[1], authz, res.Code, res.Body)
+					}
+				}
+			}
+			// The gateway's basic auth header is not an agent credential.
+			if !enabled {
+				requireStatus(t, send("GET", "/api/secret", "Basic dXNlcjpwYXNz"), 200)
+			}
+			// Under /api/agent the platform sets no author and reads no
+			// session; the agents module authenticates.
+			var cookies []*http.Cookie
+			if enabled {
+				r := &rig{s, e}
+				cookies = append(cookies, r.login(t, "Alice"))
+			}
+			for _, authz := range []string{"Bearer shelf_agent_x", ""} {
+				res := send("POST", "/api/agent/v1/runs", authz, cookies...)
+				requireStatus(t, res, 200)
+				if !strings.Contains(res.Body.String(), `"author":{"id":"","name":""}`) || !strings.Contains(res.Body.String(), `"session":0`) {
+					t.Fatalf("agent path saw a person: %s", res.Body)
+				}
+			}
+		})
+	}
+}
+
+func TestAccountsPort(t *testing.T) {
+	r := newRig(t)
+	if !r.s.AuthenticationEnabled() {
+		t.Fatal("simple is not enabled")
+	}
+	none, _ := New(r.s.DB, false, "")
+	if none.AuthenticationEnabled() {
+		t.Fatal("none is enabled")
+	}
+	r.add(t, "Alice")
+	rows, err := r.s.List(bg)
+	if err != nil || len(rows) != 1 {
+		t.Fatal(rows, err)
+	}
+	id := rows[0].ID
+	if ok, err := r.s.Exists(bg, id); !ok || err != nil {
+		t.Fatal(ok, err)
+	}
+	if err := r.s.Delete(bg, "Alice"); err != nil {
+		t.Fatal(err)
+	}
+	r.add(t, "Alice")
+	if ok, err := r.s.Exists(bg, id); ok || err != nil {
+		t.Fatal("a deleted account's ID came back", ok, err)
+	}
+}

@@ -13,6 +13,9 @@ import (
 
 // changeJSON is a change as the editor and the history show it.
 type changeJSON struct {
+	// Origin is the proposal acceptance a change came from, as
+	// "proposal:<p>/acceptance:<a>", or null.
+	Origin   *string `json:"origin"`
 	Author   string  `json:"author"`
 	AuthorID *string `json:"author_id"`
 	ID       int64   `json:"id"`
@@ -82,7 +85,7 @@ func (m *Module) changeJSON(ctx context.Context, c changeRow) changeJSON {
 	if author == "" {
 		author = "Unknown"
 	}
-	j := changeJSON{Author: author, AuthorID: c.AuthorID, ID: c.ID, Kind: c.Kind, Target: c.Target, AlbumID: c.AlbumID, Folder: c.Folder, Title: c.Title,
+	j := changeJSON{Origin: c.Origin, Author: author, AuthorID: c.AuthorID, ID: c.ID, Kind: c.Kind, Target: c.Target, AlbumID: c.AlbumID, Folder: c.Folder, Title: c.Title,
 		Artist: c.Artist, State: c.State, Reason: c.Reason, Error: c.Error, Undone: c.Undone, Tags: c.Tags,
 		JobID: c.JobID, CreatedAt: c.CreatedAt.UTC().Format(time.RFC3339), Conflicts: []conflictJSON{}}
 	if !c.FinishedAt.IsZero() {

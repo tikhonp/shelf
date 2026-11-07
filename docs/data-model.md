@@ -279,3 +279,27 @@ The platform owns these STRICT tables, added by migration 00002_accounts:
 Passkey ceremonies stay in memory. Sessions survive restarts. A reset increments the account's credential generation and deletes its sessions atomically. See [auth.md](auth.md).
 
 Downloads migration 00003_authors and library migration 00009_authors add nullable `author_id` and a non-null `author` string. Existing rows have a null ID and an empty name. The API displays Unknown, or the existing Telegram identity for a download that has one. New rows capture both fields at request time. Child downloads and run children copy them from the parent row. No foreign key connects authors to accounts, so deletion preserves history. No new activity log exists.
+
+
+## Agents and library integration
+
+Library migration `00010_agent_ports` adds nullable unique `library_changes.origin`, linking a Save to `proposal:<id>/acceptance:<id>`, and STRICT `library_cover_pins` keyed by holder and cover hash. Retention honors the pins. `library_state.history_trimmed_through` records the highest removed top-level history ID in the same transaction as trimming.
+
+The agents module always migrates its STRICT tables, including when the feature is off:
+
+| Table | Stored data |
+| --- | --- |
+| `agents_connections` | Connection identity, hashed token, operations, creating account and author, timestamps, revocation. No foreign key crosses module boundaries. |
+| `agents_runs` | Connection-bound external sessions. |
+| `agents_proposals` | Original album context, review group, follow-up link, current revision, pending count, withdrawal and revision-request flags. |
+| `agents_revisions` | Immutable agent/user values, evidence, recorded file paths and revisions, operations, preview and per-operation digests. |
+| `agents_ops` | Stable operation IDs, fingerprints, decisions, reviewer and acceptance links. |
+| `agents_targets` | Recorded library-relative paths for album links. |
+| `agents_acceptances` | Exact selected revision and preview, stable request key, confirmations, reviewer, library change ID, durable outcome snapshot. |
+| `agents_events` | Ordered feedback, comments, decisions, revisions, memory corrections and write/undo outcomes. |
+| `agents_memory` | Versioned shared rules, inferred preferences, context, evidence and deletion tombstones. |
+| `agents_learning` | One library-wide versioned checkpoint and event/history cursors. |
+| `agents_usage` | Daily per-connection counters. |
+| `agents_state` | The highest retained history ID returned through the port, bounding learning commits. |
+
+Accepting selected operations writes their decisions and the library Save/job in one SQLite transaction. File reads, preparation and image decoding happen before that transaction. A repeated request ID returns its acceptance; a changed payload with that ID conflicts. Stored authors do not depend on live accounts. Account deletion revokes its connections on their next authenticated call.

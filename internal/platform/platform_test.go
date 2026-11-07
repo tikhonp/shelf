@@ -325,3 +325,87 @@ func TestSimpleAuthenticationProtectsPlatformAndModuleRoutes(t *testing.T) {
 		}
 	}
 }
+
+// routed is a module with one route.
+type routed struct {
+	name, path string
+}
+
+func (r routed) Name() string    { return r.name }
+func (routed) Migrations() fs.FS { return nil }
+func (r routed) Routes(api *echo.Group) {
+	api.GET(r.path, func(c *echo.Context) error { return c.String(http.StatusOK, r.name) })
+}
+
+func TestOnlyTheAgentsModuleServesTheAgentAPI(t *testing.T) {
+	a := open(t, routed{"agents", "/agent/v1/runs"}, routed{"fake", "/fake"})
+	a.HTTP()
+	owners := a.RouteOwners()
+	if owners["GET /api/agent/v1/runs"] != "agents" || owners["GET /api/fake"] != "fake" || owners["GET /api/version"] != platform.Name {
+		t.Fatal(owners)
+	}
+	for key, owner := range owners {
+		if strings.HasPrefix(key[strings.Index(key, " ")+1:], "/api/agent/") && owner != platform.AgentsModule {
+			t.Fatalf("%s belongs to %s", key, owner)
+		}
+	}
+	rogue := open(t, routed{"rogue", "/agent/v1/albums"})
+	defer func() {
+		if r := recover(); r == nil || !strings.Contains(r.(string), "rogue") {
+			t.Fatalf("a rogue agent route was served: %v", r)
+		}
+	}()
+	rogue.HTTP()
+}
+
+func TestAgentBearerIsRefusedOnOrdinaryRoutes(t *testing.T) {
+	for _, provider := range []string{"none", "simple"} {
+		t.Run(provider, func(t *testing.T) {
+			cfg := testConfig(t)
+			cfg.AuthProvider = provider
+			cfg.PublicURL, _ = url.Parse("https://shelf.example.com")
+			a, err := platform.Open(cfg, discard, routed{"agents", "/agent/v1/runs"}, &fake{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = a.Close() })
+			if err := a.Migrate(ctx); err != nil {
+				t.Fatal(err)
+			}
+			e := a.HTTP()
+			for _, path := range []string{"/api/fake", "/api/version", "/api/auth", "/api/library/albums/1/save", "/api/inbox", "/api/downloads"} {
+				req := httptest.NewRequest(http.MethodGet, path, nil)
+				req.Header.Set("Authorization", "Bearer shelf_agent_token")
+				rec := httptest.NewRecorder()
+				e.ServeHTTP(rec, req)
+				if rec.Code != 401 {
+					t.Fatalf("%s: %d", path, rec.Code)
+				}
+			}
+			req := httptest.NewRequest(http.MethodGet, "/api/agent/v1/runs", nil)
+			req.Header.Set("Authorization", "Bearer shelf_agent_token")
+			rec := httptest.NewRecorder()
+			e.ServeHTTP(rec, req)
+			if rec.Code != 200 || rec.Body.String() != "agents" {
+				t.Fatalf("agent route: %d %s", rec.Code, rec.Body)
+			}
+			rec = httptest.NewRecorder()
+			e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/agent/v1/../../fake", nil))
+			if rec.Code != 400 {
+				t.Fatalf("traversal: %d", rec.Code)
+			}
+		})
+	}
+}
+
+func TestDepsCarryTheAccountsPort(t *testing.T) {
+	f := &fake{}
+	a := open(t, f)
+	if f.deps.Accounts == nil || f.deps.Accounts.AuthenticationEnabled() {
+		t.Fatal("accounts port", f.deps.Accounts)
+	}
+	if ok, err := f.deps.Accounts.Exists(ctx, 1); ok || err != nil {
+		t.Fatal(ok, err)
+	}
+	_ = a
+}

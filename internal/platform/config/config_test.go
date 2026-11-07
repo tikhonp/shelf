@@ -53,6 +53,9 @@ func TestConfigDefaults(t *testing.T) {
 	if tg.Enabled() || len(tg.Users) != 0 || tg.UseProxy {
 		t.Errorf("Telegram = %+v", tg)
 	}
+	if c.AgentEnabled {
+		t.Error("AgentEnabled is on by default")
+	}
 	if c.DevFakeSource || c.LogLevel != slog.LevelInfo {
 		t.Errorf("DevFakeSource %v, LogLevel %v", c.DevFakeSource, c.LogLevel)
 	}
@@ -84,6 +87,9 @@ func TestConfigRejectsBadValues(t *testing.T) {
 		{"SHELF_NAVIDROME_SCAN_DELAY", "30"},
 		{"SHELF_QOBUZ_FALLBACK", "maybe"},
 		{"SHELF_DEV_FAKE_SOURCE", "yes"},
+		{"SHELF_AGENT_ENABLED", "1"},
+		{"SHELF_AGENT_ENABLED", "TRUE"},
+		{"SHELF_AGENT_ENABLED", ""},
 		{"SHELF_QOBUZ_WORKERS", "three"},
 		{"SHELF_QOBUZ_QUALITY", "28"},
 		{"SHELF_QOBUZ_QUALITY", "27.0"},
@@ -273,5 +279,14 @@ func TestAuthConfiguration(t *testing.T) {
 	c, err = Load(env(map[string]string{"SHELF_AUTH_PROVIDER": "simple", "SHELF_PUBLIC_URL": "https://shelf.example.com"}))
 	if err != nil || c.AuthProvider != "simple" {
 		t.Fatal(c, err)
+	}
+}
+
+func TestAgentEnabled(t *testing.T) {
+	for v, want := range map[string]bool{"true": true, "false": false} {
+		c, err := Load(env(map[string]string{"SHELF_AGENT_ENABLED": v}))
+		if err != nil || c.AgentEnabled != want {
+			t.Fatalf("%s: %v %v", v, c, err)
+		}
 	}
 }

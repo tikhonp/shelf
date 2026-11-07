@@ -4,12 +4,15 @@ These docs describe shelf as it runs now.
 
 The [authentication design](plans/simple-auth.md) records the agreed plan and review. [auth.md](auth.md) describes its implementation.
 
+[agents.md](agents.md) describes optional external agents, the review inbox, and shared memory. The [feature draft](plans/library-agent.md) and [implementation contract](plans/library-agent-contracts.md) record the design discussion.
+
 | Doc | What it holds |
 | --- | --- |
 | [status.md](status.md) | What runs in production, the remotes, and notes for later work. |
 | [vision.md](vision.md) | What Music Shelf is for and what it does. |
 | [decisions.md](decisions.md) | The decisions in force and why. |
 | [architecture.md](architecture.md) | Containers, modules, source interfaces, downloads, events, the HTTP API, configuration. |
+| [agents.md](agents.md) | Optional agent connections, proposals, field review, feedback, and shared memory. |
 | [auth.md](auth.md) | Optional accounts, passkeys, sessions, CLI commands, and authors in existing history. |
 | [data-model.md](data-model.md) | Tables and their rules. |
 | [tags.md](tags.md) | Fields, formats, the rule every tag write follows, history, suggestions, Navidrome's view, the index and the checks. |

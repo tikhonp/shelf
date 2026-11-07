@@ -203,3 +203,20 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 | Neither `shelf` nor `shelf-wrapper` updates nightly. Both are pulled together by hand. | They share the control API's types. |
 | shelf's data lives in `${SWINGMUSIC_DATA}/shelf` and `${SWINGMUSIC_DATA}/shelf-wrapper`, and the swingmusic backup copies all of it. A restore starts from a daily copy. | The owner's choice, like the other music services. One task that copies everything is easier to keep right. |
 | `qobuz/` and `apple-music/` belong to 10001:10001, and the genre folders too after one chown that keeps their modes. Downloads write only into the two source folders. | The tag editor writes in the whole library. A write keeps each file's group, and shelf can give a file only one of its own groups: the first real Save failed on group 1000. Nothing in the genre folders relies on group-write without world-write, so the chown takes no access from the login user or Picard. |
+
+
+## Library agents
+
+| Decision | Why |
+| --- | --- |
+| Agent support is off by default and independent of account sign-in. | The owner wants it to be opt-in. |
+| External agents connect through scoped tokens on a separate API prefix. Bearer credentials fail on every ordinary API route. | Reading metadata and proposing work must never grant permission to accept or write library changes. |
+| The first version proposes tags and artwork. Every selected write requires human acceptance in Shelf. | This is the confirmed initial scope. |
+| Agent proposals are persistent server-side drafts with immutable revisions, separate from the editor's browser-only staged edits. | A fresh agent session and another reviewer must see the same pending work. |
+| Users can edit values and accept or decline individual operations. The existing library Save checks validate subsets. | Field review needs the same alias, anchor, format and confirmation rules as ordinary editing. |
+| Acceptance covers an exact selected diff and confirmations. It may use a newer file revision only while every reviewed effect remains identical. | An unrelated accepted field should not invalidate the remaining review. The library writer still checks revisions when the queued change runs. |
+| An acceptance, its decisions and its library change/job commit in one transaction. Request IDs make repeats idempotent. | Crashes and network retries must not duplicate writes or leave accepted work without its job. |
+| Memory and learning progress are shared by the library. Inferred preferences can guide proposals immediately; users can correct or delete them. | The owner wants useful context across fresh runs and replacement agents. No memory rule bypasses acceptance. |
+| Manual-tag learning reads existing history. Proposal feedback has its own durable feed. | The agent can learn tagging behavior without recording general UI activity. |
+| Proposal artwork uses validated bytes or existing offers, with cover-store pins. | Arbitrary agent URLs must not trigger server fetches, and pending reviews must outlive upload cleanup. |
+| The production basic-auth exemption is limited to the agent prefix, with raw-path checks in the gateway and Shelf. | Sharing the gateway password would also expose ordinary writes. The infrastructure change remains a draft for the operator. |

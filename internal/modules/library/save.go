@@ -113,15 +113,10 @@ func (m *Module) save(c *echo.Context) error {
 	if len(b.Tracks) == 0 {
 		return echo.NewHTTPError(http.StatusBadRequest, "a save names at least one track")
 	}
-	edits := 0
-	for _, t := range b.Tracks {
-		edits += len(t.Edits)
-	}
-	if edits > maxEdits {
+	if countEdits(b) > maxEdits {
 		return echo.NewHTTPError(http.StatusBadRequest, "a save holds up to "+strconv.Itoa(maxEdits)+" edits")
 	}
-	anchor, msg := saveAnchor(b)
-	if msg != "" {
+	if _, msg := saveAnchor(b); msg != "" {
 		return c.JSON(http.StatusUnprocessableEntity, refusal{Error: msg, Reason: ReasonRefused})
 	}
 	ctx := c.Request().Context()
@@ -136,6 +131,74 @@ func (m *Module) save(c *echo.Context) error {
 	if err != nil {
 		return err
 	}
+	ps, stop, err := m.planSave(ctx, row, files, b)
+	if err != nil {
+		return err
+	}
+	if stop != nil {
+		if stop.plain {
+			return echo.NewHTTPError(stop.status, stop.body.Error)
+		}
+		return c.JSON(stop.status, stop.body)
+	}
+	if ok, err := confirmed(c, ps.warns, b.Confirm); !ok {
+		return err
+	}
+	cr, err := ps.changeRow()
+	if err != nil {
+		return err
+	}
+	if err := m.queueChange(ctx, &cr, "web"); err != nil {
+		return err
+	}
+	return c.JSON(http.StatusAccepted, m.changeJSON(ctx, cr))
+}
+
+func countEdits(b saveBody) int {
+	n := 0
+	for _, t := range b.Tracks {
+		n += len(t.Edits)
+	}
+	return n
+}
+
+// plannedSave is a Save that passed every check but the confirmations:
+// what its job writes, the writer's plan, and the warnings to confirm.
+type plannedSave struct {
+	row     albumRow
+	stored  storedChange
+	planned tagio.Result
+	// warns are what Navidrome will do, in the order the editor shows them:
+	// the identity warnings, then the shared cover.
+	warns []warning
+}
+
+func (ps plannedSave) changeRow() (changeRow, error) {
+	req, err := json.Marshal(ps.stored)
+	if err != nil {
+		return changeRow{}, err
+	}
+	return changeRow{Kind: KindSave, AlbumID: ps.row.ID, Folder: ps.row.Folder, Title: ps.row.Title, Artist: ps.row.Artist,
+		State: StateQueued, Request: string(req), CreatedAt: db.At(time.Now())}, nil
+}
+
+// saveStop is a Save the checks refused, with the answer the editor gets.
+// plain answers as an ordinary HTTP error, without a reason.
+type saveStop struct {
+	status int
+	body   refusal
+	plain  bool
+}
+
+// planSave runs a Save's checks against the files as they are now, without
+// writing a tag. The editor's Save and the library port share it, so both
+// follow one set of rules. It reads files and may store the embedded copy
+// of a new cover, so it never runs inside a transaction.
+func (m *Module) planSave(ctx context.Context, row albumRow, files []*file, b saveBody) (plannedSave, *saveStop, error) {
+	anchor, msg := saveAnchor(b)
+	if msg != "" {
+		return plannedSave{}, &saveStop{status: http.StatusUnprocessableEntity, body: refusal{Error: msg, Reason: ReasonRefused}}, nil
+	}
 	byID := map[int64]*file{}
 	for _, f := range files {
 		byID[f.ID] = f
@@ -146,7 +209,8 @@ func (m *Module) save(c *echo.Context) error {
 	for _, t := range b.Tracks {
 		f := byID[t.ID]
 		if f == nil {
-			return echo.NewHTTPError(http.StatusUnprocessableEntity, fmt.Sprintf("track %d is not on this album", t.ID))
+			return plannedSave{}, &saveStop{status: http.StatusUnprocessableEntity, plain: true, body: refusal{
+				Error: fmt.Sprintf("track %d is not on this album", t.ID), Reason: ReasonRefused, Track: t.ID}}, nil
 		}
 		abs := m.abs(f.Path)
 		fc := tagio.FileChange{Path: abs, Revision: t.Revision}
@@ -159,43 +223,50 @@ func (m *Module) save(c *echo.Context) error {
 	}
 	if b.Cover != nil {
 		if err := m.planCover(ctx, row, files, b, &ch, &stored); err != nil {
-			return m.refuse(c, err, trackOf)
+			return m.stopFor(err, trackOf)
 		}
 	}
 	planned, err := m.writer(nil).Check(ch)
 	if err != nil {
-		return m.refuse(c, err, trackOf)
+		return m.stopFor(err, trackOf)
 	}
 	if len(planned.Files) == 0 && len(stored.Folder) == 0 {
-		return c.JSON(http.StatusUnprocessableEntity, refusal{Error: "nothing to change", Reason: ReasonRefused})
+		return plannedSave{}, &saveStop{status: http.StatusUnprocessableEntity, body: refusal{Error: "nothing to change", Reason: ReasonRefused}}, nil
 	}
 	if anchor != "" {
 		if t := m.otherRelease(files, planned, anchor); t != 0 {
-			return c.JSON(http.StatusUnprocessableEntity, refusal{Track: t, Reason: ReasonRefused,
-				Error: "These suggestions come from another MusicBrainz release than the album ID the tracks would keep. Accept that release's album ID too."})
+			return plannedSave{}, &saveStop{status: http.StatusUnprocessableEntity, body: refusal{Track: t, Reason: ReasonRefused,
+				Error: "These suggestions come from another MusicBrainz release than the album ID the tracks would keep. Accept that release's album ID too."}}, nil
 		}
 	}
 	warns, err := m.identity(ctx, []albumFiles{{row, files}}, planned)
 	if err != nil {
-		return err
+		return plannedSave{}, nil, err
 	}
 	shared, err := m.sharedCover(ctx, row, stored)
 	if err != nil {
-		return err
+		return plannedSave{}, nil, err
 	}
-	if ok, err := confirmed(c, append(warns, shared...), b.Confirm); !ok {
-		return err
+	return plannedSave{row: row, stored: stored, planned: planned, warns: append(warns, shared...)}, nil, nil
+}
+
+// stopFor is the answer to a write the checks stopped, naming the track,
+// or the error itself when it isn't the request's fault.
+func (m *Module) stopFor(err error, trackOf map[string]int64) (plannedSave, *saveStop, error) {
+	reason := reasonOf(err)
+	status := http.StatusConflict
+	switch reason {
+	case ReasonRefused:
+		status = http.StatusUnprocessableEntity
+	case ReasonError:
+		return plannedSave{}, nil, err
 	}
-	req, err := json.Marshal(stored)
-	if err != nil {
-		return err
+	out := refusal{Error: (&journal{root: m.root}).message(err), Reason: reason}
+	var fe *tagio.FileError
+	if errors.As(err, &fe) {
+		out.Track = trackOf[fe.Path]
 	}
-	cr := changeRow{Kind: KindSave, AlbumID: row.ID, Folder: row.Folder, Title: row.Title, Artist: row.Artist,
-		State: StateQueued, Request: string(req), CreatedAt: db.At(time.Now())}
-	if err := m.queueChange(ctx, &cr, "web"); err != nil {
-		return err
-	}
-	return c.JSON(http.StatusAccepted, m.changeJSON(ctx, cr))
+	return plannedSave{}, &saveStop{status: status, body: out}, nil
 }
 
 // saveAnchor is the one release a Save's suggestions came from. Two
@@ -357,40 +428,7 @@ func (m *Module) queueChange(ctx context.Context, cr *changeRow, by string) erro
 
 // queueJob stores a change and its job of type job together.
 func (m *Module) queueJob(ctx context.Context, cr *changeRow, by, job string) error {
-	err := m.store.db.Write(ctx, func(tx *sqlx.Tx) error {
-		if cr.Target != nil {
-			// Two undos of one save would each check the files as they were.
-			var n int
-			if err := tx.GetContext(ctx, &n, `SELECT count(*) FROM library_changes WHERE target = ? AND state IN (?, ?)`,
-				*cr.Target, StateQueued, StateWriting); err != nil {
-				return err
-			}
-			if n > 0 {
-				return errReversing
-			}
-		}
-		if cr.Kind == KindDelete {
-			// A second delete would find the folder gone and fail.
-			var n int
-			if err := tx.GetContext(ctx, &n, `SELECT count(*) FROM library_changes WHERE kind = ? AND folder = ? AND state IN (?, ?)`,
-				KindDelete, cr.Folder, StateQueued, StateWriting); err != nil {
-				return err
-			}
-			if n > 0 {
-				return errDeleting
-			}
-		}
-		if err := m.store.insertChange(ctx, tx, cr); err != nil {
-			return err
-		}
-		e, err := m.jobs.Enqueue(ctx, tx, jobs.Request{Type: job, Payload: writePayload{Change: cr.ID}, CreatedBy: by})
-		if err != nil {
-			return err
-		}
-		cr.JobID = &e.ID
-		_, err = tx.ExecContext(ctx, `UPDATE library_changes SET job_id = ? WHERE id = ?`, e.ID, cr.ID)
-		return err
-	})
+	err := m.store.db.Write(ctx, func(tx *sqlx.Tx) error { return m.queueJobTx(ctx, tx, cr, by, job) })
 	if err != nil {
 		return err
 	}
@@ -399,22 +437,50 @@ func (m *Module) queueJob(ctx context.Context, cr *changeRow, by, job string) er
 	return nil
 }
 
-// refuse answers a write the checks stopped, naming the track.
-func (m *Module) refuse(c *echo.Context, err error, trackOf map[string]int64) error {
-	reason := reasonOf(err)
-	status := http.StatusConflict
-	switch reason {
-	case ReasonRefused:
-		status = http.StatusUnprocessableEntity
-	case ReasonError:
+// queueJobTx stores a change and its job in the caller's transaction. The
+// caller kicks the jobs and publishes the change after the commit.
+func (m *Module) queueJobTx(ctx context.Context, tx *sqlx.Tx, cr *changeRow, by, job string) error {
+	if cr.Target != nil {
+		// Two undos of one save would each check the files as they were.
+		var n int
+		if err := tx.GetContext(ctx, &n, `SELECT count(*) FROM library_changes WHERE target = ? AND state IN (?, ?)`,
+			*cr.Target, StateQueued, StateWriting); err != nil {
+			return err
+		}
+		if n > 0 {
+			return errReversing
+		}
+	}
+	if cr.Kind == KindDelete {
+		// A second delete would find the folder gone and fail.
+		var n int
+		if err := tx.GetContext(ctx, &n, `SELECT count(*) FROM library_changes WHERE kind = ? AND folder = ? AND state IN (?, ?)`,
+			KindDelete, cr.Folder, StateQueued, StateWriting); err != nil {
+			return err
+		}
+		if n > 0 {
+			return errDeleting
+		}
+	}
+	if err := m.store.insertChange(ctx, tx, cr); err != nil {
 		return err
 	}
-	out := refusal{Error: (&journal{root: m.root}).message(err), Reason: reason}
-	var fe *tagio.FileError
-	if errors.As(err, &fe) {
-		out.Track = trackOf[fe.Path]
+	e, err := m.jobs.Enqueue(ctx, tx, jobs.Request{Type: job, Payload: writePayload{Change: cr.ID}, CreatedBy: by})
+	if err != nil {
+		return err
 	}
-	return c.JSON(status, out)
+	cr.JobID = &e.ID
+	_, err = tx.ExecContext(ctx, `UPDATE library_changes SET job_id = ? WHERE id = ?`, e.ID, cr.ID)
+	return err
+}
+
+// refuse answers a write the checks stopped, naming the track.
+func (m *Module) refuse(c *echo.Context, err error, trackOf map[string]int64) error {
+	_, stop, err := m.stopFor(err, trackOf)
+	if err != nil {
+		return err
+	}
+	return c.JSON(stop.status, stop.body)
 }
 
 // albumFiles is an album of the index with its files, as a write starts.

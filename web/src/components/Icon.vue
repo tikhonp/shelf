@@ -27,6 +27,7 @@ const shapes = {
   revert: ['M9 7 4 12l5 5', 'M4 12h11a5 5 0 0 1 0 10h-2'],
   note: [circle(12, 12, 8), 'M12 11v5', 'M12 8h.01'],
   upload: ['M12 16V5', 'm7 10 5-5 5 5', 'M5 20h14'],
+  inbox: ['M4 13h4l2 3h4l2-3h4', 'M4 13l2-8h12l2 8v6H4z'],
 } as const
 
 export type IconName = keyof typeof shapes

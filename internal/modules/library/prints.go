@@ -45,6 +45,9 @@ func (m *Module) printed(ctx context.Context, s *subject) []scored {
 		return nil
 	}
 	status, body, ok := m.lookups.Get(ctx, printKey(s.row))
+	if !ok && s.noPrints {
+		return nil
+	}
 	if !ok {
 		_, err := m.jobs.EnqueueNow(ctx, jobs.Request{Type: FingerprintJob, Payload: printPayload{Album: s.row.ID},
 			CoalescingKey: strconv.FormatInt(s.row.ID, 10), CreatedBy: "web"})

@@ -66,10 +66,22 @@ type Deps struct {
 	// Sources holds every registered source. It fills after every Init, so
 	// read it when serving, not in Init.
 	Sources *source.Registry
+	// Accounts tells whether account sign-in is on and whether an account
+	// still exists. It never exposes the accounts table.
+	Accounts Accounts
 	// Closing is closed when serve starts to stop. A long-lived response,
 	// such as an event stream, ends on it, because the HTTP server's
 	// shutdown doesn't cancel a running request.
 	Closing <-chan struct{}
+}
+
+// Accounts is the platform's account port.
+type Accounts interface {
+	// AuthenticationEnabled reports provider simple.
+	AuthenticationEnabled() bool
+	// Exists reports whether an account ID is still in use. IDs are never
+	// reused, so a false answer stays false.
+	Exists(ctx context.Context, id int64) (bool, error)
 }
 
 // Initializer is a module with setup work. platform.Open calls Init after

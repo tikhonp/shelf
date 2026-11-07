@@ -460,3 +460,10 @@ The fixtures in `tagio/testdata` are half a second of a sine per format, written
 ## History authors
 
 Library saves, undo, redo, album deletion, and bulk runs record the requesting author. Run children inherit their head's author. History shows that name beside the existing album or run text. Undo records its own author and preserves the original save's author. Account deletion does not erase names. Older records show Unknown; new unauthenticated web records show Anonymous. [auth.md](auth.md) describes account access. History retention and clearing keep their existing behavior.
+
+
+## Agent proposals
+
+With agent support enabled, external agents can prepare tag and artwork proposals through `internal/libraryport`. The port uses the same Save preparation, format rules, confirmation checks, verified writer, history and undo as the editor. It enqueues no write until a user accepts selected operations in the Inbox. Existing browser staging remains unchanged.
+
+A Save's optional `origin` links it to its proposal and acceptance; History shows the proposal link. Review preparation preserves image bytes and pins artwork needed by pending proposals and retained previews. The ordinary cover sweep honors those pins. [agents.md](agents.md) describes partial acceptance, feedback, and shared memory.

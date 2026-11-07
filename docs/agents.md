@@ -1,0 +1,95 @@
+# Library agents
+
+Status: implemented locally. Disabled by default. The production gateway change is a draft for the operator; it has not been applied. Claude contributed the design, UI, and library/platform work. Its rate limit prevented a final review of the complete implementation.
+
+Shelf's optional agent connection lets an external agent read the library, propose tag and artwork changes, and keep shared memory in Shelf's database. Users review proposals in the Inbox. Agent credentials cannot accept proposals or call ordinary library write endpoints.
+
+## Enable and connect
+
+Set `SHELF_AGENT_ENABLED=true`. The default is `false`. This switch is independent of `SHELF_AUTH_PROVIDER`. An empty or invalid value fails configuration validation.
+
+The module's migrations run even when disabled, so proposals and memory survive switching it off and CLI revocation remains available. Disabled means no agent or inbox endpoints, navigation, or background outcome processing. Already accepted library jobs continue through their existing lifecycle.
+
+With Shelf sign-in enabled, open Status, then Agents, to create a named connection. Choose its permissions and copy the secret once. The secret belongs in the external agent's environment as `SHELF_AGENT_TOKEN`, separately from the generated setup prompt. Shelf stores its hash, not the secret. The browser holds a newly created secret only until it is dismissed or the user leaves the panel.
+
+Without Shelf sign-in, create connections from the CLI:
+
+```sh
+shelf manage agents add <name>
+shelf manage agents list
+shelf manage agents revoke <id>
+```
+
+`add` can restrict permissions with `--ops op1,op2`. It prints the token once. Commands require an already migrated database, as account commands do. Both authentication modes allow listing and revocation in the UI. Deleting a connection's creating account revokes that connection on its next request. Password resets do not revoke library connections; revoke them separately when needed.
+
+## Agent access
+
+Set `SHELF_PUBLIC_URL` to the canonical public address so generated prompts and review links use the correct HTTPS origin behind a gateway. Without it, Shelf uses the direct request host and transport.
+
+The JSON API is under `/api/agent/v1/`. Its API description lists the supported endpoints. It requires a bearer credential on every request, regardless of Shelf's account mode. A browser session cookie alone does not authenticate an agent call. Agent bearer credentials are rejected on every other API prefix, including account, review, and ordinary library routes.
+
+Permissions cover library reads, external lookups, history reads, image uploads, proposal writes, and memory writes. A valid connection can read shared memory and proposal feedback. It cannot retrieve source credentials, run shell commands, query arbitrary SQL, download audio, or write music files directly. Metadata reads can expose tags, lyrics, file names, history, and author names. Grant a connection only the data and operations its external agent needs.
+
+Shelf bounds request rates, page sizes, body sizes, storage, pending proposals, and daily usage. External lookups share an agent-wide concurrency gate and per-connection budgets. Agent album reads skip ffmpeg artwork checks and agent suggestions do not start fingerprint jobs.
+
+## Production gateway
+
+The existing production gateway uses basic auth. Never give its shared password to an agent: that password also opens the ordinary write API when Shelf account sign-in is disabled.
+
+The proposed gateway configuration exempts only `/api/agent/` from basic auth. Shelf authenticates that prefix with its scoped token. Every ordinary API and the human Inbox remain behind the gateway's existing protection. The gateway must check the raw request URI as well as its normalized location match. Shelf rejects ambiguous API paths before routing, including dot segments, empty segments, and unusual escaping.
+
+The gateway draft is a separate file for the operator to apply in sh-main. Implementation in this repository does not deploy it. Before enabling external access, verify all of these:
+
+- A valid agent token can bootstrap a run without the shared gateway password.
+- A cookie without an agent token cannot bootstrap an agent run.
+- An agent token cannot Save, accept, undo, or delete through ordinary endpoints.
+- A traversal-shaped request without credentials cannot reach an ordinary endpoint through the exempt location.
+- Disabling the feature or revoking the connection refuses subsequent agent requests.
+
+An installation with publicly open ordinary APIs has no boundary that distinguishes a human from an agent using those APIs. Account-free deployments need the gateway or an equivalent access restriction.
+
+## Review proposals
+
+The Inbox appears only when the feature is enabled. Any signed-in user can review every connection's proposals. With account sign-in disabled, anyone with ordinary Shelf access can review them, and the author is Anonymous.
+
+A proposal contains structured operations for one album, an explanation, evidence, uncertainties, and a before/after preview calculated by Shelf. Its link remains useful after the album is regrouped or removed because Shelf stores a diff snapshot.
+
+Reviewers can edit proposed values, save those edits as a new proposal revision, select individual fields, and accept or decline the selection. Unselected fields remain pending. Decline remaining closes unwanted work. Comments and requests for changes go into a durable feedback feed for the agent's next run. None of those actions writes music files. Acceptance does.
+
+Some operations depend on others. Shelf refuses a subset that breaks those dependencies or the existing library rules. It never adds unselected edits silently. Artwork is one logical operation, including its folder and embedded-art effects. Existing album split, merge, artist rename, and shared-folder artwork confirmations still apply.
+
+Before accepting, Shelf recomputes the exact selected diff. If its effects or warnings changed, the user must review the new preview and accept again. An unrelated tag write can advance a file revision while leaving that selected diff unchanged. In that case Shelf can bind acceptance to the newly read revision. The normal full-file revision checks still protect the queued write.
+
+Acceptance, per-field decisions, the library change, and the write job commit together. Stable request IDs make a repeated acceptance request return its existing result. The library writer remains responsible for file verification, conflicts, and undo. Accepted means approved, not successfully written: the Inbox shows queued, successful, partial, or failed outcomes. Undo supplies feedback and never automatically reopens or reapplies a proposal.
+
+## Artwork
+
+Agents can upload JPEG or PNG image bytes, up to 32 MiB, or materialize a cover offer Shelf already supplied. Shelf never fetches an arbitrary URL from an agent. Images must decode fully and have at most 40 million pixels, with neither side above 16,384 pixels. Agent uploads share the external-work gate so requests cannot decode many large images at once. Existing library file-format limits still apply.
+
+Proposal references pin their cover hashes so a waiting review cannot lose its image to normal upload cleanup. Retained snapshots and queued work also need their images. Retention releases the pins when their holders expire. Artwork bytes stay in Shelf's existing cover store; proposal and pin records live in SQLite.
+
+## Shared memory and fresh runs
+
+Memory has three layers:
+
+| Layer | Purpose | Control |
+| --- | --- | --- |
+| Rules | Explicit user instructions and exceptions. | Users create, edit, or confirm an agent-proposed rule. |
+| Preferences | What agents infer from review and tagging behavior. | Agents can use them for future proposals immediately; users can inspect, correct, or delete them. |
+| Context | Notes, research, unresolved work, and compact summaries. | Agents persist them so fresh runs can resume. |
+
+All authorized agent connections share the library memory. A replacement connection can retrieve it. Its usefulness does not depend on an old conversation, account, or model. A memory write changes no tags or files and needs no library acceptance. No memory rule grants permission to skip review.
+
+Each memory write names its expected version. Learning commits update memory and the library-wide learning checkpoint together. Concurrent runs cannot silently overwrite each other's memory or advance the learning checkpoint twice. Shelf can validate cursor bounds; it cannot prove that an external agent understood every event it acknowledged.
+
+User corrections override inferred preferences. Tombstones preserve deleted preferences so a later run cannot recreate them from old feedback. Reconsideration needs new evidence. Agents cannot change active user rules on their own. The Memory page supports inspection, corrections, confirmation of proposed rules, deletion, export, and reset.
+
+The agent can inspect existing library history to learn from manual tagging, including authors and undo state. History is bounded and can be cleared; the API reports coverage gaps. It returns completed changes in ID order and waits behind unfinished changes, so an agent cannot advance past a pending Save and miss its eventual result. Proposal decisions and comments have their own durable feed. Shelf records no general UI tracking.
+
+At the start of a fresh run, the agent bootstraps its connection, reads shared rules and context, retrieves unprocessed feedback, and checks outstanding proposal state. It then proposes revisions or new changes and saves useful context. The setup prompt asks it to return links to every proposal it creates. Shelf does not run or schedule the agent or notify it to wake up in this version.
+
+## Storage and limits
+
+SQLite stores connections, runs, immutable proposal revisions, per-operation decisions, acceptances, durable events, memory, learning progress, and usage counters. Cover bytes use the existing cover store. Database backups include the agent records; old backups can retain data after its deletion in the app.
+
+Pending proposals and active memory survive restarts and feature disablement. Reviewed proposals, feedback, and artwork snapshots have retention rules independent of the library's 1,000-save history. The feature plan and implementation contract describe the design and the checks required before release.

@@ -255,7 +255,7 @@ func (m *Module) retry(c *echo.Context) error {
 
 // eventTopics are the hub topics the web app hears. A module that publishes on
 // a new topic adds it here, or the event goes nowhere.
-var eventTopics = []string{Topic, "scan", "source", "library", "change", "run", "suggestions"}
+var eventTopics = []string{Topic, "scan", "source", "library", "change", "run", "suggestions", "inbox"}
 
 // events streams the hub's events to the web app. A client that reconnects
 // reloads what it shows, so nothing is replayed.

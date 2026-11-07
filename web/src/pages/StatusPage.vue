@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import type { Source, WrapperState } from '../api/types'
 import Icon from '../components/Icon.vue'
 import AccountSettings from '../components/AccountSettings.vue'
+import AgentsPanel from '../components/AgentsPanel.vue'
 import DensityChoice from '../components/DensityChoice.vue'
 import NoticeChoice from '../components/NoticeChoice.vue'
 import NoticeSlot from '../components/NoticeSlot.vue'
@@ -141,6 +142,7 @@ const lines = (s: Source) => [s.enabled ? (s.health.ok ? 'WORKS' : (s.health.mes
         <PartCard v-if="library.index" name="Library" :lamp="libraryLamp" :lines="libraryLines">
           <template v-if="mbDown" #text><p class="t2">Editing and saving still work. Suggestions from MusicBrainz are missing until it answers.</p></template>
         </PartCard>
+        <AgentsPanel />
         <NoticeChoice />
         <section class="smod last" aria-label="Theme">
           <div class="smod-h"><h2>Theme</h2></div>
@@ -186,6 +188,7 @@ const lines = (s: Source) => [s.enabled ? (s.health.ok ? 'WORKS' : (s.health.mes
         <template v-if="mbDown" #text><p class="t2">Editing and saving still work. Suggestions from MusicBrainz are missing until it answers.</p></template>
       </PartCard>
     </div>
+    <AgentsPanel />
     <NoticeChoice />
     <DensityChoice />
     <SignIn v-if="signingIn" @close="closeSignIn" />
