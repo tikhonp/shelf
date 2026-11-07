@@ -261,6 +261,6 @@ Help never shows on a screen at rest, and the design adds no helper text beside 
 
 ## Account access
 
-With simple authentication, a centered window titled "Sign in to Shelf" has username and password fields and a separate passkey button. The app checks access before mounting the shell. An expired session opens a modal dialog over the inert app and preserves staged edits. The same account resumes without resending actions; another account reloads the page.
+With simple authentication, a centered window titled "Sign in to Shelf" has username and password fields and a separate passkey button. The window fits its content, up to 440px wide, with at least 12px of space at each viewport edge. It scrolls when its content exceeds the available height. The app checks access before mounting the shell. An expired session opens a modal dialog over the inert app and preserves staged edits. The same account resumes without resending actions; another account reloads the page.
 
 Status has an Account window for password changes, named passkeys, and signing out. None mode has no account controls. Existing download and library history rows show their author beside the current secondary text. No activity page is added. [auth.md](../../auth.md) describes the flows and labels.
