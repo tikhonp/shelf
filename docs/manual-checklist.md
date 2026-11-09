@@ -23,9 +23,9 @@ End-to-end checks that only the real deployment can answer: real accounts, the r
 10. Every finished download's folder has a `shelf.txt` with the right IDs and links, and a second download into the same folder appends a block.
 11. New folders are 0755 and new files 0644, owned by 10001, and Navidrome lists the new albums.
 12. The next morning a backup is in `${SWINGMUSIC_DATA}/shelf/backups`, and the morning after it is on the HDD.
-13. Library index. Before the deploy, touch a marker file outside the music folder. After the first walk, `GET /api/library/index` shows `ready`, `rules: navidrome` and no `error`. `navidrome_albums` equals Navidrome's album count, from `getAlbumList2` paged to the end, and `tracks` plus `unreadable` equals its song count, from `getScanStatus`. Only a folder the walk can't see, such as one under an `.ndignore` with patterns, may explain a difference. `find /music -newer <marker>` lists no file shelf wrote. An album opens with every track's tags, and a track plays in the browser behind basic auth.
+13. Library index. Before the deploy, touch a marker file outside the music folder. After the first walk, `GET /api/library/index` shows `ready`, `rules: navidrome` and no `error`. `navidrome_albums` equals Navidrome's album count, from `getAlbumList2` paged to the end, and `tracks` plus `unreadable` equals its song count, from `getScanStatus`. Only a folder the walk can't see, such as one under an `.ndignore` with patterns, may explain a difference. `find /music -newer <marker>` lists no file shelf wrote. An album opens with every track's tags, and a track plays in the browser.
 14. Tag editing, after the chown in [deployment.md](deployment.md). `GET /api/library/index` shows `locked: 0` and every folder `writable`. Star an album and note its play count in Navidrome. Save a new album title on all its tracks through the API, with the files' revisions from `GET /api/library/albums/{id}`. The change ends `done`, Navidrome scans, and its Raw Tags view shows the new title. The album keeps its star and play count under its new ID. Undo the change: the old title and ID come back with the star. Replace its cover, then undo that: `cover.*` and the embedded cover are the old ones again. No `.shelf-tmp-` file is left in the folder, and the next night's backups copy the album's files.
-15. The Library tab on a real album, on the desktop and on a real phone behind basic auth. Open an album with issues. Press Fix on No RELEASEDATE, read the amber fields, Save, and see Navidrome show the same year. Rename the album artist, confirm, and see the address follow the album after the walk. Undo both from History on the desktop. Replace a cover with Save cover alone while an edit stays staged. On the phone, edit a field from a suggestion, Save, and play a track. Play a file the browser refuses, and see it play through the transcode.
+15. The Library tab on a real album, on the desktop and on a real phone. Open an album with issues. Press Fix on No RELEASEDATE, read the amber fields, Save, and see Navidrome show the same year. Rename the album artist, confirm, and see the address follow the album after the walk. Undo both from History on the desktop. Replace a cover with Save cover alone while an edit stays staged. On the phone, edit a field from a suggestion, Save, and play a track. Play a file the browser refuses, and see it play through the transcode.
 16. Bulk runs, on the desktop. In the Library tab press Select, and pick 20 albums with No RELEASEDATE. The preview's numbers match the albums, and Start with No RELEASEDATE and ReplayGain on. The Library tab's lamp lights, and a Save on another album finishes between two albums. Restart the shelf container during the run: the run goes on, and the album it was writing ends as `done` or starts over. Navidrome scans once when the run ends, shows the same years, and reports the new gains on a song. History shows one row. Undo it, and Navidrome shows the old values. Run it again, and the next night's backups finish with the 20 albums copied. Set `SHELF_ACOUSTID_KEY`, open an album that MusicBrainz can't find by text, and see its suggestions appear by AcoustID a few seconds later.
 
 17. Delete, on a test download. Star the album in Navidrome and download it again in shelf to see it skipped. Press Delete in the Library tab. The dialog gives the file count and size, and for a playlist folder or a folder of singles it names the other albums. Confirm. The folder is gone from `/music`, the album leaves the list, and within a few minutes it leaves Navidrome with nothing under Missing Files. History shows the delete with Navidrome's count. Ask for the album again, and it downloads instead of being skipped.
@@ -44,7 +44,10 @@ Every check passed in production.
 - Check 17: 2026-11-05 on `a7359e1`, in production.
 - Check 18: 2026-11-05 on `d228255`, through the API and Playwright on the desktop and a phone viewport. The counts matched exactly: 759 Qobuz, 76 Apple Music, 183 without a source. Each of the 13 albums shelf downloaded links to its download and its page.
 
-## Optional accounts, pending production check
+## Optional accounts
+
+Last run: passed in production, run by the owner before 2026-11-10. The gateway's basic auth came off afterwards.
+
 
 - Keep provider none and verify the current app and gateway still work with no account units on Status.
 - Enable simple with the public HTTPS origin. Verify logged-out requests cannot read the API, media, logs, or events.
@@ -59,7 +62,9 @@ Every check passed in production.
 
 ## Optional agents
 
-Keep production disabled until the agent-only gateway route is applied and checked.
+Production turned agents on before this checklist ran. Run it after deploying the review fixes from 2026-11-10.
+
+The traversal item passed on 2026-11-10 on `main-6210916`: all three paths got 400, and the agent and library APIs got 401 without credentials.
 
 - Enable `SHELF_AGENT_ENABLED=true` on a disposable library. The Inbox and Agents panel appear; disable it and confirm both disappear while saved records remain.
 - Create a connection from the CLI, or from Status with Shelf sign-in enabled. Copy its secret separately from the setup prompt. Listing connections must never show that secret again.
@@ -71,6 +76,6 @@ Keep production disabled until the agent-only gateway route is applied and check
 - Correct or delete a learned preference. Start a new agent run and confirm the correction or tombstone is still present. A learning commit with an old version must fail atomically.
 - Revoke a connection and confirm its next request fails. With account sign-in enabled, delete the account that created a connection and confirm that token is revoked on its next call.
 - Verify machine credentials cannot call ordinary Save, review acceptance, undo or delete. Verify a browser cookie alone cannot authenticate a machine endpoint.
-- At the gateway, try both encoded and literal traversal paths from the configuration draft without credentials. They must not reach an ordinary API handler.
+- Without a session, request `/api/library/x/../../agent/v1/runs`, `/api/agent/v1/../../library/albums/1/save` and `/api/agent/v1/%2e%2e/%2e%2e/library/albums/1/save` through the public address. None may reach an ordinary API handler.
 
-Automated tests cover proposal isolation, selected tag/artwork writes against real fixtures, concurrent acceptance, replay, rollback, changed previews, confirmations, memory versions and tombstones, learned feedback retention, auth isolation and CLI persistence. The checklist above covers the live external-agent and gateway setup, which local tests do not deploy.
+Automated tests cover proposal isolation, selected tag/artwork writes against real fixtures, concurrent acceptance, replay, rollback, changed previews, confirmations, memory versions and tombstones, learned feedback retention, auth isolation and CLI persistence. The checklist above covers the live external-agent and gateway setup, which local tests don't deploy.

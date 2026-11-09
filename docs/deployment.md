@@ -43,7 +43,7 @@ and `blackberry/shelf-wrapper.env` with the same `SHELF_WRAPPER_TOKEN`. Commit c
 
 ## sh-main
 
-- `nginx/conf.d/shelf.music.conf`: upstream `ssh-server:10013`, `auth_basic` with the shared htpasswd, `proxy_buffering off` and `proxy_read_timeout 1h` for the event streams, `robots-disallow.conf`, and no CSP header, because shelf sends its own. The icons and `manifest.webmanifest` get no basic auth, because Safari fetches them without the page's credentials.
+- `nginx/conf.d/shelf.music.conf`: upstream `ssh-server:10013`, no basic auth, because Shelf's accounts guard it, `proxy_buffering off` and `proxy_read_timeout 1h` for the event streams, `robots-disallow.conf`, and no CSP header, because shelf sends its own.
 - Port 10013 in the `ssh-server` `expose` list in `compose.yaml` and on the `PermitListen` line of `ssh-server/sshd_config.d/tunnel-restrict.conf`.
 - `shelf.music.tikhonnnnn.com` has its own DNS record, since `*.music` has no wildcard, and its own certificate from `DOMAINS` in the `Makefile`.
 - A Music Shelf line in `nginx-contents/contents.html` and `contents-ru.html`.
@@ -101,7 +101,7 @@ Afterwards `GET /api/library/index` shows `locked: 0` and every folder `writable
 
 ## Optional account authentication
 
-Production still uses gateway basic auth until this cutover. The default provider none keeps that deployment working.
+Production made this cutover and no longer has gateway basic auth. The steps stay for a new deployment. The default provider none keeps a deployment behind gateway basic auth working.
 
 1. Back up `shelf.db` and deploy the new image with provider none. Starting the server applies migrations. If creating accounts before the first start, run `shelf manage migrate up`.
 2. Run `docker exec -it shelf shelf manage users add <username>` and enter the password twice. Create another account if needed.
@@ -116,8 +116,6 @@ The CLI can reset a password or all passkeys without the server running. Both re
 
 ## Optional agent API
 
-Agent support is off unless `SHELF_AGENT_ENABLED=true`. [agents.md](agents.md) describes credentials and review. The application changes do not modify production configuration.
+Agent support is off unless `SHELF_AGENT_ENABLED=true`. Production sets it in `sh-blackberry/shelf.yaml`. [agents.md](agents.md) describes credentials and review.
 
-While the gateway uses basic auth, external agents need the narrow exemption drafted in [plans/agent-gateway.conf](plans/agent-gateway.conf). Apply it only after deploying Shelf's token isolation and API path guards. It removes basic auth solely for the agent prefix; Shelf requires a scoped bearer token there. The ordinary API and Inbox keep their current protection. Do not give an agent the shared htpasswd credential.
-
-Test the raw traversal paths listed in the draft without credentials, plus valid agent calls, ordinary writes with an agent token, missing tokens, revocation, and feature disablement. The gateway matches normalized paths, so checking only a `location` prefix is insufficient. Draft changes in sh-main for the operator to commit, as with other infrastructure changes.
+Turn it on only with `SHELF_AUTH_PROVIDER=simple` or behind gateway basic auth. The gateway needs no rule for agents once Shelf's accounts guard it: Shelf checks a scoped bearer token on `/api/agent/` and a session on every other route. A deployment that keeps gateway basic auth must exempt `/api/agent/` from it and check the raw request URI too, because nginx matches the normalized path. Never give an agent a gateway password.

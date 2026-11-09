@@ -1,6 +1,6 @@
 # Library agents
 
-Status: implemented locally. Disabled by default. The production gateway change is a draft for the operator; it has not been applied. Claude contributed the design, UI, and library/platform work. The final review ran on 2026-11-10.
+Status: disabled by default, enabled in production. Claude contributed the design, UI, and library/platform work. The final review ran on 2026-11-10.
 
 Shelf's optional agent connection lets an external agent read the library, propose tag and artwork changes, and keep shared memory in Shelf's database. Users review proposals in the Inbox. Agent credentials cannot accept proposals or call ordinary library write endpoints.
 
@@ -34,19 +34,17 @@ Shelf bounds request rates, page sizes, body sizes, storage, pending proposals, 
 
 ## Production gateway
 
-The existing production gateway uses basic auth. Never give its shared password to an agent: that password also opens the ordinary write API when Shelf account sign-in is disabled.
+Production has no gateway basic auth. Shelf's accounts guard every ordinary API and the Inbox, and Shelf authenticates `/api/agent/` with its scoped token, so the gateway needs no rule for agents. Shelf rejects ambiguous API paths before routing, including dot segments, empty segments, and unusual escaping.
 
-The proposed gateway configuration exempts only `/api/agent/` from basic auth. Shelf authenticates that prefix with its scoped token. Every ordinary API and the human Inbox remain behind the gateway's existing protection. The gateway must check the raw request URI as well as its normalized location match. Shelf rejects ambiguous API paths before routing, including dot segments, empty segments, and unusual escaping.
+A deployment behind gateway basic auth must exempt only `/api/agent/` and check the raw request URI as well as its normalized location match. Never give an agent the gateway password: when Shelf account sign-in is off, it also opens the ordinary write API. An installation with publicly open ordinary APIs can't tell a human from an agent using them, so account-free deployments need the gateway or another access restriction.
 
-The gateway draft is a separate file for the operator to apply in sh-main. Implementation in this repository does not deploy it. Before enabling external access, verify all of these:
+Before relying on agents in a deployment, verify all of these:
 
-- A valid agent token can bootstrap a run without the shared gateway password.
+- A valid agent token can bootstrap a run.
 - A cookie without an agent token cannot bootstrap an agent run.
 - An agent token cannot Save, accept, undo, or delete through ordinary endpoints.
-- A traversal-shaped request without credentials cannot reach an ordinary endpoint through the exempt location.
+- A traversal-shaped request such as `/api/agent/v1/../../library/albums/1/save`, literal or encoded, cannot reach an ordinary endpoint without a session.
 - Disabling the feature or revoking the connection refuses subsequent agent requests.
-
-An installation with publicly open ordinary APIs has no boundary that distinguishes a human from an agent using those APIs. Account-free deployments need the gateway or an equivalent access restriction.
 
 ## Review proposals
 

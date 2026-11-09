@@ -9,7 +9,7 @@ The decisions in force and why. When one changes, edit its row and the docs it t
 | The name is shelf, shown as Music Shelf: Go module `github.com/tikhonp/shelf`, image `code.tikhonnnnn.com/tikhon/shelf`, env prefix `SHELF_`, host `shelf.music.tikhonnnnn.com`. | The owner's choice. |
 | Qobuz writes to `music/qobuz` and Apple Music to `music/apple-music`, with the old tools' folder and file names. | Navidrome, Picard and AudioMuse see no change. |
 | Every download writes `shelf.txt` into its release folder. | The owner asked for it, and the Library tab can tell an album's source from it without the database. |
-| `SHELF_AUTH_PROVIDER` selects `none` by default or `simple` for CLI-managed accounts, passwords, and optional passkeys. All accounts share access. [auth.md](auth.md) describes sessions and recovery. | Opt-in authentication for deployments that replace gateway basic auth. Production keeps its gateway protection until cutover. |
+| `SHELF_AUTH_PROVIDER` selects `none` by default or `simple` for CLI-managed accounts, passwords, and optional passkeys. All accounts share access. [auth.md](auth.md) describes sessions and recovery. | Opt-in authentication for deployments that replace gateway basic auth. Production made the cutover and the gateway dropped basic auth. |
 | Account passwords contain 8 to 128 Unicode code points, with spaces allowed and no character-class rules. | The owner chose an eight-character minimum. |
 | shelf is AGPL-3.0 like proxier, and qobuz-dl-go GPL-3.0 like qobuz-dl. | GPL-3.0 code can be combined with AGPL-3.0 code. |
 
@@ -219,4 +219,4 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 | Memory and learning progress are shared by the library. Inferred preferences can guide proposals immediately; users can correct or delete them. | The owner wants useful context across fresh runs and replacement agents. No memory rule bypasses acceptance. |
 | Manual-tag learning reads existing history. Proposal feedback has its own durable feed. | The agent can learn tagging behavior without recording general UI activity. |
 | Proposal artwork uses validated bytes or existing offers, with cover-store pins. | Arbitrary agent URLs must not trigger server fetches, and pending reviews must outlive upload cleanup. |
-| The production basic-auth exemption is limited to the agent prefix, with raw-path checks in the gateway and Shelf. | Sharing the gateway password would also expose ordinary writes. The infrastructure change remains a draft for the operator. |
+| The gateway has no agent rule. Shelf checks scoped tokens on the agent prefix, sessions everywhere else, and rejects ambiguous paths. | Production dropped gateway basic auth after the account cutover, so the planned exemption for the agent prefix was never applied. A gateway password would also open ordinary writes, so an agent never gets one. |

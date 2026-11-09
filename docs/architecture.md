@@ -231,7 +231,7 @@ The API answers a download as `{"id", "parent_id", "source", "kind", "item_id", 
 
 ## Security
 
-- Production currently uses gateway basic auth. Optional app authentication replaces it when `SHELF_AUTH_PROVIDER=simple`; [auth.md](auth.md) describes protected routes and sessions.
+- Production uses Shelf accounts, with `SHELF_AUTH_PROVIDER=simple`, and the gateway has no basic auth. [auth.md](auth.md) describes protected routes and sessions.
 - shelf checks unsafe methods with `http.NewCrossOriginProtection` and also trusts `SHELF_PUBLIC_URL`'s origin, because the gateway may rewrite `Host`. It limits request bodies to 1 MiB, except where a module's `BodyLimits` raises the limit of a route: 32 MiB for a cover upload and 8 MiB for a Save. It sends a CSP that allows only `'self'`, plus images from `static.qobuz.com` and `*.mzstatic.com`, with `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`.
 - Tokens and passwords live only in environment variables, never in the database, logs or `shelf.txt`. The Apple ID password passes through shelf to the supervisor, and neither stores it.
 - The supervisor's control API requires `SHELF_WRAPPER_TOKEN` and is reachable only on the compose network.
