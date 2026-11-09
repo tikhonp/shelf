@@ -46,7 +46,7 @@ Every check passed in production.
 
 ## Optional accounts, pending production check
 
-- Keep provider none and verify the current app and gateway still work with no Account panel.
+- Keep provider none and verify the current app and gateway still work with no account units on Status.
 - Enable simple with the public HTTPS origin. Verify logged-out requests cannot read the API, media, logs, or events.
 - Sign in with a case-sensitive username. Verify a different case fails unless that separate account exists.
 - Add a named passkey on a phone and a desktop. Sign out and sign in with each. Verify canceling the browser prompt keeps password login available.
@@ -66,7 +66,8 @@ Keep production disabled until the agent-only gateway route is applied and check
 - Use a fresh external run to retrieve shared rules, context and pending work. Create a tag proposal and an artwork proposal. Confirm the music files stay unchanged before acceptance.
 - Edit one proposed value, save its proposal revision, and accept just that field. Confirm the other fields remain pending and History names the reviewer and links to the proposal.
 - Change a reviewed field using another tool, then accept the old preview. Confirm Shelf requires another review. Change an unrelated field and confirm an identical selected diff can still be accepted.
-- Decline a field, decline remaining fields, request changes and comment. Confirm the external agent retrieves those actions on its next run and no file changes occur.
+- Switch a field off and Decline the rest, then decline every field of another proposal. Send a Reply as a comment, and another with Ask for changes on. Confirm the external agent retrieves those actions on its next run and no file changes occur.
+- On a proposal where one field requires another, switch the required field off. Confirm the field that needs it switches off too and the line under the fields names both.
 - Correct or delete a learned preference. Start a new agent run and confirm the correction or tombstone is still present. A learning commit with an old version must fail atomically.
 - Revoke a connection and confirm its next request fails. With account sign-in enabled, delete the account that created a connection and confirm that token is revoked on its next call.
 - Verify machine credentials cannot call ordinary Save, review acceptance, undo or delete. Verify a browser cookie alone cannot authenticate a machine endpoint.

@@ -264,6 +264,8 @@ func (m *Module) listProposals(c *echo.Context) error {
 		}
 		cur := d["current"].(map[string]any)
 		kinds := []string{}
+		// fields names what each op changes without its values, so a list row can say "Genre, Mood" and stay small.
+		fields := []Op{}
 		for _, op := range cur["ops"].([]Op) {
 			found := false
 			for _, k := range kinds {
@@ -272,8 +274,9 @@ func (m *Module) listProposals(c *echo.Context) error {
 			if !found {
 				kinds = append(kinds, op.Type)
 			}
+			fields = append(fields, Op{ID: op.ID, Type: op.Type, Field: op.Field, TagKey: op.TagKey, Action: op.Action})
 		}
-		ps = append(ps, map[string]any{"id": id, "state": d["state"], "changes_requested": d["changes_requested"], "title": cur["title"], "album": d["album"], "connection": d["connection"], "kinds": kinds, "summary": d["summary"], "updated_at": d["updated_at"], "stale": false})
+		ps = append(ps, map[string]any{"id": id, "state": d["state"], "changes_requested": d["changes_requested"], "title": cur["title"], "album": d["album"], "connection": d["connection"], "kinds": kinds, "fields": fields, "confidence": cur["confidence"], "summary": d["summary"], "updated_at": d["updated_at"], "stale": false})
 	}
 	return c.JSON(200, map[string]any{"proposals": ps, "next": next})
 }

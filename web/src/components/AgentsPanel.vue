@@ -8,6 +8,14 @@ import { useAgents } from '../stores/agents'
 import { useInbox } from '../stores/inbox'
 import PartCard from './PartCard.vue'
 
+const operationWords: Record<string, { name: string; summary: string }> = {
+  'library.read': { name: 'Read the library', summary: 'Albums, tags, local suggestions' },
+  'library.lookup': { name: 'Look up', summary: 'MusicBrainz, sources, LRCLIB' },
+  'history.read': { name: 'History', summary: 'Changes and who made them' },
+  'covers.upload': { name: 'Upload covers', summary: 'Images for proposals' },
+  'proposals.write': { name: 'Propose', summary: 'Create, revise, comment, withdraw' },
+  'memory.write': { name: 'Memory', summary: 'Notes kept between runs' },
+}
 const agents = useAgents()
 const inbox = useInbox()
 const now = useNow()
@@ -68,7 +76,7 @@ const toggleOp = (n: string) => (ops.value = ops.value.includes(n) ? ops.value.f
           <div class="col g4 grow">
             <span class="bold">{{ c.name }}</span>
             <span class="t2 sm">Added by {{ c.created_by }} {{ ago(c.created_at, now) }} · {{ c.last_used_at ? `last used ${ago(c.last_used_at, now)}` : 'not used yet' }}</span>
-            <span class="t2 xs mono">{{ c.operations.join(' ') }}</span>
+            <span class="stks"><span v-for="op in c.operations" :key="op" class="stk">{{ operationWords[op]?.name ?? op }}</span></span>
           </div>
           <template v-if="asking === c.id">
             <button type="button" class="key sm" @click="asking = null">Cancel</button>
@@ -89,9 +97,13 @@ const toggleOp = (n: string) => (ops.value = ops.value.includes(n) ? ops.value.f
         <label class="lbl-f">Name<input v-model="name" class="lib-in" maxlength="64" placeholder="Claude at home" required /></label>
         <fieldset v-if="agents.setup?.operations.length" class="ops">
           <legend class="lbl-f">Allowed</legend>
-          <label v-for="o in agents.setup.operations" :key="o.name" class="ib-check sm"><input type="checkbox" :checked="ops.includes(o.name)" @change="toggleOp(o.name)" /><span><span class="mono">{{ o.name }}</span> · {{ o.summary }}</span></label>
+          <div class="op-grid">
+            <button v-for="o in agents.setup.operations" :key="o.name" type="button" class="rocker flat" role="switch" :aria-checked="ops.includes(o.name)" @click="toggleOp(o.name)">
+              <span class="rk" aria-hidden="true"><span class="rk-case"><span class="rk-paddle"></span></span></span><span class="rk-t"><span class="rk-name">{{ operationWords[o.name]?.name ?? o.name }}</span><span class="rk-state">{{ operationWords[o.name]?.summary ?? o.summary }}</span></span>
+            </button>
+          </div>
         </fieldset>
-        <button type="submit" class="key sm self" :disabled="agents.busy || !name.trim()">Connect an agent</button>
+        <div class="line g8 wrap"><button type="submit" class="key sm sun" :disabled="agents.busy || !name.trim()">Connect</button><span class="t2 sm">No agent can accept, save or delete.</span></div>
       </form>
       <p v-else class="t2 sm">Without Shelf sign-in, connections come from the shell: <code class="mono">shelf manage agents add &lt;name&gt;</code>. Listing and revoking work here.</p>
 
@@ -117,6 +129,9 @@ const toggleOp = (n: string) => (ops.value = ops.value.includes(n) ? ops.value.f
 .rs .secret { border-color: var(--sun); }
 .rs .tok { display: block; padding: 8px 10px; overflow-wrap: anywhere; background: var(--field); border: 1px solid var(--ink); border-radius: 5px; color: var(--text); user-select: all; }
 .rs .ops { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; border: 0; }
+.rs .op-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; }
+.rs .op-grid .rk-name, .rs .op-grid .rk-state { white-space: normal; }
+@media (max-width: 600px) { .rs .op-grid { grid-template-columns: 1fr; } }
 .rs .setup summary { cursor: pointer; min-height: 32px; }
 .rs .prompt { max-height: 320px; margin: 0; padding: 10px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--field); border: 1px solid var(--ink); border-radius: 5px; color: var(--text); }
 </style>

@@ -118,3 +118,44 @@ test('a warning changed under the same kind needs fresh confirmation', async () 
   expect(store.confirm).toEqual([])
   expect(store.canAccept).toBe(false)
 })
+
+// Three dated fields: releasedate requires originaldate, and genre stands alone.
+function dated(): ProposalDetail {
+  const d = detail()
+  const tag = (id: string, requires?: string[]) => ({ id, type: 'tag' as const, field: id, tracks: [{ track_id: 1, values: ['x'] }], ...(requires ? { requires } : {}) })
+  d.current.ops = [tag('releasedate', ['originaldate']), tag('genre'), tag('originaldate')]
+  d.ops = ['releasedate', 'genre', 'originaldate'].map((id) => ({ id, type: 'tag' as const, decision: 'pending' as const }))
+  d.summary = { pending: 3, accepted: 0, declined: 0, superseded: 0 }
+  return d
+}
+
+test('switching a required field off also switches off the fields that need it, and back on', async () => {
+  const { store } = await opened({ '/api/inbox/proposals/1': dated() })
+  expect([...store.selected].sort()).toEqual(['genre', 'originaldate', 'releasedate'])
+  store.toggle('originaldate')
+  expect(store.selected).toEqual(['genre'])
+  expect(store.cascade).toEqual({ op: 'originaldate', on: false, moved: ['releasedate'] })
+  store.toggle('releasedate')
+  expect([...store.selected].sort()).toEqual(['genre', 'originaldate', 'releasedate'])
+  expect(store.cascade).toEqual({ op: 'releasedate', on: true, moved: ['originaldate'] })
+  store.toggle('genre')
+  expect(store.cascade).toBeNull()
+})
+
+test('a required field is listed above the fields that need it', async () => {
+  const { needs, ordered } = await import('./inbox')
+  const ops = dated().current.ops
+  expect(ordered(ops).map((o) => o.id)).toEqual(['originaldate', 'releasedate', 'genre'])
+  expect(needs(ops, 'releasedate')).toEqual(['originaldate'])
+})
+
+test('Decline the rest declines only the fields left off, or every pending field when none is on', async () => {
+  const { store, calls } = await opened({ '/api/inbox/proposals/1/decline': {}, '/api/inbox/proposals/1': dated() })
+  store.toggle('genre')
+  expect(store.rest).toEqual(['genre'])
+  await store.declineRest('Not now')
+  expect(parsed(calls, '/decline')[0]).toEqual({ revision: 1, ops: ['genre'], reason: 'Not now' })
+  store.selectAll(false)
+  await store.declineRest('')
+  expect(parsed(calls, '/decline')[1]).toEqual({ revision: 1, remaining: true, reason: '' })
+})

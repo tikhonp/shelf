@@ -29,7 +29,7 @@ Account commands work with either provider and do not revoke sessions merely by 
 
 The web app checks `GET /api/auth` before mounting its application shell or opening event streams. This endpoint returns `provider`, `account` with `id` and `username` or null, and `setup_needed`. A server without accounts shows the CLI setup instruction.
 
-"Sign in to Shelf" accepts a username and password, or a passkey. The Account panel on Status lets a user change their password, manage their passkeys, or sign out. Password changes require the current password. Passkey changes require proof from the last five minutes. A fresh login counts as proof. Users can confirm their password or sign in again with a passkey in the Account panel.
+"Sign in to Shelf" accepts a username and password, or a passkey. Status has three account units: Account, to sign out; Passkeys, to add, rename or remove named passkeys; and Password. Password changes require the current password. Passkey changes require proof from the last five minutes, and a fresh login counts as proof. When the server refuses a passkey change for an old proof, a note opens in place that names the change, such as "Remove iPhone?". After the user confirms their password or signs in with a passkey there, Shelf sends the change again, once.
 
 A passkey has a name, creation time, and last-use time. Adding and renaming a passkey keep the session. Password changes and passkey removal end all sessions, including the current one, and show the login dialog.
 
@@ -57,7 +57,7 @@ Pending passkey ceremonies live in memory for five minutes, with a limit of 256.
 
 ## Provider none
 
-Provider none keeps access open, with no login screen or Account panel. It ignores session cookies and identity headers. Account credential endpoints are unavailable.
+Provider none keeps access open, with no login screen or account units. It ignores session cookies and identity headers. Account credential endpoints are unavailable.
 
 Starting `serve` in none mode deletes saved sessions and logs the number removed. Accounts, passkeys, and history remain. CLI commands and migrations never perform this purge. Old sessions cannot regain access after a later switch back to simple mode.
 

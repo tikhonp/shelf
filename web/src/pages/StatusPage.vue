@@ -191,8 +191,8 @@ const lines = (s: Source) => [s.enabled ? (s.health.ok ? 'WORKS' : (s.health.mes
     <AgentsPanel />
     <NoticeChoice />
     <DensityChoice />
+    <AccountSettings />
     <SignIn v-if="signingIn" @close="closeSignIn" />
-  <AccountSettings />
   </div>
 </template>
 

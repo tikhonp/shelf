@@ -255,6 +255,26 @@ func TestProposalDoesNotWriteAndAcceptanceIsIdempotent(t *testing.T) {
 		t.Fatal("decline wrote library")
 	}
 }
+func TestListNamesFieldsWithoutValues(t *testing.T) {
+	r := rig(t, true, nil)
+	create(t, r)
+	res := r.call(t, "GET", "/api/inbox/proposals?state=pending", nil, false)
+	want(t, res, 200)
+	var b struct {
+		Proposals []struct {
+			Fields     []map[string]any `json:"fields"`
+			Confidence *int             `json:"confidence"`
+		} `json:"proposals"`
+	}
+	_ = json.Unmarshal(res.Body.Bytes(), &b)
+	if len(b.Proposals) != 1 || len(b.Proposals[0].Fields) != 2 {
+		t.Fatalf("fields: %s", res.Body.String())
+	}
+	f := b.Proposals[0].Fields[0]
+	if f["id"] != "genre" || f["field"] != "genre" || f["tracks"] != nil {
+		t.Fatalf("field entry %v", f)
+	}
+}
 func TestChangedPreviewAndConfirm(t *testing.T) {
 	r := rig(t, true, nil)
 	id := create(t, r)

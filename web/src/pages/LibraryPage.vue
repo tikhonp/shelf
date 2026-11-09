@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import LibAsk from '../components/LibAsk.vue'
 import LibBulk from '../components/LibBulk.vue'
 import LibCoverDialog from '../components/LibCoverDialog.vue'
@@ -25,10 +25,12 @@ import { vVars } from '../lib/vars'
 import { useBulk } from '../stores/bulk'
 import { useEditor } from '../stores/editor'
 import { useHelp } from '../stores/help'
+import { useInbox } from '../stores/inbox'
 import { usePlayer } from '../stores/player'
 
 const route = useRoute()
 const router = useRouter()
+const inbox = useInbox()
 const phone = usePhone()
 const editor = useEditor()
 const player = usePlayer()
@@ -210,7 +212,11 @@ watch(
 
 <template>
   <div v-if="phone" class="stack">
-    <LibList v-if="!id" />
+    <LibList v-if="!id">
+      <template v-if="inbox.enabled" #caps>
+        <RouterLink class="wbtn txt inbox-cap" to="/inbox">Inbox<template v-if="inbox.info?.pending"><span class="led" :title="`${inbox.info.pending} to review`"></span><span class="sr">, {{ inbox.info.pending }} to review</span></template></RouterLink>
+      </template>
+    </LibList>
     <section v-else-if="guide" class="win" aria-labelledby="lg-t">
       <div class="tb">
         <button type="button" class="wbtn" aria-label="Back to the album" @click="router.push({ query: {} })"><Icon name="back" /></button>
@@ -266,6 +272,8 @@ watch(
 </template>
 
 <style scoped>
+.rs .inbox-cap { position: relative; gap: 6px; }
+.rs .inbox-cap .led { --c: var(--sun); width: 9px; height: 9px; }
 .rs .list { flex: 0 0 var(--list-w, 372px); }
 .rs .list.wide { flex: 1 1 0; }
 .rs .editor { flex: 1 1 0; }

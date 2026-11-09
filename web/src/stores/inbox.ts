@@ -84,6 +84,41 @@ export function selectable(d: ProposalDetail, opId: string): boolean {
   return op.decision === 'pending' || retryable(d, op)
 }
 
+// needs is every op an op requires, directly or through another op.
+export function needs(ops: Op[], opId: string): string[] {
+  const out = new Set<string>()
+  const walk = (id: string) => {
+    for (const r of ops.find((o) => o.id === id)?.requires ?? []) if (r !== opId && !out.has(r)) { out.add(r); walk(r) }
+  }
+  walk(opId)
+  return [...out]
+}
+
+// ordered lists a required op above the ops that need it and keeps the agent's order otherwise.
+export function ordered(ops: Op[]): Op[] {
+  const out: Op[] = []
+  const seen = new Set<string>()
+  const visit = (op: Op, path: Set<string>) => {
+    if (seen.has(op.id) || path.has(op.id)) return
+    path.add(op.id)
+    for (const r of op.requires ?? []) {
+      const dep = ops.find((o) => o.id === r)
+      if (dep) visit(dep, path)
+    }
+    seen.add(op.id)
+    out.push(op)
+  }
+  for (const op of ops) visit(op, new Set())
+  return out
+}
+
+// Cascade says which fields moved with the one the reviewer switched, because one requires the other.
+export interface Cascade {
+  op: string
+  on: boolean
+  moved: string[]
+}
+
 export const useInbox = defineStore('inbox', () => {
   // enabled is null until GET /api/inbox answers. A 404 means the feature is off, and nothing shows.
   const enabled = ref<boolean | null>(null)
@@ -173,6 +208,7 @@ export const useInbox = defineStore('inbox', () => {
   const selectionKey = ref('')
   const previewing = ref(false)
   const confirm = ref<string[]>([])
+  const cascade = ref<Cascade | null>(null)
   const error = ref('')
   const notice = ref('')
   const busy = ref(false)
@@ -190,6 +226,7 @@ export const useInbox = defineStore('inbox', () => {
     selection.value = null
     selectionKey.value = ''
     confirm.value = []
+    cascade.value = null
     error.value = ''
     notice.value = ''
     detailError.value = ''
@@ -298,10 +335,21 @@ export const useInbox = defineStore('inbox', () => {
     confirm.value = confirm.value.filter((k) => unchanged.has(k))
   }
 
+  // toggle keeps the selection whole: switching a field on switches on what it requires, and switching it off switches off what requires it.
   function toggle(opId: string) {
     const d = detail.value
     if (!d || !selectable(d, opId)) return
-    selected.value = selected.value.includes(opId) ? selected.value.filter((o) => o !== opId) : [...selected.value, opId]
+    const ops = d.current.ops
+    const on = !selected.value.includes(opId)
+    let moved: string[]
+    if (on) {
+      moved = needs(ops, opId).filter((x) => selectable(d, x) && !selected.value.includes(x))
+      selected.value = [...selected.value, opId, ...moved]
+    } else {
+      moved = selected.value.filter((x) => x !== opId && needs(ops, x).includes(opId))
+      selected.value = selected.value.filter((x) => x !== opId && !moved.includes(x))
+    }
+    cascade.value = moved.length ? { op: opId, on, moved } : null
     error.value = ''
     void refreshPreview()
   }
@@ -310,6 +358,7 @@ export const useInbox = defineStore('inbox', () => {
     const d = detail.value
     if (!d) return
     selected.value = on ? d.ops.filter((o) => o.decision === 'pending' && selectable(d, o.id)).map((o) => o.id) : []
+    cascade.value = null
     void refreshPreview()
   }
 
@@ -541,6 +590,20 @@ export const useInbox = defineStore('inbox', () => {
     return act('decline', body, 'Declined. Nothing in the library changed.')
   }
 
+  // rest is the pending fields the reviewer left off, which Decline the rest declines.
+  const rest = computed(() => {
+    const d = detail.value
+    if (!d || d.state === 'withdrawn') return []
+    return d.ops.filter((o) => o.decision === 'pending' && d.current.ops.some((c) => c.id === o.id) && !selected.value.includes(o.id)).map((o) => o.id)
+  })
+
+  function declineRest(reason: string) {
+    const d = detail.value
+    if (!d || rest.value.length === 0) return Promise.resolve(false)
+    const body = selected.value.length === 0 ? { revision: d.head, remaining: true, reason } : { revision: d.head, ops: sorted(rest.value), reason }
+    return act('decline', body, 'Declined. Nothing in the library changed.')
+  }
+
   function requestChanges(comment: string) {
     const d = detail.value
     if (!d || !comment.trim()) return Promise.resolve(false)
@@ -582,10 +645,10 @@ export const useInbox = defineStore('inbox', () => {
   return {
     enabled, info, detect, reload,
     filters, proposals, next, listLoading, listError, loadList, moreList, setFilters,
-    detailId, detail, detailLoading, detailError, selected, drafts, selection, previewing, confirm, error, notice, busy, headSeen, lastAccepted,
+    detailId, detail, detailLoading, detailError, selected, drafts, selection, previewing, confirm, cascade, error, notice, busy, headSeen, lastAccepted,
     open, close, loadDetail, refreshPreview, toggle, selectAll, toggleConfirm,
     values, tracksOf, everyTrack, setValues, dropTrack, setEveryTrack, discard, revisionOps, dirty, saveValues, rebase,
-    warnings, confirmed, canAccept, pendingSelected, accept, decline, requestChanges, comment,
+    warnings, confirmed, canAccept, pendingSelected, accept, decline, rest, declineRest, requestChanges, comment,
     byAlbum, loadAlbum, applyHub,
     headOp: (opId: string): Op | undefined => headOp(opId),
   }

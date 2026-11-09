@@ -66,6 +66,7 @@ const toggleLayer = (l: MemoryLayer) => (resetLayers.value = resetLayers.value.i
         <h1 id="mem-h">Memory</h1>
         <span class="stripes"></span>
         <a class="wbtn txt" href="/api/inbox/memory/export" download>Export</a>
+        <button type="button" class="wbtn txt" @click="resetting = !resetting">Reset memory</button>
       </div>
       <div class="vscroll">
         <div class="col g10 pad bar">
@@ -78,7 +79,6 @@ const toggleLayer = (l: MemoryLayer) => (resetLayers.value = resetLayers.value.i
           </div>
           <div class="line g8 wrap">
             <button v-if="memory.layer === 'rule' && !adding" type="button" class="key sm" @click="adding = true"><Icon name="plus" size="s" />New rule</button>
-            <button type="button" class="key sm" @click="resetting = !resetting">Reset memory</button>
           </div>
         </div>
         <form v-if="adding" class="col g8 pad bar" aria-label="New rule" @submit.prevent="addRule">

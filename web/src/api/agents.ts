@@ -38,6 +38,9 @@ export interface ProposalSummary {
   album: ProposalAlbum
   connection: { id: number; name: string }
   kinds: string[]
+  // fields names the head revision's ops without their values.
+  fields?: OpName[]
+  confidence?: number | null
   summary: DecisionCounts
   updated_at: string
   stale: boolean
@@ -73,6 +76,15 @@ export interface CoverOp {
 }
 
 export type Op = TagOp | CoverOp
+
+// OpName is an op without its values, as the proposal list sends it.
+export interface OpName {
+  id: string
+  type: 'tag' | 'cover'
+  field?: string
+  tag_key?: string
+  action?: 'replace' | 'remove'
+}
 
 export interface KeyChange {
   key: string

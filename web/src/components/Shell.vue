@@ -29,22 +29,24 @@ const help = useHelp()
 const bulk = useBulk()
 const inbox = useInbox()
 
-// Inbox shows only while the library agent is on, which GET /api/inbox answering says.
+// Inbox shows only while the library agent is on, which GET /api/inbox answering says. The phone keeps four tabs and opens the Inbox from the Library's title bar.
 const tabs = computed<{ to: string; label: string; icon: IconName }[]>(() => [
   { to: '/library', label: 'Library', icon: 'library' },
-  ...(inbox.enabled ? [{ to: '/inbox', label: 'Inbox', icon: 'inbox' as IconName }] : []),
+  ...(inbox.enabled && !phone.value ? [{ to: '/inbox', label: 'Inbox', icon: 'inbox' as IconName }] : []),
   { to: '/search', label: 'Search', icon: 'search' },
   { to: '/downloads', label: 'Downloads', icon: 'download' },
   { to: '/status', label: 'Status', icon: 'status' },
 ])
-const isOn = (to: string) => route.path.startsWith(to)
+// On the phone the Inbox opens from the Library, so the Library tab stays lit there.
+const isOn = (to: string) => route.path.startsWith(to) || (to === '/library' && phone.value && route.path.startsWith('/inbox'))
 
 // lampFor is what a tab's amber lamp says, or nothing when the tab has no lamp.
 function lampFor(to: string): string {
   if (to === '/downloads') return downloads.busy ? 'downloads in progress' : ''
   if (to === '/status') return status.attention.join(', ')
-  if (to === '/library') return bulk.working ? 'bulk run in progress' : ''
-  if (to === '/inbox') return inbox.info?.pending ? `${inbox.info.pending} ${inbox.info.pending === 1 ? 'proposal' : 'proposals'} to review` : ''
+  const waiting = inbox.info?.pending ? `${inbox.info.pending} ${inbox.info.pending === 1 ? 'proposal' : 'proposals'} to review` : ''
+  if (to === '/library') return [bulk.working ? 'bulk run in progress' : '', phone.value ? waiting : ''].filter(Boolean).join(', ')
+  if (to === '/inbox') return waiting
   return ''
 }
 
@@ -99,7 +101,7 @@ onMounted(() => {
       </div>
     </header>
     <slot />
-    <nav v-if="phone" class="dock" :class="{ five: tabs.length > 4 }" aria-label="Main">
+    <nav v-if="phone" class="dock" aria-label="Main">
       <RouterLink v-for="t in tabs" :key="t.to" :class="{ on: isOn(t.to) }" :to="t.to" :aria-current="isOn(t.to) ? 'page' : undefined">
         <Icon :name="t.icon" />{{ t.label }}<template v-if="lampFor(t.to)"><span class="led" :title="lampFor(t.to)"></span><span class="sr">, {{ lampFor(t.to) }}</span></template>
       </RouterLink>
@@ -134,9 +136,6 @@ onMounted(() => {
   .rs .checked, .rs .now { display: none; }
 }
 .rs .dock { bottom: calc(14px + env(safe-area-inset-bottom)); }
-/* Five tabs share 370px, so the legends shrink to keep Downloads on its key. */
-.rs .dock.five { gap: 4px; padding: 6px; }
-.rs .dock.five a { min-width: 0; font-size: 10.5px; letter-spacing: .02em; }
 /* Library's panels scroll by themselves, so the page fits the window. */
 .rs.shell-fit { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
 </style>

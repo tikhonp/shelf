@@ -802,7 +802,7 @@ Answer 201 with the proposal detail (below) and `url`. Evidence items: at most 2
 Ordinary auth. Author is `identity.From(ctx)`.
 
 - `GET /api/inbox` → `{pending, changes_requested, connections, accounts: "simple"|"none", can_create_connections}`. The UI shows Inbox only when this answers 200.
-- `GET /api/inbox/proposals?state=pending|reviewed|withdrawn|all&album=&kind=tag|cover&connection=&before=&limit=` → `{proposals: [summary], next}`, newest first, pending first when `state=all`. Summary: `{id, state, changes_requested, title, album: {...}, connection: {id, name}, kinds, summary, updated_at, stale}`.
+- `GET /api/inbox/proposals?state=pending|reviewed|withdrawn|all&album=&kind=tag|cover&connection=&before=&limit=` → `{proposals: [summary], next}`, newest first, pending first when `state=all`. Summary: `{id, state, changes_requested, title, album: {...}, connection: {id, name}, kinds, fields, confidence, summary, updated_at, stale}`. `fields` lists each op of the head revision as `{id, type, field?, tag_key?, action?}`, without values.
 - `GET /api/inbox/proposals/:id` → detail as for agents, plus `live`: `{preview, op_stale: {op: bool}, refusal}` for all pending ops at the head. `op_stale` compares each op's current digest with `op_digests`. The recorded preview stays available when the album is regrouped or gone.
 - `POST /api/inbox/proposals/:id/preview` `{revision, ops}` → `{preview, refusal, missing}`.
 - `POST /api/inbox/proposals/:id/revisions` `{parent_revision, ops: [{id, tracks?: [{track_id, values}], every_track?}]}` → detail (user revision; only listed ops change).
@@ -833,7 +833,7 @@ It states: the API base and `GET /` for endpoints; send `Authorization: Bearer $
 
 - Router: `/inbox`, `/inbox/:id(\d+)`, `/inbox/memory`. Shell nav gets Inbox, with a pending count, only when `GET /api/inbox` answers 200.
 - Inbox list: filters for state, album, kind and agent. Reviewed proposals stay reachable.
-- Detail: live diff by track and key (from `live.preview`), cover before/after from `/api/library/covers/:id`, the agent's reason, evidence and uncertainties, warnings, the event thread, op checkboxes with decisions, value editing per op (compact rows using `lib/tags.ts`), Accept selected, Decline selected, Decline remaining, Request changes, Comment. Selection changes call preview; Accept sends the shown digest and confirmations. A `preview_changed` answer replaces the diff and asks again. Ops marked stale say "Changed since proposed".
+- Detail: live diff by track and key (from `live.preview`), cover before/after from `/api/library/covers/:id`, the agent's reason, evidence and uncertainties, warnings, the event thread, op rockers with decisions, value editing per op (compact rows using `lib/tags.ts`), Accept, Decline the rest, and one Reply box that comments or requests changes. Selection changes call preview; Accept sends the shown digest and confirmations. A `preview_changed` answer replaces the diff and asks again. Ops marked stale say "Changed since proposed".
 - Album page: a link "N proposals" from `GET /api/inbox/albums/:id/proposals`, only with the feature on.
 - History: an origin link to `/inbox/<p>`.
 - Status page: an Agents panel with connections, create (simple mode) with the one-time token, revoke, and the setup prompt with a copy button. Memory page: layers, evidence, correct, delete, confirm proposed rules, export, reset.

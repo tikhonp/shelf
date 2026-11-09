@@ -362,8 +362,65 @@ const words: Record<string, string> = {
 export const issueName = (kind: string) => words[kind] ?? kind
 export const isGuide = (kind: string) => kind.startsWith('guide_')
 
+const fieldLabels: Record<string, string> = {
+  titlesort: 'Title sort',
+  artistsort: 'Artist sort',
+  artists: 'Artists',
+  artistssort: 'Artists sort',
+  composersort: 'Composer sort',
+  lyricistsort: 'Lyricist sort',
+  djmixer: 'DJ mixer',
+  albumartistsort: 'Album artist sort',
+  albumartists: 'Album artists',
+  albumartistssort: 'Album artists sort',
+  albumsort: 'Album sort',
+  albumversion: 'Album version',
+  tracktotal: 'Track total',
+  disctotal: 'Disc total',
+  discsubtitle: 'Disc subtitle',
+  bpm: 'BPM',
+  catalognumber: 'Catalog number',
+  releasetype: 'Release type',
+  explicitstatus: 'Explicit status',
+  asin: 'ASIN',
+  encodedby: 'Encoded by',
+  encodersettings: 'Encoder settings',
+  isrc: 'ISRC',
+  movementname: 'Movement name',
+  movementtotal: 'Movement total',
+  recordlabel: 'Record label',
+  releasecountry: 'Release country',
+  releasestatus: 'Release status',
+  musicbrainz_artistid: 'MusicBrainz artist ID',
+  musicbrainz_recordingid: 'MusicBrainz recording ID',
+  musicbrainz_trackid: 'MusicBrainz track ID',
+  musicbrainz_albumartistid: 'MusicBrainz album artist ID',
+  musicbrainz_albumid: 'MusicBrainz album ID',
+  musicbrainz_releasegroupid: 'MusicBrainz release group ID',
+  musicbrainz_composerid: 'MusicBrainz composer ID',
+  musicbrainz_lyricistid: 'MusicBrainz lyricist ID',
+  musicbrainz_directorid: 'MusicBrainz director ID',
+  musicbrainz_producerid: 'MusicBrainz producer ID',
+  musicbrainz_engineerid: 'MusicBrainz engineer ID',
+  musicbrainz_mixerid: 'MusicBrainz mixer ID',
+  musicbrainz_remixerid: 'MusicBrainz remixer ID',
+  musicbrainz_djmixerid: 'MusicBrainz DJ mixer ID',
+  musicbrainz_conductorid: 'MusicBrainz conductor ID',
+  musicbrainz_arrangerid: 'MusicBrainz arranger ID',
+  musicbrainz_performerid: 'MusicBrainz performer ID',
+  musicbrainz_discid: 'MusicBrainz disc ID',
+  musicbrainz_workid: 'MusicBrainz work ID',
+  replaygain_album_gain: 'ReplayGain album gain',
+  replaygain_album_peak: 'ReplayGain album peak',
+  replaygain_track_gain: 'ReplayGain track gain',
+  replaygain_track_peak: 'ReplayGain track peak',
+  r128_album_gain: 'R128 album gain',
+  r128_track_gain: 'R128 track gain',
+}
+
 export function fieldLabel(field: string): string {
-  return mainFields.find((f) => f.field === field)?.label ?? field
+  const readable = field.replace(/_/g, ' ')
+  return mainFields.find((f) => f.field === field)?.label ?? fieldLabels[field] ?? readable.charAt(0).toUpperCase() + readable.slice(1)
 }
 
 // issueDetail is the line under an issue's name.

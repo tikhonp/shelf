@@ -1,6 +1,6 @@
 # Sign-in and agent review redesign
 
-Status: designed on 2026-11-09 and not built. The owner made the choices under Decisions. The Claude Design canvas at https://claude.ai/artifact/LRhUtun1bSeK87kTh6Q7To has the boards, with today's screens beside them. The static exports are in [ui/design/screens](../ui/design/screens), and [ui/design/README.md](../ui/design/README.md) lists them.
+Status: designed on 2026-11-09. The bugs at the end were fixed the same day; the rest is not built. The owner made the choices under Decisions. The Claude Design canvas at https://claude.ai/artifact/LRhUtun1bSeK87kTh6Q7To has the boards, with today's screens beside them. The static exports are in [ui/design/screens](../ui/design/screens), and [ui/design/README.md](../ui/design/README.md) lists them.
 
 The review used a local build with `SHELF_AUTH_PROVIDER=simple`, `SHELF_AGENT_ENABLED=true` and the fake source. A script sent three proposals through the agent API. The [bugs](#bugs-found-on-2026-11-09) at the end can be fixed before the redesign or with it.
 
@@ -137,7 +137,15 @@ One part is open for the implementation. The library module must tell the agents
 
 ## Bugs found on 2026-11-09
 
-Each bug can be fixed without the redesign.
+Each bug can be fixed without the redesign. All 24 were fixed on 2026-11-09. Those fixes built these parts of the redesign:
+
+- Sign-in: plain fields, Day theme, Shelf's own words for 401 and 429, a "Sign in" key, the window at the top on the phone, the switched-off menubar behind it, and the CHECKING ACCESS display. The window stays a window, not the rack unit.
+- Account on Status: the three units and the confirm note.
+- Inbox: the state knob, the Agent and Kind menus, list rows with cover, field names and confidence, the album in the title bar, evidence as tape, rockers for fields and warnings, the selection that switches dependencies together with a status line, the three displays, the table grouped by tag with Show each file, Talkback with one Reply box, and the review bar at the foot of the window. The page shows a plug mark and a "Goes with" line in place of the drawn cable. On the phone the review bar sticks to the foot of the proposal's window rather than a slot above the dock.
+- Phone: four dock tabs, and the Inbox cap with its lamp in the Library title bar.
+- Agents on Status: permission rockers and tape. Memory: Reset memory in the title bar.
+
+The list's summaries gained `fields` and `confidence` for the rows, as [library-agent-contracts.md](library-agent-contracts.md) describes.
 
 ### Account sign-in
 
