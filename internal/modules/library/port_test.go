@@ -586,3 +586,60 @@ func TestPortRejectsOversizedArtworkHeader(t *testing.T) {
 		t.Fatalf("oversized image header was not bounded: %v", err)
 	}
 }
+
+func TestPortHistoryTrimStopsBeforeUnfinishedChange(t *testing.T) {
+	for _, state := range []string{StateQueued, StateWriting} {
+		t.Run(state, func(t *testing.T) {
+			r := newRig(t)
+			first := r.writing()
+			second := r.writing()
+			if _, err := r.m.store.db.W.Exec("UPDATE library_changes SET state=? WHERE id=?", state, first); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := r.m.store.db.W.Exec("UPDATE library_changes SET state='done' WHERE id=?", second); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := r.m.store.trim(bg, 0); err != nil {
+				t.Fatal(err)
+			}
+			page, err := r.m.Port().History(bg, 0, 50)
+			if err != nil || len(page.Changes) != 0 || page.TrimmedThrough != first-1 {
+				t.Fatalf("blocked page %+v: %v", page, err)
+			}
+			if _, err := r.m.store.db.W.Exec("UPDATE library_changes SET state='done' WHERE id=?", first); err != nil {
+				t.Fatal(err)
+			}
+			page, err = r.m.Port().History(bg, page.TrimmedThrough, 50)
+			if err != nil || len(page.Changes) != 1 || page.Changes[0].ID != first || page.TrimmedThrough != second {
+				t.Fatalf("completed page %+v: %v", page, err)
+			}
+		})
+	}
+}
+
+func TestPortHistoryFilesReportWrittenForPartialSave(t *testing.T) {
+	r := newRig(t)
+	id := r.writing(changeFile{Path: "folk/Blue/01.flac", Before: map[string][]string{"GENRE": {"Rock"}}, After: map[string][]string{"GENRE": {"Jazz"}}}, changeFile{Path: "folk/Blue/02.flac", Before: map[string][]string{"GENRE": {"Rock"}}, After: map[string][]string{"GENRE": {"Jazz"}}})
+	if _, err := r.m.store.db.W.Exec("UPDATE library_changes SET state='partial' WHERE id=?", id); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.m.store.db.W.Exec("UPDATE library_change_files SET written=1 WHERE change_id=? AND path=?", id, "folk/Blue/01.flac"); err != nil {
+		t.Fatal(err)
+	}
+	page, err := r.m.Port().History(bg, 0, 50)
+	if err != nil || len(page.Changes) != 1 {
+		t.Fatalf("history %+v: %v", page, err)
+	}
+	files := page.Changes[0].Files
+	if len(files) != 2 || !files[0].Written || files[1].Written {
+		t.Fatalf("files %+v", files)
+	}
+	raw, err := json.Marshal(files)
+	if err != nil || !bytes.Contains(raw, []byte(`"written":false`)) || !bytes.Contains(raw, []byte(`"written":true`)) {
+		t.Fatalf("history JSON %s: %v", raw, err)
+	}
+	raw, err = json.Marshal(files[0].PreviewFile)
+	if err != nil || bytes.Contains(raw, []byte("written")) {
+		t.Fatalf("preview JSON %s: %v", raw, err)
+	}
+}

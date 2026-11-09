@@ -422,7 +422,7 @@ func TestRevisionRaceAndDependencies(t *testing.T) {
 	want(t, r.call(t, "POST", path, body, false), 200)
 	want(t, r.call(t, "POST", path, body, false), 409)
 	ops := []Op{{ID: "a", Type: "tag", Field: "genre", Tracks: []OpTrack{{TrackID: 1, Values: []string{"A"}}}, Requires: []string{"b"}}, {ID: "b", Type: "tag", Field: "mood", Tracks: []OpTrack{{TrackID: 1, Values: []string{"B"}}}}}
-	if _, e := selectedOps(revisionRow{Ops: mustJSON(ops)}, map[string]opRow{"a": {Decision: "pending"}, "b": {Decision: "pending"}}, []string{"a"}, nil); e == nil {
+	if _, e := selectedOps(revisionRow{Ops: mustJSON(ops)}, map[string]opRow{"a": {Decision: "pending"}, "b": {Decision: "pending"}}, []string{"a"}, nil, nil); e == nil {
 		t.Fatal("missing required op accepted")
 	}
 	ops[1].Requires = []string{"a"}

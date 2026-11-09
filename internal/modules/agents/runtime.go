@@ -72,6 +72,9 @@ func (m *Module) retain(ctx context.Context) error {
 	}
 	cut := m.Now().Add(-365 * 24 * time.Hour)
 	return m.db.Write(ctx, func(tx *sqlx.Tx) error {
+		if _, e := tx.ExecContext(ctx, `DELETE FROM agents_events WHERE proposal_id IS NULL AND at<? AND id<=(SELECT events_cursor FROM agents_learning WHERE id=1)`, cut.UTC().Format("2006-01-02T15:04:05.000Z")); e != nil {
+			return e
+		}
 		ids := []int64{}
 		if e := tx.SelectContext(ctx, &ids, `SELECT p.id FROM agents_proposals p WHERE (p.pending=0 OR p.withdrawn_at IS NOT NULL) AND p.updated_at<? AND NOT EXISTS(SELECT 1 FROM agents_acceptances a WHERE a.proposal_id=p.id AND a.final=0) AND NOT EXISTS(SELECT 1 FROM agents_events e WHERE e.proposal_id=p.id AND e.id>(SELECT events_cursor FROM agents_learning WHERE id=1)) AND NOT EXISTS(SELECT 1 FROM agents_proposals f WHERE f.follow_up_of=p.id)`, cut.UTC().Format("2006-01-02T15:04:05.000Z")); e != nil {
 			return e

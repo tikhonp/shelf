@@ -298,6 +298,7 @@ type HistoryPage struct {
 	Changes []HistoryChange `json:"changes"` // ascending ID, after the cursor
 	Next    int64           `json:"next"`    // cursor for the next page; equals after when done
 	// TrimmedThrough is the highest change ID retention or Clear removed.
+	// Capped below the first unfinished change above after, including after Clear.
 	// A cursor below it has a gap.
 	TrimmedThrough int64 `json:"trimmed_through"`
 }
@@ -314,12 +315,14 @@ type HistoryChange struct {
 	State      string        `json:"state"`
 	Undone     bool          `json:"undone"`
 	CreatedAt  string        `json:"created_at"`
-	Files      []PreviewFile `json:"files"`           // empty for run heads and deletes
+	Files      []HistoryFile `json:"files"`           // empty for run heads and deletes
 	Truncated  bool          `json:"truncated,omitempty"`
 }
 ```
 
-`History` lists top-level rows (`parent IS NULL`) of every kind in ascending ID, ended or not, at most 50. A run head is kind `run` with no files.
+`HistoryFile` embeds `PreviewFile` and adds `written bool` (JSON `written`, always present). It reports which planned diffs reached disk, including partial Saves. Previews do not include this field.
+
+`History` lists completed top-level rows (`parent IS NULL`) in ascending ID, at most 50, stopping before the first queued or writing change above the cursor. The trim marker is capped at that change's ID minus one so Clear cannot hide its eventual result. A run head is kind `run` with no files.
 
 ### Library changes behind the port (backend library owner)
 
@@ -563,7 +566,7 @@ A proposal targets one album, the album of its tracks at creation. Ops:
 - `id`: `^[a-z0-9][a-z0-9._-]{0,47}$`, unique in the proposal for its whole life. A superseded ID can't come back.
 - A tag op has exactly one of `field` (a Navidrome field, as the editor's `field`) or `tag_key` (a raw key, as the editor's `key`). `values: []` removes the tag. `anchor` is a MusicBrainz release ID, as in Save.
 - No two tag ops in one revision touch the same (track, field or key). At most one cover op.
-- `requires` lists op IDs that must be selected with this one. A preview or acceptance of a subset that breaks it is refused with reason `refused` and a message naming both ops. Shelf never adds the missing op.
+- `requires` lists op IDs that must be selected with this one. A preview or acceptance of a subset that breaks it is refused with reason `refused` and a message naming both ops. An unselected accepted dependency counts only when its current library outcome is queued, writing, or done and not undone; after history trims its change, its last recorded outcome decides. Failed, partial, or undone dependencies must be selected again; a failed unwritten dependency can be retried with its dependent. Preview and accept use the same check. Shelf never adds the missing op.
 - Limits: 30 ops per revision, 500 track edits per revision (Save's `maxEdits`), 100 values per edit, 2,000 characters per value except lyrics fields (64 KiB).
 - Fingerprint: `sha256` of canonical JSON of `{type, field|tag_key|action, image, every_track, tracks: sorted [path, values]}`.
 
@@ -641,11 +644,11 @@ Agent actions are events too, so the inbox discussion is one ordered list. The a
 
 - `layer=rule`: users create and edit, status `active`. An agent may only create a rule with status `proposed`; a user confirms it (`active`) or deletes it.
 - `layer=preference` and `context`: agents write; users can correct (edit) or delete.
-- Every write names `expected_version` (0 to create). A mismatch is 409 `stale_memory` with the current document.
-- User deletion turns the row into a tombstone: `status=deleted`, body kept, `corrected_event` set. User correction also sets `corrected_event`.
+- Every write names `expected_version` (0 to create). Memory versions come from `agents_state.memory_version`, seeded from the existing maximum by migration, and increase across all keys, including reset tombstones. Deletion and recreation cannot reuse a version. A mismatch is 409 `stale_memory` with the current document.
+- User deletion of a preference turns the row into a tombstone: `status=deleted`, body kept, `corrected_event` set. User deletion removes a rule or context. User correction also sets `corrected_event`.
 - An agent write to a key whose row has `corrected_event` needs `reconsider: {reason, evidence_events: [ids]}` with at least one event ID greater than `corrected_event`. Else 409 `user_corrected`. Agents can never change or delete a `rule` with status `active`.
 - Quotas: 2,000 documents, 4 MiB of bodies, 64 KiB per body. Over: 413 `quota`.
-- Reset (`POST /api/inbox/memory/reset`, body `{layers: [...]}`): rules and context are removed; preferences become tombstones so old feedback can't bring them back. Cursors stay.
+- Reset (`POST /api/inbox/memory/reset`, body `{layers: [...]}`): rules and context are removed; preferences become tombstones so old feedback can't bring them back. Cursors stay. Deleting context clears its body, scope, and evidence, releasing quota; preference tombstones retain their content.
 
 ### Learning commit
 
@@ -682,7 +685,7 @@ Per connection per UTC day, in `agents_usage`: 300 external lookups, 100 offers,
 
 ### Retention
 
-A daily job `agents.retention` at 05:30 deletes proposals that are `reviewed` or `withdrawn`, updated more than 365 days ago, whose acceptances are all `final`, and whose events are all at or below `events_cursor`. It unpins their covers in the same transaction. Pending proposals, memory and tombstones stay until removed. Runs older than 365 days with no proposals are deleted; usage rows older than 30 days are deleted.
+A daily job `agents.retention` at 05:30 deletes proposals that are `reviewed` or `withdrawn`, updated more than 365 days ago, whose acceptances are all `final`, and whose events are all at or below `events_cursor`. It unpins their covers in the same transaction. It also deletes events that have no proposal, are older than the same cutoff, and are at or below `events_cursor`. Event IDs are never reused. A cursor may stay at its acknowledged value after those events disappear. Missing evidence cannot justify reconsideration, and stored `corrected_event` markers still protect memory. Pending proposals, memory and tombstones stay until removed. Runs older than 365 days with no proposals are deleted; usage rows older than 30 days are deleted.
 
 ## Agent API (`/api/agent/v1`)
 

@@ -214,12 +214,17 @@ export const useInbox = defineStore('inbox', () => {
   const busy = ref(false)
   // headSeen is the revision the reviewer's drafts started from, to say when another one arrived.
   const headSeen = ref(0)
+  let reviewSeq = 0
+  let savingReview: number | null = null
   let detailSeq = 0
   let previewSeq = 0
   // attempt keeps the request ID of an acceptance whose answer never came, so pressing Accept again retries it.
   let attempt: { key: string; id: string } | null = null
 
   function reset() {
+    ++reviewSeq
+    ++previewSeq
+    previewing.value = false
     detail.value = null
     selected.value = []
     drafts.value = {}
@@ -275,6 +280,13 @@ export const useInbox = defineStore('inbox', () => {
       headSeen.value = d.head
     } else {
       selected.value = selected.value.filter((o) => selectable(d, o))
+      // A new dependency must not turn back on a field the reviewer left off.
+      const removed = selected.value.filter((o) => needs(d.current.ops, o).some((r) => selectable(d, r) && !selected.value.includes(r)))
+      if (removed.length) {
+        const required = needs(d.current.ops, removed[0]!).find((r) => selectable(d, r) && !selected.value.includes(r))!
+        selected.value = selected.value.filter((o) => !removed.includes(o))
+        cascade.value = { op: required, on: false, moved: removed }
+      }
       if (d.head !== headSeen.value && Object.keys(drafts.value).length > 0) {
         notice.value = `Revision ${d.head} arrived while you edited. Your values are kept; check them against it before you save.`
       }
@@ -439,7 +451,8 @@ export const useInbox = defineStore('inbox', () => {
       op.type === 'cover'
         ? d.every_track === undefined || d.every_track === !!op.every_track
         : d.dropped.length === 0 && Object.entries(d.tracks).every(([t, v]) => sameList(v, op.tracks.find((x) => x.track_id === Number(t))?.values ?? []))
-    if (unchanged) discard(opId)
+    // Returning to the old head is still an edit against the revision being saved.
+    if (unchanged && savingReview !== reviewSeq) discard(opId)
   }
 
   const dirty = computed(() => revisionOps().length > 0)
@@ -448,17 +461,22 @@ export const useInbox = defineStore('inbox', () => {
     const d = detail.value
     const ops = revisionOps()
     if (!d || ops.length === 0) return false
+    const seq = reviewSeq
+    savingReview = seq
+    const sent = Object.fromEntries(ops.map((op) => [op.id, JSON.stringify(drafts.value[op.id])]))
     busy.value = true
     error.value = ''
     notice.value = ''
     try {
       const answer = await post<ProposalDetail>(`/api/inbox/proposals/${d.id}/revisions`, { parent_revision: headSeen.value || d.head, ops })
-      drafts.value = {}
+      if (seq !== reviewSeq) return true
+      drafts.value = Object.fromEntries(Object.entries(drafts.value).filter(([id, draft]) => sent[id] !== JSON.stringify(draft)))
       headSeen.value = answer.head
       take(answer)
       notice.value = `Saved as revision ${answer.head}. Nothing in the library changed.`
       return true
     } catch (err) {
+      if (seq !== reviewSeq) return false
       const code = errorCode(err instanceof ApiError ? err.body : undefined)
       error.value =
         code === 'stale_revision'
@@ -467,6 +485,7 @@ export const useInbox = defineStore('inbox', () => {
       if (code === 'stale_revision' || code === 'decided_op') await loadDetail()
       return false
     } finally {
+      if (savingReview === seq) savingReview = null
       busy.value = false
     }
   }
@@ -504,6 +523,7 @@ export const useInbox = defineStore('inbox', () => {
     const d = detail.value
     const preview = selection.value?.preview
     if (!d || !preview || !canAccept.value) return false
+    const seq = reviewSeq
     const body = { revision: d.head, ops: sorted(selected.value), digest: preview.digest, confirm: sorted(confirm.value) }
     const key = JSON.stringify(body)
     if (attempt?.key !== key) attempt = { key, id: newRequestId() }
@@ -512,20 +532,22 @@ export const useInbox = defineStore('inbox', () => {
     notice.value = ''
     try {
       const answer = await post<AcceptAnswer>(`/api/inbox/proposals/${d.id}/accept`, { ...body, request_id: attempt.id })
+      if (seq !== reviewSeq) return true
       attempt = null
       lastAccepted.value = answer
       notice.value = 'Accepted. The library writes it in the background; the outcome shows below.'
       await loadDetail()
       return true
     } catch (err) {
-      refused(err)
+      if (seq === reviewSeq) refused(err, keyOf(body.revision, body.ops))
       return false
     } finally {
       busy.value = false
     }
   }
 
-  function refused(err: unknown) {
+  // Fields stay switchable while an acceptance is in flight, so a refusal speaks only for the selection that was sent.
+  function refused(err: unknown, submittedKey: string) {
     if (!(err instanceof ApiError) || err.status >= 500) {
       // The server may have taken it. The same request ID makes pressing Accept again safe.
       error.value = `${errorText(err)}. It may have gone through; press Accept again to retry the same request, which runs at most once.`
@@ -536,11 +558,15 @@ export const useInbox = defineStore('inbox', () => {
     const body = err.body as { preview?: Preview; confirm?: Warning[]; refusal?: Refusal } | undefined
     const code = errorCode(body)
     if (code === 'preview_changed' && body?.preview) {
-      setSelection({ preview: body.preview, refusal: null, missing: body.preview.warnings.map((w) => w.kind) }, current.value)
+      if (submittedKey !== current.value) {
+        void refreshPreview()
+        return
+      }
+      setSelection({ preview: body.preview, refusal: null, missing: body.preview.warnings.map((w) => w.kind) }, submittedKey)
       notice.value = 'The changes differ from what you saw. Check the new diff and accept again.'
       return
     }
-    if (code === 'confirm' && selection.value?.preview) {
+    if (code === 'confirm' && submittedKey === current.value && selection.value?.preview) {
       const extra = (body?.confirm ?? []).filter((w) => !warnings.value.some((x) => x.kind === w.kind))
       const preview = { ...selection.value.preview, warnings: [...selection.value.preview.warnings, ...extra] }
       selection.value = { ...selection.value, preview, missing: (body?.confirm ?? []).map((w) => w.kind) }
@@ -563,15 +589,18 @@ export const useInbox = defineStore('inbox', () => {
   async function act(path: string, body: unknown, done: string): Promise<boolean> {
     const d = detail.value
     if (!d) return false
+    const seq = reviewSeq
     busy.value = true
     error.value = ''
     notice.value = ''
     try {
       await post(`/api/inbox/proposals/${d.id}/${path}`, body)
+      if (seq !== reviewSeq) return true
       notice.value = done
       await loadDetail()
       return true
     } catch (err) {
+      if (seq !== reviewSeq) return false
       const code = errorCode(err instanceof ApiError ? err.body : undefined)
       error.value = code === 'stale_revision' ? 'The proposal has a new revision. It shows now; your text is kept.' : errorText(err)
       if (code === 'stale_revision' || code === 'decided_op') await loadDetail()

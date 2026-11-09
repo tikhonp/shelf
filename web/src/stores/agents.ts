@@ -13,6 +13,8 @@ export const useAgents = defineStore('agents', () => {
   // created holds the one-time secret of the connection just made. It lives only in this page's memory.
   const created = ref<{ connection: Connection; token: string } | null>(null)
 
+  let createSeq = 0
+
   const inbox = useInbox()
   // Without simple sign-in nobody can be told apart, so connections come from the CLI.
   const canCreate = computed(() => !!inbox.info?.can_create_connections && inbox.info.accounts === 'simple')
@@ -31,10 +33,12 @@ export const useAgents = defineStore('agents', () => {
       error.value = 'Create connections with shelf manage agents add <name>.'
       return false
     }
+    const seq = ++createSeq
     busy.value = true
     error.value = ''
     try {
-      created.value = await post<{ connection: Connection; token: string }>('/api/inbox/connections', { name, operations })
+      const answer = await post<{ connection: Connection; token: string }>('/api/inbox/connections', { name, operations })
+      if (seq === createSeq) created.value = answer
       await load()
       void inbox.detect()
       return true
@@ -63,6 +67,8 @@ export const useAgents = defineStore('agents', () => {
   }
 
   function forget() {
+    // Leaving the panel also forgets a secret whose request has not answered yet.
+    ++createSeq
     created.value = null
   }
 

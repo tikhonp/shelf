@@ -206,18 +206,22 @@ func (p port) History(ctx context.Context, after int64, limit int) (libraryport.
 	if limit < 1 || limit > portPageHistory {
 		limit = portPageHistory
 	}
+	// Clear can remove a later completed change while an earlier write is pending.
+	// Neither returned rows nor the trim marker may let learning skip that write.
+	var barrier int64
+	if err := m.store.db.R.GetContext(ctx, &barrier, `SELECT coalesce(min(id),9223372036854775807) FROM library_changes WHERE parent IS NULL AND id > ? AND state IN ('queued','writing')`, after); err != nil {
+		return libraryport.HistoryPage{}, err
+	}
 	var rows []changeRow
 	if err := m.store.db.R.SelectContext(ctx, &rows, `SELECT `+changeCols+` FROM library_changes
-		WHERE parent IS NULL AND id > ? AND id < coalesce((SELECT min(id) FROM library_changes
-          WHERE parent IS NULL AND id > ? AND state IN ('queued','writing')), 9223372036854775807)
-        ORDER BY id LIMIT ?`, after, after, limit); err != nil {
+		WHERE parent IS NULL AND id > ? AND id < ? ORDER BY id LIMIT ?`, after, barrier, limit); err != nil {
 		return libraryport.HistoryPage{}, err
 	}
 	trimmed, err := m.store.trimmedThrough(ctx, m.store.db.R)
 	if err != nil {
 		return libraryport.HistoryPage{}, err
 	}
-	out := libraryport.HistoryPage{Changes: []libraryport.HistoryChange{}, Next: after, TrimmedThrough: trimmed}
+	out := libraryport.HistoryPage{Changes: []libraryport.HistoryChange{}, Next: after, TrimmedThrough: min(trimmed, barrier-1)}
 	for _, r := range rows {
 		hc, err := p.historyChange(ctx, r)
 		if err != nil {
@@ -234,7 +238,7 @@ func (p port) historyChange(ctx context.Context, r changeRow) (libraryport.Histo
 	j := m.changeJSON(ctx, r)
 	hc := libraryport.HistoryChange{ID: r.ID, Kind: r.Kind, Target: r.Target, Origin: deref(r.Origin), AuthorID: deref(r.AuthorID),
 		Author: j.Author, Folder: r.Folder, Title: r.Title, Artist: r.Artist, State: r.State, Undone: r.Undone,
-		CreatedAt: j.CreatedAt, Files: []libraryport.PreviewFile{}}
+		CreatedAt: j.CreatedAt, Files: []libraryport.HistoryFile{}}
 	if j.Run != nil {
 		// A run's album changes are its children, which the history by ID
 		// never lists, and the run's own row has no files.
@@ -260,7 +264,7 @@ func (p port) historyChange(ctx context.Context, r changeRow) (libraryport.Histo
 				pf.TrackID = id
 			}
 		}
-		hc.Files = append(hc.Files, pf)
+		hc.Files = append(hc.Files, libraryport.HistoryFile{PreviewFile: pf, Written: f.Written})
 	}
 	return hc, nil
 }

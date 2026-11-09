@@ -25,7 +25,7 @@ type acceptBody struct {
 	RequestID string   `json:"request_id"`
 }
 
-func selectedOps(r revisionRow, rows map[string]opRow, ids []string, retry map[int64]bool) ([]Op, error) {
+func selectedOps(r revisionRow, rows map[string]opRow, ids []string, retry, satisfied map[int64]bool) ([]Op, error) {
 	if len(ids) == 0 || len(ids) > maxOps {
 		return nil, invalid("select 1 to %d operations", maxOps)
 	}
@@ -49,7 +49,7 @@ func selectedOps(r revisionRow, rows map[string]opRow, ids []string, retry map[i
 	}
 	for _, o := range ops {
 		for _, dep := range closure(r.ops(), o.Requires) {
-			if !seen[dep] && rows[dep].Decision != "accepted" {
+			if !seen[dep] && (rows[dep].Decision != "accepted" || !satisfied[rows[dep].AcceptanceID.Int64]) {
 				return nil, fail(422, "refused", "operation "+o.ID+" requires "+dep)
 			}
 		}
@@ -76,7 +76,8 @@ func (m *Module) selection(ctx context.Context, id int64, b selectionBody, allow
 		return p, r, nil, nil, e
 	}
 	retry := map[int64]bool{}
-	if allowRetry {
+	satisfied := map[int64]bool{}
+	{
 		as, e := getAcceptances(ctx, m.db.R, id)
 		if e != nil {
 			return p, r, rows, nil, e
@@ -94,12 +95,18 @@ func (m *Module) selection(ctx context.Context, id int64, b selectionBody, allow
 			return p, r, rows, nil, e
 		}
 		for _, a := range as {
+			// A change trimmed from the history can no longer be undone, so its
+			// last recorded outcome stands; without it a done dependency would
+			// block its dependents for good.
+			o := a.outcome()
 			if s, ok := status[a.ChangeID]; ok {
-				retry[a.ID] = outcomeOf(s).retryable()
+				o = outcomeOf(s)
+				retry[a.ID] = allowRetry && o.retryable()
 			}
+			satisfied[a.ID] = !o.Undone && slices.Contains([]string{"queued", "writing", "done"}, o.State)
 		}
 	}
-	ops, e := selectedOps(r, rows, b.Ops, retry)
+	ops, e := selectedOps(r, rows, b.Ops, retry, satisfied)
 	if e != nil {
 		return p, r, rows, ops, e
 	}

@@ -29,7 +29,7 @@ function detail(): ProposalDetail {
     revisions: [{ revision: 1, author_kind: 'agent', author: 'Claude at home', created_at: '2026-11-09T10:00:00Z' }],
     current: {
       title: 'Dates from MusicBrainz', reason: 'The release has a reissue date.', uncertainties: 'The label', confidence: 86,
-      evidence: [{ kind: 'link', text: 'https://musicbrainz.org/release/x' }, { kind: 'note', text: 'Booklet says 1974' }, { kind: 'link', text: 'javascript:alert(1)' }],
+      evidence: [{ kind: 'link', text: 'Release credits', url: 'https://musicbrainz.org/release/x' }, { kind: 'note', text: 'Booklet says 1974' }, { kind: 'link', text: 'Unsafe link', url: 'javascript:alert(1)' }],
       base: [1, 2, 3, 4, 5, 6].map((t) => ({ track_id: t, revision: 'r' })),
       ops: [tag('releasedate', ['originaldate']), tag('albumartists'), tag('originaldate')], preview: sameOnSix(),
     },
@@ -93,7 +93,8 @@ test('evidence is tape, and only a web address opens', async () => {
   const links = w.findAll('.ib-tapes a')
   expect(links).toHaveLength(1)
   expect(links[0]!.attributes('href')).toBe('https://musicbrainz.org/release/x')
-  expect(links[0]!.attributes('rel')).toContain('noopener')
+  expect(links[0]!.text()).toContain('Release credits')
+  expect(links[0]!.attributes('rel')).toBe('noopener noreferrer')
   expect(w.findAll('.ib-tapes .sug')).toHaveLength(3)
   expect(w.find('.ib-tapes').text()).not.toMatch(/\blink\b|\bnote\b/)
 })
@@ -197,4 +198,21 @@ test('on the phone the dock keeps four tabs and the Library title bar opens the 
   expect(cap.text()).toContain('2 to review')
   expect(w.find('.dock a').text()).toContain('2 proposals to review')
   w.unmount()
+})
+
+
+test('evidence without a label shows its URL and never links non-web schemes', async () => {
+  const d = detail()
+  d.current.evidence = [
+    { kind: 'link', url: 'http://example.com/credits' },
+    { kind: 'link', url: 'data:text/html,unsafe' },
+    { kind: 'link', url: '//example.com/credits' },
+    { kind: 'link', text: 'https://example.com/label-only' },
+  ]
+  const w = await openDetail({ '/api/inbox/proposals/4': d })
+  const links = w.findAll('.ib-tapes a')
+  expect(links).toHaveLength(1)
+  expect(links[0]!.attributes('href')).toBe('http://example.com/credits')
+  expect(links[0]!.text()).toContain('http://example.com/credits')
+  expect(w.find('.ib-tapes').text()).toContain('data:text/html,unsafe')
 })

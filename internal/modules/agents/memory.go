@@ -97,6 +97,13 @@ type learningWrite struct {
 
 var memoryKey = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$`)
 
+// Versions survive physical deletion so stale writers cannot overwrite recreated keys.
+func nextMemoryVersion(ctx context.Context, tx *sqlx.Tx) (int64, error) {
+	var version int64
+	err := tx.GetContext(ctx, &version, `UPDATE agents_state SET value=value+1 WHERE key='memory_version' RETURNING value`)
+	return version, err
+}
+
 func (m *Module) memoryWrite(ctx context.Context, tx *sqlx.Tx, w memoryWrite, conn Connection, run int64) (memoryRow, error) {
 	var old memoryRow
 	e := tx.GetContext(ctx, &old, `SELECT * FROM agents_memory WHERE key=?`, w.Key)
@@ -163,6 +170,9 @@ func (m *Module) memoryWrite(ctx context.Context, tx *sqlx.Tx, w memoryWrite, co
 		status = "deleted"
 		w.Title, w.Scope, w.Body, w.Confidence = old.Title, old.Scope, old.Body, old.Confidence
 		_ = json.Unmarshal([]byte(old.Evidence), &w.Evidence)
+		if old.Layer == "context" {
+			w.Body, w.Scope, w.Evidence = "", "", nil
+		}
 	} else if w.Op != "" && w.Op != "put" {
 		return old, invalid("memory op is put or delete")
 	} else {
@@ -187,7 +197,11 @@ func (m *Module) memoryWrite(ctx context.Context, tx *sqlx.Tx, w memoryWrite, co
 	if agent {
 		connID, runID = conn.ID, run
 	}
-	_, e = tx.ExecContext(ctx, `INSERT INTO agents_memory(key,layer,status,title,scope,body,confidence,evidence,version,author_kind,author_id,author,connection_id,run_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,1,?,?,?,?,?,?,?) ON CONFLICT(key) DO UPDATE SET status=excluded.status,title=excluded.title,scope=excluded.scope,body=excluded.body,confidence=excluded.confidence,evidence=excluded.evidence,version=agents_memory.version+1,author_kind=excluded.author_kind,author_id=excluded.author_id,author=excluded.author,connection_id=excluded.connection_id,run_id=excluded.run_id,updated_at=excluded.updated_at`, w.Key, w.Layer, status, w.Title, w.Scope, w.Body, w.Confidence, mustJSON(w.Evidence), kind, a.ID, a.Name, connID, runID, now, now)
+	version, e := nextMemoryVersion(ctx, tx)
+	if e != nil {
+		return old, e
+	}
+	_, e = tx.ExecContext(ctx, `INSERT INTO agents_memory(key,layer,status,title,scope,body,confidence,evidence,version,author_kind,author_id,author,connection_id,run_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(key) DO UPDATE SET status=excluded.status,title=excluded.title,scope=excluded.scope,body=excluded.body,confidence=excluded.confidence,evidence=excluded.evidence,version=excluded.version,author_kind=excluded.author_kind,author_id=excluded.author_id,author=excluded.author,connection_id=excluded.connection_id,run_id=excluded.run_id,updated_at=excluded.updated_at`, w.Key, w.Layer, status, w.Title, w.Scope, w.Body, w.Confidence, mustJSON(w.Evidence), version, kind, a.ID, a.Name, connID, runID, now, now)
 	if e != nil {
 		return old, e
 	}
@@ -480,7 +494,11 @@ func (m *Module) resetMemory(c *echo.Context) error {
 				return e
 			}
 			if r.Layer == "preference" {
-				_, e = tx.ExecContext(ctx, `UPDATE agents_memory SET status='deleted',version=version+1,corrected_event=?,updated_at=? WHERE id=?`, id, m.now(), r.ID)
+				version, err := nextMemoryVersion(ctx, tx)
+				if err != nil {
+					return err
+				}
+				_, e = tx.ExecContext(ctx, `UPDATE agents_memory SET status='deleted',version=?,corrected_event=?,updated_at=? WHERE id=?`, version, id, m.now(), r.ID)
 			} else {
 				_, e = tx.ExecContext(ctx, `DELETE FROM agents_memory WHERE id=?`, r.ID)
 			}

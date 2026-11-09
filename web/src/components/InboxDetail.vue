@@ -74,9 +74,9 @@ const cascadeText = computed(() => {
 
 // Evidence is tape like a suggestion: the value, then where it came from. Only a web address opens.
 const kinds: Record<string, string> = { suggestion: 'Suggestion', memory: 'Memory', change: 'Change', event: 'Event', note: 'Note', link: 'Link' }
-const tapeValue = (e: Evidence) => e.text ?? ([e.field, e.key, e.anchor].filter((x) => typeof x === 'string' && x).join(' · ') || kinds[e.kind] || e.kind)
+const tapeValue = (e: Evidence) => e.text || e.url || ([e.field, e.key, e.anchor].filter((x) => typeof x === 'string' && x).join(' · ') || kinds[e.kind] || e.kind)
 const tapeSource = (e: Evidence) => (typeof e.source === 'string' && e.source ? e.source : kinds[e.kind] ?? e.kind)
-const href = (e: Evidence) => (e.kind === 'link' && typeof e.text === 'string' && /^https?:\/\//i.test(e.text) ? e.text : '')
+const href = (e: Evidence) => (e.kind === 'link' && typeof e.url === 'string' && /^https?:\/\//i.test(e.url) ? e.url : '')
 
 async function declineRest() {
   if (await inbox.declineRest(reason.value)) { reason.value = ''; declining.value = false }

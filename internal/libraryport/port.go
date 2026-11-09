@@ -205,6 +205,7 @@ type HistoryPage struct {
 	Changes []HistoryChange `json:"changes"` // ascending ID, after the cursor
 	Next    int64           `json:"next"`    // cursor for the next page; equals after when done
 	// TrimmedThrough is the highest change ID retention or Clear removed.
+	// It is capped below the first unfinished change above the requested cursor.
 	// A cursor below it has a gap.
 	TrimmedThrough int64 `json:"trimmed_through"`
 }
@@ -221,6 +222,12 @@ type HistoryChange struct {
 	State     string        `json:"state"`
 	Undone    bool          `json:"undone"`
 	CreatedAt string        `json:"created_at"`
-	Files     []PreviewFile `json:"files"` // empty for run heads and deletes
+	Files     []HistoryFile `json:"files"` // empty for run heads and deletes
 	Truncated bool          `json:"truncated,omitempty"`
+}
+
+// HistoryFile records whether a planned diff reached disk, including partial saves.
+type HistoryFile struct {
+	PreviewFile
+	Written bool `json:"written"`
 }

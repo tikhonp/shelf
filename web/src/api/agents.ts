@@ -126,6 +126,7 @@ export interface Refusal {
 }
 
 export interface Evidence {
+  url?: string
   kind: string
   text?: string
   source?: string
