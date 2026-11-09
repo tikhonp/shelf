@@ -17,6 +17,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/tikhonp/shelf/internal/libraryport"
 	"github.com/tikhonp/shelf/internal/modules/library/acoustid"
+	"github.com/tikhonp/shelf/internal/platform/db"
 	"github.com/tikhonp/shelf/internal/platform/identity"
 	"go.senan.xyz/taglib"
 )
@@ -410,7 +411,7 @@ func TestPortCoversPinsAndRetention(t *testing.T) {
 // retain runs the retention step.
 func (r *rig) retain() {
 	r.t.Helper()
-	if _, err := r.m.store.trim(bg, HistoryLimit); err != nil {
+	if _, err := r.m.store.trim(bg, HistoryLimit, time.Now()); err != nil {
 		r.t.Fatal(err)
 	}
 	used, err := r.m.store.coverIDs(bg)
@@ -469,13 +470,13 @@ func TestPortHistoryAfterTrim(t *testing.T) {
 
 	// Keeping two saves removes the first, and keeping one removes the
 	// second with its undo, so the marker moves past the undo.
-	if _, err := r.m.store.trim(bg, 2); err != nil {
+	if _, err := r.m.store.trim(bg, 2, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	if page, _ := port.History(bg, 0, 50); page.TrimmedThrough != ids[0] || page.Changes[0].ID != ids[1] {
 		t.Fatalf("after trim %+v", page)
 	}
-	if _, err := r.m.store.trim(bg, 1); err != nil {
+	if _, err := r.m.store.trim(bg, 1, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	page, _ = port.History(bg, 0, 50)
@@ -485,14 +486,22 @@ func TestPortHistoryAfterTrim(t *testing.T) {
 	if st, _ := port.Changes(bg, []int64{ids[0]}); len(st) != 0 {
 		t.Fatal("a trimmed change still reports")
 	}
-	// Clear removes the rest and the marker never moves back.
-	if _, err := r.m.store.trim(bg, 0); err != nil {
+	// A Clear right after a proposal's change ends keeps it, so the agents
+	// module can still read its outcome.
+	if _, err := r.m.store.trim(bg, 0, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if st, _ := port.Changes(bg, []int64{ids[2]}); st[ids[2]].State != StateDone {
+		t.Fatalf("a Clear in the grace removed the proposal's change: %+v", st)
+	}
+	// Once the grace has passed, Clear removes the rest and the marker never moves back.
+	if _, err := r.m.store.trim(bg, 0, time.Now().Add(originGrace+time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	if page, _ := port.History(bg, 0, 50); page.TrimmedThrough != undo.ID || len(page.Changes) != 0 {
 		t.Fatalf("after clear %+v", page)
 	}
-	if _, err := r.m.store.trim(bg, 0); err != nil {
+	if _, err := r.m.store.trim(bg, 0, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	if got, _ := r.m.store.trimmedThrough(bg, r.m.store.db.R); got != undo.ID {
@@ -587,6 +596,39 @@ func TestPortRejectsOversizedArtworkHeader(t *testing.T) {
 	}
 }
 
+// An undo of a proposal's change restarts its grace, so a Clear right after
+// the undo can't hide that the change was undone.
+func TestPortTrimKeepsProposalChangeAfterRecentUndo(t *testing.T) {
+	r := newRig(t)
+	r.add("folk/Blue/01.flac", "track.flac", blue("1", nil))
+	r.walk()
+	r.startJobs()
+	tracks := portTrackIDs(t, r, r.albums("").Albums[0].ID)
+	id, err := r.accept(bg, r.plan(libraryport.PlanRequest{Files: []libraryport.PlanFile{genre(tracks[0], "A")}}), "proposal:1/acceptance:1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.drain()
+	old := db.At(time.Now().Add(-originGrace - time.Minute))
+	if _, err := r.m.store.db.W.Exec("UPDATE library_changes SET finished_at=? WHERE id=?", old, id); err != nil {
+		t.Fatal(err)
+	}
+	r.reversed(KindUndo, id)
+	if _, err := r.m.store.trim(bg, 0, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	st, err := r.m.Port().Changes(bg, []int64{id})
+	if err != nil || !st[id].Undone {
+		t.Fatalf("the undone change left in its grace: %+v %v", st, err)
+	}
+	if _, err := r.m.store.trim(bg, 0, time.Now().Add(originGrace+time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if st, _ := r.m.Port().Changes(bg, []int64{id}); len(st) != 0 {
+		t.Fatalf("the change outlived its grace: %+v", st)
+	}
+}
+
 func TestPortHistoryTrimStopsBeforeUnfinishedChange(t *testing.T) {
 	for _, state := range []string{StateQueued, StateWriting} {
 		t.Run(state, func(t *testing.T) {
@@ -599,7 +641,7 @@ func TestPortHistoryTrimStopsBeforeUnfinishedChange(t *testing.T) {
 			if _, err := r.m.store.db.W.Exec("UPDATE library_changes SET state='done' WHERE id=?", second); err != nil {
 				t.Fatal(err)
 			}
-			if _, err := r.m.store.trim(bg, 0); err != nil {
+			if _, err := r.m.store.trim(bg, 0, time.Now()); err != nil {
 				t.Fatal(err)
 			}
 			page, err := r.m.Port().History(bg, 0, 50)

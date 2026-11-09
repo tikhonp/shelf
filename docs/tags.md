@@ -99,7 +99,7 @@ The history lists the saves and deletes newest first, `GET /api/library/history?
 - **Release IDs.** The MusicBrainz album, release group, album artist, release track and disc IDs go back together or not at all. A conflict on one of them, in any file, leaves all of them in every file and lists them as conflicts, so a file never ends with IDs from two releases.
 - **Refusals.** A save that wrote nothing, an undo of an undone save and a redo of one that isn't undone answer 409. So does an undo or redo while another of the same save is still to run. One whose every key changed since answers 409 with `reason: conflict` and its conflicts.
 - **The write.** An undo or redo is a change of its own, of kind `undo` or `redo`, with the save as its `target`. It is checked and confirmed as a Save is, because putting tracks back can merge or split albums in Navidrome too, and its body takes the same `confirm`. It writes raw keys through the same `library.write` job. When it replaces any file, the save's `undone` flag follows it.
-- **Clear history.** `DELETE /api/library/history` deletes every change that has ended, except a save whose undo or redo is still to run. It answers `{"deleted"}`.
+- **Clear history.** `DELETE /api/library/history` deletes every change that has ended, except a save whose undo or redo is still to run, and a proposal's change in the 10 minutes after it, or its undo or redo, ended. The agents module reads the outcome from that row. It answers `{"deleted"}`.
 - **Retention.** A `library.retention` job at 05:15 keeps the newest 1,000 saves and deletes. Each save takes its undos and redos with it. The job then removes stored covers no change refers to, except uploads younger than a day.
 
 ## Deleting
@@ -448,6 +448,7 @@ The test's container installs Alpine's ffmpeg, the one production has, because a
 | Cancel of a write, of a waiting analysis, of an undo, and a job that fails | `TestCancelRun`, `TestCancelStopsTheAnalysis`, `TestCancelledUndoFinishesOnTheNextPress`, `TestFailedAnalysisClosesTheRun` |
 | An undo that meets a tag changed since | `TestRunUndoLeavesWhatChangedSince` |
 | Retention and Clear history keep a run whole | `TestHistoryRetentionKeepsARunWhole` |
+| Clear history keeps a proposal's change for 10 minutes after it ends, and after its undo ends | `TestPortHistoryAfterTrim`, `TestPortTrimKeepsProposalChangeAfterRecentUndo` |
 | ReplayGain in FLAC and M4A, audio not decoded twice, a file ffmpeg can't read | `TestRunWritesReplayGain`, `TestRunMeasureFailureSkipsTheAlbum` |
 | Gates, pooled blocks against one decode, no signal, a stopped decode, tag formats | `loudness`: `TestIntegratedGates`, `TestPoolMatchesOneDecode`, `TestParseKeepsThePeakAndSkipsNoSignal`, `TestAnalyzeStopsWithItsContext`, `TestFormats` |
 | AcoustID as the last resort, a miss, a failure, no key, MusicBrainz down | `TestAudioFindsTheAnchorWhenTextFindsNothing`, `TestAudioThatFindsNothingIsKeptAsAMiss`, `TestFailedFingerprintStoresNothing`, `TestNoKeyNoFingerprint`, `TestAudioDoesNothingWhenMusicBrainzFails`, `TestAudioWaitsForTextLookups` |

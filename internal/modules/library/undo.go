@@ -305,9 +305,9 @@ func (m *Module) history(c *echo.Context) error {
 }
 
 // clearHistory deletes every change that has ended, except a save whose
-// undo or redo is still to run.
+// undo or redo is still to run and a proposal's change still in its grace.
 func (m *Module) clearHistory(c *echo.Context) error {
-	n, err := m.store.trim(c.Request().Context(), 0)
+	n, err := m.store.trim(c.Request().Context(), 0, time.Now())
 	if err != nil {
 		return err
 	}
@@ -330,16 +330,25 @@ func (s store) saves(ctx context.Context, before int64, limit int) ([]changeRow,
 // reader of the history by ID can tell a gap from an empty page.
 const trimmedKey = "history_trimmed_through"
 
+// originGrace is how long a proposal's change stays after it, or an undo or
+// redo of it, ends. The agents module reads the outcome from the row, and
+// it looks at least every 5 minutes, so a Clear right after the write can't
+// leave the Inbox without the result.
+const originGrace = 10 * time.Minute
+
 // trim deletes the ended changes beyond the newest keep saves and deletes,
 // or all of them when keep is 0. A save keeps its row while an undo or redo
 // of it is still to run, and each save takes its undos and redos with it.
-func (s store) trim(ctx context.Context, keep int) (int64, error) {
+// A proposal's change also keeps its row through originGrace.
+func (s store) trim(ctx context.Context, keep int, now time.Time) (int64, error) {
 	var n int64
 	err := s.db.Write(ctx, func(tx *sqlx.Tx) error {
 		// A run's album changes go with its head.
 		cond := `parent IS NULL AND state NOT IN ('queued', 'writing') AND NOT EXISTS (SELECT 1 FROM library_changes x
-			WHERE x.target = library_changes.id AND x.state IN ('queued', 'writing'))`
-		var args []any
+			WHERE x.target = library_changes.id AND x.state IN ('queued', 'writing'))
+			AND NOT (origin IS NOT NULL AND EXISTS (SELECT 1 FROM library_changes x
+				WHERE (x.id = library_changes.id OR x.target = library_changes.id) AND x.finished_at > ?))`
+		args := []any{db.At(now.Add(-originGrace))}
 		if keep != 0 {
 			cond = `kind IN ('save', 'delete') AND ` + cond + ` AND id < (
 				SELECT id FROM library_changes WHERE kind IN ('save', 'delete') AND parent IS NULL ORDER BY id DESC LIMIT 1 OFFSET ?)`
@@ -387,7 +396,7 @@ func (s store) trimmedThrough(ctx context.Context, q sqlx.QueryerContext) (int64
 
 // retain is the retention job's step.
 func (m *Module) retain(ctx context.Context, r *jobs.Run) error {
-	n, err := m.store.trim(ctx, HistoryLimit)
+	n, err := m.store.trim(ctx, HistoryLimit, time.Now())
 	if err != nil {
 		return err
 	}

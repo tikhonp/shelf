@@ -657,7 +657,7 @@ func TestHistoryRetentionKeepsARunWhole(t *testing.T) {
 		return n
 	}
 	// A run counts as one save, so keeping one keeps it and its albums.
-	if _, err := r.m.store.trim(bg, 1); err != nil {
+	if _, err := r.m.store.trim(bg, 1, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	if n := count(`SELECT count(*) FROM library_changes`); n != 3 {

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"slices"
 	"testing"
+	"time"
 
 	"go.senan.xyz/taglib"
 )
@@ -223,7 +224,7 @@ func TestHistory(t *testing.T) {
 	}
 
 	// Retention keeps the newest saves, and each takes its undos with it.
-	if n, err := r.m.store.trim(bg, 2); err != nil || n != 1 {
+	if n, err := r.m.store.trim(bg, 2, time.Now()); err != nil || n != 1 {
 		t.Fatalf("trim: %d %v", n, err)
 	}
 	r.getJSON("/api/library/history", &h)
