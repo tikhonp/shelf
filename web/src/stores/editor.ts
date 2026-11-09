@@ -76,7 +76,7 @@ export const useEditor = defineStore('editor', () => {
   // scope is the tracks an edit reaches.
   const scope = computed<LibraryTrack[]>(() => (selected.value ? [selected.value] : readable.value))
   const staged = computed(() => changes(stage.value) + (cover.value ? 1 : 0))
-  // kept counts the staged edits of every album, which a session that ends keeps.
+  // kept counts the staged edits of every album. The Sign in again dialog shows it.
   const kept = computed(() => Object.values(held.value).reduce((n, h) => n + changes(h.stage) + (h.cover ? 1 : 0), 0))
   const coverUrl = computed(() => (album.value ? `/api/library/albums/${album.value.id}/cover?v=${coverRev.value}` : ''))
 

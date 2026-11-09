@@ -12,7 +12,7 @@ import { useTheme } from '../stores/theme'
 import Icon, { type IconName } from './Icon.vue'
 import KeySwitch from './KeySwitch.vue'
 
-// The switched-off console before the app mounts: the menubar with its tabs dark, and the sign-in rack unit.
+// The switched-off console before the app mounts. It has the menubar with dark tabs and the sign-in rack unit.
 // While Shelf checks access, the unit shows only its display.
 const auth = useAuth()
 const theme = useTheme()
@@ -25,7 +25,7 @@ const username = ref('')
 const password = ref('')
 const passwordEl = ref<HTMLInputElement>()
 const state = ref<SignState>('out')
-// on is the key switch: it turns to ON when a passkey signs in.
+// on is where the key switch points. It turns to ON when a passkey signs in.
 const on = ref(false)
 // lit counts the menubar lamps the power-up has lit.
 const lit = ref(0)

@@ -12,7 +12,7 @@ const theme = useTheme()
 const editor = useEditor()
 const known = auth.previousName
 const username = ref(known)
-// other is true after "Not <name>?", when the reviewer types another username.
+// other is true after "Not <name>?", when the user types another username.
 const other = ref(!known)
 const password = ref('')
 const state = ref<SignState>('ended')

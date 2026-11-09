@@ -20,7 +20,7 @@
 .rs .tabs { display: flex; gap: 6px; }
 .rs .vfd.small { font-size: 15px; }
 .rs .dock { bottom: calc(14px + env(safe-area-inset-bottom)); }
-/* Switched off: the brand's level bars stay dark until someone signs in. */
+/* The brand's level bars stay dark until someone signs in. */
 .rs .logo.off i { background: #3A4554; box-shadow: none; }
 /* Rack units: a wide faceplate with rack ears and screws, a name plate, a display and controls. Status parts and account sign-in use them. */
 .rs .unit { flex-direction: row; align-items: stretch; border-radius: 4px; }
