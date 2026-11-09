@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { fieldNote } from '../lib/notes'
-import { fieldView, mainFields, suggestionsFor } from '../lib/tags'
+import { fieldView, mainFields, offersFor } from '../lib/tags'
 import { useEditor } from '../stores/editor'
 import { useHelp } from '../stores/help'
 import Icon from './Icon.vue'
@@ -17,7 +17,7 @@ const note = computed(() => fieldNote(props.field))
 
 const f = computed(() => mainFields.find((m) => m.field === props.field) ?? { field: props.field, label: props.field })
 const view = computed(() => fieldView(editor.scope, props.field, editor.stage))
-const offers = computed(() => suggestionsFor(editor.suggestions, props.field, editor.trackId).slice(0, 3))
+const offers = computed(() => offersFor(editor.suggestions, props.field, editor.trackId, false, view.value.values))
 const rows = computed(() => (view.value.mixed ? [''] : view.value.values.length ? view.value.values : ['']))
 const multi = computed(() => 'multi' in f.value && !!f.value.multi)
 const was = computed(() => {

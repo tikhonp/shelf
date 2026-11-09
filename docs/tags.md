@@ -174,12 +174,13 @@ The answer is `{"anchor", "album", "tracks", "covers", "notes", "unavailable", "
 - `unavailable` lists `{"source", "message"}` for each service that didn't answer. The other suggestions still come.
 - `fingerprinting` says a job is identifying the album by its audio, as [AcoustID](#the-anchor) says.
 
-A field shows its three best suggestions. A suggestion that every track already holds is left out.
+A field shows its three best suggestions, plus pending agent proposal tapes. An ordinary suggestion that every track already holds is left out.
 
 ### Sources
 
 | Source | What it suggests | Base confidence |
 | --- | --- | --- |
+| Agent proposals | Exact pending tag values on the proposal's tracks, including removals. Desktop and phone show the connection name. Pressing the tape stages the values; an ordinary Save accepts operations it writes in full. Artwork stays in the Inbox. | The agent's percentage, without combining sources; "Not rated" if omitted |
 | File name | Track, disc and title from names such as `01 - Title`, `01. Title` and `1-02 Title`, and the artist from `01 Artist - Title` when the track has none. A disc folder such as `CD 2` gives the disc. Only where the track lacks the field. | track 60%, disc 50%, title 45%, artist 35% |
 | Folder | Album and album artist from names such as `Artist - Album (1959) [24B-96kHz]`, or the album from the folder and the artist from the folder above it. Only where no track has the field. | album 50%, album artist 40% |
 | Other tracks | Where the tracks differ on a field they should share, each value some of them hold. | 40%, plus up to 50% by the share of tracks that hold it |

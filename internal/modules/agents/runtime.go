@@ -14,6 +14,9 @@ func (m *Module) reconcile(ctx context.Context) error {
 	if e != nil {
 		return e
 	}
+	if e = m.reconcileSaves(ctx, lib); e != nil {
+		return e
+	}
 	as := []acceptanceRow{}
 	if e = m.db.R.SelectContext(ctx, &as, `SELECT `+acceptanceCols+` FROM agents_acceptances WHERE final=0 ORDER BY id`); e != nil {
 		return e

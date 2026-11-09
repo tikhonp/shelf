@@ -131,9 +131,10 @@ type acceptanceRow struct {
 	CreatedAt  db.Time `db:"created_at"`
 	Outcome    string  `db:"outcome"`
 	Final      bool    `db:"final"`
+	ViaSave    bool    `db:"via_save"`
 }
 
-const acceptanceCols = `id, proposal_id, revision, op_ids, idem_key, attempt, digest, preview, confirm, change_id, author_id, author, created_at, outcome, final`
+const acceptanceCols = `id, proposal_id, revision, op_ids, idem_key, attempt, digest, preview, confirm, change_id, author_id, author, created_at, outcome, final, via_save`
 
 func (a acceptanceRow) ops() []string {
 	out := []string{}

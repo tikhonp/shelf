@@ -202,6 +202,14 @@ func (p port) AlbumCover(ctx context.Context, albumID int64) ([]byte, string, er
 }
 
 func (p port) History(ctx context.Context, after int64, limit int) (libraryport.HistoryPage, error) {
+	return p.history(ctx, after, limit, false)
+}
+
+func (p port) SaveHistory(ctx context.Context, after int64, limit int) (libraryport.HistoryPage, error) {
+	return p.history(ctx, after, limit, true)
+}
+
+func (p port) history(ctx context.Context, after int64, limit int, review bool) (libraryport.HistoryPage, error) {
 	m := p.m
 	if limit < 1 || limit > portPageHistory {
 		limit = portPageHistory
@@ -223,7 +231,7 @@ func (p port) History(ctx context.Context, after int64, limit int) (libraryport.
 	}
 	out := libraryport.HistoryPage{Changes: []libraryport.HistoryChange{}, Next: after, TrimmedThrough: min(trimmed, barrier-1)}
 	for _, r := range rows {
-		hc, err := p.historyChange(ctx, r)
+		hc, err := p.historyChange(ctx, r, review)
 		if err != nil {
 			return libraryport.HistoryPage{}, err
 		}
@@ -233,12 +241,12 @@ func (p port) History(ctx context.Context, after int64, limit int) (libraryport.
 	return out, nil
 }
 
-func (p port) historyChange(ctx context.Context, r changeRow) (libraryport.HistoryChange, error) {
+func (p port) historyChange(ctx context.Context, r changeRow, review bool) (libraryport.HistoryChange, error) {
 	m := p.m
 	j := m.changeJSON(ctx, r)
 	hc := libraryport.HistoryChange{ID: r.ID, Kind: r.Kind, Target: r.Target, Origin: deref(r.Origin), AuthorID: deref(r.AuthorID),
 		Author: j.Author, Folder: r.Folder, Title: r.Title, Artist: r.Artist, State: r.State, Undone: r.Undone,
-		CreatedAt: j.CreatedAt, Files: []libraryport.HistoryFile{}}
+		CreatedAt: r.CreatedAt.UTC().Format(time.RFC3339Nano), Files: []libraryport.HistoryFile{}}
 	if j.Run != nil {
 		// A run's album changes are its children, which the history by ID
 		// never lists, and the run's own row has no files.
@@ -254,7 +262,7 @@ func (p port) historyChange(ctx context.Context, r changeRow) (libraryport.Histo
 	if err != nil {
 		return hc, err
 	}
-	if len(files) > historyFiles {
+	if !review && len(files) > historyFiles {
 		files, hc.Truncated = files[:historyFiles], true
 	}
 	for _, f := range files {
@@ -264,7 +272,26 @@ func (p port) historyChange(ctx context.Context, r changeRow) (libraryport.Histo
 				pf.TrackID = id
 			}
 		}
-		hc.Files = append(hc.Files, libraryport.HistoryFile{PreviewFile: pf, Written: f.Written})
+		hf := libraryport.HistoryFile{PreviewFile: pf, Written: f.Written}
+		if review && f.Kind == fileAudio {
+			keys := map[string][]string{}
+			for key, values := range f.After {
+				keys[key] = values
+			}
+			for key := range f.Before {
+				if _, ok := keys[key]; !ok {
+					keys[key] = nil
+				}
+			}
+			for key, values := range keys {
+				tag := libraryport.Tag{Key: key, Values: values}
+				for _, field := range tagio.FieldsOf(tagio.FormatOf(f.Path), key) {
+					tag.Fields = append(tag.Fields, field.Name)
+				}
+				hf.Tags = append(hf.Tags, tag)
+			}
+		}
+		hc.Files = append(hc.Files, hf)
 	}
 	return hc, nil
 }

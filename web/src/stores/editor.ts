@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { ApiError, errorText, get, post } from '../api/client'
 import type { LibraryAlbumDetail, LibraryChange, LibraryTrack, SaveRefusal, SaveWarning, Suggestion, Suggestions } from '../api/types'
+import { useInbox } from './inbox'
+import { proposalSuggestions, withProposals } from '../lib/proposal-suggestions'
 import { useLibrary } from './library'
 import { accept, addValue, changes, fix, revert, saveBody, stageEdit, type CoverEdit, type Stage, type Target } from '../lib/tags'
 
@@ -39,7 +41,10 @@ export const useEditor = defineStore('editor', () => {
   // cursor is the field the keyboard acts on, and noteOn the field showing its note.
   const cursor = ref<Target | null>(null)
   const noteOn = ref<Target | null>(null)
-  const suggestions = ref<Suggestions | null>(null)
+  const localSuggestions = ref<Suggestions | null>(null)
+  const inbox = useInbox()
+  const suggestions = computed(() => withProposals(localSuggestions.value, inbox.enabled && album.value ? proposalSuggestions(inbox.byAlbum[album.value.id] ?? [], album.value.tracks) : []))
+  watch([() => album.value?.id, () => inbox.enabled], ([id, on]) => { if (id && on) void inbox.loadAlbum(id) }, { immediate: true })
   const suggesting = ref(false)
   const suggestError = ref('')
   // held keeps staged edits per album, so opening another album loses none.
@@ -91,7 +96,7 @@ export const useEditor = defineStore('editor', () => {
     opening = mine
     album.value = null
     trackId.value = null
-    suggestions.value = null
+    localSuggestions.value = null
     outcome.value = null
     asks.value = null
     loading.value = true
@@ -111,7 +116,7 @@ export const useEditor = defineStore('editor', () => {
     suggestingFor?.abort()
     album.value = null
     trackId.value = null
-    suggestions.value = null
+    localSuggestions.value = null
     outcome.value = null
     asks.value = null
     error.value = ''
@@ -133,7 +138,7 @@ export const useEditor = defineStore('editor', () => {
     suggestError.value = ''
     const q = anchor ? `?anchor=${encodeURIComponent(anchor)}` : ''
     try {
-      suggestions.value = await get<Suggestions>(`/api/library/albums/${album.value.id}/suggestions${q}`, mine.signal)
+      localSuggestions.value = await get<Suggestions>(`/api/library/albums/${album.value.id}/suggestions${q}`, mine.signal)
     } catch (err) {
       if (!mine.signal.aborted) suggestError.value = errorText(err)
     } finally {

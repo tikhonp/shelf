@@ -23,6 +23,8 @@ type Port interface {
 	AlbumCover(ctx context.Context, albumID int64) ([]byte, string, error) // bytes, MIME
 
 	History(ctx context.Context, after int64, limit int) (HistoryPage, error)
+	// SaveHistory includes every file so proposal reconciliation cannot miss a target.
+	SaveHistory(ctx context.Context, after int64, limit int) (HistoryPage, error)
 	// Changes reports linked changes. A missing ID left the history.
 	Changes(ctx context.Context, ids []int64) (map[int64]ChangeStatus, error)
 
@@ -229,5 +231,6 @@ type HistoryChange struct {
 // HistoryFile records whether a planned diff reached disk, including partial saves.
 type HistoryFile struct {
 	PreviewFile
-	Written bool `json:"written"`
+	Written bool  `json:"written"`
+	Tags    []Tag `json:"tags,omitempty"`
 }

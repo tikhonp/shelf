@@ -331,6 +331,8 @@ export interface LibraryAlbumDetail extends Omit<LibraryAlbum, 'tracks'> {
 }
 
 export interface Suggestion {
+  proposal?: boolean
+  unrated?: boolean
   field: string
   values?: string[]
   tracks?: Record<string, string[]>

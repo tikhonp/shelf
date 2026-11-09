@@ -5,6 +5,7 @@ import { useEditor } from '../stores/editor'
 import Icon from './Icon.vue'
 import LibAllFields from './LibAllFields.vue'
 import LibField from './LibField.vue'
+import AlbumProposals from './AlbumProposals.vue'
 import LibHead from './LibHead.vue'
 import LibIssues from './LibIssues.vue'
 import LibLoading from './LibLoading.vue'
@@ -36,6 +37,7 @@ defineExpose({ toggleAll: () => (all.value = !all.value) })
       <LibHead @cover="$emit('cover')" />
       <div class="scope"><LibScope /></div>
       <div class="vscroll">
+        <AlbumProposals :album-id="editor.album.id" />
         <LibUnavailable />
         <LibAllFields v-if="all" @long="long = $event" />
         <template v-else>

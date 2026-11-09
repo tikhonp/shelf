@@ -153,6 +153,27 @@ func TestRealLibraryProposalAcceptAndArtwork(t *testing.T) {
 		t.Fatal(e)
 	}
 	want(t, r.call(t, "GET", fmt.Sprintf("/api/inbox/proposals/%d", proposal.ID), nil, false), 200)
+	album, e = lib.Port().Album(ctx, album.ID)
+	if e != nil {
+		t.Fatal(e)
+	}
+	res = r.call(t, "POST", fmt.Sprintf("/api/library/albums/%d/save", album.ID), map[string]any{"tracks": []map[string]any{{"id": album.Tracks[0].ID, "revision": album.Tracks[0].Revision, "edits": []map[string]any{{"key": "MOOD", "values": []string{"Calm"}}}}}}, false)
+	want(t, res, 202)
+	var ordinary struct {
+		ID int64 `json:"id"`
+	}
+	_ = json.Unmarshal(res.Body.Bytes(), &ordinary)
+	until(t, func() bool {
+		statuses, err := lib.Port().Changes(ctx, []int64{ordinary.ID})
+		return err == nil && statuses[ordinary.ID].State == "done"
+	})
+	if e = m.reconcile(ctx); e != nil {
+		t.Fatal(e)
+	}
+	acceptances, e := getAcceptances(ctx, m.db.R, proposal.ID)
+	if e != nil || len(acceptances) != 2 || acceptances[1].ChangeID != ordinary.ID || !acceptances[1].ViaSave || acceptances[1].outcome().State != "done" {
+		t.Fatalf("Save acceptances %+v %v", acceptances, e)
+	}
 	// A fresh run can learn the manual and accepted change through retained history.
 	want(t, r.call(t, "GET", "/api/agent/v1/history?after=0", nil, true), 200)
 	// Use a validated image byte upload, then propose a cover by its hash.

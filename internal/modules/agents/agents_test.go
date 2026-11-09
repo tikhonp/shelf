@@ -29,6 +29,7 @@ type testLibrary struct {
 	values   map[int64]map[string][]string
 	states   map[int64]libraryport.ChangeStatus
 	warnings []libraryport.Warning
+	history  []libraryport.HistoryChange
 }
 
 func newTestLibrary() *testLibrary {
@@ -474,4 +475,15 @@ func TestContextDeletionAndRetentionRespectOutstandingFeedback(t *testing.T) {
 	if count(t, r, "agents_proposals") != 0 {
 		t.Fatal("old reviewed and processed proposal was not trimmed")
 	}
+}
+
+func (l *testLibrary) SaveHistory(_ context.Context, after int64, _ int) (libraryport.HistoryPage, error) {
+	page := libraryport.HistoryPage{Next: after}
+	for _, c := range l.history {
+		if c.ID > after {
+			page.Changes = append(page.Changes, c)
+			page.Next = c.ID
+		}
+	}
+	return page, nil
 }

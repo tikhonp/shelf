@@ -115,7 +115,7 @@ Use these words in code, UI, docs and conversation.
 
 **Check.** A test of an album against Navidrome's tagging guide. What a check finds is an issue.
 
-**Suggestion.** A value for a tag field from a file or folder name, other tracks, `shelf.txt`, MusicBrainz, a source or LRCLIB, shown beside the field with its source and confidence. _Avoid_: hint, recommendation.
+**Suggestion.** A value for a tag field from a file or folder name, other tracks, `shelf.txt`, MusicBrainz, a source, LRCLIB or an agent proposal, shown beside the field with its source and confidence. _Avoid_: hint, recommendation.
 
 **Proposal.** An agent's persistent set of exact tag or artwork operations for human review. A proposal can cite Suggestions but never applies itself.
 

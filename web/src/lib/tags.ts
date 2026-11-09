@@ -183,7 +183,12 @@ export function saveBody(tracks: LibraryTrack[], stage: Stage, confirm: string[]
 export function suggestionsFor(s: Suggestions | null, target: Target, track: number | null): Suggestion[] {
   if (!s) return []
   const own = track === null ? [] : (s.tracks.find((t) => t.id === track)?.suggestions ?? [])
-  return [...own, ...s.album].filter((x) => x.field === target)
+  const candidates = [...s.album.filter((x) => x.proposal), ...own, ...s.album.filter((x) => !x.proposal)]
+  return candidates.filter((x) => x.field === target).flatMap((x) => {
+    if (!x.proposal || track === null) return [x]
+    const values = x.tracks?.[String(track)]
+    return values ? [{ ...x, values, tracks: { [String(track)]: values } }] : []
+  })
 }
 
 // offersFor picks what a field shows: its best few, without the value it holds. A
@@ -191,9 +196,12 @@ export function suggestionsFor(s: Suggestions | null, target: Target, track: num
 // fill gives each track its own.
 export function offersFor(s: Suggestions | null, target: Target, track: number | null, locked: boolean, held: string[]): Suggestion[] {
   const now = held.join('\u0000')
-  return suggestionsFor(s, target, track)
-    .filter((x) => x.tracks || (!locked && (x.values ?? []).join('\u0000') !== now))
-    .slice(0, 3)
+  let regular = 0
+  return suggestionsFor(s, target, track).filter((x) => {
+    if (x.proposal) return true
+    if (!x.tracks && (locked || (x.values ?? []).join('\u0000') === now)) return false
+    return regular++ < 3
+  })
 }
 
 function common(tracks: LibraryTrack[], target: Target): string[] | null {

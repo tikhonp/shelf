@@ -101,9 +101,9 @@ func (m *Module) selection(ctx context.Context, id int64, b selectionBody, allow
 			o := a.outcome()
 			if s, ok := status[a.ChangeID]; ok {
 				o = outcomeOf(s)
-				retry[a.ID] = allowRetry && o.retryable()
+				retry[a.ID] = allowRetry && !a.ViaSave && o.retryable()
 			}
-			satisfied[a.ID] = !o.Undone && slices.Contains([]string{"queued", "writing", "done"}, o.State)
+			satisfied[a.ID] = !o.Undone && (slices.Contains([]string{"queued", "writing", "done"}, o.State) || a.ViaSave && o.State == "partial")
 		}
 	}
 	ops, e := selectedOps(r, rows, b.Ops, retry, satisfied)

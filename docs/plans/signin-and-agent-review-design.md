@@ -127,13 +127,15 @@ The separate "Confirm password for passkey changes" key goes away. The server an
 
 ### Proposal values in the Library editor
 
+Built on 2026-11-10. Ordinary Saves reconcile through the library port, using retained change records and a durable agents cursor.
+
 - While an album has a pending proposal, the editor shows a "Proposed" header. Under it, an issue-style row has an amber lamp, "Claude at home proposes 3 fields", the field names, and a Review key that opens the proposal in the Inbox. The row replaces today's "1 proposal" link from `AlbumProposals.vue`.
 - Each pending field shows the proposed value as suggestion tape, beside the other suggestions. The tape names the agent as its source and shows the agent's confidence as its percentage.
 - Pressing the tape stages the value like any suggestion. Save writes it as an ordinary Save.
 - When a Save writes the proposed values for every track an operation covers, Shelf marks that operation accepted, with the Save as its library change. Any other value leaves the operation pending, and the Inbox shows it as changed since proposed, as it does today.
 - The phone's field page shows the same tape.
 
-One part is open for the implementation. The library module must tell the agents module about a Save without reading its tables. One way is a hub event with the album, the tracks, and the keys and values written. When this ships, the Suggestion entry in the glossary in `CLAUDE.md` gains agent proposals as a source.
+The library module reports Saves through `libraryport.SaveHistory`. The existing change event prompts reconciliation. The Suggestion glossary now includes agent proposals.
 
 ## Bugs found on 2026-11-09
 

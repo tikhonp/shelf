@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"hash/crc32"
 	"os"
 	"path/filepath"
@@ -683,5 +684,34 @@ func TestPortHistoryFilesReportWrittenForPartialSave(t *testing.T) {
 	raw, err = json.Marshal(files[0].PreviewFile)
 	if err != nil || bytes.Contains(raw, []byte("written")) {
 		t.Fatalf("preview JSON %s: %v", raw, err)
+	}
+}
+
+func TestSaveHistoryIncludesAllFilesAliasesAndRemovedTags(t *testing.T) {
+	r := newRig(t)
+	files := make([]changeFile, 201)
+	for i := range files {
+		files[i] = changeFile{Path: fmt.Sprintf("folk/Blue/%03d.flac", i), Kind: fileAudio, Before: map[string][]string{"GENRE": {"Rock"}, "MOOD": {"Calm"}}, After: map[string][]string{"GENRE": {"Jazz"}}, Written: true}
+	}
+	id := r.writing(files...)
+	if _, err := r.m.store.db.W.Exec("UPDATE library_changes SET state='done' WHERE id=?", id); err != nil {
+		t.Fatal(err)
+	}
+	page, err := r.m.Port().SaveHistory(bg, 0, 50)
+	if err != nil || len(page.Changes) != 1 || len(page.Changes[0].Files) != 201 || page.Changes[0].Truncated {
+		t.Fatalf("Save history %d %v", len(page.Changes), err)
+	}
+	tags := page.Changes[0].Files[0].Tags
+	genre, removed := false, false
+	for _, tag := range tags {
+		if tag.Key == "GENRE" && slices.Contains(tag.Fields, "genre") && slices.Equal(tag.Values, []string{"Jazz"}) {
+			genre = true
+		}
+		if tag.Key == "MOOD" && len(tag.Values) == 0 {
+			removed = true
+		}
+	}
+	if !genre || !removed {
+		t.Fatalf("tags %+v", tags)
 	}
 }

@@ -659,15 +659,19 @@ export const useInbox = defineStore('inbox', () => {
     return act('comments', { body }, 'Comment added.')
   }
 
-  // Album pages link to their pending proposals.
-  const byAlbum = ref<Record<number, ProposalSummary[]>>({})
+  // Album pages show pending values without disturbing the Inbox selection.
+  const byAlbum = ref<Record<number, ProposalDetail[]>>({})
+  const albumRequests = new Map<number, number>()
   async function loadAlbum(albumId: number) {
     if (!enabled.value) return
+    const request = (albumRequests.get(albumId) ?? 0) + 1
+    albumRequests.set(albumId, request)
     try {
       const answer = await get<unknown>(`/api/inbox/albums/${albumId}/proposals`)
-      byAlbum.value = { ...byAlbum.value, [albumId]: listOf<ProposalSummary>(answer, 'proposals') }
+      if (albumRequests.get(albumId) !== request || !enabled.value) return
+      byAlbum.value = { ...byAlbum.value, [albumId]: listOf<ProposalDetail>(answer, 'proposals') }
     } catch {
-      // The link is a convenience; the album page works without it.
+      // Local suggestions still work while the Inbox cannot answer.
     }
   }
 
@@ -684,6 +688,7 @@ export const useInbox = defineStore('inbox', () => {
     if (!enabled.value) return
     if (listLoaded) void loadList()
     if (detailId.value !== null) void loadDetail()
+    for (const a of Object.keys(byAlbum.value)) void loadAlbum(Number(a))
   }
 
   return {

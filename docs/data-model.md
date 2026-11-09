@@ -295,11 +295,11 @@ The agents module always migrates its STRICT tables, including when the feature 
 | `agents_revisions` | Immutable agent/user values, evidence, recorded file paths and revisions, operations, preview and per-operation digests. |
 | `agents_ops` | Stable operation IDs, fingerprints, decisions, reviewer and acceptance links. |
 | `agents_targets` | Recorded library-relative paths for album links. |
-| `agents_acceptances` | Exact selected revision and preview, stable request key, confirmations, reviewer, library change ID, durable outcome snapshot. |
+| `agents_acceptances` | Exact selected revision and preview, stable request key, confirmations, reviewer, library change ID, durable outcome snapshot. `via_save` marks operations already written by an ordinary Save, including operations fully written in a partial Save. |
 | `agents_events` | Ordered feedback, comments, decisions, revisions, memory corrections and write/undo outcomes. |
 | `agents_memory` | Versioned shared rules, inferred preferences, context, evidence and deletion tombstones. |
 | `agents_learning` | One library-wide versioned checkpoint and event/history cursors. |
 | `agents_usage` | Daily per-connection counters. |
-| `agents_state` | The highest retained history ID returned through the port, bounding learning commits. |
+| `agents_state` | The highest retained history ID returned through the port, bounding learning commits, the shared memory version, and `save_cursor`, the last completed change reconciled against pending proposals. |
 
-Accepting selected operations writes their decisions and the library Save/job in one SQLite transaction. File reads, preparation and image decoding happen before that transaction. A repeated request ID returns its acceptance; a changed payload with that ID conflicts. Stored authors do not depend on live accounts. Account deletion revokes its connections on their next authenticated call.
+Accepting selected operations in the Inbox writes their decisions and the library Save/job in one SQLite transaction. File reads, preparation and image decoding happen before that transaction. A repeated request ID returns its acceptance; a changed payload with that ID conflicts. Stored authors do not depend on live accounts. Account deletion revokes its connections on their next authenticated call.

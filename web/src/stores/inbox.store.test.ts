@@ -300,3 +300,15 @@ test('returning to the old head during a save remains an edit against the saved 
   expect(store.drafts.genre?.tracks[1]).toEqual(['Art Rock'])
   expect(store.dirty).toBe(true)
 })
+
+test('late album proposal reads cannot restore old suggestion tapes', async () => {
+  const response = deferred<unknown>()
+  let count = 0
+  stubApi({ '/api/inbox/albums/7/proposals': () => ++count === 1 ? response.promise : { proposals: [] } })
+  const store = useInbox(); store.enabled = true
+  const first = store.loadAlbum(7)
+  await store.loadAlbum(7)
+  response.resolve({ proposals: [detail()] })
+  await first
+  expect(store.byAlbum[7]).toEqual([])
+})
