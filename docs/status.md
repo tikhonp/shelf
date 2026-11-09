@@ -41,6 +41,6 @@ The account login dialog now fits its content and stays centered. Its styles ove
 
 Account passwords now accept 8 to 128 Unicode code points. The same limits apply to account creation, CLI resets, and password changes in the app.
 
-Dependencies were refreshed on 2026-11-07, including Go modules, Vue, Vite, Vitest 5, jsdom 31, Node 26 LTS, and Alpine 3.24. TypeScript stays on 6.0.3 because vue-tsc 3.3.14 and its Volar dependencies do not support TypeScript 7. npm audit reports five moderate findings in the test-only Vue Test Utils dependency chain; its proposed fix downgrades Vue Test Utils.
+Dependencies were refreshed on 2026-11-07, including Go modules, Vue, Vite, Vitest 5, jsdom 31, Node 26 LTS, and Alpine 3.24. TypeScript stays on 6.0.3. On 2026-11-10, vue-tsc 3.3.14, still the newest release, failed to start with TypeScript 7.0.2, because TypeScript 7 no longer exports `lib/tsc`. The test-only chain from Vue Test Utils through js-beautify had five moderate npm audit findings in glob and minimatch. `overrides` in `web/package.json` now require glob 14.0.4 or later under js-beautify and minimatch 11.0.5 or later under editorconfig, so npm audit reports none. Drop the overrides once js-beautify depends on fixed versions.
 
 The dependency refresh passes `make check`, `make lint`, `make web-check`, and the production Docker build. npm reports no vulnerabilities in production dependencies.
