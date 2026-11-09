@@ -30,6 +30,8 @@ export const useAuth = defineStore('auth', () => {
   const error = ref('')
   const mounted = ref(false)
   const previousID = ref<number | null>(null)
+  // previousName fills the username when a session ends inside the app.
+  const previousName = ref('')
   const locked = computed(() => ready.value && provider.value === 'simple' && !account.value)
   let checking: Promise<void> | null = null
 
@@ -42,7 +44,7 @@ export const useAuth = defineStore('auth', () => {
     account.value = v.account
     setupNeeded.value = v.setup_needed
     ready.value = true
-    if (v.account) previousID.value = v.account.id
+    if (v.account) { previousID.value = v.account.id; previousName.value = v.account.username }
     if (v.provider === 'none' || v.account) mounted.value = true
   }
   async function check() {
@@ -61,12 +63,15 @@ export const useAuth = defineStore('auth', () => {
   function signedIn(v: AuthStatus) {
     apply(v)
   }
-  async function login(username: string, password: string) {
-    signedIn(await accountCall<AuthStatus>('/login', { username, password }))
+  // login applies the answer at once, unless the caller first plays the power-up and applies it with signedIn.
+  async function login(username: string, password: string, apply = true): Promise<AuthStatus> {
+    const v = await accountCall<AuthStatus>('/login', { username, password })
+    if (apply) signedIn(v)
+    return v
   }
   async function logout() {
     await accountCall('/logout')
     window.location.reload()
   }
-  return { ready, provider, account, setupNeeded, error, mounted, previousID, locked, check, expired, signedIn, login, logout }
+  return { ready, provider, account, setupNeeded, error, mounted, previousID, previousName, locked, check, expired, signedIn, login, logout }
 })

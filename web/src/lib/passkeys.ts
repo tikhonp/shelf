@@ -29,13 +29,16 @@ export async function addPasskey(name: string) {
   if (!credential) throw new Error('Passkey registration was canceled')
   await accountCall(`/passkeys/finish?name=${encodeURIComponent(name)}`, serialize(credential))
 }
-export async function passkeyLogin() {
+// passkeyLogin applies the answer at once unless apply is false, as login does.
+export async function passkeyLogin(apply = true): Promise<AuthStatus> {
   const data = await accountCall<{ publicKey: PublicKeyCredentialRequestOptions }>('/passkey/begin')
   const pk = data.publicKey
   pk.challenge = decode(pk.challenge as unknown as string)
   pk.allowCredentials = pk.allowCredentials?.map((c) => ({ ...c, id: decode(c.id as unknown as string) }))
   const credential = await navigator.credentials.get({ publicKey: pk }) as PublicKeyCredential | null
   if (!credential) throw new Error('Passkey sign-in was canceled')
-  useAuth().signedIn(await accountCall<AuthStatus>('/passkey/finish', serialize(credential)))
+  const v = await accountCall<AuthStatus>('/passkey/finish', serialize(credential))
+  if (apply) useAuth().signedIn(v)
+  return v
 }
 export const supportsPasskeys = () => window.isSecureContext && typeof PublicKeyCredential !== 'undefined'

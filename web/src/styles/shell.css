@@ -1,0 +1,32 @@
+/* The menubar, the dock and the clock. The app's Shell and the switched-off console behind account sign-in both use them. */
+.rs .menubar { position: relative; z-index: 5; display: flex; align-items: center; gap: 6px; min-height: 52px; padding: 0 var(--gutter); background: linear-gradient(180deg, #1E232B, #12151A); border-bottom: 1px solid var(--ink); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 3px 10px rgba(0, 0, 0, .35); color: #ECE8DF; }
+.rs .brand { display: flex; align-items: center; gap: 10px; margin-right: 14px; font-family: var(--label); font-size: 16px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; color: #ECE8DF; text-decoration: none; }
+.rs .logo { display: flex; align-items: flex-end; gap: 2px; flex: none; height: 20px; padding: 2px 3px; background: #07090C; border-radius: 3px; box-shadow: inset 0 1px 2px rgba(0, 0, 0, .8); }
+.rs .logo i { display: block; width: 4px; border-radius: 1px; }
+.rs .logo i:nth-child(1) { height: 8px; background: var(--green); box-shadow: 0 0 6px var(--green); }
+.rs .logo i:nth-child(2) { height: 12px; background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+.rs .logo i:nth-child(3) { height: 15px; background: var(--red); box-shadow: 0 0 6px var(--red); }
+.rs .mb-item { position: relative; display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border: 1px solid #07090C; border-radius: 5px; background: linear-gradient(180deg, #4A5262, #3A4150); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 2px 0 #07090C; font-family: var(--label); font-size: 14px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #ECE8DF; text-decoration: none; white-space: nowrap; }
+.rs .mb-item:hover { filter: brightness(1.1); }
+.rs .mb-item.on { background: radial-gradient(ellipse at 50% 40%, var(--lit-hi), var(--lamp) 55%, var(--lit-lo)); color: var(--lit-text); box-shadow: inset 0 1px 0 #fff, 0 1px 0 #07090C, 0 0 calc(12px * var(--glow)) rgba(244, 238, 220, .45); transform: translateY(1px); }
+.rs .mb-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.rs .vfd { display: inline-flex; align-items: center; height: 32px; padding: 0 10px; background: var(--lcd); border-radius: 4px; box-shadow: inset 1px 2px 4px rgba(0, 0, 0, .8); color: var(--lcd-text); font: 400 18px/1 var(--disp); text-shadow: 0 0 6px var(--lcd-glow); }
+.rs .dock a .led { --c: var(--sun); position: absolute; top: 7px; right: 7px; }
+.rs .menubar nav .mb-item .led { --c: var(--sun); position: absolute; top: 4px; right: 4px; width: 9px; height: 9px; }
+.rs .dock { position: absolute; left: 8px; right: 12px; bottom: 14px; z-index: 30; display: flex; gap: 6px; padding: 7px; background: linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(0, 0, 0, .28)), repeating-linear-gradient(1deg, #4E2B18 0 2px, #5E351F 2px 5px, #53301B 5px 8px, #6A3D24 8px 12px, #573220 12px 15px); border: 1px solid var(--ink); border-radius: 12px; box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .08), 4px 8px 20px rgba(0, 0, 0, .5); }
+.rs .dock a { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 56px; border: 1px solid #07090C; border-radius: 4px; background: linear-gradient(180deg, var(--key-hi), var(--key) 60%, var(--key-lo)); box-shadow: inset 0 1px 0 var(--key-hl), inset 0 -2px 0 rgba(0, 0, 0, .1), 0 3px 0 #07090C; font-family: var(--label); font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--key-text); text-decoration: none; }
+.rs .dock a.on { background: radial-gradient(ellipse at 50% 40%, var(--lit-hi), var(--lamp) 55%, var(--lit-lo)); color: var(--lit-text); box-shadow: inset 0 1px 0 #fff, inset 0 0 10px rgba(240, 150, 60, .35), 0 0 calc(12px * var(--glow)) var(--lit-glow); transform: translateY(3px); }
+.rs .menubar { flex-wrap: wrap; padding-top: 6px; padding-bottom: 6px; row-gap: 6px; }
+.rs .tabs { display: flex; gap: 6px; }
+.rs .vfd.small { font-size: 15px; }
+.rs .dock { bottom: calc(14px + env(safe-area-inset-bottom)); }
+/* Switched off: the brand's level bars stay dark until someone signs in. */
+.rs .logo.off i { background: #3A4554; box-shadow: none; }
+/* Rack units: a wide faceplate with rack ears and screws, a name plate, a display and controls. Status parts and account sign-in use them. */
+.rs .unit { flex-direction: row; align-items: stretch; border-radius: 4px; }
+.rs .unit::before, .rs .unit::after { content: ""; flex: none; width: 28px; background: radial-gradient(circle at 50% 18px, #D5D9DF 0 3.5px, #4A5059 4px 6px, transparent 6.5px), radial-gradient(circle at 50% calc(100% - 18px), #D5D9DF 0 3.5px, #4A5059 4px 6px, transparent 6.5px), var(--win-2); }
+.rs .unit::before { border-right: 1px solid var(--ink); }
+.rs .unit::after { border-left: 1px solid var(--ink); }
+.rs .unit-body { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; padding: 16px 18px; }
+.rs .plate { display: flex; flex-direction: column; gap: 6px; width: 190px; flex: none; }
+.rs .plate h2 { display: flex; align-items: center; gap: 10px; font-family: var(--label); font-size: 18px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }

@@ -21,6 +21,7 @@ import {
   type Warning,
 } from '../api/agents'
 import { ApiError, errorText, get, post } from '../api/client'
+import { load, save } from '../lib/storage'
 
 export type StateFilter = 'pending' | 'reviewed' | 'withdrawn' | 'all'
 export interface Filters {
@@ -29,6 +30,10 @@ export interface Filters {
   kind: '' | 'tag' | 'cover'
   connection: number | null
 }
+
+// inboxKey remembers whether the Inbox was on, so the switched-off menubar behind sign-in shows the same tabs.
+export const inboxKey = 'shelf.inbox'
+export const inboxWasOn = () => load(inboxKey) === '1'
 
 const states: StateFilter[] = ['pending', 'reviewed', 'withdrawn', 'all']
 const one = (v: unknown) => (Array.isArray(v) ? v[0] : v)
@@ -128,9 +133,11 @@ export const useInbox = defineStore('inbox', () => {
     try {
       info.value = await get<InboxInfo>('/api/inbox')
       enabled.value = true
+      save(inboxKey, '1')
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) {
         enabled.value = false
+        save(inboxKey, '0')
         info.value = null
       } else if (enabled.value === null) {
         enabled.value = false

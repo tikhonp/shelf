@@ -22,5 +22,5 @@ watch(() => auth.locked, (locked) => {
   <div v-if="auth.mounted" :inert="auth.locked || undefined" :aria-hidden="auth.locked || undefined">
     <Shell><RouterView /></Shell>
   </div>
-  <AccountLogin v-if="auth.locked" />
+  <AccountLogin v-if="auth.locked && auth.mounted" />
 </template>
