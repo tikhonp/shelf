@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Desktop · proposal values in the editor</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="../library.css">
+<style>
+body{margin:0}
+a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
+</style>
+</head>
+<body>
+<div class="rs desk console " style="width: 1440px; height: 900px; position: relative; overflow: hidden; display: flex; flex-direction: column">
+<header class="menubar">
+<span class="brand"><span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>Music Shelf</span>
+<nav aria-label="Main" style="display: flex; gap: 6px">
+<a class="mb-item on" href="#" aria-current="page">Library</a>
+<a class="mb-item" href="#">Inbox<span class="led" title="Proposals wait for review"></span></a>
+<a class="mb-item" href="#">Search</a>
+<a class="mb-item" href="#">Downloads</a>
+<a class="mb-item" href="#">Status</a>
+</nav>
+<div class="mb-right"><span class="led ok" title="Qobuz"></span><span class="led ok" title="Apple Music"></span><span class="led ok" title="Navidrome"></span><span class="vfd num">22:41</span></div>
+</header>
+
+<div style="flex: 1; min-height: 0; display: flex; gap: 20px; padding: 20px var(--gutter) 24px">
+<section class="win" aria-labelledby="lp-l" style="flex: 0 0 440px">
+<div class="tb"><h2 id="lp-l">Library</h2><span class="stripes"></span><button type="button" class="wbtn txt">Select</button><button type="button" class="wbtn txt">History</button></div>
+<ul style="list-style: none; margin: 0; padding: 0" aria-label="Albums">
+<li style="display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 14px; border-bottom: 1px solid var(--line)"><span class="cv a-signal" style="width: 46px; height: 46px"></span><span style="min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">Computerwelt</span><span class="sub">Kraftwerk · 1981</span></span><span class="led iss" role="img" aria-label="Has issues"></span></li>
+<li style="display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 14px; border-bottom: 1px solid var(--line)"><span class="cv a-night" style="width: 46px; height: 46px"></span><span style="min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">Dummy</span><span class="sub">Portishead · 1994</span></span><span class="led iss" role="img" aria-label="Has issues"></span></li>
+<li style="display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 14px; border-bottom: 1px solid var(--line); background: var(--sel); box-shadow: inset 3px 0 0 var(--lamp)"><span class="cv a-tide" style="width: 46px; height: 46px"></span><span style="min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">Spirit of Eden</span><span class="sub">Talk Talk · 2012</span></span><span class="led iss" role="img" aria-label="Has issues"></span></li>
+</ul>
+</section>
+
+<section class="win" aria-labelledby="lp-e" style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+<div class="tb"><h2 id="lp-e">Editor</h2><span class="stripes"></span><button type="button" class="wbtn" aria-label="Close the editor"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<div class="lib-head">
+<button type="button" class="lib-cover" aria-label="Open the cover"><span class="cv a-tide"></span></button>
+<div style="flex: 1; display: flex; flex-direction: column; gap: 3px">
+<h3 style="margin: 0; font-size: 19px; font-weight: 700; line-height: 1.2">Spirit of Eden</h3>
+<span class="sub" style="font-size: 14px">Talk Talk</span>
+<span style="margin-top: 5px"><span class="stk">CD 16/44.1</span></span>
+</div>
+</div>
+<div style="flex: none; padding: 10px 14px"><div class="lcd lib-scope"><span class="lcd-l ell">ALL 6 TRACKS</span></div></div>
+<div class="vscroll">
+<div class="lib-h"><span>Proposed</span></div>
+<div class="lib-iss">
+<span class="led stg" role="img" aria-label="Proposal waiting"></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span class="ttl">Claude at home proposes 3 fields</span><span class="sub">Original date, Release date, Album artists</span></span>
+<a class="key sm" href="#" style="text-decoration: none">Review</a>
+</div>
+<div class="lib-fields">
+<div class="lf">
+<label class="lf-l" for="lp-od"><span class="led stg" role="img" aria-label="Staged"></span>Original date</label>
+<div class="lf-c">
+<span class="lf-in"><input id="lp-od" class="lib-in stg" value="1988-09-12" placeholder="Empty"><button type="button" class="lf-rev" aria-label="Revert Original date" title="Revert"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"></path><path d="M4 9h11a5 5 0 0 1 0 10h-3"></path></svg></button></span>
+<span class="lf-was">Was empty</span>
+</div>
+<div class="lf-s"><button type="button" class="sug" aria-label="Use 1988-09-12, proposed by Claude at home, 86%"><span class="sug-v">1988-09-12</span><span class="sug-s">Claude at home</span><span class="sug-p">86%</span></button></div>
+</div>
+<div class="lf">
+<label class="lf-l" for="lp-rd">Release date</label>
+<div class="lf-c"><span class="lf-in"><input id="lp-rd" class="lib-in" value="" placeholder="Empty"></span></div>
+<div class="lf-s"><button type="button" class="sug" aria-label="Use 2012-03-26, proposed by Claude at home, 86%"><span class="sug-v">2012-03-26</span><span class="sug-s">Claude at home</span><span class="sug-p">86%</span></button><button type="button" class="sug" aria-label="Use 2012, from the files, 60%"><span class="sug-v">2012</span><span class="sug-s">Files</span><span class="sug-p">60%</span></button></div>
+</div>
+<div class="lf">
+<label class="lf-l" for="lp-aa">Album artists</label>
+<div class="lf-c"><span class="lf-in"><input id="lp-aa" class="lib-in" value="" placeholder="Empty"></span></div>
+<div class="lf-s"><button type="button" class="sug" aria-label="Use Talk Talk, proposed by Claude at home, 86%"><span class="sug-v">Talk Talk</span><span class="sug-s">Claude at home</span><span class="sug-p">86%</span></button></div>
+</div>
+<div class="lf">
+<label class="lf-l" for="lp-g">Genre</label>
+<div class="lf-c"><span class="lf-in"><input id="lp-g" class="lib-in" value="Rock" placeholder="Empty"></span></div>
+<div class="lf-s"></div>
+</div>
+</div>
+</div>
+<div class="lib-save">
+<span class="t2" style="flex: 1; min-width: 0">1 edit staged. Saving it accepts Original date in the proposal.</span>
+<button type="button" class="key">Discard</button>
+<button type="button" class="key sun">Save</button>
+</div>
+</section>
+</div>
+</div>
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>

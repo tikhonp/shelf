@@ -85,6 +85,23 @@ The two CSS files are the canvas stylesheet `project/retro.css`, cut in two. Eac
 | `MS-library-states`, `-states-day` | Every Library state, at phone width, in Night and Day |
 | `MS-library-parts` | The Library parts, the fourth tab, and the changes to Status and Downloads |
 
+### Planned: account sign-in and agent review
+
+These screens come from a second canvas, https://claude.ai/artifact/LRhUtun1bSeK87kTh6Q7To, from 2026-11-09. The app doesn't have them yet. [The plan](../../plans/signin-and-agent-review-design.md) gives the owner's decisions, the behavior of each screen, and the bugs in the screens these replace.
+
+| Screen | Shows | Route |
+| --- | --- | --- |
+| `MS-desk-account-signin` | Account sign-in on a switched-off console, with the passkey key switch | any, while signed out |
+| `MS-phone-account-signin` | Account sign-in on the phone | any, while signed out |
+| `MS-account-signin-states` | Checking, wrong password, passkey canceled, signed in, session ended, no accounts | any, while signed out |
+| `MS-desk-status-account` | Account, Passkeys and Password as rack units, with a passkey removal waiting for confirmation | `/status` |
+| `MS-desk-inbox` | The Inbox list and a proposal under review, with rockers, the patch cable and the Accept bar | `/inbox/:id` |
+| `MS-phone-inbox` | The Inbox list on the phone | `/inbox` |
+| `MS-phone-inbox-review` | A proposal on the phone, with the review slot above the dock | `/inbox/:id` |
+| `MS-desk-status-agents` | Agents, one connection, and Connect with a new secret | `/status` |
+| `MS-desk-library-proposal` | The Library editor with an agent's values as suggestions | `/library/:id` |
+| `MS-phone-library-inbox` | The phone Library with the Inbox cap and four tabs | `/library` |
+
 ## Direction
 
 The look is a recording studio built around a British mixing console: blue-grey modules, ivory push buttons, red and blue knobs, lamps, small displays and a little wood. The look is only visual. UI text uses the glossary words in `CLAUDE.md` and never names the studio, so there is no "tape machine", "rack", "lathe" or "master" on screen.
@@ -262,5 +279,7 @@ Help never shows on a screen at rest, and the design adds no helper text beside 
 ## Account access
 
 With simple authentication, a centered window titled "Sign in to Shelf" has username and password fields and a separate passkey button. The window fits its content, up to 440px wide, with at least 12px of space at each viewport edge. It scrolls when its content exceeds the available height. The app checks access before mounting the shell. An expired session opens a modal dialog over the inert app and preserves staged edits. The same account resumes without resending actions; another account reloads the page.
+
+The owner approved a redesign of these screens, and the app doesn't have it yet. [The plan](../../plans/signin-and-agent-review-design.md) and the planned screens above describe it.
 
 Status has an Account window for password changes, named passkeys, and signing out. None mode has no account controls. Existing download and library history rows show their author beside the current secondary text. No activity page is added. [auth.md](../../auth.md) describes the flows and labels.

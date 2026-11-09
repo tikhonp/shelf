@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Desktop · Inbox with a proposal</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="../library.css">
+<style>
+body{margin:0}
+a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
+</style>
+</head>
+<body>
+<div class="rs desk console " style="width: 1440px; height: 1360px; position: relative; overflow: hidden; display: flex; flex-direction: column">
+<header class="menubar">
+<span class="brand"><span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>Music Shelf</span>
+<nav aria-label="Main" style="display: flex; gap: 6px">
+<a class="mb-item" href="#">Library</a>
+<a class="mb-item on" href="#" aria-current="page">Inbox<span class="led" title="Proposals wait for review"></span></a>
+<a class="mb-item" href="#">Search</a>
+<a class="mb-item" href="#">Downloads</a>
+<a class="mb-item" href="#">Status</a>
+</nav>
+<div class="mb-right">
+<span class="led ok" title="Qobuz"></span><span class="led ok" title="Apple Music"></span><span class="led ok" title="Navidrome"></span>
+<span class="vfd num">22:41</span>
+</div>
+</header>
+
+<div style="flex: 1; min-height: 0; display: flex; gap: 20px; align-items: flex-start; padding: 20px var(--gutter) 24px">
+
+<section class="win" aria-labelledby="ib-h" style="flex: 0 0 420px; align-self: stretch">
+<div class="tb"><h1 id="ib-h">Inbox</h1><span class="stripes"></span><a class="wbtn txt" href="#">Memory</a></div>
+<div class="rotary" role="radiogroup" aria-label="Show" style="border-top: 0">
+<div class="rot-labels">
+<button type="button" role="radio" aria-checked="true"><span class="led"></span>Pending</button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>Reviewed</button>
+<button type="button" class="knob grey" style="--s: 44px; --a: -75deg" aria-label="Show the next state, now Pending"><i></i></button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>Withdrawn</button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>All</button>
+</div>
+</div>
+<div style="display: flex; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--ink)">
+<button type="button" class="key sm">Every agent<svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="width: 14px; height: 14px"><path d="m6 9 6 6 6-6"></path></svg></button>
+<button type="button" class="key sm">Tags and covers<svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="width: 14px; height: 14px"><path d="m6 9 6 6 6-6"></path></svg></button>
+</div>
+<ul style="list-style: none; margin: 0; padding: 0" aria-label="Proposals">
+<li style="display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--sel); box-shadow: inset 3px 0 0 var(--lamp)">
+<span class="cv a-tide" style="width: 46px; height: 46px"></span>
+<a href="#" aria-current="page" style="min-width: 0; display: flex; flex-direction: column; gap: 2px; color: inherit; text-decoration: none">
+<span class="ell" style="font-weight: 600; font-size: 15px">Spirit of Eden</span>
+<span class="sub ell">Talk Talk · Original date, Release date, Album artists</span>
+<span class="t2 xs ell">Claude at home · 3 min ago</span>
+</a>
+<span class="vfd num" title="Confidence" style="height: 26px; font-size: 13px">86%</span>
+</li>
+<li style="display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line)">
+<span class="cv a-night" style="width: 46px; height: 46px"></span>
+<a href="#" style="min-width: 0; display: flex; flex-direction: column; gap: 2px; color: inherit; text-decoration: none">
+<span class="ell" style="font-weight: 600; font-size: 15px">Dummy</span>
+<span class="sub ell">Portishead · Genre</span>
+<span class="t2 xs ell">Claude at home · 3 min ago</span>
+</a>
+<span class="vfd num" title="Confidence" style="height: 26px; font-size: 13px">72%</span>
+</li>
+<li style="display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line)">
+<span class="cv a-signal" style="width: 46px; height: 46px"></span>
+<a href="#" style="min-width: 0; display: flex; flex-direction: column; gap: 2px; color: inherit; text-decoration: none">
+<span class="ell" style="font-weight: 600; font-size: 15px">Computerwelt</span>
+<span class="sub ell">Kraftwerk · ALBUMSORT</span>
+<span class="t2 xs ell">Claude at home · changes asked · 5 min ago</span>
+</a>
+<span class="vfd num" title="Confidence" style="height: 26px; font-size: 13px">41%</span>
+</li>
+</ul>
+</section>
+
+<section class="win" aria-labelledby="pd-h" style="flex: 1; min-width: 0; align-self: stretch; display: flex; flex-direction: column">
+<div class="tb"><h2 id="pd-h">Spirit of Eden</h2><span class="stripes"></span><a class="wbtn txt" href="#">Open album</a><button type="button" class="wbtn" aria-label="Close the proposal"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<div class="vscroll" style="gap: 0">
+
+<div style="display: flex; gap: 16px; align-items: flex-start; padding: 16px 18px">
+<span class="cv a-tide" style="width: 72px; height: 72px; flex: none"></span>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<h3 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25">Set the original release date and album artists</h3>
+<span class="sub">Talk Talk · proposed by Claude at home 3 min ago · revision 1</span>
+<span class="mono t2 xs">Talk Talk/Spirit of Eden</span>
+</div>
+<div class="lcd" style="flex: none; flex-direction: row; align-items: baseline; gap: 8px; padding: 8px 12px"><span class="lcd-big num" style="font-size: 26px">86%</span><span class="lcd-l">CONFIDENCE</span></div>
+</div>
+
+<div class="note" style="margin: 0 18px; flex-direction: column; gap: 10px">
+<p style="margin: 0">Spirit of Eden came out in September 1988 on Parlophone. The files carry 2012, the year of the remaster. MusicBrainz lists 1988-09-12 as the first release, so the original date and the release date should differ.</p>
+<p class="t2 sm" style="margin: 0"><span style="font-weight: 600; color: var(--text)">Not sure:</span> the 2012 remaster may time Wealth differently. Durations are unchanged.</p>
+<div class="sugs" style="display: flex; flex-wrap: wrap; gap: 8px">
+<a class="sug" href="#" style="text-decoration: none"><span class="sug-v">First release 1988-09-12</span><span class="sug-s">MusicBrainz</span></a>
+<span class="sug"><span class="sug-v">DATE 2012 in all 6 files</span><span class="sug-s">Files</span></span>
+</div>
+</div>
+
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 18px 18px 8px">
+<h3 class="px" style="margin: 0; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3)">Fields</h3>
+<span class="t2 sm">3 of 3 on</span>
+</div>
+<div style="position: relative; margin: 0 18px; padding-left: 50px; border-top: 1px solid var(--line)">
+<svg width="46" height="200" viewBox="0 0 46 200" role="img" aria-label="Original date and Release date go together" style="position: absolute; left: 0; top: 0">
+<path d="M30 42 C 2 62, 2 106, 30 126" fill="none" stroke="#0A0C10" stroke-width="8" stroke-linecap="round" opacity=".5" transform="translate(2 3)"></path>
+<path d="M30 42 C 2 62, 2 106, 30 126" fill="none" stroke="#D9483B" stroke-width="6" stroke-linecap="round"></path>
+<path d="M28 44 C 4 63, 4 104, 28 123" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round"></path>
+<circle cx="32" cy="42" r="9" fill="#0A0C10" stroke="#5D7290" stroke-width="1.5"></circle>
+<circle cx="32" cy="126" r="9" fill="#0A0C10" stroke="#5D7290" stroke-width="1.5"></circle>
+<rect x="25" y="36" width="12" height="12" rx="2.5" fill="#D9483B" stroke="#0A0C10"></rect>
+<rect x="25" y="120" width="12" height="12" rx="2.5" fill="#D9483B" stroke="#0A0C10"></rect>
+</svg>
+
+<div style="display: grid; grid-template-columns: 250px minmax(0, 1fr) auto; gap: 16px; align-items: center; height: 84px; border-bottom: 1px solid var(--line)">
+<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Original date</span><span class="rk-state num">All 6 tracks</span></span></button>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 4px; opacity: 1">
+<input class="lib-in stg" value="1988-09-12" aria-label="Original date, new value" readonly="readonly">
+<span class="lf-was">Was empty</span>
+</div>
+<button type="button" class="key sm flat">Per track</button>
+</div>
+
+<div style="display: grid; grid-template-columns: 250px minmax(0, 1fr) auto; gap: 16px; align-items: center; height: 84px; border-bottom: 1px solid var(--line)">
+<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Release date</span><span class="rk-state num">All 6 tracks</span></span></button>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 4px; opacity: 1">
+<input class="lib-in stg" value="2012-03-26" aria-label="Release date, new value" readonly="readonly">
+<span class="lf-was">Was empty</span>
+</div>
+<button type="button" class="key sm flat">Per track</button>
+</div>
+
+<div style="display: grid; grid-template-columns: 250px minmax(0, 1fr) auto; gap: 16px; align-items: center; height: 84px; border-bottom: 1px solid var(--line)">
+<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Album artists</span><span class="rk-state num">All 6 tracks</span></span></button>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 4px; opacity: 1">
+<input class="lib-in stg" value="Talk Talk" aria-label="Album artists, new value" readonly="readonly">
+<span class="lf-was">Was empty</span>
+</div>
+<button type="button" class="key sm flat">Per track</button>
+</div>
+
+</div>
+<p class="t2 sm" role="status" style="margin: 0; padding: 8px 18px 0; min-height: 20px"></p>
+
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 14px 18px">
+<div class="lib-sum">
+<div class="lcd"><span class="lcd-big num">3</span><span class="lcd-l">FIELDS</span></div>
+<div class="lcd"><span class="lcd-big num">6</span><span class="lcd-l">FILES</span></div>
+<div class="lcd"><span class="lcd-big num">18</span><span class="lcd-l">TAG WRITES</span></div>
+</div>
+<div role="table" aria-label="What Accept writes" style="border: 1px solid var(--ink); border-radius: 6px; overflow: hidden">
+<div role="row" style="display: grid; grid-template-columns: 180px 130px minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 8px 14px; background: var(--win-2); font-family: var(--label); font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3)"><span role="columnheader">Tag</span><span role="columnheader">Files</span><span role="columnheader">Before</span><span role="columnheader">After</span></div>
+
+<div role="row" style="display: grid; grid-template-columns: 180px 130px minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 8px 14px; border-top: 1px solid var(--line); font-size: 13px">
+<span role="cell" class="mono">ORIGINALDATE</span><span role="cell" class="t2">All 6</span><span role="cell" class="t2">Empty</span><span role="cell" style="font-weight: 600">1988-09-12</span>
+</div>
+
+<div role="row" style="display: grid; grid-template-columns: 180px 130px minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 8px 14px; border-top: 1px solid var(--line); font-size: 13px">
+<span role="cell" class="mono">RELEASEDATE</span><span role="cell" class="t2">All 6</span><span role="cell" class="t2">Empty</span><span role="cell" style="font-weight: 600">2012-03-26</span>
+</div>
+
+<div role="row" style="display: grid; grid-template-columns: 180px 130px minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 8px 14px; border-top: 1px solid var(--line); font-size: 13px">
+<span role="cell" class="mono">ALBUMARTISTS</span><span role="cell" class="t2">All 6</span><span role="cell" class="t2">Empty</span><span role="cell" style="font-weight: 600">Talk Talk</span>
+</div>
+
+
+</div>
+<button type="button" class="key sm flat" style="align-self: flex-start">Show each file</button>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 14px 18px 18px; border-top: 1px solid var(--ink)">
+<h3 class="px" style="margin: 0; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3)">Talkback</h3>
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; background: var(--win-2); border-radius: 6px; border: 1px solid var(--ink)">
+<span class="sm"><span style="font-weight: 600">Claude at home</span> <span class="t2">3 min ago</span></span>
+<span>I can also add RELEASECOUNTRY GB if you want it.</span>
+</div>
+<label class="lbl-f">Reply<textarea class="input" rows="2" style="height: auto; padding: 10px 12px; resize: vertical" readonly="readonly"></textarea></label>
+<div style="display: flex; align-items: center; gap: 16px">
+<button type="button" class="rocker" role="switch" aria-checked="false"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Ask for changes</span><span class="rk-state">A comment only</span></span></button>
+<span style="flex: 1"></span>
+<button type="button" class="key">Send</button>
+</div>
+</div>
+</div>
+
+<div class="lib-save">
+
+<span class="t2" style="flex: 1; min-width: 0">Accept writes 3 fields to 6 files. History can undo it.</span>
+<button type="button" class="key">Decline the rest</button>
+<button type="button" class="key sun">Accept 3 fields</button>
+
+
+</div>
+</section>
+</div>
+</div>
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>

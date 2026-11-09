@@ -18,6 +18,8 @@ Every check in [manual-checklist.md](manual-checklist.md) passed in production, 
 
 ## Notes for later work
 
+- The owner approved a redesign of account sign-in, Account and Agents on Status, and agent proposal review. It isn't built yet. [The plan](plans/signin-and-agent-review-design.md) has the owner's decisions, the behavior of each screen, and 24 bugs in today's screens, each with its file. The exports are in `docs/ui/design/screens`, and the plan links the canvas.
+
 - Optional [library agents](agents.md) are implemented locally and remain off by default. The Inbox reviews tags and artwork by field, with user edits, comments, history links, and shared memory for fresh agent runs. The gateway exemption is drafted in `docs/plans/agent-gateway.conf`; production has not changed. Claude supplied the design and initial implementation; its rate limit prevented final review of the complete feature. Local verification passed Go vet and race tests, web type checking and 253 tests, Docker lint and vulnerability checks, the production build, and the scratch Navidrome contract test. Additional fixture tests cover selected approval, replay, rollback, and malformed artwork.
 
 - shelf-wrapper now builds from upstream's `ghcr.io/worldobservationlog/wrapper-lite` image, pinned by digest. Production needs a rebuild and an update of both Shelf images to pick it up.

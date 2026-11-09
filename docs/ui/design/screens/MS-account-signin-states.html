@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Account sign-in states</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="../library.css">
+<style>body{margin:0}</style>
+</head>
+<body>
+<div class="rs desk " style="width: 1440px; height: 1180px; box-sizing: border-box; padding: 44px 48px; display: flex; flex-direction: column; gap: 26px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 class="px" style="font-size: 24px; margin: 0">Sign-in states</h1>
+<p class="t2" style="max-width: 900px; margin: 0">The display shows the state and is the status region, so screen readers announce it. The lamp beside Sign in shows the same state. A state adds a line of text only to say what to do next.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px 24px; align-items: start">
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span class="px t3" style="font-size: 13px">1 · Checking</span>
+<section class="win" aria-label="Checking">
+<div class="tb"><h2><span class="led warn blink" style="margin-right: 8px"></span>Sign in</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 16px">
+<div class="lcd" role="status" style="flex: none; min-height: 58px"><div class="lcd-l">CHECKING</div><div class="lcd-l">TIKHON</div></div>
+<label class="lbl-f">Username<input class="input" value="tikhon" readonly="readonly"></label>
+<label class="lbl-f">Password<input class="input" type="password" value="musicshelf" readonly="readonly"></label>
+<button type="button" class="key sun lg block pressed" disabled="disabled">Sign in</button>
+</div>
+</section>
+<p class="t2 sm" style="margin: 0">The same unit, with CHECKING ACCESS on the display, replaces the unstyled line shown while Shelf checks access on load.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span class="px t3" style="font-size: 13px">2 · Wrong username or password</span>
+<section class="win" aria-label="Wrong password">
+<div class="tb"><h2><span class="led bad" style="margin-right: 8px"></span>Sign in</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 16px">
+<div class="lcd" role="status" style="flex: none; min-height: 58px"><div class="lcd-l">WRONG USERNAME</div><div class="lcd-l">OR PASSWORD</div></div>
+<label class="lbl-f">Username<input class="input" value="tikhon" readonly="readonly"></label>
+<label class="lbl-f">Password<input class="input" type="password" value="" readonly="readonly" style="outline: 3px solid var(--focus); outline-offset: 1px"></label>
+<button type="button" class="key sun lg block">Sign in</button>
+</div>
+</section>
+<p class="t2 sm" style="margin: 0">The password empties and takes focus. Shelf's own words replace the server's sentence.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span class="px t3" style="font-size: 13px">3 · Passkey canceled</span>
+<section class="win" aria-label="Passkey canceled">
+<div class="tb"><h2><span class="led warn" style="margin-right: 8px"></span>Sign in</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px">
+<div class="lcd" role="status" style="flex: none; align-self: stretch; min-height: 58px"><div class="lcd-l">PASSKEY CANCELED</div><div class="lcd-l">USE THE PASSWORD</div></div>
+<svg width="150" height="124" viewBox="0 0 150 124" aria-hidden="true" style="color: var(--text-2)">
+<defs>
+<radialGradient id="s3-chrome" cx="38%" cy="28%" r="80%"><stop offset="0" stop-color="#F4F6F8"></stop><stop offset=".5" stop-color="#A3AAB4"></stop><stop offset="1" stop-color="#3F454E"></stop></radialGradient>
+<linearGradient id="s3-key" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7F3EA"></stop><stop offset="1" stop-color="#BDB29A"></stop></linearGradient>
+</defs>
+<text x="20" y="22" fill="currentColor" style="font: 700 12px var(--label); letter-spacing: .12em">OFF</text>
+<text x="112" y="22" fill="currentColor" style="font: 700 12px var(--label); letter-spacing: .12em">ON</text>
+<circle cx="137" cy="18" r="4.5" fill="#3A4554" stroke="#0A0C10"></circle>
+<circle cx="75" cy="72" r="44" fill="url(#s3-chrome)" stroke="#0A0C10" stroke-width="1.5"></circle>
+<circle cx="75" cy="72" r="32" fill="#1B1F26" stroke="#0A0C10"></circle>
+<g transform="rotate(-40 75 72)"><rect x="71" y="44" width="8" height="56" rx="2" fill="#07090C"></rect><ellipse cx="75" cy="72" rx="13" ry="27" fill="url(#s3-key)" stroke="#0A0C10" stroke-width="1.5"></ellipse><circle cx="75" cy="55" r="4" fill="#1B1F26"></circle></g>
+</svg>
+<button type="button" class="key block">Sign in with a passkey</button>
+</div>
+</section>
+<p class="t2 sm" style="margin: 0">The key springs back to OFF. In a browser without passkeys, the key switch and its key hide.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span class="px t3" style="font-size: 13px">4 · Signed in</span>
+<section class="win" aria-label="Signed in">
+<div class="tb"><h2><span class="led ok" style="margin-right: 8px"></span>Sign in</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px">
+<div class="lcd" role="status" style="flex: none; align-self: stretch; min-height: 58px"><div class="lcd-l">HELLO, TIKHON</div><div class="lcd-l">OPENING THE LIBRARY</div></div>
+<svg width="150" height="124" viewBox="0 0 150 124" aria-hidden="true" style="color: var(--text-2)">
+<defs>
+<radialGradient id="s4-chrome" cx="38%" cy="28%" r="80%"><stop offset="0" stop-color="#F4F6F8"></stop><stop offset=".5" stop-color="#A3AAB4"></stop><stop offset="1" stop-color="#3F454E"></stop></radialGradient>
+<linearGradient id="s4-key" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7F3EA"></stop><stop offset="1" stop-color="#BDB29A"></stop></linearGradient>
+</defs>
+<text x="20" y="22" fill="currentColor" style="font: 700 12px var(--label); letter-spacing: .12em">OFF</text>
+<text x="112" y="22" fill="currentColor" style="font: 700 12px var(--label); letter-spacing: .12em">ON</text>
+<circle cx="137" cy="18" r="4.5" fill="#5BE38A" stroke="#0A0C10"></circle>
+<circle cx="75" cy="72" r="44" fill="url(#s4-chrome)" stroke="#0A0C10" stroke-width="1.5"></circle>
+<circle cx="75" cy="72" r="32" fill="#1B1F26" stroke="#0A0C10"></circle>
+<g transform="rotate(40 75 72)"><rect x="71" y="44" width="8" height="56" rx="2" fill="#07090C"></rect><ellipse cx="75" cy="72" rx="13" ry="27" fill="url(#s4-key)" stroke="#0A0C10" stroke-width="1.5"></ellipse><circle cx="75" cy="55" r="4" fill="#1B1F26"></circle></g>
+</svg>
+<div style="display: flex; align-items: center; gap: 10px"><span class="led ok" title="Qobuz"></span><span class="led ok" title="Apple Music"></span><span class="led ok" title="Navidrome"></span><span class="vfd num">22:41</span></div>
+</div>
+</section>
+<p class="t2 sm" style="margin: 0">The menubar lamps light one by one, 260 ms apart, and the clock starts. Then the Library opens. With reduced motion it opens at once.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span class="px t3" style="font-size: 13px">5 · Session ended, over the app</span>
+<div style="position: relative; height: 470px; border-radius: 7px; overflow: hidden; border: 1px solid var(--ink)">
+<div aria-hidden="true" style="position: absolute; inset: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--desk); filter: saturate(.4) brightness(.7)">
+<div style="height: 34px; border-radius: 5px; background: var(--title)"></div>
+<div style="flex: 1; border-radius: 7px; background: var(--win); display: flex; flex-direction: column; gap: 1px; padding-top: 40px">
+<div style="height: 44px; background: var(--win-hi)"></div><div style="height: 44px; background: var(--win-hi)"></div><div style="height: 44px; background: var(--win-hi)"></div><div style="height: 44px; background: var(--win-hi)"></div>
+</div>
+</div>
+<div class="scrim">
+<section class="win dlg" role="dialog" aria-modal="true" aria-labelledby="s5-h">
+<div class="tb"><h2 id="s5-h"><span class="led warn" style="margin-right: 8px"></span>Sign in again</h2><span class="stripes"></span></div>
+<div class="dlg-body" style="gap: 12px; padding: 16px">
+<div class="lcd" role="status" style="flex: none; min-height: 58px"><div class="lcd-l">SESSION ENDED</div><div class="lcd-l">3 EDITS KEPT</div></div>
+<p class="t2 sm" style="margin: 0">Sign in as tikhon to go on where you stopped. Another account reloads the page.</p>
+<label class="lbl-f">Password<input class="input" type="password" value="" readonly="readonly"></label>
+<div style="display: flex; gap: 10px"><button type="button" class="key" style="flex: 1">Use a passkey</button><button type="button" class="key sun" style="flex: 1">Sign in</button></div>
+</div>
+</section>
+</div>
+</div>
+<p class="t2 sm" style="margin: 0">The username stays as it was, with a Not tikhon? link under the field. The app behind keeps its staged edits.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span class="px t3" style="font-size: 13px">6 · No accounts yet</span>
+<section class="win" aria-label="No accounts">
+<div class="tb"><h2><span class="led warn" style="margin-right: 8px"></span>Sign in</h2><span class="stripes"></span></div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 16px">
+<div class="lcd" role="status" style="flex: none; min-height: 58px"><div class="lcd-l">NO ACCOUNTS</div><div class="lcd-l">ADD ONE ON THE SERVER</div></div>
+<p class="sm" style="margin: 0">Run this in the server's terminal, then reload the page.</p>
+<pre class="term"><span class="ts">$</span> shelf manage users add &lt;username&gt;</pre>
+<button type="button" class="key block">Reload</button>
+</div>
+</section>
+</div>
+
+</div>
+</div>
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Desktop · Status, Account</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="../library.css">
+<style>body{margin:0}</style>
+</head>
+<body>
+<div class="rs desk " style="width: 1180px; height: 1080px; box-sizing: border-box; padding: 28px 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 0 4px 6px">
+<h1 class="px" style="font-size: 22px; margin: 0">Status · Account</h1>
+<p class="t2 sm" style="margin: 0">Account becomes three units in the Status rack, under Density. Each key is as wide as its label.</p>
+</div>
+
+<section class="win unit" aria-labelledby="ac-a">
+<div class="unit-body">
+<div class="plate"><h2 id="ac-a"><span class="led ok"></span>Account</h2><span class="sub">Shelf sign-in</span></div>
+<div class="lcd" style="flex: 0 1 300px; min-height: 66px"><div class="lcd-l">TIKHON</div><div class="lcd-l">2 PASSKEYS · SINCE 4 NOV</div></div>
+<button type="button" class="key">Sign out of Shelf</button>
+</div>
+</section>
+
+<section class="win unit" aria-labelledby="ac-p">
+<div class="unit-body" style="align-items: flex-start">
+<div class="plate"><h2 id="ac-p"><span class="led ok"></span>Passkeys</h2><span class="sub">Sign in without the password</span></div>
+<div style="flex: 1 1 560px; min-width: 0; display: flex; flex-direction: column">
+<ul style="list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line)" aria-label="Passkeys">
+<li style="display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line)">
+<svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><circle cx="11" cy="17" r="8" fill="var(--key)" stroke="var(--key-edge)" stroke-width="1.5"></circle><circle cx="11" cy="17" r="3" fill="var(--win-2)"></circle><path d="M19 15h13v4h-3v4h-3v-4h-7z" fill="var(--key)" stroke="var(--key-edge)" stroke-width="1.5"></path></svg>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">MacBook Air</span><span class="sub">Added 4 Nov · used today</span></span>
+<button type="button" class="key sm">Rename</button>
+<button type="button" class="key sm">Remove</button>
+</li>
+<li style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line)">
+<svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><circle cx="11" cy="17" r="8" fill="var(--key)" stroke="var(--key-edge)" stroke-width="1.5"></circle><circle cx="11" cy="17" r="3" fill="var(--win-2)"></circle><path d="M19 15h13v4h-3v4h-3v-4h-7z" fill="var(--key)" stroke="var(--key-edge)" stroke-width="1.5"></path></svg>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">iPhone</span><span class="sub">Added 4 Nov · used 2 days ago</span></span>
+<div class="note" role="group" aria-label="Remove iPhone" style="flex: 1 1 100%; flex-wrap: wrap; align-items: flex-end; border-color: var(--sun)">
+<div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-weight: 600">Remove iPhone?</span>
+<span class="sub">Confirm it is you first. Removing a passkey signs you out here.</span>
+<label class="lbl-f">Password<input class="input" type="password" value="" readonly="readonly" style="height: 40px"></label>
+</div>
+<div style="display: flex; gap: 10px"><button type="button" class="key sm">Cancel</button><button type="button" class="key sm">Use a passkey</button><button type="button" class="key sm sun">Remove</button></div>
+</div>
+</li>
+</ul>
+<form style="display: flex; align-items: flex-end; gap: 12px; padding-top: 14px">
+<label class="lbl-f" style="flex: 1">New passkey name<input class="input" value="" placeholder="Work laptop" readonly="readonly" style="height: 40px"></label>
+<button type="button" class="key">Add passkey</button>
+</form>
+</div>
+</div>
+</section>
+
+<section class="win unit" aria-labelledby="ac-w">
+<div class="unit-body" style="align-items: flex-start">
+<div class="plate"><h2 id="ac-w"><span class="led ok"></span>Password</h2><span class="sub">8 to 128 characters</span></div>
+<form style="flex: 1 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+<input type="text" name="username" value="tikhon" autocomplete="username" hidden="hidden" readonly="readonly">
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<label class="lbl-f">Current<input class="input" type="password" autocomplete="current-password" value="" readonly="readonly" style="height: 40px"></label>
+<label class="lbl-f">New<input class="input" type="password" autocomplete="new-password" value="" readonly="readonly" style="height: 40px"></label>
+<label class="lbl-f">New, again<input class="input" type="password" autocomplete="new-password" value="" readonly="readonly" style="height: 40px"></label>
+</div>
+<div style="display: flex; align-items: center; gap: 14px"><button type="button" class="key">Change password</button><span class="sub">Then you sign in again with the new one.</span></div>
+</form>
+</div>
+</section>
+</div>
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Desktop · account sign-in</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="../library.css">
+<style>
+body{margin:0}
+a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
+</style>
+</head>
+<body>
+<div class="rs desk console " style="width: 1440px; height: 900px; position: relative; overflow: hidden; display: flex; flex-direction: column">
+<header class="menubar">
+<span class="brand"><span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>Music Shelf</span>
+<nav aria-label="Main, after sign-in" style="display: flex; gap: 6px; opacity: .35; transition: opacity .4s">
+<span class="mb-item" aria-disabled="true">Library</span>
+<span class="mb-item" aria-disabled="true">Inbox</span>
+<span class="mb-item" aria-disabled="true">Search</span>
+<span class="mb-item" aria-disabled="true">Downloads</span>
+<span class="mb-item" aria-disabled="true">Status</span>
+</nav>
+<div class="mb-right">
+<span class="led off" title="Qobuz"></span>
+<span class="led off" title="Apple Music"></span>
+<span class="led off" title="Navidrome"></span>
+<span class="vfd num" aria-label="Clock">--:--</span>
+</div>
+</header>
+
+<main style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; padding: 0 var(--gutter) 40px">
+<div class="win unit" aria-hidden="true" style="width: 780px; height: 58px; flex: none">
+<div class="unit-body" style="justify-content: center; padding: 0 18px">
+<span style="display: block; width: 420px; height: 16px; border-radius: 3px; background: repeating-linear-gradient(90deg, #0A0C10 0 4px, transparent 4px 14px); opacity: .75"></span>
+</div>
+</div>
+
+<section class="win unit" aria-labelledby="si-h" style="width: 780px; flex: none">
+<div class="unit-body" style="align-items: stretch; gap: 22px 30px; padding: 22px 24px">
+<div style="width: 214px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 12px">
+<div style="align-self: stretch; display: flex; flex-direction: column; gap: 4px">
+<h1 id="si-h" style="display: flex; align-items: center; gap: 10px; font-family: var(--label); font-size: 18px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; margin: 0"><span class="led off"></span>Sign in</h1>
+<span class="sub">to Music Shelf</span>
+</div>
+<svg width="150" height="124" viewBox="0 0 150 124" aria-hidden="true" style="color: var(--text-2); margin-top: 4px">
+<defs>
+<radialGradient id="ks-chrome" cx="38%" cy="28%" r="80%"><stop offset="0" stop-color="#F4F6F8"></stop><stop offset=".5" stop-color="#A3AAB4"></stop><stop offset="1" stop-color="#3F454E"></stop></radialGradient>
+<linearGradient id="ks-key" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7F3EA"></stop><stop offset="1" stop-color="#BDB29A"></stop></linearGradient>
+</defs>
+<text x="20" y="22" fill="currentColor" style="font: 700 12px var(--label); letter-spacing: .12em">OFF</text>
+<text x="112" y="22" fill="currentColor" style="font: 700 12px var(--label); letter-spacing: .12em">ON</text>
+<circle cx="137" cy="18" r="4.5" fill="#3A4554" stroke="#0A0C10"></circle>
+<line x1="43" y1="31" x2="49" y2="38" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+<line x1="107" y1="31" x2="101" y2="38" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+<circle cx="75" cy="72" r="44" fill="url(#ks-chrome)" stroke="#0A0C10" stroke-width="1.5"></circle>
+<circle cx="75" cy="72" r="32" fill="#1B1F26" stroke="#0A0C10"></circle>
+<circle cx="75" cy="72" r="32" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="2" stroke-dasharray="40 160"></circle>
+<g style="transform: rotate(-40deg); transform-origin: 75px 72px; transition: transform .5s cubic-bezier(.3, 1.5, .5, 1)">
+<rect x="71" y="44" width="8" height="56" rx="2" fill="#07090C"></rect>
+<ellipse cx="75" cy="72" rx="13" ry="27" fill="url(#ks-key)" stroke="#0A0C10" stroke-width="1.5"></ellipse>
+<circle cx="75" cy="55" r="4" fill="#1B1F26"></circle>
+<line x1="75" y1="66" x2="75" y2="92" stroke="rgba(0,0,0,.25)" stroke-width="2" stroke-linecap="round"></line>
+</g>
+</svg>
+<button type="button" class="key block">Sign in with a passkey</button>
+</div>
+
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+<div class="lcd" role="status" style="flex: none; min-height: 66px"><div class="lcd-l">SIGNED OUT</div><div class="lcd-l">PASSWORD OR PASSKEY</div></div>
+<form style="display: flex; flex-direction: column; gap: 14px">
+<label class="lbl-f">Username<input class="input" name="username" autocomplete="username webauthn" autocapitalize="none" spellcheck="false" value="tikhon"></label>
+<label class="lbl-f">Password<input class="input" name="password" type="password" autocomplete="current-password" value=""></label>
+<button type="submit" class="key sun lg block">Sign in</button>
+</form>
+</div>
+</div>
+</section>
+
+<div class="win unit" aria-hidden="true" style="width: 780px; height: 58px; flex: none">
+<div class="unit-body" style="justify-content: center; padding: 0 18px">
+<span style="display: block; width: 420px; height: 16px; border-radius: 3px; background: repeating-linear-gradient(90deg, #0A0C10 0 4px, transparent 4px 14px); opacity: .75"></span>
+</div>
+</div>
+
+</main>
+</div>
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>

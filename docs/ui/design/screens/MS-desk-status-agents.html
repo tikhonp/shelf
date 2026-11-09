@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Desktop · Status, Agents</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="../library.css">
+<style>
+body{margin:0}
+a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
+</style>
+</head>
+<body>
+<div class="rs desk " style="width: 1180px; height: 1240px; box-sizing: border-box; padding: 28px 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 0 4px 6px">
+<h1 class="px" style="font-size: 22px; margin: 0">Status · Agents</h1>
+<p class="t2 sm" style="margin: 0">Agents has one unit for the feature, one for each connection, and one to connect a new agent. Permissions are rockers, as in a bulk run.</p>
+</div>
+
+<section class="win unit" aria-labelledby="ag-a">
+<div class="unit-body">
+<div class="plate"><h2 id="ag-a"><span class="led ok"></span>Agents</h2><span class="sub">A person accepts each change</span></div>
+<div class="lcd" style="flex: 0 1 300px; min-height: 66px"><div class="lcd-l">1 CONNECTED</div><div class="lcd-l">3 PROPOSALS PENDING</div></div>
+<div style="display: flex; gap: 10px"><a class="key" href="#" style="text-decoration: none">Open the Inbox</a><a class="key" href="#" style="text-decoration: none">Memory</a></div>
+</div>
+</section>
+
+<section class="win unit" aria-labelledby="ag-c">
+<div class="unit-body" style="align-items: flex-start">
+<div class="plate"><h2 id="ag-c"><span class="led ok"></span>Claude at home</h2><span class="sub">Added by CLI on 9 Nov</span></div>
+<div class="lcd" style="flex: 0 1 300px; min-height: 66px"><div class="lcd-l">LAST RUN 3 MIN AGO</div><div class="lcd-l">3 PROPOSALS · 1 RULE</div></div>
+<div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; flex-wrap: wrap; gap: 6px" aria-label="Allowed">
+<span class="stk">Read the library</span><span class="stk">Look up</span><span class="stk">History</span><span class="stk">Upload covers</span><span class="stk">Propose</span><span class="stk">Memory</span>
+</div>
+<button type="button" class="key sm" style="align-self: flex-start">Revoke</button>
+</div>
+</div>
+</section>
+
+<section class="win unit" aria-labelledby="ag-n">
+<div class="unit-body" style="align-items: flex-start">
+<div class="plate"><h2 id="ag-n"><span class="led off"></span>Connect</h2><span class="sub">Shelf shows the secret once</span></div>
+<form style="flex: 1 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+<label class="lbl-f">Name<input class="input" value="Claude on the laptop" readonly="readonly" style="height: 40px"></label>
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+<legend class="lbl-f" style="padding: 0 0 8px">Allowed</legend>
+<div class="lib-bank" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px">
+<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Read the library</span><span class="rk-state">Albums, tags, local suggestions</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Look up</span><span class="rk-state">MusicBrainz, sources, LRCLIB</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">History</span><span class="rk-state">Changes and who made them</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="false"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Upload covers</span><span class="rk-state">Images for proposals</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Propose</span><span class="rk-state">Create, revise, comment, withdraw</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Memory</span><span class="rk-state">Notes kept between runs</span></span></button>
+</div>
+</fieldset>
+<div style="display: flex; align-items: center; gap: 14px"><button type="button" class="key sun">Connect</button><span class="sub">No agent can accept, save or delete.</span></div>
+
+<div class="note" role="region" aria-label="New connection secret" style="flex-direction: column; gap: 10px; border-color: var(--sun)">
+<span style="font-weight: 600">Secret for Claude on the laptop</span>
+<span class="sub">Put it in the agent's environment as SHELF_AGENT_TOKEN, never in a prompt or chat. Shelf keeps only its hash.</span>
+<input class="input mono" value="shelf_agent_••••••••••••••••••••••••••••••••••••" readonly="readonly" aria-label="Secret" style="height: 40px; font-size: 14px">
+<div style="display: flex; gap: 10px"><button type="button" class="key sm">Copy secret</button><button type="button" class="key sm">I stored it</button><span style="flex: 1"></span><button type="button" class="key sm">Copy setup prompt</button></div>
+</div>
+</form>
+</div>
+</section>
+</div>
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>
