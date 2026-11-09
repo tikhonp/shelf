@@ -62,11 +62,11 @@ Acceptance, per-field decisions, the library change, and the write job commit to
 
 ## Proposal values in the Library
 
-The editor shows pending proposals under Proposed. Each row names the agent and fields and links to its Inbox review. Pending tags also appear as suggestion tape on desktop and phone. Each tape shows the connection name and the agent's confidence. An omitted confidence says "Not rated". Proposal confidence stays separate from other sources.
+The editor shows pending proposals under Proposed. Each row names the agent and fields and links to its Inbox review. Pending tags also appear as suggestion tape on desktop and phone. Each tape shows the connection name and the agent's confidence. An omitted confidence says "Not rated". Shelf never combines it with other sources' confidence.
 
-Pressing a proposal tape stages its exact values on its target tracks. Save follows the ordinary checks and writes. Shelf then accepts each tag operation whose values that Save wrote on every target file. Other values, missing files and unwritten files leave it pending. Artwork still needs Inbox acceptance. Track IDs and recorded paths must both match.
+Pressing a proposal tape stages its exact values on its target tracks. The Save runs the usual checks and writes. Shelf then accepts each tag operation whose values that Save wrote on every target file. Other values, missing files and unwritten files leave it pending. Artwork still needs Inbox acceptance. Track IDs and recorded paths must both match.
 
-The agents runner reads completed Saves through the library port at startup, on existing change events and periodically. A durable cursor and transactional decisions make replay safe after a missed event or restart. Retained library history supplies the written keys, final tags, paths and author. Clearing or trimming that history before reconciliation removes that evidence. Saves before the proposal's current revision cannot accept it.
+The agents runner reads completed Saves through the library port at startup, after each change event, and every 5 minutes. A durable cursor and transactional decisions make replay safe after a missed event or restart. The library's history gives it the written keys, final tags, paths and author. A Save that Clear history or retention removes before the runner reads it accepts nothing, and its operations stay pending. Saves before the proposal's current revision cannot accept it.
 
 A Save acceptance records the Save's author and change ID in the existing acceptance and feedback records. The Inbox shows that Save's outcome and later undo. If every file of an operation was written in a partial Save, that operation satisfies dependencies until undo, even though the Inbox still shows the Save as partial.
 

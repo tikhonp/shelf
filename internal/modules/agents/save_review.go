@@ -87,8 +87,24 @@ func (m *Module) acceptSaved(ctx context.Context, change libraryport.HistoryChan
 	if change.Kind != "save" || change.Origin != "" || change.Truncated {
 		return nil
 	}
+	// Only proposals that target a file this Save wrote can match it, so most
+	// Saves open no write transaction at all.
+	paths := []string{}
+	for _, f := range change.Files {
+		if f.Written {
+			paths = append(paths, f.Path)
+		}
+	}
+	if len(paths) == 0 {
+		return nil
+	}
+	q, args, err := sqlx.In(`SELECT `+proposalCols+` FROM agents_proposals WHERE pending>0 AND withdrawn_at IS NULL
+		AND id IN (SELECT proposal_id FROM agents_targets WHERE path IN (?)) ORDER BY id`, paths)
+	if err != nil {
+		return err
+	}
 	var proposals []proposalRow
-	if err := m.db.R.SelectContext(ctx, &proposals, `SELECT `+proposalCols+` FROM agents_proposals WHERE pending>0 AND withdrawn_at IS NULL`); err != nil {
+	if err := m.db.R.SelectContext(ctx, &proposals, q, args...); err != nil {
 		return err
 	}
 	for _, p := range proposals {

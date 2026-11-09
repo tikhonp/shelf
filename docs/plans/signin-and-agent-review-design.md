@@ -1,6 +1,6 @@
 # Sign-in and agent review redesign
 
-Status: designed on 2026-11-09. The bugs at the end were fixed the same day; the rest is not built. The owner made the choices under Decisions. The Claude Design canvas at https://claude.ai/artifact/LRhUtun1bSeK87kTh6Q7To has the boards, with today's screens beside them. The static exports are in [ui/design/screens](../ui/design/screens), and [ui/design/README.md](../ui/design/README.md) lists them.
+Status: designed on 2026-11-09. The bugs at the end were fixed the same day, and the rest was built on 2026-11-10. The owner made the choices under Decisions. The Claude Design canvas at https://claude.ai/artifact/LRhUtun1bSeK87kTh6Q7To has the boards, with today's screens beside them. The static exports are in [ui/design/screens](../ui/design/screens), and [ui/design/README.md](../ui/design/README.md) lists them.
 
 The review used a local build with `SHELF_AUTH_PROVIDER=simple`, `SHELF_AGENT_ENABLED=true` and the fake source. A script sent three proposals through the agent API. The [bugs](#bugs-found-on-2026-11-09) at the end can be fixed before the redesign or with it.
 

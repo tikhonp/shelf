@@ -62,7 +62,7 @@ Last run: passed in production, run by the owner before 2026-11-10. The gateway'
 
 ## Optional agents
 
-Production turned agents on before this checklist ran. Run it after deploying the review fixes from 2026-11-10.
+Production turned agents on before this checklist ran. Run it after deploying the review fixes and the redesign from 2026-11-10.
 
 The traversal item passed on 2026-11-10 on `main-6210916`: all three paths got 400, and the agent and library APIs got 401 without credentials.
 
@@ -73,6 +73,9 @@ The traversal item passed on 2026-11-10 on `main-6210916`: all three paths got 4
 - Change a reviewed field using another tool, then accept the old preview. Confirm Shelf requires another review. Change an unrelated field and confirm an identical selected diff can still be accepted.
 - Switch a field off and Decline the rest, then decline every field of another proposal. Send a Reply as a comment, and another with Ask for changes on. Confirm the external agent retrieves those actions on its next run and no file changes occur.
 - On a proposal where one field requires another, switch the required field off. Confirm the field that needs it switches off too and the line under the fields names both.
+- On that proposal, confirm a cable joins the two fields and each value has a "Was ..." line that matches the files. On a phone, confirm Accept sits in a slot above the dock and pressing a field's name opens it.
+- Open the proposal's album in the Library. Confirm the Proposed row and the agent's tape beside each pending field. Press a tape, Save, and confirm the Inbox shows that field accepted by you, linked to the Save in History.
+- Clear history right after an Inbox acceptance finishes writing. Confirm the acceptance shows Written, not "Left the history".
 - Correct or delete a learned preference. Start a new agent run and confirm the correction or tombstone is still present. A learning commit with an old version must fail atomically.
 - Revoke a connection and confirm its next request fails. With account sign-in enabled, delete the account that created a connection and confirm that token is revoked on its next call.
 - Verify machine credentials cannot call ordinary Save, review acceptance, undo or delete. Verify a browser cookie alone cannot authenticate a machine endpoint.

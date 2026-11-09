@@ -96,7 +96,7 @@ func TestSaveAcceptanceIsDurableIdempotentAndAuthored(t *testing.T) {
 }
 
 func TestSavesBeforeRevisionAndOtherActionsStayPending(t *testing.T) {
-	for _, kind := range []string{"old", "undo", "redo", "origin", "truncated", "wrong"} {
+	for _, kind := range []string{"old", "undo", "redo", "origin", "truncated", "wrong", "elsewhere", "nothing written"} {
 		t.Run(kind, func(t *testing.T) {
 			r := rig(t, true, nil)
 			id := create(t, r)
@@ -112,6 +112,11 @@ func TestSavesBeforeRevisionAndOtherActionsStayPending(t *testing.T) {
 				c.Truncated = true
 			case "wrong":
 				c.Files[0].Tags[0].Values = []string{"Other"}
+			case "elsewhere":
+				// The same track ID on another album's file, which the proposal doesn't target.
+				c.Files[0].Path = "music/other/1.flac"
+			case "nothing written":
+				c.Files[0].Written = false
 			}
 			if err := r.m.acceptSaved(context.Background(), c); err != nil {
 				t.Fatal(err)
