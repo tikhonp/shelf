@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"slices"
 	"sort"
 	"strings"
 
@@ -164,7 +165,17 @@ func (m *Module) detail(ctx context.Context, id int64, base string, live bool) (
 				stale[id] = digest == "" || digest != r.digests()[id]
 			}
 		}
-		out["live"] = map[string]any{"preview": pv, "refusal": refusal, "op_stale": stale}
+		// before is each pending tag field's values in the files now, for the
+		// Inbox's "Was ..." line. A failed read only leaves the line out.
+		before := map[string]map[int64][]string{}
+		if lib != nil && currentID != 0 && len(pending) > 0 {
+			if al, e := lib.Album(ctx, currentID); e == nil {
+				before = beforeValues(al, pick(r.ops(), pending))
+			} else if ctx.Err() == nil {
+				m.log.Warn("agents: read the album for the values now", "album", currentID, "error", e)
+			}
+		}
+		out["live"] = map[string]any{"preview": pv, "refusal": refusal, "op_stale": stale, "before": before}
 	}
 	return out, nil
 }
@@ -325,4 +336,42 @@ func (m *Module) libraryError(err error) error {
 		return fail(http.StatusUnprocessableEntity, "refused", "the library refused this request")
 	}
 	return err
+}
+
+// beforeValues gives each tag op the values its tracks hold now. It reads the
+// raw key of a tag_key op, or the key that feeds the op's field, as the
+// editor does.
+func beforeValues(al libraryport.Album, ops []Op) map[string]map[int64][]string {
+	out := map[string]map[int64][]string{}
+	tracks := map[int64]libraryport.Track{}
+	for _, t := range al.Tracks {
+		tracks[t.ID] = t
+	}
+	for _, o := range ops {
+		if o.Type != "tag" {
+			continue
+		}
+		vals := map[int64][]string{}
+		for _, ot := range o.Tracks {
+			t, ok := tracks[ot.TrackID]
+			if !ok || t.Error != "" {
+				continue
+			}
+			vals[ot.TrackID] = tagValues(t, o)
+		}
+		out[o.ID] = vals
+	}
+	return out
+}
+
+func tagValues(t libraryport.Track, o Op) []string {
+	for _, tag := range t.Tags {
+		if (o.TagKey != "" && strings.EqualFold(tag.Key, o.TagKey)) || (o.Field != "" && !tag.Extended && slices.Contains(tag.Fields, o.Field)) {
+			if tag.Values == nil {
+				return []string{}
+			}
+			return tag.Values
+		}
+	}
+	return []string{}
 }

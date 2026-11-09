@@ -115,6 +115,20 @@ func TestRealLibraryProposalAcceptAndArtwork(t *testing.T) {
 	if !bytes.Equal(before, after) {
 		t.Fatal("proposal changed real file")
 	}
+	// The detail tells the Inbox what each field holds now: the key that
+	// feeds a field, a raw key, and [] for a tag the file lacks.
+	res = r.call(t, "GET", fmt.Sprintf("/api/inbox/proposals/%d", proposal.ID), nil, false)
+	want(t, res, 200)
+	var shown struct {
+		Live struct {
+			Before map[string]map[string][]string `json:"before"`
+		} `json:"live"`
+	}
+	_ = json.Unmarshal(res.Body.Bytes(), &shown)
+	track := fmt.Sprint(album.Tracks[0].ID)
+	if g, md := shown.Live.Before["genre"][track], shown.Live.Before["mood"][track]; len(g) != 1 || g[0] != "Rock" || md == nil || len(md) != 0 {
+		t.Fatalf("values now %+v", shown.Live.Before)
+	}
 	pv := preview(t, r, proposal.ID, []string{"genre"})
 	res = r.call(t, "POST", fmt.Sprintf("/api/inbox/proposals/%d/accept", proposal.ID), map[string]any{"revision": 1, "ops": []string{"genre"}, "digest": pv.Digest, "request_id": "real-write"}, false)
 	want(t, res, 202)

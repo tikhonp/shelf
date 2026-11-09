@@ -5,9 +5,11 @@ import type { Evidence, Refusal } from '../api/agents'
 import { useNow } from '../lib/clock'
 import { ago, count } from '../lib/format'
 import { eventLine, opName, outcomeClass, outcomeWord, stateClass, stateWord } from '../lib/inbox'
-import { ordered, selectable, useInbox } from '../stores/inbox'
+import { ordered, useInbox } from '../stores/inbox'
 import Cover from './Cover.vue'
 import Icon from './Icon.vue'
+import InboxBar from './InboxBar.vue'
+import InboxCable, { type CablePair } from './InboxCable.vue'
 import InboxDiff from './InboxDiff.vue'
 import InboxOp from './InboxOp.vue'
 
@@ -17,20 +19,21 @@ const inbox = useInbox()
 const now = useNow()
 
 const d = computed(() => inbox.detail)
-const reason = ref('')
 const reply = ref('')
 const asking = ref(false)
-const declining = ref(false)
+const bank = ref<HTMLElement>()
 
 const albumId = computed(() => d.value?.album.current_id ?? 0)
 const cover = computed(() => (albumId.value ? `/api/library/albums/${albumId.value}/cover` : ''))
 const head = computed(() => d.value?.revisions.find((r) => r.revision === d.value?.head))
 const hasPending = computed(() => (d.value?.summary.pending ?? 0) > 0 && d.value?.state !== 'withdrawn')
-const canReview = computed(() => !!d.value && d.value.ops.some((op) => selectable(d.value!, op.id)))
 const ops = computed(() => (d.value ? ordered(d.value.current.ops) : []))
 const name = (id: string) => opName(d.value?.current.ops ?? [], id)
 const superseded = computed(() => d.value?.ops.filter((o) => !d.value!.current.ops.some((c) => c.id === o.id)) ?? [])
-const behind = computed(() => !!d.value && inbox.dirty && inbox.headSeen !== 0 && inbox.headSeen !== d.value.head)
+// pairs are the fields requires links, each drawn as one patch cable.
+const pairs = computed<CablePair[]>(() => ops.value.flatMap((op) => (op.requires ?? [])
+  .filter((req) => ops.value.some((o) => o.id === req))
+  .map((req) => ({ from: req, to: op.id, label: `${name(req)} and ${name(op.id)} go together` }))))
 const byLine = computed(() => {
   const v = d.value
   if (!v) return ''
@@ -48,12 +51,7 @@ const diff = computed(() => {
   if (v.live?.preview && hasPending.value) return { preview: v.live.preview, title: 'All pending fields', note: 'Against the files now', confirm: false }
   return { preview: v.current.preview, title: 'As proposed', note: 'Recorded with the revision', confirm: false }
 })
-const writes = computed(() => {
-  const p = inbox.selected.length > 0 ? inbox.selection?.preview : null
-  if (!p) return null
-  const files = p.files.filter((f) => f.keys.length > 0 || f.cover_before !== f.cover_after).length
-  return { fields: inbox.selected.length, files, tags: p.files.reduce((n, f) => n + f.keys.length, 0) }
-})
+const writes = computed(() => inbox.writes)
 
 // The server names op IDs in its refusals; the page names the fields instead.
 function refusalText(r: Refusal): string {
@@ -78,9 +76,6 @@ const tapeValue = (e: Evidence) => e.text || e.url || ([e.field, e.key, e.anchor
 const tapeSource = (e: Evidence) => (typeof e.source === 'string' && e.source ? e.source : kinds[e.kind] ?? e.kind)
 const href = (e: Evidence) => (e.kind === 'link' && typeof e.url === 'string' && /^https?:\/\//i.test(e.url) ? e.url : '')
 
-async function declineRest() {
-  if (await inbox.declineRest(reason.value)) { reason.value = ''; declining.value = false }
-}
 async function send() {
   const ok = asking.value ? await inbox.requestChanges(reply.value) : await inbox.comment(reply.value)
   if (ok) { reply.value = ''; asking.value = false }
@@ -136,7 +131,10 @@ async function send() {
             <button type="button" class="link sm" @click="inbox.selectAll(false)">All off</button>
           </span>
         </div>
-        <InboxOp v-for="op in ops" :key="op.id" :op="op" />
+        <div ref="bank" class="ib-bank" :class="{ cabled: pairs.length, narrow: phone }">
+          <InboxCable v-if="pairs.length" :pairs="pairs" :bank="bank" :narrow="phone" />
+          <InboxOp v-for="op in ops" :key="op.id" :op="op" :phone="phone" />
+        </div>
         <p v-if="cascadeText" class="t2 sm pad ib-moved" role="status">{{ cascadeText }}</p>
         <p v-if="superseded.length" class="t2 sm pad">Earlier fields no longer in this revision: {{ superseded.map((o) => name(o.id)).join(', ') }}.</p>
       </section>
@@ -192,37 +190,7 @@ async function send() {
         <p v-if="inbox.notice" class="t2" role="status">{{ inbox.notice }}</p>
       </div>
 
-      <div v-if="inbox.dirty" class="ib-bar" role="region" aria-label="Unsaved values">
-        <div class="col g4 grow">
-          <span class="bold">Your values aren't saved</span>
-          <span class="sub">Saving makes a new revision with your name and writes nothing to the library. Accept waits until then.</span>
-          <span v-if="behind" class="sub">Revision {{ d.head }} arrived after you started. <button type="button" class="link" @click="inbox.rebase()">Keep my values on revision {{ d.head }}</button></span>
-        </div>
-        <div class="line g8">
-          <button type="button" class="key sm" :disabled="inbox.busy" @click="inbox.discard()">Discard</button>
-          <button type="button" class="key sm sun" :disabled="inbox.busy || behind" @click="inbox.saveValues()">Save values</button>
-        </div>
-      </div>
-      <div v-else-if="canReview" class="ib-bar" role="region" aria-label="Review">
-        <template v-if="declining">
-          <label class="lbl-f grow">Why decline {{ inbox.selected.length ? 'the rest' : 'every field' }}? Optional<input v-model="reason" class="lib-in" maxlength="4000" /></label>
-          <div class="line g8">
-            <button type="button" class="key sm" @click="declining = false">Cancel</button>
-            <button type="button" class="key sm sun" :disabled="inbox.busy" @click="declineRest">Decline {{ count(inbox.rest.length, 'field') }}</button>
-          </div>
-        </template>
-        <template v-else>
-          <span class="sm grow">
-            <template v-if="writes">Accept writes {{ count(writes.fields, 'field') }} to {{ count(writes.files, 'file') }}. History can undo it.</template>
-            <template v-else-if="inbox.selected.length === 0">Switch on the fields to accept.</template>
-            <template v-if="inbox.selected.length && !inbox.confirmed"> Confirm each warning first.</template>
-          </span>
-          <div class="line g8">
-            <button v-if="inbox.rest.length" type="button" class="key sm" :disabled="inbox.busy" @click="declining = true">{{ inbox.selected.length ? 'Decline the rest' : 'Decline all' }}</button>
-            <button type="button" class="key sm sun" :disabled="!inbox.canAccept" @click="inbox.accept()">Accept {{ phone ? inbox.selected.length : count(inbox.selected.length, 'field') }}</button>
-          </div>
-        </template>
-      </div>
+      <InboxBar v-if="!phone" />
     </div>
   </section>
 </template>
@@ -251,11 +219,8 @@ async function send() {
 .rs .ib-ev-row { display: flex; flex-direction: column; gap: 4px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
 .rs .ib-ev-row.user { box-shadow: inset 3px 0 0 var(--lamp); }
 .rs .ib-ev-row.system { color: var(--text-2); }
-/* The review bar stays at the foot of the window, where the Library's Save bar sits, so Accept is never a long scroll away. */
-.rs .ib-bar { position: sticky; bottom: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: auto; padding: 12px 14px; background: var(--win-2); border-top: 1px solid var(--ink); box-shadow: 0 -4px 10px rgba(0, 0, 0, .25); }
-.rs .ib-bar .lbl-f { min-width: 200px; }
-@media (max-width: 719px) {
-  .rs .ib-bar { padding: 10px 12px; }
-  .rs .ib-bar > .sm.grow { flex-basis: 100%; }
-}
+/* The cable runs in a gutter left of the rockers. */
+.rs .ib-bank { position: relative; }
+.rs .ib-bank.cabled { padding-left: 36px; }
+.rs .ib-bank.cabled.narrow { padding-left: 26px; }
 </style>

@@ -210,7 +210,7 @@ export interface ProposalDetail {
   acceptances: Acceptance[]
   events: ProposalEvent[]
   // live is the inbox's own addition: the pending ops planned against the files now.
-  live?: { preview: Preview | null; op_stale: Record<string, boolean>; refusal: Refusal | null }
+  live?: { preview: Preview | null; op_stale: Record<string, boolean>; refusal: Refusal | null; before?: Record<string, Record<string, string[]>> }
 }
 
 export interface PreviewAnswer {

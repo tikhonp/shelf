@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import InboxBar from '../components/InboxBar.vue'
 import InboxDetail from '../components/InboxDetail.vue'
 import InboxList from '../components/InboxList.vue'
 import { usePhone } from '../lib/viewport'
@@ -50,6 +51,7 @@ watch(
 <template>
   <div v-if="phone" class="stack">
     <InboxDetail v-if="id" phone @close="close" />
+    <InboxBar v-if="id" phone />
     <InboxList v-else />
   </div>
   <div v-else class="page ib-page">

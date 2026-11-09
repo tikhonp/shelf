@@ -26,6 +26,15 @@ export function opName(ops: Op[], id: string): string {
   return op ? opLabel(op) : fieldLabel(id)
 }
 
+// wasLine says what the tracks hold now, under a proposed value. Nothing shows when Shelf couldn't read them.
+export function wasLine(before: (string[] | undefined)[]): string {
+  const known = before.filter((v): v is string[] => !!v)
+  if (known.length === 0) return ''
+  const first = known[0]!
+  if (known.some((v) => v.length !== first.length || v.some((x, i) => x !== first[i]))) return 'Was different on each track'
+  return first.length ? `Was ${first.join(' / ')}` : 'Was empty'
+}
+
 export const isLong = (op: Op) => op.type === 'tag' && /lyrics/i.test(op.field ?? op.tag_key ?? '')
 
 export function stateWord(p: Pick<ProposalSummary, 'state' | 'changes_requested'>): string {

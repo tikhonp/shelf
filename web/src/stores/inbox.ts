@@ -526,6 +526,14 @@ export const useInbox = defineStore('inbox', () => {
 
   const lastAccepted = ref<AcceptAnswer | null>(null)
 
+  // writes counts what Accept writes for the fields that are on: the fields, the files and the tag writes.
+  const writes = computed(() => {
+    const p = selected.value.length > 0 ? selection.value?.preview : null
+    if (!p) return null
+    const files = p.files.filter((f) => f.keys.length > 0 || f.cover_before !== f.cover_after).length
+    return { fields: selected.value.length, files, tags: p.files.reduce((n, f) => n + f.keys.length, 0) }
+  })
+
   async function accept(): Promise<boolean> {
     const d = detail.value
     const preview = selection.value?.preview
@@ -681,7 +689,7 @@ export const useInbox = defineStore('inbox', () => {
   return {
     enabled, info, detect, reload,
     filters, proposals, next, listLoading, listError, loadList, moreList, setFilters,
-    detailId, detail, detailLoading, detailError, selected, drafts, selection, previewing, confirm, cascade, error, notice, busy, headSeen, lastAccepted,
+    detailId, detail, detailLoading, detailError, selected, drafts, selection, previewing, confirm, cascade, error, notice, busy, headSeen, lastAccepted, writes,
     open, close, loadDetail, refreshPreview, toggle, selectAll, toggleConfirm,
     values, tracksOf, everyTrack, setValues, dropTrack, setEveryTrack, discard, revisionOps, dirty, saveValues, rebase,
     warnings, confirmed, canAccept, pendingSelected, accept, decline, rest, declineRest, requestChanges, comment,

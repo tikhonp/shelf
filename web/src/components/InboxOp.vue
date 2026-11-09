@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { Op, TagOp } from '../api/agents'
-import { decidedLine, decisionClass, decisionWord, isLong, opLabel, opName, trackLabel } from '../lib/inbox'
+import { decidedLine, decisionClass, decisionWord, isLong, opLabel, opName, trackLabel, wasLine } from '../lib/inbox'
 import { selectable, useInbox } from '../stores/inbox'
 import InboxValues from './InboxValues.vue'
 
-const props = defineProps<{ op: Op }>()
+const props = defineProps<{ op: Op; phone?: boolean }>()
 const inbox = useInbox()
 
 const d = computed(() => inbox.detail!)
@@ -36,65 +36,105 @@ const scope = computed(() => {
 const setAll = (values: string[]) => inbox.setValues(props.op.id, tracks.value.map((t) => t.track_id), values)
 const setOne = (trackId: number, values: string[]) => inbox.setValues(props.op.id, [trackId], values)
 const shown = (values: string[]) => (values.length ? values.join(' / ') : 'Removed')
+
+// Was is what the files hold now, from the live part of the detail.
+const before = computed(() => d.value.live?.before?.[props.op.id])
+const was = (trackIds: number[]) => wasLine(trackIds.map((id) => before.value?.[String(id)]))
+const wasAll = computed(() => was(tracks.value.map((t) => t.track_id)))
+// On the phone a row shows the rocker with the new value, and pressing the label opens the field.
+const open = ref(false)
+const phoneState = computed(() => {
+  if (!tag.value) return scope.value
+  const value = perTrack.value ? `${tracks.value.length} values` : shown(lists.value[0] ?? [])
+  const w = wasAll.value.replace(/^Was /, 'was ')
+  return w ? `${value}, ${w}` : value
+})
+const editing = computed(() => !props.phone || open.value)
 </script>
 
 <template>
-  <div class="ib-op" :class="{ picked, edited, off: canPick && !picked }">
-    <div class="ib-op-h">
-      <button v-if="canPick" type="button" class="rocker flat" role="switch" :aria-checked="picked" @click="inbox.toggle(op.id)">
-        <span class="rk" aria-hidden="true"><span class="rk-case"><span class="rk-paddle"></span></span></span>
-        <span class="rk-t"><span class="rk-name">{{ label }}</span><span class="rk-state sm">{{ scope }}</span></span>
-      </button>
-      <span v-else class="col g4"><span class="bold">{{ label }}</span><span class="t2 sm">{{ scope }}</span></span>
-      <span v-if="op.type === 'tag' && op.tag_key && !op.field" class="mono t2">{{ op.tag_key }}</span>
-      <span class="grow"></span>
-      <span v-if="edited" class="led stg" role="img" aria-label="Edited, not saved"></span>
-      <span v-if="stale" class="pill partial">Changed since proposed</span>
-      <span v-if="decision && !pending" class="pill" :class="decisionClass(decision.decision)">{{ decisionWord(decision.decision) }}</span>
+  <div class="ib-op" :class="{ picked, edited, off: canPick && !picked, phone }" :data-op="op.id">
+    <div class="ib-op-row">
+      <div class="ib-op-sw">
+        <template v-if="canPick && phone">
+          <button type="button" class="rocker flat ib-paddle" role="switch" :aria-checked="picked" :aria-label="label" @click="inbox.toggle(op.id)">
+            <span class="rk" aria-hidden="true"><span class="rk-case"><span class="rk-paddle"></span></span></span>
+          </button>
+          <button type="button" class="ib-label rk-t" :aria-expanded="open" @click="open = !open"><span class="rk-name">{{ label }}</span><span class="rk-state sm">{{ phoneState }}</span></button>
+        </template>
+        <button v-else-if="canPick" type="button" class="rocker flat" role="switch" :aria-checked="picked" @click="inbox.toggle(op.id)">
+          <span class="rk" aria-hidden="true"><span class="rk-case"><span class="rk-paddle"></span></span></span>
+          <span class="rk-t"><span class="rk-name">{{ label }}</span><span class="rk-state sm">{{ scope }}</span></span>
+        </button>
+        <span v-else class="col g4"><span class="bold">{{ label }}</span><span class="t2 sm">{{ scope }}</span></span>
+        <span v-if="goesWith.length" class="sr">Goes with {{ goesWith.join(', ') }}. They switch on and off together.</span>
+      </div>
+
+      <div v-if="editing" class="ib-op-val">
+        <template v-if="tag">
+          <template v-if="pending">
+            <template v-if="!perTrack">
+              <InboxValues :values="lists[0] ?? []" :label="label" :long="isLong(op)" @update="setAll" />
+              <span v-if="wasAll" class="lf-was ell" :title="wasAll">{{ wasAll }}</span>
+            </template>
+            <template v-else>
+              <div v-for="(t, i) in tracks" :key="t.track_id" class="col g4 ib-track">
+                <div class="line g8"><span class="lbl-f grow ell">{{ trackLabel(d, t.track_id) }}</span><button v-if="tracks.length > 1" type="button" class="link sm" @click="inbox.dropTrack(op.id, t.track_id)">Leave out</button></div>
+                <InboxValues :values="lists[i] ?? []" :label="`${label}, ${trackLabel(d, t.track_id)}`" :long="isLong(op)" @update="(v) => setOne(t.track_id, v)" />
+                <span v-if="was([t.track_id])" class="lf-was ell">{{ was([t.track_id]) }}</span>
+              </div>
+            </template>
+          </template>
+          <dl v-else class="meta">
+            <template v-for="t in tag.tracks" :key="t.track_id"><dt>{{ trackLabel(d, t.track_id) }}</dt><dd>{{ shown(t.values) }}</dd></template>
+          </dl>
+        </template>
+        <template v-else-if="op.type === 'cover'">
+          <button v-if="pending && op.action === 'replace'" type="button" class="rocker flat self" role="switch" :aria-checked="inbox.everyTrack(op)" @click="inbox.setEveryTrack(op.id, !inbox.everyTrack(op))">
+            <span class="rk" aria-hidden="true"><span class="rk-case"><span class="rk-paddle"></span></span></span><span class="rk-name">Embed in every track</span>
+          </button>
+          <p v-else-if="op.action === 'replace'" class="t2 sm">{{ op.every_track ? 'Embedded in every track too.' : 'Folder cover, and tracks that already embed one.' }}</p>
+        </template>
+      </div>
+
+      <div class="ib-op-side">
+        <span v-if="op.type === 'tag' && op.tag_key && !op.field" class="mono t2">{{ op.tag_key }}</span>
+        <span v-if="edited" class="led stg" role="img" aria-label="Edited, not saved"></span>
+        <span v-if="stale" class="pill partial">Changed since proposed</span>
+        <span v-if="decision && !pending" class="pill" :class="decisionClass(decision.decision)">{{ decisionWord(decision.decision) }}</span>
+        <template v-if="tag && pending && editing">
+          <button v-if="!perTrack && tracks.length > 1" type="button" class="key sm flat" @click="split = true">Per track</button>
+          <button v-else-if="shared && split" type="button" class="key sm flat" @click="split = false">All tracks together</button>
+        </template>
+      </div>
     </div>
     <p v-if="decision && decidedLine(decision)" class="t2 sm">{{ decidedLine(decision) }}</p>
-    <p v-if="goesWith.length" class="t2 sm ib-cable"><span class="ib-plug" aria-hidden="true"></span>Goes with {{ goesWith.join(', ') }}. They switch on and off together.</p>
     <p v-if="op.type === 'tag' && op.anchor" class="t2 sm">MusicBrainz release {{ op.anchor }}</p>
-
-    <template v-if="tag">
-      <template v-if="pending">
-        <template v-if="!perTrack">
-          <InboxValues :values="lists[0] ?? []" :label="label" :long="isLong(op)" @update="setAll" />
-          <button v-if="tracks.length > 1" type="button" class="key sm self" @click="split = true">Per track</button>
-        </template>
-        <template v-else>
-          <div v-for="(t, i) in tracks" :key="t.track_id" class="col g4 ib-track">
-            <div class="line g8"><span class="lbl-f grow ell">{{ trackLabel(d, t.track_id) }}</span><button v-if="tracks.length > 1" type="button" class="link sm" @click="inbox.dropTrack(op.id, t.track_id)">Leave out</button></div>
-            <InboxValues :values="lists[i] ?? []" :label="`${label}, ${trackLabel(d, t.track_id)}`" :long="isLong(op)" @update="(v) => setOne(t.track_id, v)" />
-          </div>
-          <button v-if="shared && split" type="button" class="key sm self" @click="split = false">All tracks together</button>
-        </template>
-        <p v-if="dropped" class="t2 sm">{{ dropped }} {{ dropped === 1 ? 'track' : 'tracks' }} left out.</p>
-        <button v-if="edited" type="button" class="link sm self" @click="inbox.discard(op.id)">Undo my edits to {{ label }}</button>
-      </template>
-      <dl v-else class="meta">
-        <template v-for="t in tag.tracks" :key="t.track_id"><dt>{{ trackLabel(d, t.track_id) }}</dt><dd>{{ shown(t.values) }}</dd></template>
-      </dl>
-    </template>
-    <template v-else-if="op.type === 'cover'">
-      <button v-if="pending && op.action === 'replace'" type="button" class="rocker flat self" role="switch" :aria-checked="inbox.everyTrack(op)" @click="inbox.setEveryTrack(op.id, !inbox.everyTrack(op))">
-        <span class="rk" aria-hidden="true"><span class="rk-case"><span class="rk-paddle"></span></span></span><span class="rk-name">Embed in every track</span>
-      </button>
-      <p v-else-if="op.action === 'replace'" class="t2 sm">{{ op.every_track ? 'Embedded in every track too.' : 'Folder cover, and tracks that already embed one.' }}</p>
-    </template>
+    <p v-if="dropped && pending" class="t2 sm">{{ dropped }} {{ dropped === 1 ? 'track' : 'tracks' }} left out.</p>
+    <button v-if="edited && pending" type="button" class="link sm self" @click="inbox.discard(op.id)">Undo my edits to {{ label }}</button>
   </div>
 </template>
 
 <style scoped>
-.rs .ib-op { display: flex; flex-direction: column; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.rs .ib-op { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
 .rs .ib-op.edited { box-shadow: inset 3px 0 0 var(--sun); }
 /* A field that is off stays editable but reads as left out of Accept. */
-.rs .ib-op.off :deep(.lib-in) { opacity: .6; }
-.rs .ib-op-h { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
-.rs .ib-op-h .rk-name { white-space: normal; }
+.rs .ib-op.off .ib-op-val { opacity: .6; }
+/* One row per field, as in the bulk run: the rocker, the value with what the files hold now, then the keys. */
+.rs .ib-op-row { display: grid; grid-template-columns: minmax(180px, 250px) minmax(0, 1fr) auto; gap: 8px 16px; align-items: center; }
+.rs .ib-op-sw { min-width: 0; }
+.rs .ib-op-sw .rk-name { white-space: normal; }
+.rs .ib-op-val { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.rs .ib-op-side { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.rs .ib-op-side:empty { display: none; }
 .rs .ib-track { padding-left: 10px; border-left: 2px solid var(--line); }
-.rs .ib-cable { display: flex; align-items: center; gap: 8px; }
-/* A plug mark on a field that requires another one, in place of the design's drawn cable. */
-.rs .ib-plug { flex: none; width: 22px; height: 10px; border: 2px solid var(--sun); border-left: 0; border-radius: 0 6px 6px 0; }
 .rs .self { align-self: flex-start; }
+@media (max-width: 999px) {
+  .rs .ib-op-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .rs .ib-op-val { grid-column: 1 / -1; grid-row: 2; }
+}
+.rs .ib-op.phone .ib-op-sw { display: flex; align-items: center; gap: 10px; }
+.rs .ib-paddle { flex: none; min-height: 44px; }
+.rs .ib-label { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; min-height: 44px; padding: 0; border: 0; background: none; color: var(--text); text-align: left; cursor: pointer; }
+.rs .ib-label .rk-state { overflow-wrap: anywhere; }
 </style>

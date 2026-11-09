@@ -216,3 +216,93 @@ test('evidence without a label shows its URL and never links non-web schemes', a
   expect(links[0]!.text()).toContain('http://example.com/credits')
   expect(w.find('.ib-tapes').text()).toContain('data:text/html,unsafe')
 })
+
+// withBefore gives the detail the values the files hold now, as the server's live part does.
+function withBefore(before: Record<string, Record<string, string[]>>): ProposalDetail {
+  const d = detail()
+  d.live = { preview: sameOnSix(), op_stale: {}, refusal: null, before }
+  return d
+}
+const six = (v: string[]) => Object.fromEntries([1, 2, 3, 4, 5, 6].map((t) => [String(t), v]))
+
+test('each proposed value says what the files hold now', async () => {
+  const before = { originaldate: six([]), releasedate: six(['2012']), albumartists: { ...six(['Kraftwerk']), 3: ['Ralf & Florian'] } }
+  const w = await openDetail({ '/api/inbox/proposals/4': withBefore(before) })
+  expect(w.findAll('.ib-op .lf-was').map((e) => e.text())).toEqual(['Was empty', 'Was 2012', 'Was different on each track'])
+  await w.findAll('.ib-op')[2]!.findAll('button').find((b) => b.text() === 'Per track')!.trigger('click')
+  const perTrack = w.findAll('.ib-op')[2]!.findAll('.lf-was').map((e) => e.text())
+  expect(perTrack).toHaveLength(6)
+  expect(perTrack[2]).toBe('Was Ralf & Florian')
+})
+
+test('without the values now, no Was line shows', async () => {
+  const w = await openDetail()
+  expect(w.findAll('.lf-was')).toHaveLength(0)
+})
+
+test('a patch cable joins the fields requires links, named for screen readers', async () => {
+  const w = await openDetail()
+  const cable = w.find('.ib-bank svg.ib-cable')
+  expect(cable.attributes('role')).toBe('img')
+  expect(cable.attributes('aria-label')).toBe('Original date and Release date go together')
+  expect(w.find('.ib-bank').classes()).toContain('cabled')
+  expect(w.find('.ib-plug').exists()).toBe(false)
+  expect(w.findAll('.ib-op .sr').map((s) => s.text())).toEqual(['Goes with Original date. They switch on and off together.'])
+})
+
+test('a proposal with no requires draws no cable', async () => {
+  const d = detail()
+  d.current.ops = d.current.ops.map((op) => ({ ...op, requires: undefined }))
+  const w = await openDetail({ '/api/inbox/proposals/4': d })
+  expect(w.find('svg.ib-cable').exists()).toBe(false)
+  expect(w.find('.ib-bank').classes()).not.toContain('cabled')
+})
+
+async function openOnPhone(over: Record<string, unknown> = {}) {
+  vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('max-width'), addEventListener() {}, removeEventListener() {} }))
+  stubApi({
+    '/api/inbox/proposals/4/preview': { preview: sameOnSix(), refusal: null, missing: [] }, '/api/inbox/proposals/4': withBefore({ originaldate: six([]) }),
+    '/api/inbox/proposals': { proposals: [], next: null }, '/api/inbox': { pending: 1, changes_requested: 0, connections: 1, accounts: 'none', can_create_connections: false },
+    '/api/agents': { connections: [] }, ...over,
+  })
+  const router = createAppRouter(createMemoryHistory()); await router.push('/inbox/4')
+  const { default: InboxPage } = await import('../pages/InboxPage.vue')
+  const w = mount(InboxPage, { global: { plugins: [router] } })
+  await flushPromises()
+  return w
+}
+
+test('on the phone the review bar is a slot above the dock, outside the proposal window', async () => {
+  const w = await openOnPhone()
+  const slot = w.find('.stack > section.win.slot[aria-label="Review"]')
+  expect(slot.text()).toContain('3 fields · 6 files')
+  expect(slot.findAll('button').map((b) => b.text())).toEqual(['Accept 3'])
+  expect(w.find('.ib-detail [aria-label="Review"]').exists()).toBe(false)
+  // Decline shows once a field is off, and declines the fields left off.
+  await w.findAll('.ib-op .rocker')[2]!.trigger('click')
+  await flushPromises()
+  expect(w.find('.stack > section.win.slot').findAll('button').map((b) => b.text())).toEqual(['Decline', 'Accept 2'])
+})
+
+test('on the phone a field row shows the new value, and pressing its label opens the field', async () => {
+  const w = await openOnPhone()
+  const row = w.findAll('.ib-op')[0]!
+  expect(row.find('.rocker').attributes('aria-label')).toBe('Original date')
+  expect(row.find('.ib-label .rk-state').text()).toBe('x, was empty')
+  expect(row.find('.ib-op-val').exists()).toBe(false)
+  await row.find('.ib-label').trigger('click')
+  expect(row.find('.ib-label').attributes('aria-expanded')).toBe('true')
+  expect(row.find('.ib-op-val input').exists()).toBe(true)
+})
+
+test('after Accept the bar shows the outcome, the files and the change in History', async () => {
+  const d = detail()
+  d.acceptances = [{ id: 9, revision: 1, ops: ['originaldate', 'releasedate'], change_id: 31, author: 'alice', created_at: '2026-11-09T10:00:00Z', outcome: { state: 'done', files: 6, written: 6 } } as never]
+  const w = await openDetail({ '/api/inbox/proposals/4': d })
+  useInbox().lastAccepted = { acceptance: { id: 9 }, change: {} } as never
+  await flushPromises()
+  const out = w.find('[aria-label="Review"] .ib-out')
+  expect(out.find('.pill').text()).toBe('Written')
+  expect(out.text()).toContain('6 of 6 files')
+  expect(out.text()).toContain('Change 31 in History')
+})
