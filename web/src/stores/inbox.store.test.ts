@@ -185,6 +185,21 @@ test('leaving Agents forgets a late creation secret but still reloads connection
   expect(calls.filter(c => c.url.endsWith('/connections'))).toHaveLength(2)
 })
 
+test('a new connection keeps its prompt with the secret until it is forgotten', async () => {
+  const connection = { id: 3, name: 'Claude' }
+  stubApi({
+    '/api/inbox': { accounts: 'simple', can_create_connections: true },
+    '/api/inbox/connections': (_url: string, init?: RequestInit) => init?.method === 'POST' ? { connection, token: 'one-time-secret', prompt: 'Bearer one-time-secret' } : { connections: [connection] },
+    '/api/inbox/setup': {},
+  })
+  await useInbox().detect()
+  const store = useAgents()
+  expect(await store.create('Claude', [])).toBe(true)
+  expect(store.created?.prompt).toBe('Bearer one-time-secret')
+  store.forget()
+  expect(store.created).toBeNull()
+})
+
 test.each([false, true])('a late save leaves another review alone (close and reopen: %s)', async (reopen) => {
   const response = deferred<ProposalDetail>()
   const other = { ...detail(), id: 2 }

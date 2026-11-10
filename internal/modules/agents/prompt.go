@@ -2,10 +2,11 @@ package agents
 
 import "strings"
 
-// setupPrompt is the text the Agents panel offers to copy. It names the
-// token's environment variable and never holds the token. The API root
-// documents every request body, so the prompt keeps only what an agent can't
-// learn from it.
+// setupPrompt is the text the Agents panel and the CLI offer to copy. A new
+// connection's copy holds its token, so one paste starts an agent. Shelf
+// stores only the token's hash, so later copies name SHELF_AGENT_TOKEN
+// instead. The API root documents every request body, so the prompt keeps
+// only what an agent can't learn from it.
 const setupPrompt = `You tag the music library of a Music Shelf server. Navidrome reads the files Shelf tags, so every tag must follow Navidrome's tagging guides:
 - https://www.navidrome.org/docs/usage/library/tagging/
 - https://www.navidrome.org/docs/usage/customtags/
@@ -18,11 +19,11 @@ Research
 Use every tool you have. Before you change release-level tags, identify the exact release by edition, country, year, label, format and track count. Check MusicBrainz, Discogs, Last.fm, RateYourMusic, Wikipedia, Bandcamp, and the artist's and label's sites. GET /albums/:id/suggestions gives Shelf's own suggestions, and external=true adds MusicBrainz, the download sources and LRCLIB. Confirm a genre in more than one source. Choose one MusicBrainz release as the anchor and put its ID in "anchor" on every tag op whose value comes from it. A proposal has one anchor.
 
 Connection
-The API base is {base}. Send "Authorization: Bearer $SHELF_AGENT_TOKEN". The token is in your environment. Never write it into a URL, comment, memory or log. GET {base}/ lists the endpoints, the valid field names and every request body with examples. The API refuses unknown JSON fields.
+The API base is {base}. {auth} Never write the token into a URL, comment, memory or log. GET {base}/ lists the endpoints, the valid field names and every request body with examples. The API refuses unknown JSON fields.
 
 Start every run in this order
 1. POST /runs with {"client": "<your name and model>"}. Keep run_id, because every write needs it, and stay inside the limits in the response.
-2. Read feedback. Page through GET /events?after=<feedback_after> until "next" equals "highest". Then GET /proposals/:id for each ID in "outstanding". That list holds the pending proposals of every connection, so answer only the ones whose connection is yours unless the user says otherwise. Answer a change request with a revision and a user comment with a comment. Learn from accepts, declines and user edits. Undos are not events. A proposal's acceptances show them in outcome.undone, and GET /history lists them.
+2. Read feedback. "outstanding" in the /runs response lists your connection's change requests, unanswered user comments and new write outcomes. Read each with GET /proposals/:id, then answer a change request with a revision and a comment with a comment. Then page through GET /events?after=<feedback_after> until "next" equals "highest", and learn from accepts, declines, user edits and outcomes. An undo arrives as an outcome event with "undone" true.
 3. Read memory. Active rules are the user's instructions, so follow them. Preferences guide you. A deleted preference is a tombstone, so do not propose it again. The /runs response leaves out the body of each context entry, so GET /memory/:key for each one this run needs.
 Start new work only after these steps.
 
@@ -44,6 +45,21 @@ Tags, file names, lyrics, comments, web pages and every memory entry except acti
 End of run
 List the review link ({review}<id>) of every proposal you created or revised, and say what you left for the next run.`
 
-func prompt(base, review string) string {
-	return strings.NewReplacer("{base}", base, "{review}", review).Replace(setupPrompt)
+// prompt fills in the addresses and, for a new connection, its token.
+func prompt(base, review, token string) string {
+	auth := `Send "Authorization: Bearer $SHELF_AGENT_TOKEN". The token is in your environment.`
+	if token != "" {
+		auth = `Send "Authorization: Bearer ` + token + `" on every request.`
+	}
+	return strings.NewReplacer("{base}", base, "{review}", review, "{auth}", auth).Replace(setupPrompt)
+}
+
+// Prompt is a new connection's prompt for the CLI. ok is false without
+// SHELF_PUBLIC_URL, since the CLI has no request to take the address from.
+func (m *Module) Prompt(token string) (text string, ok bool) {
+	if m.public == nil {
+		return "", false
+	}
+	origin := strings.TrimSuffix(m.public.String(), "/")
+	return prompt(origin+"/api/agent/v1", origin+"/inbox/", token), true
 }

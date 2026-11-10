@@ -71,7 +71,12 @@ func (c cli) agents(ctx context.Context, app *platform.App, cmd agentsCommand) e
 		if e != nil {
 			return e
 		}
-		sayf(c.stdout, "Connection %d: %s\nSHELF_AGENT_TOKEN=%s\nStore this secret now. Shelf will not show it again. Give it separately from the setup prompt.\n", conn.ID, conn.Name, token)
+		sayf(c.stdout, "Connection %d: %s\nSHELF_AGENT_TOKEN=%s\nStore this secret now. Shelf will not show it again.\n", conn.ID, conn.Name, token)
+		if text, ok := m.Prompt(token); ok {
+			sayf(c.stdout, "\nThis prompt holds the secret. Paste it only into the agent.\n\n%s\n", text)
+		} else {
+			sayf(c.stdout, "Set SHELF_PUBLIC_URL to get a prompt with the secret, or copy the setup prompt from Status and give the agent SHELF_AGENT_TOKEN.\n")
+		}
 	case "revoke":
 		if e := m.RevokeConnection(ctx, cmd.id); e != nil {
 			return e

@@ -26,6 +26,7 @@ const asking = ref<number | null>(null)
 const copied = ref('')
 const tokenEl = ref<HTMLElement | null>(null)
 const promptEl = ref<HTMLElement | null>(null)
+const newPromptEl = ref<HTMLElement | null>(null)
 
 onMounted(() => { if (inbox.enabled) void agents.load() })
 onBeforeUnmount(() => agents.forget())
@@ -43,10 +44,10 @@ async function create() {
 async function revoke(id: number) {
   if (await agents.revoke(id)) asking.value = null
 }
-async function copy(what: 'token' | 'prompt') {
-  const text = what === 'token' ? agents.created?.token : agents.setup?.prompt
+async function copy(what: 'token' | 'prompt' | 'new') {
+  const text = what === 'token' ? agents.created?.token : what === 'new' ? agents.created?.prompt : agents.setup?.prompt
   if (!text) return
-  const ok = await copyText(text, what === 'token' ? tokenEl.value : promptEl.value)
+  const ok = await copyText(text, what === 'token' ? tokenEl.value : what === 'new' ? newPromptEl.value : promptEl.value)
   copied.value = ok ? (what === 'token' ? 'Secret copied.' : 'Prompt copied.') : 'Copy it from the selected text.'
 }
 const toggleOp = (n: string) => (ops.value = ops.value.includes(n) ? ops.value.filter((x) => x !== n) : [...ops.value, n])
@@ -61,11 +62,14 @@ const toggleOp = (n: string) => (ops.value = ops.value.includes(n) ? ops.value.f
 
       <div v-if="agents.created" class="note secret" role="region" aria-label="New connection secret">
         <div class="col g8 grow">
-          <span class="bold">Secret for {{ agents.created.connection.name }}</span>
-          <span class="sub">Shelf shows it once. Give it to the agent as SHELF_AGENT_TOKEN, apart from the prompt, and never in a URL or chat log.</span>
+          <span class="bold">Prompt for {{ agents.created.connection.name }}</span>
+          <span class="sub">Shelf shows it once. The prompt holds the connection's secret, so paste it only into the agent. The secret reaches tags, lyrics, file names, history and authors.</span>
+          <pre ref="newPromptEl" class="mono prompt">{{ agents.created.prompt }}</pre>
+          <span class="sub">The secret alone, for SHELF_AGENT_TOKEN</span>
           <code ref="tokenEl" class="mono tok">{{ agents.created.token }}</code>
           <div class="line g8 wrap">
-            <button type="button" class="key sm sun" @click="copy('token')">Copy secret</button>
+            <button type="button" class="key sm sun" @click="copy('new')">Copy prompt</button>
+            <button type="button" class="key sm" @click="copy('token')">Copy secret</button>
             <button type="button" class="key sm" @click="agents.forget()">I stored it</button>
           </div>
         </div>
@@ -110,7 +114,7 @@ const toggleOp = (n: string) => (ops.value = ops.value.includes(n) ? ops.value.f
       <details v-if="agents.setup" class="setup">
         <summary class="bold">Setup prompt</summary>
         <div class="col g8">
-          <p class="t2 sm">The prompt holds no secret. The agent reads SHELF_AGENT_TOKEN from its environment. The token reaches tags, lyrics, file names, history and authors.</p>
+          <p class="t2 sm">This copy holds no secret. An agent that uses it reads SHELF_AGENT_TOKEN from its environment. The token reaches tags, lyrics, file names, history and authors.</p>
           <p class="sm">API <code class="mono">{{ agents.setup.api_base }}</code></p>
           <pre ref="promptEl" class="mono prompt">{{ agents.setup.prompt }}</pre>
           <button type="button" class="key sm self" @click="copy('prompt')">Copy prompt</button>

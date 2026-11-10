@@ -10,7 +10,7 @@ Set `SHELF_AGENT_ENABLED=true`. The default is `false`. This switch is independe
 
 The module's migrations run even when disabled, so proposals and memory survive switching it off and CLI revocation remains available. Disabled means no agent or inbox endpoints, navigation, or background outcome processing. Already accepted library jobs continue through their existing lifecycle.
 
-With Shelf sign-in enabled, open Status, then Agents, to create a named connection. Choose its permissions and copy the secret once. The secret belongs in the external agent's environment as `SHELF_AGENT_TOKEN`, separately from the generated setup prompt. Shelf stores its hash, not the secret. The browser holds a newly created secret only until it is dismissed or the user leaves the panel.
+With Shelf sign-in enabled, open Status, then Agents, to create a named connection. Choose its permissions. Shelf then shows the setup prompt with the connection's secret in it, once. Paste that prompt into the agent to start it. The secret alone is shown too, for an agent that reads `SHELF_AGENT_TOKEN` from its environment. Shelf stores the secret's hash, so the setup prompt under Agents holds no secret and names `SHELF_AGENT_TOKEN` instead. The browser holds a newly created secret only until it is dismissed or the user leaves the panel.
 
 Without Shelf sign-in, create connections from the CLI:
 
@@ -20,13 +20,13 @@ shelf manage agents list
 shelf manage agents revoke <id>
 ```
 
-`add` can restrict permissions with `--ops op1,op2`. It prints the token once. Commands require an already migrated database, as account commands do. Both authentication modes allow listing and revocation in the UI. Deleting a connection's creating account revokes that connection on its next request. Password resets do not revoke library connections; revoke them separately when needed.
+`add` can restrict permissions with `--ops op1,op2`. It prints the token once, and with `SHELF_PUBLIC_URL` set, the setup prompt that holds it. Commands require an already migrated database, as account commands do. Both authentication modes allow listing and revocation in the UI. Deleting a connection's creating account revokes that connection on its next request. Password resets do not revoke library connections; revoke them separately when needed.
 
 ## Agent access
 
-Set `SHELF_PUBLIC_URL` to the canonical public address so generated prompts and review links use the correct HTTPS origin behind a gateway.
+Set `SHELF_PUBLIC_URL` to the canonical public address so generated prompts and review links use the correct HTTPS origin behind a gateway. Without it, Shelf uses the direct request host and transport.
 
-The setup prompt tells the agent to follow Navidrome's tagging guides, to tag each release completely, and to research it with every tool it has, such as MusicBrainz, Discogs, Last.fm and RateYourMusic. The user's first message names the work. Without it, Shelf uses the direct request host and transport.
+The setup prompt tells the agent to follow Navidrome's tagging guides, to tag each release completely, and to research it with every tool it has, such as MusicBrainz, Discogs, Last.fm and RateYourMusic. The user's first message names the work.
 
 The JSON API is under `/api/agent/v1/`. Its root lists the endpoints, the Navidrome fields a proposal may set, and every request body with its fields. It requires a bearer credential on every request, regardless of Shelf's account mode. A browser session cookie alone does not authenticate an agent call. Agent bearer credentials are rejected on every other API prefix, including account, review, and ordinary library routes.
 
@@ -100,7 +100,7 @@ User corrections override inferred preferences. Tombstones preserve deleted pref
 
 The agent can inspect existing library history to learn from manual tagging, including authors and undo state. History is bounded and can be cleared; the API reports coverage gaps. It returns completed changes in ID order and waits behind unfinished changes, so an agent cannot advance past a pending Save and miss its eventual result. The trim marker also waits behind unfinished changes, even after Clear history. A proposal's change stays in the history for 10 minutes after it, or its undo or redo, ends, so a Clear can't erase an outcome before the Inbox records it. Each history file reports whether its planned diff was written, including partial Saves. Proposal decisions and comments have their own durable feed. Shelf records no general UI tracking.
 
-At the start of a fresh run, the agent bootstraps its connection, reads unprocessed feedback and the outstanding proposals of its connection, then reads shared rules and the context it needs. Only then does it propose revisions or new changes. It saves useful context before it ends. The setup prompt asks it to return links to every proposal it creates. Shelf does not run or schedule the agent or notify it to wake up in this version.
+At the start of a fresh run, the agent bootstraps its connection. The answer lists its connection's change requests, user comments it hasn't answered, and write outcomes above the learning cursor, undos among them. The agent answers those and reads the rest of the unprocessed feedback, then reads shared rules and the context it needs. Only then does it propose revisions or new changes. It saves useful context before it ends. The setup prompt asks it to return links to every proposal it creates. Shelf does not run or schedule the agent or notify it to wake up in this version.
 
 ## Storage and limits
 

@@ -105,7 +105,7 @@ func (m *Module) addConnection(c *echo.Context) error {
 	if e != nil {
 		return e
 	}
-	return c.JSON(201, map[string]any{"connection": conn, "token": token})
+	return c.JSON(201, map[string]any{"connection": conn, "token": token, "prompt": prompt(m.serverOrigin(c)+"/api/agent/v1", m.reviewBase(c), token)})
 }
 func (m *Module) revokeConnection(c *echo.Context) error {
 	id, e := idParam(c, "id")
@@ -127,12 +127,12 @@ func (m *Module) setup(c *echo.Context) error {
 	for _, o := range Operations {
 		ops = append(ops, map[string]string{"name": o.Name, "summary": o.Summary})
 	}
-	return c.JSON(200, map[string]any{"api_base": base, "review_base": m.reviewBase(c), "operations": ops, "prompt": prompt(base, m.reviewBase(c))})
+	return c.JSON(200, map[string]any{"api_base": base, "review_base": m.reviewBase(c), "operations": ops, "prompt": prompt(base, m.reviewBase(c), "")})
 }
 func (m *Module) description(c *echo.Context) error {
 	endpoints := []map[string]string{}
 	for _, r := range []struct{ method, path, op, summary string }{
-		{"POST", "/runs", "", "Start a fresh run; returns run_id, shared memory without context bodies, learning progress, outstanding proposals of every connection, limits and usage"},
+		{"POST", "/runs", "", "Start a fresh run; returns run_id, shared memory without context bodies, learning progress, this connection's outstanding work, limits and usage"},
 		{"GET", "/albums?limit=100&offset=0&search=&filter=", "library.read", "Search current albums; filter=issues lists albums with check issues"},
 		{"GET", "/albums/:id", "library.read", "Read track IDs, base revisions, tags and check issues"},
 		{"GET", "/albums/:id/suggestions?external=false", "library.read", "Local suggestions; external=true also requires library.lookup"},
@@ -213,7 +213,7 @@ func (m *Module) description(c *echo.Context) error {
 			"requires lists operation IDs that must be reviewed together. Cycles are refused.",
 			"An op that repeats a pending op of another proposal is refused. One that repeats a declined op needs follow_up_of and follow_up_reason.",
 			"POST /proposals/:id/revisions sends the full operation list; decided operations must remain unchanged.",
-			"Undos are not events. GET /proposals/:id shows them in acceptances[].outcome.undone, and GET /history lists them.",
+			"An undo arrives as an outcome event with undone true. GET /proposals/:id also shows it in acceptances[].outcome.undone.",
 			"GET /events never returns an empty next. Stop paging when next equals highest.",
 			"An agent may propose a rule but only a user can activate it. Active rules cannot be changed by an agent.",
 			"All memory writes need expected_version, using 0 to create. To reconsider a corrected or deleted preference, cite a user event newer than the correction.",
@@ -263,15 +263,21 @@ func (m *Module) bootstrap(c *echo.Context) error {
 		}
 		memory = append(memory, v)
 	}
-	ids := []int64{}
-	if e = m.db.R.SelectContext(ctx, &ids, `SELECT id FROM agents_proposals WHERE pending>0 AND withdrawn_at IS NULL ORDER BY updated_at DESC LIMIT 100`); e != nil {
+	out, e := m.outstanding(ctx, conn.ID, l.Events, m.reviewBase(c))
+	if e != nil {
 		return e
 	}
+	lj := l.json()
+	var unread int64
+	if e = m.db.R.GetContext(ctx, &unread, `SELECT count(*) FROM agents_events WHERE id>?`, l.Events); e != nil {
+		return e
+	}
+	lj["unprocessed_events"] = unread
 	u, e := m.usage(ctx, conn.ID)
 	if e != nil {
 		return e
 	}
-	return c.JSON(201, map[string]any{"protocol": 1, "run_id": run, "connection": conn, "library": map[string]any{"name": "Music Shelf", "review_base": m.reviewBase(c)}, "memory": memory, "learning": l.json(), "outstanding": ids, "feedback_after": l.Events, "limits": map[string]any{"ops_per_proposal": maxOps, "pending_per_connection": pendingPerConnection, "daily": daily}, "usage": u})
+	return c.JSON(201, map[string]any{"protocol": 1, "run_id": run, "connection": conn, "library": map[string]any{"name": "Music Shelf", "review_base": m.reviewBase(c)}, "memory": memory, "learning": lj, "outstanding": out, "feedback_after": l.Events, "limits": map[string]any{"ops_per_proposal": maxOps, "pending_per_connection": pendingPerConnection, "daily": daily}, "usage": u})
 }
 func (m *Module) albums(c *echo.Context) error {
 	lib, e := m.lib()

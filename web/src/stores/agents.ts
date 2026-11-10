@@ -10,8 +10,8 @@ export const useAgents = defineStore('agents', () => {
   const setup = ref<Setup | null>(null)
   const error = ref('')
   const busy = ref(false)
-  // created holds the one-time secret of the connection just made. It lives only in this page's memory.
-  const created = ref<{ connection: Connection; token: string } | null>(null)
+  // created holds the one-time secret of the connection just made, and the prompt that holds it. Both live only in this page's memory.
+  const created = ref<{ connection: Connection; token: string; prompt: string } | null>(null)
 
   let createSeq = 0
 
@@ -37,7 +37,7 @@ export const useAgents = defineStore('agents', () => {
     busy.value = true
     error.value = ''
     try {
-      const answer = await post<{ connection: Connection; token: string }>('/api/inbox/connections', { name, operations })
+      const answer = await post<{ connection: Connection; token: string; prompt: string }>('/api/inbox/connections', { name, operations })
       if (seq === createSeq) created.value = answer
       await load()
       void inbox.detect()

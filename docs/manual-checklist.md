@@ -73,7 +73,7 @@ This checklist ran in production on 2026-11-10 on `main-846ae08`, with agents al
 Undo requests sent within a second of each other on one album answer 202, and only the first writes. The writer refuses the others, because the files changed under them. It writes nothing wrong, but an API client can't tell. Pressing Undo in History one change at a time works.
 
 - Enable `SHELF_AGENT_ENABLED=true` on a disposable library. The Inbox and Agents panel appear; disable it and confirm both disappear while saved records remain.
-- Create a connection from the CLI, or from Status with Shelf sign-in enabled. Copy its secret separately from the setup prompt. Listing connections must never show that secret again.
+- Create a connection from the CLI, or from Status with Shelf sign-in enabled. Copy the prompt that holds its secret and start an agent with it. Listing connections and the setup prompt under Agents must never show that secret again.
 - Use a fresh external run to retrieve shared rules, context and pending work. Create a tag proposal and an artwork proposal. Confirm the music files stay unchanged before acceptance.
 - Edit one proposed value, save its proposal revision, and accept just that field. Confirm the other fields remain pending and History names the reviewer and links to the proposal.
 - Change a reviewed field using another tool, then accept the old preview. Confirm Shelf requires another review. Change an unrelated field and confirm an identical selected diff can still be accepted.

@@ -20,7 +20,7 @@ Every check in [manual-checklist.md](manual-checklist.md) passed in production, 
 
 Production runs `main-de2180a`. Optional [library agents](agents.md) are off by default and on in production. Production signs in with Shelf accounts. [auth.md](auth.md) describes setup.
 
-`main` is ahead of production. Commit `aa7bc18` makes Clear history and retention have the agents module read unread Saves first, as [agents.md](agents.md#proposal-values-in-the-library) describes. It is not deployed yet. Neither is the rewritten agent setup prompt, nor the API root that lists Navidrome fields and every request body.
+`main` is ahead of production. Commit `aa7bc18` makes Clear history and retention have the agents module read unread Saves first, as [agents.md](agents.md#proposal-values-in-the-library) describes. It is not deployed yet. The rewritten agent setup prompt, the new connection prompt that holds its token, the fuller `POST /runs`, and the API root that lists Navidrome fields and every request body are not deployed either.
 
 shelf-wrapper builds from upstream's `ghcr.io/worldobservationlog/wrapper-lite` image pinned by digest. The index holds 11,461 tracks and 1,008 Navidrome album IDs, forming 1,013 albums because 5 Navidrome albums span two folders.
 

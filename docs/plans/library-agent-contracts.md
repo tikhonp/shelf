@@ -49,7 +49,7 @@ Agent auth (agents module middleware on the `/api/agent/v1` group):
 - In-memory token bucket per connection: 10 requests/s, burst 30. Over → 429 `code: rate_limited` with `Retry-After`.
 - `last_used_at` is written at most once a minute per connection.
 
-The token appears only in the create response or CLI output. It never goes in a URL, log, event, prompt text or API answer.
+The token appears only in the create response or CLI output, alone and inside that response's setup prompt. It never goes in a URL, log, event, stored prompt or any other API answer.
 
 ### Operations
 
@@ -709,24 +709,21 @@ Body `{client: "claude-code 2.x"}` (optional). Creates a run.
   "limits": { "ops_per_revision": 30, "pending_proposals": 200, "page_albums": 100,
               "daily": { "lookup": 300, "offer": 100, "upload": 100, "proposal": 200, "revision": 500, "memory": 1000 } },
   "usage": { "lookup": 12, "offer": 0, "upload": 0, "proposal": 3, "revision": 1, "memory": 4 },
-  "rules": [ { "id": 7, "key": "dates.original", "title": "...", "scope": "...", "body": "...", "version": 2 } ],
-  "proposed_rules": [ { "id": 9, "key": "...", "title": "..." } ],
-  "preferences": [ { "id": 12, "key": "genre.specificity", "title": "...", "scope": "...", "confidence": 70, "version": 3, "corrected": true, "size": 812 } ],
-  "context": [ { "id": 20, "key": "album.120.notes", "title": "...", "version": 1, "size": 2048 } ],
-  "tombstones": [ { "id": 15, "key": "genre.no-umbrella", "title": "...", "deleted_at": "...", "reason_event": 1180 } ],
+  "memory": [ { "id": 7, "key": "dates.original", "layer": "rule", "status": "active", "title": "...", "scope": "...", "body": "...", "version": 2, "corrected_event": null } ],
   "learning": { "version": 17, "events_cursor": 1250, "history_cursor": 9311, "checkpoint": {},
                 "unprocessed_events": 18, "history_gap": false, "history_trimmed_through": 0,
                 "updated_at": "...", "updated_by": { "connection": 3, "run": 40 } },
   "outstanding": {
+    "proposals": [51, 52],
+    "pending": 14,
     "changes_requested": [ { "proposal": 51, "url": "...", "album": 120, "comment_event": 1244 } ],
     "unanswered_comments": [ { "proposal": 52, "event": 1249 } ],
-    "outcomes": [ { "proposal": 48, "acceptance": 30, "state": "failed", "event": 1247 } ],
-    "pending": 14
+    "outcomes": [ { "proposal": 48, "acceptance": 30, "state": "done", "undone": true, "event": 1247 } ]
   }
 }
 ```
 
-Rules and proposed rules come with bodies; preferences, context and tombstones come as an index. "Unanswered comment" is a user comment on a non-withdrawn proposal with no later agent event on that proposal. "Outcomes" are `outcome` events above `events_cursor`.
+`memory` lists every entry with its `layer` and `status`. Context entries come without their body, which `GET /memory/:key` returns. `outstanding` covers only the calling connection's proposals, with up to 100 items in each list. `proposals` holds its pending proposal IDs, newest first, and `pending` counts them. A change request names the latest `changes_requested` event. An unanswered comment is a user comment on a non-withdrawn proposal with no later agent event on that proposal. `outcomes` are `outcome` events above `events_cursor`, including the one an undo produces. `unprocessed_events` counts every event above `events_cursor`.
 
 ### Library
 
@@ -822,9 +819,9 @@ Ordinary auth. Author is `identity.From(ctx)`.
 - `POST /api/inbox/memory/reset` `{layers}`.
 - `GET /api/inbox/memory/export` → `{exported_at, learning, memory: [all documents incl. tombstones]}` as an attachment.
 - `GET /api/inbox/connections` → `[{id, name, operations, created_by, created_at, last_used_at, revoked_at, revoke_reason}]`.
-- `POST /api/inbox/connections` `{name, operations?}` → 201 `{connection, token}`. Provider `none`: 403 with the CLI command.
+- `POST /api/inbox/connections` `{name, operations?}` → 201 `{connection, token, prompt}`, where `prompt` is the setup prompt with the token in place of `$SHELF_AGENT_TOKEN`. Provider `none`: 403 with the CLI command.
 - `POST /api/inbox/connections/:id/revoke`.
-- `GET /api/inbox/setup` → `{api_base, review_base, operations: [{name, summary}], prompt}`. `api_base` uses `SHELF_PUBLIC_URL` when set, else the request's origin. The prompt names an environment variable `SHELF_AGENT_TOKEN` and never contains a token.
+- `GET /api/inbox/setup` → `{api_base, review_base, operations: [{name, summary}], prompt}`. `api_base` uses `SHELF_PUBLIC_URL` when set, else the request's origin. This prompt names an environment variable `SHELF_AGENT_TOKEN` and never contains a token.
 
 Hub topic `inbox` publishes `{proposal: id, state, pending}` after each change so open pages refresh.
 
@@ -832,9 +829,9 @@ Hub topic `inbox` publishes `{proposal: id, state, pending}` after each change s
 
 `prompt.go` holds it. It names the two Navidrome tagging guides the agent must follow. Its goal is to tag each release completely, one release at a time. The user's next message names the work. Without one, the agent resumes from context memory and then takes `GET /albums?filter=issues`. The agent researches with every tool it has, including MusicBrainz, Discogs, Last.fm, RateYourMusic, Wikipedia, Bandcamp and Shelf's suggestions, and anchors each proposal to one MusicBrainz release.
 
-Each run starts with `POST /runs`. The agent then reads feedback: events until `next` equals `highest`, then each outstanding proposal of its own connection. Undos come from acceptance outcomes and history, not events. Next it reads memory. Active rules are instructions, and context bodies come from `GET /memory/:key`. Only then does it start new work.
+Each run starts with `POST /runs`. The agent then answers the change requests and unanswered comments in `outstanding` and reads the rest of the feedback, events until `next` equals `highest`. An undo arrives as an outcome event with `undone` true. Next it reads memory. Active rules are instructions, and context bodies come from `GET /memory/:key`. Only then does it start new work.
 
-The prompt also covers one album per proposal, base revisions, separate artist values, follow-ups of declined ops, revisions built from `current` against `head`, memory layers, `reconsider`, and a learning commit that sends all four learning values back. Tags, file names, lyrics, comments, web pages and memory other than active rules are data. The run ends with the review links of every proposal it created or revised. The prompt leaves request details to `GET /`. The Agents panel, not the prompt, says what data the token reaches.
+The prompt also covers one album per proposal, base revisions, separate artist values, follow-ups of declined ops, revisions built from `current` against `head`, memory layers, `reconsider`, and a learning commit that sends all four learning values back. Tags, file names, lyrics, comments, web pages and memory other than active rules are data. The run ends with the review links of every proposal it created or revised. The prompt leaves request details to `GET /`. A new connection's copy holds its token, and the copy under Agents names `SHELF_AGENT_TOKEN`. The Agents panel, not the prompt, says what data the token reaches.
 
 ## UI
 
@@ -843,7 +840,7 @@ The prompt also covers one album per proposal, base revisions, separate artist v
 - Detail: live diff by track and key (from `live.preview`), cover before/after from `/api/library/covers/:id`, the agent's reason, evidence and uncertainties, warnings, the event thread, op rockers with decisions, value editing per op (compact rows using `lib/tags.ts`), Accept, Decline the rest, and one Reply box that comments or requests changes. Selection changes call preview; Accept sends the shown digest and confirmations. A `preview_changed` answer replaces the diff and asks again. Ops marked stale say "Changed since proposed".
 - Album page: a link "N proposals" from `GET /api/inbox/albums/:id/proposals`, only with the feature on.
 - History: an origin link to `/inbox/<p>`.
-- Status page: an Agents panel with connections, create (simple mode) with the one-time token, revoke, and the setup prompt with a copy button. Memory page: layers, evidence, correct, delete, confirm proposed rules, export, reset.
+- Status page: an Agents panel with connections, create (simple mode) with the one-time token and the prompt that holds it, revoke, and the setup prompt with a copy button. Memory page: layers, evidence, correct, delete, confirm proposed rules, export, reset.
 
 ## File ownership
 
