@@ -48,6 +48,8 @@ Today the server only reports `setup_needed`, and the UI tells the user to run `
 
 `AccountSettings.vue`, `PartCard.vue`.
 
+Built on 2026-11-10. Rename and Add passkey use the same confirm as Remove, beside the passkey or under the form. Rename opens the name in place with Cancel and Save, since the screens draw the name as text. A sign-out that fails turns the key back to ON.
+
 - Sign out is the key switch from sign-in at 120px, turned to ON, with "Sign out" beside it. Pressing it turns the key to OFF and signs out, so sign-in and sign-out use the same key.
 - With staged Library edits (`editor.kept`), the key stops halfway and asks "Sign out with 3 staged edits?" with Keep editing and Sign out.
 - Removing a passkey asks with a Password field, Cancel, "Confirm with a passkey", and Remove. Remove stays disabled until the password field has text.
@@ -89,10 +91,10 @@ These go into the app's stylesheets. Only the first touches pages outside this w
 
 These are bugs in the running app and questions to settle before building.
 
-1. **Sign out drops staged edits without asking.** `logout` in `web/src/stores/auth.ts` reloads the page, and the edits `editor.kept` counts are lost. The design asks first. Fixed on 2026-11-10. Until the key switch replaces it, Sign out asks with Keep editing and Sign out.
+1. **Sign out drops staged edits without asking.** `logout` in `web/src/stores/auth.ts` reloads the page, and the edits `editor.kept` counts are lost. The design asks first. Fixed on 2026-11-10, and the sign-out key switch asks the same way.
 2. **Creating the first account from the UI is open to anyone.** On a fresh install, whoever reaches the page first gets the account. Production has accounts, so only a new install is open to this. A one-time setup code the server prints in its log would close it. The owner hasn't chosen yet.
-3. **Helper text shows at rest.** "Accept writes 3 fields to 6 files. History can undo it." (`InboxBar.vue:30`), "No agent can accept, save or delete." (`AgentsPanel.vue:110`) and "Then you sign in again with the new one." (`AccountSettings.vue:116`). Each becomes a note.
-4. **The small key switch's legends are unreadable.** `AccountDesk.vue:138` draws it 96px wide, and OFF and ON come out under 8px. The design draws it at 120px.
+3. **Helper text shows at rest.** "Accept writes 3 fields to 6 files. History can undo it." (`InboxBar.vue:30`), "No agent can accept, save or delete." (`AgentsPanel.vue:110`) and "Then you sign in again with the new one." (`AccountSettings.vue:116`). Each becomes a note. The Status one is fixed.
+4. **The small key switch's legends are unreadable.** `AccountDesk.vue:138` draws it 96px wide, and OFF and ON come out under 8px. The design draws it at 120px. Fixed on 2026-11-10, and below 150px the legends grow.
 5. **The phone's decline key says only "Decline"** (`InboxBar.vue:67`), which reads as declining everything beside "Accept 2".
 6. **Send does two things under one label** (`InboxDetail.vue:186`). It posts a comment or asks for changes, after the rocker.
 7. **"I stored it" drops a secret that shows only once**, and doesn't ask when the user copied nothing (`AgentsPanel.vue:73`). Connect and Copy prompt are both amber while the prompt shows.

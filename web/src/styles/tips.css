@@ -2,3 +2,6 @@
 .rs button.has-tip, .rs a.has-tip, .rs .rocker .has-tip { cursor: pointer; }
 .rs svg.has-tip { cursor: help; }
 .rs .key.has-tip:hover .tip-t { text-decoration: none; }
+/* A note inside a key opens from its label. The key keeps its pointer cursor and gets no underline. */
+.rs .key .has-tip { cursor: pointer; }
+.rs .key .has-tip:hover .tip-t { text-decoration: none; }

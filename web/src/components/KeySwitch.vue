@@ -3,7 +3,7 @@ import { computed, useId } from 'vue'
 
 // A picture of a key switch. The control beside it, such as the Passkey slide, is the real one.
 // With press, a click on the picture does what that control does, for the pointer only.
-const props = withDefaults(defineProps<{ on?: boolean; width?: number; press?: boolean }>(), { on: false, width: 150, press: false })
+const props = withDefaults(defineProps<{ on?: boolean; half?: boolean; width?: number; press?: boolean }>(), { on: false, half: false, width: 150, press: false })
 const emit = defineEmits<{ press: [] }>()
 const id = useId()
 // Below 150px the legends grow, so OFF and ON stay readable at 120px.
@@ -23,7 +23,7 @@ const small = computed(() => props.width < 150)
     <circle cx="75" cy="72" r="44" :fill="`url(#${id}-chrome)`" stroke="#0A0C10" stroke-width="1.5" />
     <circle cx="75" cy="72" r="32" fill="#1B1F26" stroke="#0A0C10" />
     <circle cx="75" cy="72" r="32" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="2" stroke-dasharray="40 160" />
-    <g class="keysw-bow" :class="{ on }">
+    <g class="keysw-bow" :class="{ on, half }">
       <rect x="71" y="44" width="8" height="56" rx="2" fill="#07090C" />
       <ellipse cx="75" cy="72" rx="13" ry="27" :fill="`url(#${id}-key)`" stroke="#0A0C10" stroke-width="1.5" />
       <circle cx="75" cy="55" r="4" fill="#1B1F26" />
@@ -39,6 +39,8 @@ const small = computed(() => props.width < 150)
 /* The turn overshoots a little, like a real key. */
 .keysw-bow { transform: rotate(-40deg); transform-origin: 75px 72px; transition: transform .5s cubic-bezier(.3, 1.5, .5, 1); }
 .keysw-bow.on { transform: rotate(40deg); }
+/* Half turned while sign-out asks about staged edits. */
+.keysw-bow.half { transform: rotate(0deg); }
 @media (prefers-reduced-motion: reduce) {
   .keysw-bow { transition: none; }
 }

@@ -45,3 +45,12 @@
 /* A locked rocker, such as the permissions while a new prompt shows, keeps its position but dims. */
 .rs .rocker[aria-disabled="true"] { opacity: .55; cursor: default; }
 .rs .rocker[aria-disabled="true"]:hover { background: transparent; }
+
+/* Sign out: the sign-in key switch at ON. The whole switch is the button, and pressing it turns the key to OFF. */
+.rs .keyout { display: inline-flex; align-items: center; gap: 12px; padding: 4px 12px 4px 4px; border: 0; border-radius: 6px; background: transparent; color: var(--text); cursor: pointer; font: inherit; text-align: left; }
+.rs .keyout[data-on="on"]:hover .keysw-bow { transform: rotate(30deg); }
+.rs .keyout:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.rs .keyout:disabled { cursor: default; }
+.rs .ko-name { font: 700 15px/1 var(--label); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+.rs .smod .keyout { display: flex; width: 100%; min-height: 104px; padding: 4px; gap: 14px; }
+.rs .smod .ko-name { font-size: 16px; }
