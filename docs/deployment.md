@@ -6,7 +6,7 @@ shelf runs on blackberry from `shelf.yaml` in `~/projects/sh-blackberry`. The sh
 
 | Image | Built from | Runs as |
 | --- | --- | --- |
-| `code.tikhonnnnn.com/tikhon/shelf` | `Dockerfile`, target `prod`: `alpine:3.22` with `ca-certificates`, `chromaprint` for `fpcalc`, `ffmpeg`, `tzdata`, amdl copied from `ghcr.io/zhaarey/apple-music-downloader:0.1.4`, and the shelf binary | `10001:10001` |
+| `code.tikhonnnnn.com/tikhon/shelf` | `Dockerfile`, target `prod`: `alpine:3.24` with `ca-certificates`, `chromaprint` for `fpcalc`, `ffmpeg`, `tzdata`, amdl copied from `ghcr.io/zhaarey/apple-music-downloader:0.1.4`, and the shelf binary | `10001:10001` |
 | `code.tikhonnnnn.com/tikhon/shelf-wrapper` | `Dockerfile`, target `wrapper`: the pinned `ghcr.io/worldobservationlog/wrapper-lite` image plus tini and `shelf-wrapper`, amd64 only | root, privileged |
 
 Forgejo CI builds both on every push to `main` and tags them with the SHA, `main` and `latest`.
