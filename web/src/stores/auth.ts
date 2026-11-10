@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import { ApiError } from '../api/client'
 
 export interface Account { id: number; username: string }
-export interface AuthStatus { provider: 'none' | 'simple'; account: Account | null; setup_needed: boolean }
+export interface AuthStatus { provider: 'none' | 'simple'; account: Account | null; setup_needed: boolean; setup_ui?: boolean }
 export interface Passkey { id: string; name: string; created_at: string; last_used_at: string | null }
 
 // Account calls remain available while normal application requests are paused.
@@ -27,6 +27,8 @@ export const useAuth = defineStore('auth', () => {
   const provider = ref<'none' | 'simple'>('none')
   const account = ref<Account | null>(null)
   const setupNeeded = ref(false)
+  // setupUI says the server lets this page create the first account. SHELF_AUTH_SETUP_UI=false turns it off.
+  const setupUI = ref(false)
   const error = ref('')
   const mounted = ref(false)
   const previousID = ref<number | null>(null)
@@ -43,6 +45,7 @@ export const useAuth = defineStore('auth', () => {
     provider.value = v.provider
     account.value = v.account
     setupNeeded.value = v.setup_needed
+    setupUI.value = !!v.setup_ui
     ready.value = true
     if (v.account) { previousID.value = v.account.id; previousName.value = v.account.username }
     if (v.provider === 'none' || v.account) mounted.value = true
@@ -69,9 +72,15 @@ export const useAuth = defineStore('auth', () => {
     if (apply) signedIn(v)
     return v
   }
+  // setup creates the first account and signs it in. It works only while the server has no accounts.
+  async function setup(username: string, password: string, apply = true): Promise<AuthStatus> {
+    const v = await accountCall<AuthStatus>('/setup', { username, password })
+    if (apply) signedIn(v)
+    return v
+  }
   async function logout() {
     await accountCall('/logout')
     window.location.reload()
   }
-  return { ready, provider, account, setupNeeded, error, mounted, previousID, previousName, locked, check, expired, signedIn, login, logout }
+  return { ready, provider, account, setupNeeded, setupUI, error, mounted, previousID, previousName, locked, check, expired, signedIn, login, setup, logout }
 })

@@ -2,7 +2,7 @@ import { ApiError } from '../api/client'
 
 // The steps of account sign-in, as the display shows them.
 export type SignState =
-  | 'checking' | 'noanswer' | 'setup' | 'out' | 'ended'
+  | 'checking' | 'noanswer' | 'setup' | 'create' | 'creating' | 'differ' | 'short' | 'taken' | 'out' | 'ended'
   | 'busy' | 'waiting' | 'wrong' | 'many' | 'canceled' | 'failed' | 'hello'
 
 // tone colors the display: red for a failure, which is also an alert, and amber for a soft stop.
@@ -29,6 +29,11 @@ export function display(s: SignState, o: { name?: string; passkeys?: boolean; ke
     case 'checking': return { lines: ['CHECKING ACCESS'], tone: '' }
     case 'noanswer': return { lines: ['NO ANSWER', 'TRY AGAIN'], tone: 'err' }
     case 'setup': return { lines: ['NO ACCOUNTS', 'ADD ONE ON THE SERVER'], tone: '' }
+    case 'create': return { lines: ['NO ACCOUNTS YET', 'CREATE THE FIRST ONE'], tone: '' }
+    case 'creating': return { lines: ['CREATING', name], tone: '' }
+    case 'differ': return { lines: ['PASSWORDS DIFFER', 'TYPE THEM AGAIN'], tone: 'err' }
+    case 'short': return { lines: ['PASSWORD TOO SHORT', '8 CHARACTERS OR MORE'], tone: 'err' }
+    case 'taken': return { lines: ['USERNAME TAKEN', 'SIGN IN INSTEAD'], tone: 'err' }
     case 'out': return { lines: ['SIGNED OUT', o.passkeys ? 'PASSWORD OR PASSKEY' : 'PASSWORD'], tone: '' }
     case 'ended': return { lines: ['SESSION ENDED', edits(o.kept ?? 0)], tone: 'warn' }
     case 'busy': return { lines: ['CHECKING', name], tone: '' }

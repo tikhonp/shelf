@@ -224,3 +224,7 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 | The gateway has no agent rule. Shelf checks scoped tokens on the agent prefix, sessions everywhere else, and rejects ambiguous paths. | Production dropped gateway basic auth after the account cutover, so the planned exemption for the agent prefix was never applied. A gateway password would also open ordinary writes, so an agent never gets one. |
 | A new connection's setup prompt holds its token, and Shelf shows it once. | The owner wants one paste to start an agent. Shelf keeps only the hash, so the UI never shows the prompt again. The setup endpoint's copy names `SHELF_AGENT_TOKEN`. |
 | `POST /runs` lists only the calling connection's outstanding work. | The prompt has an agent answer only its own proposals, and the lists stay short. |
+
+## First account from the web UI
+
+UI setup is enabled by default while no accounts exist. The owner accepts that anyone who reaches a fresh install first can create its account. `SHELF_AUTH_SETUP_UI=false` leaves account creation to `shelf manage users add`. Account creation and its session share one write transaction so concurrent requests cannot both succeed.

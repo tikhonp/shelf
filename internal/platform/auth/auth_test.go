@@ -719,3 +719,125 @@ func TestAccountsPort(t *testing.T) {
 		t.Fatal("a deleted account's ID came back", ok, err)
 	}
 }
+
+func TestSetupStatus(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		for _, setup := range []bool{false, true} {
+			r := newRig(t)
+			r.s.Enabled, r.s.SetupUI = enabled, setup
+			res := r.request(t, "GET", "/api/auth", nil)
+			requireStatus(t, res, 200)
+			var status struct {
+				SetupUI     bool `json:"setup_ui"`
+				SetupNeeded bool `json:"setup_needed"`
+			}
+			if err := json.Unmarshal(res.Body.Bytes(), &status); err != nil {
+				t.Fatal(err)
+			}
+			if status.SetupUI != (enabled && setup) || status.SetupNeeded != enabled {
+				t.Fatalf("unexpected status: %s", res.Body)
+			}
+		}
+	}
+}
+
+func TestSetupCreatesAccountAndSession(t *testing.T) {
+	r := newRig(t)
+	r.s.SetupUI = true
+	res := r.request(t, "POST", "/api/auth/setup", map[string]string{"username": "Alice", "password": testPassword})
+	requireStatus(t, res, 200)
+	var status struct {
+		Account     Account `json:"account"`
+		SetupNeeded bool    `json:"setup_needed"`
+	}
+	if err := json.Unmarshal(res.Body.Bytes(), &status); err != nil {
+		t.Fatal(err)
+	}
+	if status.Account.ID == 0 || status.Account.Username != "Alice" || status.SetupNeeded {
+		t.Fatalf("unexpected status: %s", res.Body)
+	}
+	c := cookie(t, res, cookieName)
+	if !c.Secure || !c.HttpOnly || c.Path != "/" || c.MaxAge != int(sessionLife.Seconds()) {
+		t.Fatalf("bad cookie: %+v", c)
+	}
+	requireStatus(t, r.request(t, "GET", "/api/secret", nil, c), 200)
+	a, err := r.s.account(bg, "Alice")
+	if err != nil || !passwordMatches(a.Hash, testPassword) || len(a.Handle) != 32 {
+		t.Fatalf("bad account: %v", err)
+	}
+	res = r.request(t, "POST", "/api/auth/setup", map[string]string{"username": "Bob", "password": testPassword})
+	requireStatus(t, res, 409)
+	if !strings.Contains(res.Body.String(), ErrSetupDone.Error()) {
+		t.Fatal(res.Body)
+	}
+	accounts, err := r.s.List(bg)
+	if err != nil || len(accounts) != 1 {
+		t.Fatalf("accounts %v: %v", accounts, err)
+	}
+}
+
+func TestSetupRejected(t *testing.T) {
+	for _, tc := range []struct {
+		name               string
+		enabled, setup     bool
+		username, password string
+		code               int
+	}{
+		{"disabled UI", true, false, "Alice", testPassword, 404},
+		{"provider none", false, true, "Alice", testPassword, 404},
+		{"short password", true, true, "Alice", "short", 400},
+		{"oversized password", true, true, "Alice", strings.Repeat("a", 513), 400},
+		{"bad username", true, true, "bad name", testPassword, 400},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := newRig(t)
+			r.s.Enabled, r.s.SetupUI = tc.enabled, tc.setup
+			requireStatus(t, r.request(t, "POST", "/api/auth/setup", map[string]string{"username": tc.username, "password": tc.password}), tc.code)
+			accounts, err := r.s.List(bg)
+			if err != nil || len(accounts) != 0 {
+				t.Fatalf("accounts %v: %v", accounts, err)
+			}
+		})
+	}
+}
+
+func TestConcurrentSetup(t *testing.T) {
+	r := newRig(t)
+	r.s.SetupUI = true
+	start := make(chan struct{})
+	results := make(chan int, 2)
+	for _, name := range []string{"Alice", "Bob"} {
+		go func() {
+			<-start
+			results <- r.request(t, "POST", "/api/auth/setup", map[string]string{"username": name, "password": testPassword}).Code
+		}()
+	}
+	close(start)
+	codes := map[int]int{}
+	for range 2 {
+		codes[<-results]++
+	}
+	if codes[200] != 1 || codes[409] != 1 {
+		t.Fatalf("statuses: %v", codes)
+	}
+	accounts, err := r.s.List(bg)
+	if err != nil || len(accounts) != 1 {
+		t.Fatalf("accounts %v: %v", accounts, err)
+	}
+}
+
+func TestSetupBadBodyAndLimit(t *testing.T) {
+	r := newRig(t)
+	r.s.SetupUI = true
+	req := httptest.NewRequest("POST", "/api/auth/setup", strings.NewReader("{"))
+	req.Header.Set("Content-Type", "application/json")
+	res := httptest.NewRecorder()
+	r.e.ServeHTTP(res, req)
+	requireStatus(t, res, 400)
+	for range 5 {
+		if !r.s.allow("setup") {
+			t.Fatal("unexpected limit")
+		}
+	}
+	requireStatus(t, r.request(t, "POST", "/api/auth/setup", map[string]string{"username": "Alice", "password": testPassword}), 429)
+}

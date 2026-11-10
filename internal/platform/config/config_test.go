@@ -290,3 +290,27 @@ func TestAgentEnabled(t *testing.T) {
 		}
 	}
 }
+
+func TestAuthSetupUI(t *testing.T) {
+	for _, tc := range []struct {
+		value         string
+		want, invalid bool
+	}{
+		{"", true, false}, {"false", false, false}, {"maybe", false, true},
+	} {
+		t.Run(tc.value, func(t *testing.T) {
+			values := map[string]string{}
+			if tc.value != "" {
+				values["SHELF_AUTH_SETUP_UI"] = tc.value
+			}
+			c, err := Load(env(values))
+			if tc.invalid {
+				if err == nil || !strings.Contains(err.Error(), "SHELF_AUTH_SETUP_UI") {
+					t.Fatalf("expected config error, got %v", err)
+				}
+			} else if err != nil || c.AuthSetupUI != tc.want {
+				t.Fatalf("AuthSetupUI=%v, error=%v", c.AuthSetupUI, err)
+			}
+		})
+	}
+}

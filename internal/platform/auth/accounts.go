@@ -27,6 +27,7 @@ import (
 )
 
 var (
+	ErrSetupDone    = errors.New("an account already exists; sign in")
 	ErrCredentials  = errors.New("credentials changed or incorrect; sign in again")
 	ErrNotFound     = errors.New("account not found")
 	ErrLimited      = errors.New("too many attempts; try again later")
@@ -78,6 +79,7 @@ type ceremony struct {
 type Service struct {
 	DB           *db.DB
 	Enabled      bool
+	SetupUI      bool
 	webauthn     *webauthn.WebAuthn
 	slots        chan struct{}
 	passkeyLimit *rate.Limiter

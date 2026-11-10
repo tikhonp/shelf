@@ -51,6 +51,7 @@ Last run: passed in production, run by the owner before 2026-11-10. The gateway'
 
 - Keep provider none and verify the current app and gateway still work with no account units on Status.
 - Enable simple with the public HTTPS origin. Verify logged-out requests cannot read the API, media, logs, or events.
+- On a fresh install with no accounts, create the first account in the browser. A short password and a wrong repeat turn the display red, and the new account opens the app. With `SHELF_AUTH_SETUP_UI=false` the unit names `shelf manage users add` instead.
 - Sign in with a case-sensitive username. Verify a different case fails unless that separate account exists.
 - Add a named passkey on a phone and a desktop. Sign out and sign in with each. Verify canceling the browser prompt keeps password login available.
 - Rename and remove a passkey. Removal must end the current session and other sessions.

@@ -21,9 +21,12 @@ import (
 // secrets.
 type Config struct {
 	AuthProvider string
-	DataDir      string
-	MusicDir     string
-	HTTPAddr     string
+	// AuthSetupUI lets the web UI create the first account while none
+	// exists. False leaves only shelf manage users add.
+	AuthSetupUI bool
+	DataDir     string
+	MusicDir    string
+	HTTPAddr    string
 	// PublicURL is nil when unset.
 	PublicURL *url.URL
 	TZ        *time.Location
@@ -114,6 +117,7 @@ func Load(lookup func(string) (string, bool)) (*Config, error) {
 	p := &parser{lookup: lookup}
 	c := &Config{
 		AuthProvider: p.required("SHELF_AUTH_PROVIDER", "none"),
+		AuthSetupUI:  p.strictBoolean("SHELF_AUTH_SETUP_UI", true),
 		DataDir:      p.required("SHELF_DATA_DIR", "/data"),
 		MusicDir:     p.required("SHELF_MUSIC_DIR", "/music"),
 		HTTPAddr:     p.required("SHELF_HTTP_ADDR", ":8080"),

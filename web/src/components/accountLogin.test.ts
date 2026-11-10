@@ -137,6 +137,74 @@ test('with no accounts, the unit shows the command and a Reload key and no field
   w.unmount()
 })
 
+const noAccounts = { provider: 'simple', account: null, setup_needed: true, setup_ui: true }
+async function fill(w: Awaited<ReturnType<typeof mountApp>>, password: string, again: string) {
+  await w.find('input[name="username"]').setValue('alice')
+  await w.find('input[name="password"]').setValue(password)
+  await w.find('input[name="password2"]').setValue(again)
+  await w.find('form').trigger('submit')
+  await flushPromises()
+}
+
+test('with no accounts and setup on, the unit creates the first one with no passkey slide', async () => {
+  stubApi({ '/api/auth': noAccounts })
+  const w = await mountApp()
+  expect(lcd(w)).toEqual(['NO ACCOUNTS YET', 'CREATE THE FIRST ONE'])
+  expect(w.find('h1').text()).toBe('Create the first Music Shelf account')
+  expect(w.findAll('label').map((l) => l.text())).toEqual(['Username', 'Password', 'Repeat password'])
+  expect(w.find('input[name="password"]').attributes('autocomplete')).toBe('new-password')
+  expect(w.find('button[type="submit"]').text()).toBe('Create account')
+  expect(w.find('pre').exists()).toBe(false)
+  expect(slide(w).exists()).toBe(false)
+  w.unmount()
+})
+
+test('a short or repeated-wrong password turns the display red and sends nothing', async () => {
+  const calls = stubApi({ '/api/auth': noAccounts })
+  const w = await mountApp()
+  await fill(w, 'short', 'short')
+  expect(lcd(w)).toEqual(['PASSWORD TOO SHORT', '8 CHARACTERS OR MORE'])
+  expect(w.find('.lcd').classes()).toContain('err')
+  expect(w.find('.lcd').attributes('role')).toBe('alert')
+  await fill(w, 'long enough', 'long enougb')
+  expect(lcd(w)).toEqual(['PASSWORDS DIFFER', 'TYPE THEM AGAIN'])
+  expect((w.find('input[name="password2"]').element as HTMLInputElement).value).toBe('')
+  expect(calls.some((c) => c.url.includes('/setup'))).toBe(false)
+  w.unmount()
+})
+
+test('the new account powers up and opens the app', async () => {
+  reduceMotion(true)
+  const calls = stubApi({ '/api/auth/setup': alice, '/api/auth': noAccounts, ...appRoutes })
+  const w = await mountApp()
+  await fill(w, 'musicshelf', 'musicshelf')
+  const call = calls.find((c) => c.url === '/api/auth/setup')!
+  expect(JSON.parse(String(call.init?.body))).toEqual({ username: 'alice', password: 'musicshelf' })
+  expect(w.find('.acct-desk').exists()).toBe(false)
+  w.unmount()
+})
+
+test('when someone created the first account a moment earlier, the unit says so and turns to sign-in', async () => {
+  let created = false
+  stubApi({ '/api/auth/setup': () => { created = true; return new Reply(409, { error: 'an account already exists; sign in' }) }, '/api/auth': () => (created ? signedOut : noAccounts) })
+  const w = await mountApp()
+  await fill(w, 'musicshelf', 'musicshelf')
+  expect(lcd(w)).toEqual(['USERNAME TAKEN', 'SIGN IN INSTEAD'])
+  expect(w.find('input[name="password2"]').exists()).toBe(false)
+  expect(w.find('button[type="submit"]').text()).toBe('Sign in')
+  expect((w.find('input[name="username"]').element as HTMLInputElement).value).toBe('alice')
+  w.unmount()
+})
+
+test('with setup off, the unit names the command instead of the form', async () => {
+  stubApi({ '/api/auth': { ...noAccounts, setup_ui: false } })
+  const w = await mountApp()
+  expect(lcd(w)).toEqual(['NO ACCOUNTS', 'ADD ONE ON THE SERVER'])
+  expect(w.find('pre').text()).toContain('shelf manage users add <username>')
+  expect(w.find('form').exists()).toBe(false)
+  w.unmount()
+})
+
 test('after sign-in the lamps in the unit light 260 ms apart and the clock starts, then the app mounts', async () => {
   vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'] })
   stubApi({ '/api/auth/login': alice, '/api/auth': signedOut, ...appRoutes })

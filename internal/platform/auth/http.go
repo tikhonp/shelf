@@ -125,7 +125,7 @@ func (s *Service) StartServe(ctx context.Context) (int64, error) {
 	return res.RowsAffected()
 }
 func publicRoute(path, method string) bool {
-	return method == http.MethodGet && path == "/api/auth" || method == http.MethodPost && (path == "/api/auth/login" || path == "/api/auth/passkey/begin" || path == "/api/auth/passkey/finish")
+	return method == http.MethodGet && path == "/api/auth" || method == http.MethodPost && (path == "/api/auth/setup" || path == "/api/auth/login" || path == "/api/auth/passkey/begin" || path == "/api/auth/passkey/finish")
 }
 
 // AgentPath reports a path of the agent API, which authenticates with its
@@ -215,6 +215,7 @@ func (s *Service) Routes(api *echo.Group) {
 			return next(c)
 		}
 	})
+	g.POST("/setup", s.setup)
 	g.POST("/login", s.login)
 	g.POST("/logout", s.logout)
 	g.POST("/password", s.changePassword)
@@ -248,7 +249,7 @@ func (s *Service) status(c *echo.Context) error {
 	if s.Enabled {
 		provider = "simple"
 	}
-	return c.JSON(200, map[string]any{"provider": provider, "account": a, "setup_needed": setup})
+	return c.JSON(200, map[string]any{"provider": provider, "account": a, "setup_needed": setup, "setup_ui": s.Enabled && s.SetupUI})
 }
 func authError(err error) error {
 	if errors.Is(err, ErrCredentials) || errors.Is(err, ErrNotFound) {
@@ -291,6 +292,74 @@ func (s *Service) checkPassword(ctx context.Context, username, password string) 
 	}
 	return a, nil
 }
+func (s *Service) setup(c *echo.Context) error {
+	if !s.SetupUI {
+		return echo.ErrNotFound
+	}
+	var req struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if err := c.Bind(&req); err != nil {
+		return echo.ErrBadRequest
+	}
+	if !usernamePattern.MatchString(req.Username) {
+		return echo.NewHTTPError(400, "username must contain 1 to 32 ASCII letters, digits, dots, underscores, or hyphens")
+	}
+	if len(req.Password) > 512 {
+		return echo.NewHTTPError(400, "password must contain 8 to 128 Unicode characters")
+	}
+	if !s.allow("setup") {
+		return authError(ErrLimited)
+	}
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 10*time.Second)
+	defer cancel()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+	select {
+	case s.slots <- struct{}{}:
+	case <-ctx.Done():
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return authError(ErrLimited)
+		}
+		return ctx.Err()
+	}
+	hash, err := passwordHash(req.Password)
+	<-s.slots
+	if err != nil {
+		return echo.NewHTTPError(400, err.Error())
+	}
+	token := randomToken()
+	var a Account
+	err = s.DB.Write(ctx, func(tx *sqlx.Tx) error {
+		var n int
+		if err := tx.GetContext(ctx, &n, `SELECT count(*) FROM accounts`); err != nil {
+			return err
+		}
+		if n > 0 {
+			return ErrSetupDone
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO accounts(username,password_hash,user_handle,created_at) VALUES(?,?,?,?)`, req.Username, hash, randomBytes(32), db.At(s.now())); err != nil {
+			return err
+		}
+		if err := tx.GetContext(ctx, &a, `SELECT `+accountCols+` FROM accounts WHERE username=?`, req.Username); err != nil {
+			return err
+		}
+		return s.createSession(ctx, tx, a, token)
+	})
+	if errors.Is(err, ErrSetupDone) {
+		return echo.NewHTTPError(409, ErrSetupDone.Error())
+	}
+	if err != nil {
+		return authError(err)
+	}
+	setCookie(c, cookieName, token, sessionLife)
+	return s.statusFor(c, a)
+}
+
 func (s *Service) login(c *echo.Context) error {
 	var req struct {
 		Username string `json:"username"`

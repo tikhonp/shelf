@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onScopeDispose, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { ApiError } from '../api/client'
 import { display, failed, reducedMotion, type SignState } from '../lib/account'
 import { useNow } from '../lib/clock'
 import { clock } from '../lib/format'
@@ -24,6 +25,10 @@ const passkeys = supportsPasskeys()
 const username = ref('')
 const password = ref('')
 const passwordEl = ref<HTMLInputElement>()
+// repeat is the first account's second password field.
+const repeat = ref('')
+const newEl = ref<HTMLInputElement>()
+const repeatEl = ref<HTMLInputElement>()
 const state = ref<SignState>('out')
 // on is where the key switch points. It turns to ON only when a passkey signs in.
 const on = ref(false)
@@ -37,7 +42,8 @@ const opening = computed(() => (openings.find(([to]) => route.path.startsWith(to
 
 const phase = computed<SignState>(() => {
   if (!auth.ready) return auth.error ? 'noanswer' : 'checking'
-  if (auth.setupNeeded) return 'setup'
+  // With no accounts the unit creates the first one, unless the server turned that off.
+  if (auth.setupNeeded) return auth.setupUI ? (state.value === 'out' ? 'create' : state.value) : 'setup'
   return state.value
 })
 const shown = computed(() => {
@@ -46,7 +52,8 @@ const shown = computed(() => {
   return d
 })
 const form = computed(() => auth.ready && !auth.setupNeeded)
-const busy = computed(() => state.value === 'busy' || state.value === 'waiting' || state.value === 'hello')
+const creating = computed(() => auth.ready && auth.setupNeeded && auth.setupUI)
+const busy = computed(() => state.value === 'busy' || state.value === 'creating' || state.value === 'waiting' || state.value === 'hello')
 const slideOn = computed(() => state.value === 'waiting' || on.value)
 
 const timers: ReturnType<typeof setTimeout>[] = []
@@ -80,6 +87,30 @@ async function signIn(passkey = false) {
     }
   } finally { abort = null }
 }
+// create makes the first account and signs it in. When another account was created a moment earlier,
+// the server refuses, and the unit turns to sign-in.
+async function create() {
+  if (busy.value) return
+  const short = [...password.value].length < 8
+  if (short || password.value !== repeat.value) {
+    state.value = short ? 'short' : 'differ'
+    if (short) password.value = ''
+    repeat.value = ''
+    void nextTick(() => (short ? newEl : repeatEl).value?.focus())
+    return
+  }
+  state.value = 'creating'
+  try {
+    const v = await auth.setup(username.value, password.value, false)
+    await powerUp(v, false)
+  } catch (e) {
+    state.value = e instanceof ApiError && e.status === 409 ? 'taken' : failed(e)
+    if (state.value === 'taken') void auth.check().catch(() => {})
+  } finally {
+    password.value = ''
+    repeat.value = ''
+  }
+}
 // slide runs for both the slide and the key switch. OFF to ON asks for a passkey, and ON to OFF cancels the request.
 function slide() {
   if (state.value === 'waiting') abort?.abort()
@@ -94,7 +125,7 @@ const reload = () => window.location.reload()
       <div v-if="!phone" class="win unit acct-blank" aria-hidden="true"><div class="unit-body"><span class="vents"></span></div></div>
 
       <section class="win acct-unit" :class="{ unit: !phone }" aria-labelledby="acct-h">
-        <h1 id="acct-h" class="sr">Sign in to Music Shelf</h1>
+        <h1 id="acct-h" class="sr">{{ creating ? 'Create the first Music Shelf account' : 'Sign in to Music Shelf' }}</h1>
         <div :class="phone ? 'vscroll acct-body' : 'unit-body acct-body'">
           <div v-if="!phone && form && passkeys" class="acct-left">
             <KeySwitch :on="on" press @press="slide" />
@@ -114,6 +145,12 @@ const reload = () => window.location.reload()
               <label class="lbl-f">Username<input v-model="username" class="input" name="username" autocomplete="username webauthn" autocapitalize="none" spellcheck="false" required maxlength="32" autofocus :readonly="busy" /></label>
               <label class="lbl-f">Password<input ref="passwordEl" v-model="password" class="input" name="password" type="password" autocomplete="current-password" required :readonly="busy" /></label>
               <button class="key sun lg block" type="submit" :class="{ pressed: state === 'busy' }" :disabled="busy">Sign in</button>
+            </form>
+            <form v-else-if="creating" class="acct-form" @submit.prevent="create">
+              <label class="lbl-f">Username<input v-model="username" class="input" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="32" pattern="[A-Za-z0-9._\-]+" title="Letters, digits, dots, underscores and hyphens" autofocus :readonly="busy" /></label>
+              <label class="lbl-f">Password<input ref="newEl" v-model="password" class="input" name="password" type="password" autocomplete="new-password" required :readonly="busy" /></label>
+              <label class="lbl-f">Repeat password<input ref="repeatEl" v-model="repeat" class="input" name="password2" type="password" autocomplete="new-password" required :readonly="busy" /></label>
+              <button class="key sun lg block" type="submit" :class="{ pressed: state === 'creating' }" :disabled="busy">Create account</button>
             </form>
             <template v-else-if="phase === 'setup'">
               <p class="sm acct-p">Run this in the server's terminal, then reload the page.</p>

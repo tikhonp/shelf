@@ -92,6 +92,7 @@ func Open(cfg *config.Config, log *slog.Logger, modules ...module.Module) (*App,
 		_ = d.Close()
 		return nil, err
 	}
+	a.Auth.SetupUI = cfg.AuthSetupUI
 	a.Backup = backup.New(d, cfg.DataDir, cfg.TZ, log)
 	if err := a.register(); err != nil {
 		_ = d.Close()

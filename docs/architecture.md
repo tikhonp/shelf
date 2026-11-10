@@ -257,6 +257,7 @@ Tokens and passwords are `config.Secret`, which prints, logs and marshals as `[r
 | `SHELF_TIMEZONE` | `Europe/Moscow` | Display time zone for `shelf.txt`, the UI and the backup schedule. |
 | `SHELF_PROXY_URL` | | Proxy for modules that opt in. |
 | `SHELF_AGENT_ENABLED` | `false` | Enables external agent connections and the review inbox. Accepts only `true` or `false`. |
+| `SHELF_AUTH_SETUP_UI` | `true` | Allow the web UI to create the first account. Set false to use only `shelf manage users add`. |
 | `SHELF_AUTH_PROVIDER` | `none` | `simple` enables accounts and requires an HTTPS `SHELF_PUBLIC_URL` origin. Empty or unknown values fail startup. |
 | `SHELF_QOBUZ_TOKEN` | | Qobuz `user_auth_token`. Empty disables Qobuz. |
 | `SHELF_QOBUZ_DIR` | `qobuz` | Folder under the music root. |

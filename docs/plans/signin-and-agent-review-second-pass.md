@@ -1,6 +1,6 @@
 # Sign-in and agent review, second pass
 
-Status: designed on 2026-11-10. By the end of that day the app had everything but the first-account screen. The owner reviewed the screens of the [first redesign](signin-and-agent-review-design.md) over 15 rounds of notes, then Fable 5.2 reviewed them, and the owner accepted its fixes. The static exports are in [ui/design/screens](../ui/design/screens), and [ui/design/README.md](../ui/design/README.md) lists them. The review board is a private artifact, https://claude.ai/artifact/3QghuteHwNFLqehu4RNE3d.
+Status: designed on 2026-11-10. By the end of that day the app had all of it. The owner reviewed the screens of the [first redesign](signin-and-agent-review-design.md) over 15 rounds of notes, then Fable 5.2 reviewed them, and the owner accepted its fixes. The static exports are in [ui/design/screens](../ui/design/screens), and [ui/design/README.md](../ui/design/README.md) lists them. The review board is a private artifact, https://claude.ai/artifact/3QghuteHwNFLqehu4RNE3d.
 
 The Library screens were not reviewed. The work must not change the Library tab, apart from the Memory key in the Inbox title bars and the plate rule under [Shared styles](#shared-styles).
 
@@ -27,7 +27,7 @@ The screens have small review-only scripts in `slide-demo.js`, `tips.js` and inl
 
 `AccountDesk.vue`, `AccountLogin.vue`, `KeySwitch.vue`, `web/src/lib/account.ts`.
 
-Built on 2026-11-10, apart from [the first account](#the-first-account). The slide is `PasskeySlide.vue`. The desktop key switch is 150px, as `MS-desk-account-signin` draws it. 120px is the size in the narrow units of the states board and on Status, and below 150px the legends grow so OFF and ON stay readable.
+Built on 2026-11-10. The slide is `PasskeySlide.vue`. The desktop key switch is 150px, as `MS-desk-account-signin` draws it. 120px is the size in the narrow units of the states board and on Status, and below 150px the legends grow so OFF and ON stay readable.
 
 - Sign-in shows only its unit. The desktop has no menubar and the phone has no brand row, title bar or dock. The power-up lights three lamps inside the unit, then the app opens with its menubar.
 - The unit has no plate, because the display repeats it. The display's first line is a dim MUSIC SHELF (`.lcd-l.dim`), then the state. The unit keeps a heading for screen readers.
@@ -42,9 +42,13 @@ Built on 2026-11-10, apart from [the first account](#the-first-account). The sli
 
 With no accounts, the display reads NO ACCOUNTS YET / CREATE THE FIRST ONE, and the unit has Username, Password and Repeat password fields and a Create account key. The new account signs in at once. The display turns red with PASSWORDS DIFFER or 8 CHARACTERS OR MORE, or USERNAME TAKEN when someone else created the first account a moment earlier.
 
-Today the server only reports `setup_needed`, and the UI tells the user to run `shelf manage users add`. This needs a new endpoint that creates an account only while none exists, in the same transaction as the count, so two requests can't both succeed. See [the risk below](#found-on-2026-11-10).
+Built on 2026-11-10. `POST /api/auth/setup` creates an account only while none exists, in the same transaction as the count, so two requests can't both succeed. See [the risk below](#found-on-2026-11-10).
 
-The owner accepted that risk. An environment option turns the screen off, and the UI then names `shelf manage users add` as it does today.
+The owner accepted that risk. `SHELF_AUTH_SETUP_UI=false` turns the screen off, and the UI then names `shelf manage users add` as before.
+
+- The UI checks the length and the repeat before it sends anything. The display reads PASSWORD TOO SHORT / 8 CHARACTERS OR MORE, or PASSWORDS DIFFER / TYPE THEM AGAIN.
+- When the server answers that an account exists, the display reads USERNAME TAKEN / SIGN IN INSTEAD, and the unit turns to sign-in with the username kept.
+- The new account powers up with the three lamps, as a sign-in does. The unit has no Passkey slide, because the account has no passkey yet.
 
 ## Account on Status
 
@@ -98,7 +102,7 @@ These go into the app's stylesheets. Only the first touches pages outside this w
 These are bugs in the running app and questions to settle before building.
 
 1. **Sign out drops staged edits without asking.** `logout` in `web/src/stores/auth.ts` reloads the page, and the edits `editor.kept` counts are lost. The design asks first. Fixed on 2026-11-10, and the sign-out key switch asks the same way.
-2. **Creating the first account from the UI is open to anyone.** On a fresh install, whoever reaches the page first gets the account. Production has accounts, so only a new install is open to this. On 2026-11-10 the owner accepted the risk, with no setup code, and asked for an environment option that turns off creating the first account in the UI.
+2. **Creating the first account from the UI is open to anyone.** On a fresh install, whoever reaches the page first gets the account. Production has accounts, so only a new install is open to this. On 2026-11-10 the owner accepted the risk, with no setup code, and asked for an environment option that turns off creating the first account in the UI. Built as `SHELF_AUTH_SETUP_UI` on 2026-11-10.
 3. **Helper text shows at rest.** "Accept writes 3 fields to 6 files. History can undo it." (`InboxBar.vue:30`), "No agent can accept, save or delete." (`AgentsPanel.vue:110`) and "Then you sign in again with the new one." (`AccountSettings.vue:116`). Each becomes a note. Fixed on 2026-11-10.
 4. **The small key switch's legends are unreadable.** `AccountDesk.vue:138` draws it 96px wide, and OFF and ON come out under 8px. The design draws it at 120px. Fixed on 2026-11-10, and below 150px the legends grow.
 5. **The phone's decline key says only "Decline"** (`InboxBar.vue:67`), which reads as declining everything beside "Accept 2". Fixed on 2026-11-10.

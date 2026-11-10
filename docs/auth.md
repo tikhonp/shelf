@@ -2,7 +2,7 @@
 
 Shelf has optional account authentication. Set `SHELF_AUTH_PROVIDER=simple` and set `SHELF_PUBLIC_URL` to the public HTTPS origin, such as `https://shelf.music.tikhonnnnn.com`. The default provider is `none`. An empty or unknown provider stops startup.
 
-Every account has access to the same library, downloads, source accounts, history, and actions. Users can manage only their own passwords and passkeys. The CLI manages accounts. There are no roles, registration pages, email addresses, or display names.
+Every account has access to the same library, downloads, source accounts, history, and actions. Users can manage only their own passwords and passkeys. The CLI manages accounts. The web UI can create the first account. There are no roles, email addresses, or display names.
 
 ## Account commands
 
@@ -23,11 +23,11 @@ Usernames contain 1 to 32 ASCII letters, digits, dots, underscores, or hyphens. 
 
 Passwords contain 8 to 128 Unicode code points of valid UTF-8. Spaces count. There are no requirements for uppercase letters, digits, or symbols. Shelf hashes the exact password bytes without trimming or normalization. The database holds a salted Argon2id hash with 64 MiB of memory, three iterations, and one lane. At most two HTTP password checks run at once. Other checks wait up to ten seconds for a slot and stop waiting if the request ends. An overloaded queue returns 429. A username gets five attempts, then one more every twelve seconds. Limiter storage holds at most 1,024 names, including unknown names. Password limiter keys include a user prefix. Passkey login has a separate budget of ten requests at once, then one more per second. There is no permanent lockout.
 
-Account commands work with either provider and do not revoke sessions merely by opening the database or running migrations. Password resets, passkey resets, and account deletion revoke that account's sessions. A passkey reset removes all its passkeys. Deleting the last account leaves simple mode closed until the operator creates another account.
+Account commands work with either provider and do not revoke sessions merely by opening the database or running migrations. Password resets, passkey resets, and account deletion revoke that account's sessions. A passkey reset removes all its passkeys. Deleting the last account allows first-account setup again when enabled.
 
 ## Web access
 
-The web app checks `GET /api/auth` before mounting its application shell or opening event streams. This endpoint returns `provider`, `account` with `id` and `username` or null, and `setup_needed`. A server without accounts shows the CLI setup instruction.
+The web app checks `GET /api/auth` before mounting its application shell or opening event streams. This endpoint returns `provider`, `account` with `id` and `username` or null, `setup_needed`, and `setup_ui`. The `setup_ui` field is true when the provider is simple and UI setup is enabled. A server without accounts shows the first-account form when `setup_ui` is true. Otherwise it shows `shelf manage users add`.
 
 Before the app opens, sign-in shows only its rack unit, with no menubar, title bar or dock. Its display reads MUSIC SHELF and then each step, such as CHECKING or WRONG USERNAME OR PASSWORD. A failure turns the display red and is an alert, and a canceled passkey turns it amber. Sign in is the only key. Sliding the Passkey slide to ON, by a press or a 24px drag, asks the browser for a passkey, and sliding it back cancels the request. It springs back to OFF when the passkey is canceled or fails. On the desktop a key switch picture sits above the slide, does what the slide does when pressed, and turns to ON when a passkey signs in. A browser without passkeys shows neither. After sign-in three lamps in the unit light 260 ms apart and its clock starts, then the app opens. With reduced motion it opens at once. On the phone the unit is centered, and moves to the top while the keyboard is open, so the keyboard never covers Sign in.
 
@@ -47,7 +47,7 @@ Every protected request checks the session and account with an indexed query, th
 
 The server registers open authenticated requests. Web revocations cancel them directly. Every 30 seconds it also checks active sessions in the database, so a reset from a separate CLI process closes existing streams too. Canceled response writers refuse further writes, including media writes, and expose `Unwrap` for streaming flushes. The checker runs only with `serve`.
 
-The UI files, `/healthz`, `GET /api/auth`, and password and passkey login endpoints are public. All other API routes require a session, including audio, covers, logs, and events. API refusals return JSON with status 401 and no `WWW-Authenticate` header. Existing cross-origin checks and body limits cover account endpoints. Auth responses use `no-store`. Protected media keeps its existing cache policy.
+The UI files, `/healthz`, `GET /api/auth`, password and passkey login endpoints, and `POST /api/auth/setup` are public. All other API routes require a session, including audio, covers, logs, and events. API refusals return JSON with status 401 and no `WWW-Authenticate` header. Existing cross-origin checks and body limits cover account endpoints. Auth responses use `no-store`. Protected media keeps its existing cache policy.
 
 Ordinary API routes do not accept API tokens. Scripts calling a protected ordinary HTTP API need a valid session. Optional [agent connections](agents.md) use scoped bearer tokens only under `/api/agent/v1/`. Those routes authenticate through the agents module in either account mode and ignore browser sessions. A bearer credential on any other API prefix is rejected, even in provider none. The Telegram bot keeps its separate allowlist and calls Shelf services without a web login.
 
@@ -76,3 +76,7 @@ Older records without an author show Unknown. Old Telegram downloads use the ide
 The UI shows authors beside existing history rows and download details. Existing HTTP request logs include the author's ID and name. Jobs keep their `created_by` and `cancel_requested_by` fields, with `user:<id>` for an authenticated web user. Download retries and cancellations use those existing job fields and leave the creator unchanged. Run cancellation keeps its existing flag, analysis-job cancellation, and resume-job attribution. Coalesced scans gain no author history.
 
 This feature adds no activity log, changes no retention rule, and creates no new history for actions that had none.
+
+`POST /api/auth/setup` accepts `username` and `password`, creates the first account, and signs it in with a session cookie. It returns the same status as login. Invalid input returns 400. If an account already exists, it returns 409. Concurrent setup requests can create only one account. Setup shares the password hashing concurrency limit and has an attempt limit.
+
+`SHELF_AUTH_SETUP_UI` defaults to `true`. Anyone who reaches a fresh install first can create the account. The owner accepted that risk on 2026-11-10. Set it to `false` to allow account creation only through `shelf manage users add`. The UI then shows that command. The setup endpoint returns 404 when UI setup is disabled or the provider is none.
