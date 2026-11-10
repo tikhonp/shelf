@@ -354,9 +354,24 @@ func bearerToken(h string) (token, problem string) {
 	case len(f) > 2:
 		return "", "the Authorization header holds more than one value after Bearer. Send only the agent token"
 	case !tokenPattern.MatchString(f[1]):
-		return "", fmt.Sprintf("the bearer token is not an agent token: an agent token is shelf_agent_ and 43 more characters, and this one has %d", len(f[1]))
+		return "", "the bearer token is not an agent token: " + tokenShape(f[1])
 	}
 	return f[1], ""
+}
+
+// tokenShape says how a token differs from an agent token's shape. Agents
+// retype tokens and drop characters. A length counts the whole token, prefix
+// included, so the agent can compare it with the token it was given.
+func tokenShape(t string) string {
+	const want = len(tokenPrefix) + 43
+	switch {
+	case !strings.HasPrefix(t, tokenPrefix):
+		return "it does not start with " + tokenPrefix + ". Send the token exactly as given"
+	case len(t) != want:
+		return fmt.Sprintf("an agent token has %d characters in all, shelf_agent_ included, and this one has %d. Send the token exactly as given, without retyping it", want, len(t))
+	default:
+		return "it has a character other than letters, digits, - and _ after " + tokenPrefix + ". Send the token exactly as given"
+	}
 }
 
 // agentAuth authenticates every /api/agent/v1 request by its bearer token.

@@ -24,6 +24,8 @@ shelf-wrapper builds from upstream's `ghcr.io/worldobservationlog/wrapper-lite` 
 
 The [sign-in and agent review redesign](plans/signin-and-agent-review-design.md) and its [second pass](plans/signin-and-agent-review-second-pass.md) run in production.
 
+On main and not yet deployed: an agent's 401 for a malformed token now says whether the prefix is missing, a character is not allowed, or the length is wrong, and it gives the length for the whole token. The old message compared the 43 characters after the prefix with the whole token's length.
+
 ## Operational notes
 
 - Source modules log in and start goroutines in `Run`, never `Init`, and register with `Switch` when settings are missing.

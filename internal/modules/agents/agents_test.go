@@ -594,7 +594,10 @@ func TestAgentAuthSaysWhatIsWrongWithTheHeader(t *testing.T) {
 		{"Basic " + r.token, "Bearer scheme"},
 		{"Bearer", "no token after Bearer"},
 		{"Bearer " + r.token + " " + r.token, "more than one value"},
-		{"Bearer " + short, "this one has 54"},
+		{"Bearer " + short, "55 characters in all, shelf_agent_ included, and this one has 54"},
+		{"Bearer " + r.token[:53], "and this one has 53"},
+		{"Bearer " + r.token[len("shelf_agent_"):], "does not start with shelf_agent_"},
+		{"Bearer " + short + "!", "a character other than"},
 	} {
 		req := httptest.NewRequest("POST", "/api/agent/v1/memory/commit", strings.NewReader(`{}`))
 		req.Header.Set("Content-Type", "application/json")
