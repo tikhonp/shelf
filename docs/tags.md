@@ -99,7 +99,7 @@ The history lists the saves and deletes newest first, `GET /api/library/history?
 - **Release IDs.** The MusicBrainz album, release group, album artist, release track and disc IDs go back together or not at all. A conflict on one of them, in any file, leaves all of them in every file and lists them as conflicts, so a file never ends with IDs from two releases.
 - **Refusals.** A save that wrote nothing, an undo of an undone save and a redo of one that isn't undone answer 409. So does an undo or redo while another of the same save is still to run. One whose every key changed since answers 409 with `reason: conflict` and its conflicts.
 - **The write.** An undo or redo is a change of its own, of kind `undo` or `redo`, with the save as its `target`. It is checked and confirmed as a Save is, because putting tracks back can merge or split albums in Navidrome too, and its body takes the same `confirm`. It writes raw keys through the same `library.write` job. When it replaces any file, the save's `undone` flag follows it.
-- **Clear history.** `DELETE /api/library/history` deletes every change that has ended, except a save whose undo or redo is still to run, and a proposal's change in the 10 minutes after it, or its undo or redo, ended. The agents module reads the outcome from that row. It answers `{"deleted"}`.
+- **Clear history.** `DELETE /api/library/history` deletes every change that has ended, except a save whose undo or redo is still to run, and a proposal's change in the 10 minutes after it, or its undo or redo, ended. The agents module reads the outcome from that row. With agents enabled, Clear first has the agents module read the finished Saves, and deletes only the ones it has read, as [agents.md](agents.md) describes. If that fails or takes over 10 seconds, Clear answers an error and deletes nothing. It answers `{"deleted"}`.
 - **Retention.** A `library.retention` job at 05:15 keeps the newest 1,000 saves and deletes. Each save takes its undos and redos with it. The job then removes stored covers no change refers to, except uploads younger than a day.
 
 ## Deleting
@@ -457,6 +457,8 @@ The test's container installs Alpine's ffmpeg, the one production has, because a
 | The key out of the address, the service's errors, fpcalc failing | `acoustid`: `TestLookupKeepsTheKeyOutOfTheAddress`, `TestLookupReportsTheServiceError`, `TestFingerprint` |
 | The client's cache, retries and decoding; links; the limiter's spacing and the editor going first | `TestReleaseAndCache`, `TestShapes`, `TestParseRelease`, `TestLimiterSpacesCalls`, `TestLimiterLetsTheEditorGoFirst` in `musicbrainz`, `TestGet` in `lrclib` |
 | The Status probe: no cache, no retry, busy, errors, down, one probe for 30 seconds | `TestPing` in `musicbrainz`, `TestMusicBrainzStatus` |
+| Clear and retention keep a matching Save until the agents module reads it, and skip the catch-up with agents disabled | `TestHistoryRemovalCatchesUpMatchingSave` |
+| Clear stops at the reader's cursor and below unfinished changes, keeps a Save that finishes during the catch-up, and deletes nothing when the reader fails or times out | `TestHistoryReaderTrimBoundary` |
 
 The fixtures in `tagio/testdata` are half a second of a sine per format, written by `testdata/make.sh`. Tests that need ffmpeg skip where it isn't installed. `musicbrainz/testdata` holds answers in MusicBrainz's and the Cover Art Archive's shapes, written by hand with made-up IDs.
 

@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v5"
+	"github.com/tikhonp/shelf/internal/libraryport"
 	"github.com/tikhonp/shelf/internal/modules/library/acoustid"
 	"github.com/tikhonp/shelf/internal/modules/library/lrclib"
 	"github.com/tikhonp/shelf/internal/modules/library/musicbrainz"
@@ -57,12 +58,13 @@ type Module struct {
 	// afterSlice runs when a run's slice ends. Tests stop a run with it.
 	afterSlice func()
 
-	root  string
-	log   *slog.Logger
-	store store
-	ix    *index
-	jobs  *jobs.System
-	hub   *hub.Hub
+	historyReader libraryport.HistoryReader
+	root          string
+	log           *slog.Logger
+	store         store
+	ix            *index
+	jobs          *jobs.System
+	hub           *hub.Hub
 	// covers keeps uploads and the covers changes replaced.
 	covers    coverStore
 	sources   *source.Registry
@@ -95,6 +97,11 @@ func (*Module) Name() string { return Name }
 func (*Module) Migrations() fs.FS {
 	sub, _ := fs.Sub(migrationFiles, "migrations")
 	return sub
+}
+
+// SetHistoryReader protects unread Saves when agents are enabled. Wire it before Init.
+func (m *Module) SetHistoryReader(r libraryport.HistoryReader) {
+	m.historyReader = r
 }
 
 // SetConfig wires the reader of Navidrome's tag settings. main sets it
@@ -139,7 +146,7 @@ func (m *Module) scanner() func(ctx context.Context) error {
 // whole library, so it waits for Run, which only serve calls.
 func (m *Module) Init(d module.Deps) error {
 	m.root, m.log, m.jobs, m.hub = d.Cfg.MusicDir, d.Log, d.Jobs, d.Hub
-	m.store = store{db: d.DB}
+	m.store = store{db: d.DB, historyReader: m.historyReader}
 	m.covers = coverStore{dir: filepath.Join(d.Cfg.DataDir, "library", "covers")}
 	m.sources = d.Sources
 	m.userAgent = userAgent(d.Cfg.PublicURL)

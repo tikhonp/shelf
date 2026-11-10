@@ -70,8 +70,9 @@ type Module struct {
 
 	limiter *limiter
 	gate    chan struct{}
-	// reconcileMu keeps two reconciles from writing the same outcome.
-	reconcileMu sync.Mutex
+	// reconcileGate keeps two reconciles from writing the same outcome. It is a
+	// channel so Clear's catch-up can stop waiting at its deadline.
+	reconcileGate chan struct{}
 }
 
 // New returns the module.
@@ -83,6 +84,7 @@ func New() *Module {
 		ReconcileDebounce: 2 * time.Second,
 		limiter:           newLimiter(),
 		gate:              make(chan struct{}, 1),
+		reconcileGate:     make(chan struct{}, 1),
 	}
 }
 

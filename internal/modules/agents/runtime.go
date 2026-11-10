@@ -2,21 +2,40 @@ package agents
 
 import (
 	"context"
+	"math"
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/tikhonp/shelf/internal/libraryport"
 )
 
 func (m *Module) reconcile(ctx context.Context) error {
-	m.reconcileMu.Lock()
-	defer m.reconcileMu.Unlock()
-	lib, e := m.lib()
-	if e != nil {
-		return e
+	_, err := m.reconcileThrough(ctx, math.MaxInt64)
+	return err
+}
+
+func (m *Module) reconcileThrough(ctx context.Context, through int64) (int64, error) {
+	select {
+	case m.reconcileGate <- struct{}{}:
+		defer func() { <-m.reconcileGate }()
+	case <-ctx.Done():
+		return 0, ctx.Err()
 	}
-	if e = m.reconcileSaves(ctx, lib); e != nil {
-		return e
+	lib, err := m.lib()
+	if err != nil {
+		return 0, err
 	}
+	cursor, err := m.reconcileSavesThrough(ctx, lib, through)
+	if err != nil {
+		return cursor, err
+	}
+	// Clear deletes the rows outcomes come from, so record them before
+	// returning the cursor.
+	return cursor, m.reconcileOutcomes(ctx, lib)
+}
+
+func (m *Module) reconcileOutcomes(ctx context.Context, lib libraryport.Port) error {
+	var e error
 	as := []acceptanceRow{}
 	if e = m.db.R.SelectContext(ctx, &as, `SELECT `+acceptanceCols+` FROM agents_acceptances WHERE final=0 ORDER BY id`); e != nil {
 		return e

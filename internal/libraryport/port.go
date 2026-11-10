@@ -9,6 +9,13 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// Clear and retention call HistoryReader before they delete, so a Save the
+// reader hasn't seen keeps its row. It returns the highest change ID, at most
+// through, whose decisions it has stored.
+type HistoryReader interface {
+	CatchUpHistory(ctx context.Context, through int64) (int64, error)
+}
+
 type Port interface {
 	Albums(ctx context.Context, q AlbumQuery) (AlbumPage, error)
 	// Album reads the files now, like GET /api/library/albums/:id, but never

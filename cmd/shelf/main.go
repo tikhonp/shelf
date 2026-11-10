@@ -52,6 +52,9 @@ func modules(cfg *config.Config) []module.Module {
 	lib := library.New()
 	agent := agents.New()
 	agent.SetLibrary(lib.Port())
+	if cfg.AgentEnabled {
+		lib.SetHistoryReader(agent)
+	}
 	bot := telegram.New(dl.Service())
 	dl.Service().SetScanner(scanners{nav, lib})
 	dl.Service().SetNotifier(bot)

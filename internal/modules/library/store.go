@@ -9,12 +9,16 @@ import (
 	"strings"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/tikhonp/shelf/internal/libraryport"
 	"github.com/tikhonp/shelf/internal/modules/library/tagio"
 	"github.com/tikhonp/shelf/internal/platform/db"
 )
 
 // store keeps the index in the module's tables.
-type store struct{ db *db.DB }
+type store struct {
+	db            *db.DB
+	historyReader libraryport.HistoryReader
+}
 
 type fileRow struct {
 	ID        int64   `db:"id"`

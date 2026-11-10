@@ -17,9 +17,11 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/tikhonp/shelf/internal/libraryport"
+	"github.com/tikhonp/shelf/internal/modules/library"
 	"github.com/tikhonp/shelf/internal/platform"
 	"github.com/tikhonp/shelf/internal/platform/config"
 	"github.com/tikhonp/shelf/internal/platform/identity"
+	"github.com/tikhonp/shelf/internal/platform/module"
 )
 
 type testLibrary struct {
@@ -126,12 +128,23 @@ type testRig struct {
 }
 
 func rig(t *testing.T, on bool, ops []string) *testRig {
+	return rigWithLibrary(t, on, ops, nil)
+}
+
+func rigWithLibrary(t *testing.T, on bool, ops []string, real *library.Module) *testRig {
 	t.Helper()
 	cfg := &config.Config{DataDir: t.TempDir(), MusicDir: t.TempDir(), AuthProvider: "none", AgentEnabled: on, TZ: time.UTC}
 	m := New()
 	lib := newTestLibrary()
 	m.SetLibrary(lib)
-	app, e := platform.Open(cfg, dbtest.Discard, m)
+	ms := []module.Module{m}
+	if real != nil {
+		if on {
+			real.SetHistoryReader(m)
+		}
+		ms = []module.Module{real, m}
+	}
+	app, e := platform.Open(cfg, dbtest.Discard, ms...)
 	if e != nil {
 		t.Fatal(e)
 	}

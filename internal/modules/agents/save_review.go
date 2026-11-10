@@ -12,34 +12,44 @@ import (
 	"github.com/tikhonp/shelf/internal/libraryport"
 )
 
+// CatchUpHistory returns a cursor only once the decisions up to it are
+// stored, because Clear deletes through it.
+func (m *Module) CatchUpHistory(ctx context.Context, through int64) (int64, error) {
+	return m.reconcileThrough(ctx, through)
+}
+
 // The hub can drop events. Advance this cursor only after recording every decision.
-func (m *Module) reconcileSaves(ctx context.Context, lib libraryport.Port) error {
+func (m *Module) reconcileSavesThrough(ctx context.Context, lib libraryport.Port, through int64) (int64, error) {
 	var cursor int64
 	if err := m.db.R.GetContext(ctx, &cursor, `SELECT value FROM agents_state WHERE key='save_cursor'`); err != nil {
-		return err
+		return 0, err
 	}
-	for {
+	for cursor < through {
 		page, err := lib.SaveHistory(ctx, cursor, 50)
 		if err != nil {
-			return err
+			return cursor, err
 		}
 		for _, change := range page.Changes {
+			if change.ID > through {
+				break
+			}
 			if err = m.acceptSaved(ctx, change); err != nil {
-				return err
+				return cursor, err
 			}
 		}
-		next := page.Next
+		next := min(page.Next, through)
 		if len(page.Changes) == 0 {
-			next = max(next, page.TrimmedThrough)
+			next = min(max(next, page.TrimmedThrough), through)
 		}
 		if next <= cursor {
-			return nil
+			return cursor, nil
 		}
 		if _, err = m.db.W.ExecContext(ctx, `UPDATE agents_state SET value=? WHERE key='save_cursor'`, next); err != nil {
-			return err
+			return cursor, err
 		}
 		cursor = next
 	}
+	return cursor, nil
 }
 
 func savedOp(op Op, base []BaseTrack, change libraryport.HistoryChange) bool {

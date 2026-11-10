@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"math"
 	"net/http"
 	"slices"
 	"strconv"
@@ -341,6 +342,27 @@ const originGrace = 10 * time.Minute
 // of it is still to run, and each save takes its undos and redos with it.
 // A proposal's change also keeps its row through originGrace.
 func (s store) trim(ctx context.Context, keep int, now time.Time) (int64, error) {
+	// The cutoff stops below the first unfinished change, so a Save that
+	// finishes during the catch-up keeps its row for the next read.
+	through := int64(math.MaxInt64)
+	if s.historyReader != nil {
+		if err := s.db.R.GetContext(ctx, &through, `SELECT min(
+			coalesce(max(id),0),
+			coalesce(min(CASE WHEN state IN ('queued','writing') THEN id END)-1,?))
+			FROM library_changes WHERE parent IS NULL`, int64(math.MaxInt64)); err != nil {
+			return 0, err
+		}
+		readCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		confirmed, err := s.historyReader.CatchUpHistory(readCtx, through)
+		if err == nil {
+			err = readCtx.Err()
+		}
+		cancel()
+		if err != nil {
+			return 0, err
+		}
+		through = min(through, confirmed)
+	}
 	var n int64
 	err := s.db.Write(ctx, func(tx *sqlx.Tx) error {
 		// A run's album changes go with its head.
@@ -349,6 +371,10 @@ func (s store) trim(ctx context.Context, keep int, now time.Time) (int64, error)
 			AND NOT (origin IS NOT NULL AND EXISTS (SELECT 1 FROM library_changes x
 				WHERE (x.id = library_changes.id OR x.target = library_changes.id) AND x.finished_at > ?))`
 		args := []any{db.At(now.Add(-originGrace))}
+		if s.historyReader != nil {
+			cond += ` AND id <= ? AND NOT EXISTS (SELECT 1 FROM library_changes x WHERE x.target=library_changes.id AND x.id > ?)`
+			args = append(args, through, through)
+		}
 		if keep != 0 {
 			cond = `kind IN ('save', 'delete') AND ` + cond + ` AND id < (
 				SELECT id FROM library_changes WHERE kind IN ('save', 'delete') AND parent IS NULL ORDER BY id DESC LIMIT 1 OFFSET ?)`

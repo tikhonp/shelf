@@ -56,6 +56,8 @@ Machine requests use `/api/agent/v1/` with bearer authentication. Human review u
 
 The library port also exposes `SaveHistory`, an internal history page with every file, written status, full resulting tags with field mappings, changed keys, paths and the Save's author. Unlike the agent-facing history, it never cuts the file list short. The agents runner uses it to accept pending tag operations fully written by an ordinary Save. It records decisions, an acceptance linked to that Save, and feedback in one transaction, then advances its durable cursor. No module reads another module's tables. The existing `change` event starts reconciliation, and the 5-minute pass recovers missed events.
 
+When agents are enabled, main gives the library the agents module as its `HistoryReader`. Before Clear history or retention deletes changes, the library calls it outside the delete transaction, with a cutoff below the first unfinished change. The library then deletes only through the cursor the reader returns. If the reader fails or takes over 10 seconds, the library deletes nothing.
+
 The agents runner reconciles library outcomes at start, on change events, and periodically. Feedback persists in SQLite; the hub's `inbox` topic only prompts the browser to refresh. Learning commits use expected memory versions and a library-wide checkpoint. No hosted model runner, scheduling of agent sessions, or automatic library acceptance exists.
 
 ## Source interfaces

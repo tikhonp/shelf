@@ -2,6 +2,7 @@ package agents
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -165,5 +166,33 @@ func TestMissedSaveEventStillRecordsAnUndoneSave(t *testing.T) {
 	as, err := getAcceptances(ctx, r.app.DB.R, id)
 	if err != nil || len(as) != 1 || !as[0].outcome().Undone {
 		t.Fatalf("acceptances %v %v", as, err)
+	}
+}
+
+func TestHistoryCatchUpStopsAtCutoffAndHonorsDeadline(t *testing.T) {
+	r := rig(t, true, nil)
+	id := create(t, r)
+	c := savedChange()
+	r.lib.history = []libraryport.HistoryChange{c}
+	r.lib.states[c.ID] = libraryport.ChangeStatus{ID: c.ID, State: "done", Files: 1, Written: 1}
+	cursor, err := r.m.CatchUpHistory(context.Background(), c.ID-1)
+	if err != nil || cursor != c.ID-1 {
+		t.Fatalf("cursor %d: %v", cursor, err)
+	}
+	as, err := getAcceptances(context.Background(), r.app.DB.R, id)
+	if err != nil || len(as) != 0 {
+		t.Fatalf("accepted beyond cutoff: %v %v", as, err)
+	}
+	cursor, err = r.m.CatchUpHistory(context.Background(), c.ID)
+	if err != nil || cursor != c.ID {
+		t.Fatalf("cursor %d: %v", cursor, err)
+	}
+	r.m.reconcileGate <- struct{}{}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+	defer cancel()
+	_, err = r.m.CatchUpHistory(ctx, c.ID)
+	<-r.m.reconcileGate
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("deadline: %v", err)
 	}
 }
