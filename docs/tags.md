@@ -247,7 +247,7 @@ The Library tab holds staged edits in the browser, per album, so opening another
 
 - **After a Save.** A finished Save clears the stage and reads the album again. A Save or an undo that changes the Navidrome album ID gives the album a new row at the next walk. When the walk ends the editor asks the change for its `album_id`, moves there with any staged edits, and the address follows.
 - **An undo that asks.** An undo or redo from History asks as a Save does when it would split or merge albums or rename an album artist. The dialog's key says Undo anyway or Redo anyway, and pressing it sends the undo again with the confirm.
-- **A running Save.** The event stream has no replay, so a reconnect asks for the change.
+- **A running Save.** The event stream has no replay, so a reconnect asks for the change without reloading the album twice. Refreshing an idle editor keeps existing Save results.
 - **A release in the album ID field.** A MusicBrainz ID or link typed into `MUSICBRAINZ_ALBUMID` asks for the suggestions again with `?anchor=`. A release that fails to match shows its `reason`.
 - **Playback.** The player asks for the file as it is. When the browser refuses it, the player asks again with `?transcode=1`, and shelf streams it through ffmpeg as MP3. That stream has no length, so the position can't move. A second failure says the browser can't play the file.
 - **A search in the address.** `/library?q=<text>` opens the list with that text in its search field, as `/search?q=` does on Search.
