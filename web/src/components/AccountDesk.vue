@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onScopeDispose, ref } from 'vue'
+import { computed, nextTick, onMounted, onScopeDispose, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ApiError } from '../api/client'
 import { display, failed, reducedMotion, type SignState } from '../lib/account'
@@ -36,6 +36,19 @@ const on = ref(false)
 const lit = ref(0)
 // abort cancels the passkey request the slide started.
 let abort: AbortController | null = null
+
+// On a short phone the open keyboard leaves less room than the unit needs, so its body scrolls.
+// keepKeyInView scrolls the body until the form's submit key sits above the keyboard.
+const bodyEl = ref<HTMLElement>()
+function keepKeyInView() {
+  const body = bodyEl.value
+  const key = body?.querySelector<HTMLElement>('form button[type="submit"]')
+  if (!body || !key || keyboard.value === 0) return
+  const over = key.getBoundingClientRect().bottom + 10 - body.getBoundingClientRect().bottom
+  if (over > 0) body.scrollTop += over
+}
+watch(keyboard, () => void nextTick(keepKeyInView))
+onMounted(keepKeyInView)
 
 const openings: [string, string][] = [['/library', 'THE LIBRARY'], ['/inbox', 'THE INBOX'], ['/search', 'SEARCH'], ['/downloads', 'DOWNLOADS'], ['/status', 'STATUS']]
 const opening = computed(() => (openings.find(([to]) => route.path.startsWith(to)) ?? openings[0]!)[1])
@@ -126,7 +139,7 @@ const reload = () => window.location.reload()
 
       <section class="win acct-unit" :class="{ unit: !phone }" aria-labelledby="acct-h">
         <h1 id="acct-h" class="sr">{{ creating ? 'Create the first Music Shelf account' : 'Sign in to Music Shelf' }}</h1>
-        <div :class="phone ? 'vscroll acct-body' : 'unit-body acct-body'">
+        <div ref="bodyEl" :class="phone ? 'vscroll acct-body' : 'unit-body acct-body'" @focusin="keepKeyInView">
           <div v-if="!phone && form && passkeys" class="acct-left">
             <KeySwitch :on="on" press @press="slide" />
             <PasskeySlide class="acct-slide" :on="slideOn" :disabled="state === 'busy' || state === 'hello'" @toggle="slide" />
@@ -191,7 +204,7 @@ const reload = () => window.location.reload()
 .rs .acct-pk { border-top: 1px solid var(--line); }
 /* The slide's row is a switch, not a list row, so it takes no hover background. */
 .rs .acct-pk .slide.row:hover { background: transparent; }
-/* The phone centers the unit. While the keyboard is open it moves to the top, above the keys, so Sign in stays in view. */
+/* The phone centers the unit. While the keyboard is open it moves to the top, above the keys, and its body scrolls Sign in into view. */
 .rs .acct-stack { top: 10px; justify-content: center; }
 .rs .acct-stack[data-keyboard] { justify-content: flex-start; }
 .rs .acct-stack > .acct-unit { flex: 0 1 auto; }

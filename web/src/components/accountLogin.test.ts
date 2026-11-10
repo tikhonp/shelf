@@ -378,6 +378,23 @@ test('while the keyboard is open the phone unit moves to the top, above the keys
   w.unmount()
 })
 
+test('when the open keyboard leaves too little room, the phone body scrolls Sign in into view', async () => {
+  phoneWith(300)
+  stubApi({ '/api/auth': signedOut })
+  const w = await mountApp()
+  const body = w.find('.acct-body').element as HTMLElement
+  let top = 0
+  Object.defineProperty(body, 'scrollTop', { get: () => top, set: (v: number) => { top = v } })
+  body.getBoundingClientRect = () => ({ top: 11, bottom: 320 }) as DOMRect
+  const key = w.find('form button[type="submit"]').element as HTMLElement
+  key.getBoundingClientRect = () => ({ top: 298 - top, bottom: 352 - top }) as DOMRect
+  await w.find('input[name="password"]').trigger('focusin')
+  expect(top).toBe(42)
+  await w.find('input[name="username"]').trigger('focusin')
+  expect(top).toBe(42)
+  w.unmount()
+})
+
 test('Sign in again has a Passkey slide under Sign in, and a canceled passkey turns its display amber', async () => {
   passkeyBrowser(() => Promise.reject(new DOMException('canceled', 'NotAllowedError')))
   stubApi({ '/api/auth': alice, '/api/auth/passkey/begin': { publicKey: { challenge: 'AAAA' } }, ...appRoutes })
