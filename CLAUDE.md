@@ -75,11 +75,7 @@ docs/                   all project information
 
 - `~/projects/qobuz-dl-go`: the Go port of qobuz-dl that the Qobuz module imports.
 - `~/projects/proxier`: where the platform packages and most conventions come from.
-- `~/projects/vk2tg`: the Telegram client and its send queue.
 - `~/projects/sh-blackberry` and `~/projects/sh-main`: the production compose files and the gateway.
-- `~/projects/wrapper`: wrapper-lite sources on the `lite` branch.
-- `~/projects/apple-music-downloader`: amdl sources, for reading only. The repo has no licence, so no code is copied from it.
-- `~/projects/music-download-bot` and `~/projects/apple-music-dl-http-wrapper`: the services shelf replaced.
 
 ## Glossary
 

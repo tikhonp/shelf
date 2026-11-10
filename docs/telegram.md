@@ -1,6 +1,6 @@
 # Telegram
 
-The bot is the phone entry point: send a link or a few words, and watch the download in one message. It uses go-telegram/bot v1.27.0 as vk2tg does, with long polling. `bot.WithHTTPClient` carries the proxy transport when `SHELF_TELEGRAM_USE_PROXY` is on; with it off, the bot ignores the `HTTP_PROXY` variables too.
+The bot is the phone entry point: send a link or a few words, and watch the download in one message. It uses go-telegram/bot v1.28.0 with long polling. `bot.WithHTTPClient` carries the proxy transport when `SHELF_TELEGRAM_USE_PROXY` is on; with it off, the bot ignores the `HTTP_PROXY` variables too.
 
 The bot connects when serve starts, never in `manage`. When Telegram can't be reached, the bot tries again after 5 seconds, then after twice as long each time, up to 5 minutes. A token Telegram refuses turns the bot off until the next start, and the log says so.
 
@@ -95,7 +95,7 @@ A source that was switched off since the message was sent answers "Qobuz is not 
 ## Sending and editing
 
 - Progress edits happen at most every 5 seconds per message, plus at once at every state change. The editor keeps one edit per message in the send queue, and an edit reads the download's state only when its turn comes, so a message never goes back to an older state.
-- All sends and edits go through vk2tg's per-chat send queue, from `internal/tg/queue.go`: about one message every 3 seconds per chat with a burst of 3, 30 per second overall, and a wait after a 429 for its `retry_after`.
+- All sends and edits go through a per-chat send queue: about one message every 3 seconds per chat with a burst of 3, 30 per second overall, and a wait after a 429 for its `retry_after`.
 - The last edit belongs to the download job's `notify` step, so it happens once, even across a restart. Edits before it are best effort, and the editor never shows a state that has ended. The last edit gives up after a minute, since the source's next download waits for the `notify` step.
 - "Message is not modified" answers are ignored.
 - After a restart the bot learns of running downloads from Telegram through their events and `origin_ref`, and edits their messages again.

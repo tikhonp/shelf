@@ -1,8 +1,8 @@
 package telegram
 
-// The send queue is vk2tg's internal/tg/queue.go. Edits go through it like
-// sends; the editor in status.go keeps at most one edit per message in it,
-// and each edit reads the download's state only when its turn comes.
+// Edits go through the send queue like sends; the editor in status.go keeps
+// at most one edit per message in it, and each edit reads the download's
+// state only when its turn comes.
 
 import (
 	"context"
