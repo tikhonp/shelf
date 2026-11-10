@@ -99,7 +99,8 @@ func (*Module) Migrations() fs.FS {
 	return sub
 }
 
-// SetHistoryReader protects unread Saves when agents are enabled. Wire it before Init.
+// SetHistoryReader makes Clear and retention wait for r to read the history
+// first. main sets it before Init, and only when agents are enabled.
 func (m *Module) SetHistoryReader(r libraryport.HistoryReader) {
 	m.historyReader = r
 }
