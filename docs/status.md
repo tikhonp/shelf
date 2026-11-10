@@ -22,7 +22,7 @@ Production runs `main-b8a2bf6`, which the owner deployed on 2026-11-11. Optional
 
 shelf-wrapper builds from upstream's `ghcr.io/worldobservationlog/wrapper-lite` image pinned by digest. The index holds 11,461 tracks and 1,008 Navidrome album IDs, forming 1,013 albums because 5 Navidrome albums span two folders.
 
-`main` adds agent 401 answers that say what was wrong with the Authorization header, which production lacks until the next deploy.
+`main` adds agent 401 answers that say what was wrong with the Authorization header, and a setup prompt with artist credit rules and a feedback loop. Production lacks both until the next deploy.
 
 The [sign-in and agent review redesign](plans/signin-and-agent-review-design.md) and its [second pass](plans/signin-and-agent-review-second-pass.md) run in production.
 

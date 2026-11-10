@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG GO_VERSION=1.27.3
+ARG GO_VERSION=1.27.4
 
 # web: the Vue build, which shelf embeds. Its output is the same for every
 # platform, so it runs on the build machine's.
