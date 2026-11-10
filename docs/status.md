@@ -18,11 +18,11 @@ Every check in [manual-checklist.md](manual-checklist.md) passed in production, 
 
 ## Production
 
-Production runs `main-e561e16`, which the owner deployed on 2026-11-10. Optional [library agents](agents.md) are off by default and on in production. Production signs in with Shelf accounts. [auth.md](auth.md) describes setup.
+Production runs `main-b8a2bf6`, which the owner deployed on 2026-11-11. Optional [library agents](agents.md) are off by default and on in production. Production signs in with Shelf accounts. [auth.md](auth.md) describes setup.
 
 shelf-wrapper builds from upstream's `ghcr.io/worldobservationlog/wrapper-lite` image pinned by digest. The index holds 11,461 tracks and 1,008 Navidrome album IDs, forming 1,013 albums because 5 Navidrome albums span two folders.
 
-The [sign-in and agent review redesign](plans/signin-and-agent-review-design.md) and its [second pass](plans/signin-and-agent-review-second-pass.md) run in production. `e2dec7f`, which hides Confirm with a passkey on an account without passkeys and removes the gap above the phone's add confirm, is on main and not deployed.
+The [sign-in and agent review redesign](plans/signin-and-agent-review-design.md) and its [second pass](plans/signin-and-agent-review-second-pass.md) run in production.
 
 ## Operational notes
 
@@ -31,6 +31,7 @@ The [sign-in and agent review redesign](plans/signin-and-agent-review-design.md)
 - Unset `SHELF_QOBUZ_TOKEN` for a local run with only the fake source, or shelf logs in to the owner's Qobuz account.
 - Music files belong to UID 10001. Delete test downloads from inside the shelf container.
 - Third, Portishead and Wish You Were Here 50 came from a checklist run, and the owner keeps them.
+- The account `claude-check` (id 8) is for checks. The owner asked to keep it.
 
 ## Dependency constraints
 

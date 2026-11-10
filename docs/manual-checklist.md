@@ -39,6 +39,7 @@ Every check passed in production.
 - Checks 1 to 12: 2026-11-04 on `be76a2d`, through the API, over SSH and on the owner's phone and tablet. The owner accepted check 9 after one bot download and check 12 without waiting for the backup.
 - Check 13: 2026-11-04 on `0bcd479`. The index matched Navidrome's 11,461 songs and 1,008 albums, and no file changed after the marker.
 - Redesign checks 1 to 10: 2026-11-10 on `main-9014241` and `main-e561e16`, on the desktop and the owner's vivo phone. Check 3 failed on the phone, and `main-e561e16` holds its fix. On the phone, the owner ran the passkey steps of checks 5 to 7, because the test phone has no screen lock and Android creates no passkey without one.
+- The phone's add confirm: 2026-11-11 on `main-b8a2bf6`, on the vivo with the test account `claude-check`. The confirm sits 14px below Add passkey, the unit's usual spacing, and offers only Cancel and Add passkey on an account without passkeys.
 - Check 14: 2026-11-04 on `cbba46f` and `c021044`, on `electronic/Kraftwerk`, with the backup on 2026-11-05. The first Save failed as `locked` until a second chown gave the genre folders group 10001 too.
 - Check 15: 2026-11-04 on `f0fadf1`, on the desktop and on a real phone. The owner skipped the transcode step, because the library holds only FLAC and AAC.
 - Check 16: 2026-11-04 on `0fb5a7f`, on the 20 smallest 16/44.1 albums with No RELEASEDATE and a MusicBrainz ID, with the backup on 2026-11-05. AcoustID found an anchor for *Cookin' With The Miles Davis Quintet*.
