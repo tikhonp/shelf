@@ -31,7 +31,6 @@ The [sign-in and agent review redesign](plans/signin-and-agent-review-design.md)
 - Unset `SHELF_QOBUZ_TOKEN` for a local run with only the fake source, or shelf logs in to the owner's Qobuz account.
 - Music files belong to UID 10001. Delete test downloads from inside the shelf container.
 - Third, Portishead and Wish You Were Here 50 came from a checklist run, and the owner keeps them.
-- The account `claude-check` (id 8) is for checks. The owner asked to keep it.
 
 ## Dependency constraints
 
