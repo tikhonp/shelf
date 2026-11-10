@@ -6,7 +6,7 @@ The [authentication design](plans/simple-auth.md) records the agreed plan and re
 
 [agents.md](agents.md) describes optional external agents, the review inbox, and shared memory. The [feature draft](plans/library-agent.md) and [implementation contract](plans/library-agent-contracts.md) record the design discussion.
 
-The [sign-in and agent review redesign](plans/signin-and-agent-review-design.md) describes new screens for account sign-in, Account and Agents on Status, and proposal review. It also lists the bugs the screens had before it. The redesign was built on 2026-11-10.
+The [sign-in and agent review redesign](plans/signin-and-agent-review-design.md) describes new screens for account sign-in, Account and Agents on Status, and proposal review. It also lists the bugs the screens had before it. The redesign was built on 2026-11-10. [The second pass](plans/signin-and-agent-review-second-pass.md) from the same day refines it, isn't built yet, and lists the bugs its review found.
 
 | Doc | What it holds |
 | --- | --- |

@@ -7,6 +7,7 @@ The screens and styles, exported from the Studio redesign and Library pages of t
 - `tokens.css` holds the color and font variables for both themes, and the side gutter.
 - `components.css` holds the parts outside the Library tab and reads the variables in `tokens.css`.
 - `library.css` holds the parts of the Library tab and sits on top of the other two. It is the canvas's `project/library.css`, unchanged.
+- `slide.css`, `gear.css` and `tips.css` hold the parts of the second-pass screens: the Passkey slide and the red and amber displays, the floppy, lamp, jack and key switch keys, and the Inbox notes.
 - `screens/MS-*.html` has one static page per screen. Open one in a browser to see it, and add `?theme=day` to the address for the Day theme.
 
 The two CSS files are the canvas stylesheet `project/retro.css`, cut in two. Each screen is a canvas board rendered once with its sample data. The board's script fills the template, and links between boards point at the exported files.
@@ -85,22 +86,25 @@ The two CSS files are the canvas stylesheet `project/retro.css`, cut in two. Eac
 | `MS-library-states`, `-states-day` | Every Library state, at phone width, in Night and Day |
 | `MS-library-parts` | The Library parts, the fourth tab, and the changes to Status and Downloads |
 
-### Planned: account sign-in and agent review
+### Account sign-in and agent review
 
-These screens come from a second canvas, https://claude.ai/artifact/LRhUtun1bSeK87kTh6Q7To, from 2026-11-09. The app doesn't have them yet. [The plan](../../plans/signin-and-agent-review-design.md) gives the owner's decisions, the behavior of each screen, and the bugs in the screens these replace.
+These screens come from a second canvas, https://claude.ai/artifact/LRhUtun1bSeK87kTh6Q7To, from 2026-11-09, and the app has built them. On 2026-11-10 the owner reviewed the sign-in, Status and Inbox screens again, and the exports below are that second pass, which the app doesn't have yet. [The first plan](../../plans/signin-and-agent-review-design.md) gives the decisions and the behavior. [The second pass](../../plans/signin-and-agent-review-second-pass.md) lists what changes and the bugs found.
 
 | Screen | Shows | Route |
 | --- | --- | --- |
-| `MS-desk-account-signin` | Account sign-in on a switched-off console, with the passkey key switch | any, while signed out |
-| `MS-phone-account-signin` | Account sign-in on the phone | any, while signed out |
-| `MS-account-signin-states` | Checking, wrong password, passkey canceled, signed in, session ended, no accounts | any, while signed out |
-| `MS-desk-status-account` | Account, Passkeys and Password as rack units, with a passkey removal waiting for confirmation | `/status` |
-| `MS-desk-inbox` | The Inbox list and a proposal under review, with rockers, the patch cable and the Accept bar | `/inbox/:id` |
+| `MS-desk-account-signin` | Account sign-in, only the unit, with the Passkey slide and the key switch | any, while signed out |
+| `MS-phone-account-signin` | Account sign-in on the phone, centered | any, while signed out |
+| `MS-desk-account-setup`, `MS-phone-account-setup` | Create the first account | any, with no accounts |
+| `MS-account-signin-states` | Eleven states, among them checking, the failures, session ended, no accounts and the phone with the keyboard open | any, while signed out |
+| `MS-desk-status-account`, `MS-phone-status-account` | Account with the sign-out key switch, Passkeys and Password | `/status` |
+| `MS-desk-status-agents`, `MS-phone-status-agents` | Agents, connections with their jacks, and Connect with a new prompt | `/status` |
+| `MS-desk-inbox` | The Inbox list and a proposal under review, with the divider, rockers, the patch cable and the Accept bar. `#note` opens a note | `/inbox/:id` |
 | `MS-phone-inbox` | The Inbox list on the phone | `/inbox` |
-| `MS-phone-inbox-review` | A proposal on the phone, with the review slot above the dock | `/inbox/:id` |
-| `MS-desk-status-agents` | Agents, one connection, and Connect with a new secret | `/status` |
+| `MS-phone-inbox-review` | A proposal on the phone. `#note` opens the `?` cap's note | `/inbox/:id` |
 | `MS-desk-library-proposal` | The Library editor with an agent's values as suggestions | `/library/:id` |
 | `MS-phone-library-inbox` | The phone Library with the Inbox cap and four tabs | `/library` |
+
+The second-pass screens also load `slide.css`, `gear.css` and `tips.css`, and two small scripts, `slide-demo.js` and `tips.js`, that make the slide, the key switch and the notes respond.
 
 ## Direction
 
@@ -280,6 +284,6 @@ Help never shows on a screen at rest, and the design adds no helper text beside 
 
 With simple authentication, a window titled "Sign in to Shelf" has plain username and password fields, a "Sign in" key and a separate passkey key. It follows the Day theme. The window fits its content, up to 440px wide, with at least 12px of space at each viewport edge. On the desktop it is centered; on the phone it sits at the top, so the keyboard never covers its keys. It scrolls when its content exceeds the available height. Behind it is the switched-off console: the menubar with the brand, three dark lamps and a clock reading `--:--`. A wrong username or password says "Wrong username or password." and a 429 says "Too many tries. Try again later.", both in the error color, never the server's sentence. The app checks access before mounting the shell. Meanwhile the console shows a CHECKING ACCESS display, and a failed check shows NO ANSWER and a Try again key. An expired session opens a modal dialog titled "Sign in again" over the dimmed, inert app and preserves staged edits. The same account resumes without resending actions; another account reloads the page.
 
-The owner approved a redesign of these screens, and the app doesn't have it yet. [The plan](../../plans/signin-and-agent-review-design.md) and the planned screens above describe it.
+This is the first redesign, [planned here](../../plans/signin-and-agent-review-design.md). [The second pass](../../plans/signin-and-agent-review-second-pass.md) changes it and isn't built yet.
 
 Status has three rack units below Density: Account, with a display of the username and the passkey count and a Sign out of Shelf key; Passkeys, with a row per passkey and Rename and Remove keys; and Password, with its three fields in one row. Each key is as wide as its label. A passkey change that needs fresh proof opens a confirm note in the Passkeys unit. None mode has no account controls. Existing download and library history rows show their author beside the current secondary text. No activity page is added. [auth.md](../../auth.md) describes the flows and labels.

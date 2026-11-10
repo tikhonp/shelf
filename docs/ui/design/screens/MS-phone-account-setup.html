@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Phone · create the first account</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="../library.css">
+<link rel="stylesheet" href="../slide.css">
+<link rel="stylesheet" href="../gear.css">
+<link rel="stylesheet" href="../tips.css">
+<style>body{margin:0}</style>
+</head>
+<body>
+<div class="rs ph desk " style="position: relative; width: 390px; height: 844px; overflow: hidden">
+<div class="stack" style="bottom: 10px; justify-content: center">
+<section class="win" aria-labelledby="pc-h" style="flex: 0 1 auto">
+<h1 id="pc-h" class="sr">Create the first Music Shelf account</h1>
+<div class="vscroll" style="gap: 14px; padding: 16px 14px">
+<div class="lcd" role="status" style="flex: none; min-height: 80px"><div class="lcd-l dim">MUSIC SHELF</div><div class="lcd-l">NO ACCOUNTS YET</div><div class="lcd-l">CREATE THE FIRST ONE</div></div>
+<label class="lbl-f">Username<input class="input" autocomplete="username" value="tikhon" readonly="readonly"></label>
+<label class="lbl-f">Password<input class="input" type="password" autocomplete="new-password" value="musicshelf" readonly="readonly"></label>
+<label class="lbl-f">Repeat password<input class="input" type="password" autocomplete="new-password" value="" readonly="readonly"></label>
+<button type="button" class="key sun lg block">Create account</button>
+</div>
+</section>
+</div>
+
+</div>
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>

@@ -8,23 +8,25 @@
 <link rel="stylesheet" href="../tokens.css">
 <link rel="stylesheet" href="../components.css">
 <link rel="stylesheet" href="../library.css">
+<link rel="stylesheet" href="../gear.css">
+<link rel="stylesheet" href="../tips.css">
 <style>
 body{margin:0}
 a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
 </style>
 </head>
 <body>
-<div class="rs desk " style="width: 1180px; height: 1240px; box-sizing: border-box; padding: 28px 24px; display: flex; flex-direction: column; gap: 16px">
+<div class="rs desk " style="width: 1180px; height: 1640px; box-sizing: border-box; padding: 28px 24px; display: flex; flex-direction: column; gap: 16px">
 <div style="display: flex; flex-direction: column; gap: 4px; padding: 0 4px 6px">
 <h1 class="px" style="font-size: 22px; margin: 0">Status · Agents</h1>
-<p class="t2 sm" style="margin: 0">Agents has one unit for the feature, one for each connection, and one to connect a new agent. Permissions are rockers, as in a bulk run.</p>
+<p class="t2 sm" style="margin: 0">Agents has one unit for the feature, one for each connection, and one to connect a new agent. Permissions are rockers, as in a bulk run. A new connection shows its setup prompt with the secret in it, once, so one paste starts the agent.</p>
 </div>
 
 <section class="win unit" aria-labelledby="ag-a">
 <div class="unit-body">
 <div class="plate"><h2 id="ag-a"><span class="led ok"></span>Agents</h2><span class="sub">A person accepts each change</span></div>
-<div class="lcd" style="flex: 0 1 300px; min-height: 66px"><div class="lcd-l">1 CONNECTED</div><div class="lcd-l">3 PROPOSALS PENDING</div></div>
-<div style="display: flex; gap: 10px"><a class="key" href="#" style="text-decoration: none">Open the Inbox</a><a class="key" href="#" style="text-decoration: none">Memory</a></div>
+<div class="lcd" style="flex: 0 1 300px; min-height: 66px"><div class="lcd-l">2 CONNECTED</div><div class="lcd-l">3 PROPOSALS PENDING</div></div>
+<div style="display: flex; align-items: center; gap: 18px"><a class="msgbtn" href="#" data-lit aria-label="Open the Inbox, proposals wait"><span class="msg-cap" aria-hidden="true"><span class="msg-lens"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h5l1.5 3h5L16 13h5"></path><path d="M5 5h14l2 8v6H3v-6z"></path></svg></span></span><span class="gear-name" aria-hidden="true">Open the Inbox</span></a><a class="key fdbtn" href="#"><span class="fd" aria-hidden="true"><span class="fd-disk"></span><span class="fd-face"></span></span>Memory</a></div>
 </div>
 </section>
 
@@ -36,39 +38,135 @@ a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
 <div style="display: flex; flex-wrap: wrap; gap: 6px" aria-label="Allowed">
 <span class="stk">Read the library</span><span class="stk">Look up</span><span class="stk">History</span><span class="stk">Upload covers</span><span class="stk">Propose</span><span class="stk">Memory</span>
 </div>
-<button type="button" class="key sm" style="align-self: flex-start">Revoke</button>
+<div class="line" data-jack="in" id="jk" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+<button type="button" class="jackbtn" aria-label="Revoke Claude at home" id="jk-pull"><svg class="jack" width="78" height="44" viewBox="0 0 78 44" aria-hidden="true">
+<defs><radialGradient id="jk-nut" cx="38%" cy="30%" r="75%"><stop offset="0" stop-color="#F4F6F8"></stop><stop offset=".55" stop-color="#A3AAB4"></stop><stop offset="1" stop-color="#3F454E"></stop></radialGradient></defs>
+<circle cx="60" cy="22" r="15" fill="url(#jk-nut)" stroke="#0A0C10" stroke-width="1.5"></circle>
+<circle cx="60" cy="22" r="7" fill="#07090C"></circle>
+<g class="plug">
+<path d="M14 22 C 4 22, 2 34, -8 44" fill="none" stroke="#0A0C10" stroke-width="7" stroke-linecap="round" opacity=".45"></path>
+<path d="M14 22 C 4 22, 2 34, -8 44" fill="none" stroke="#D9483B" stroke-width="5" stroke-linecap="round"></path>
+<rect x="14" y="15" width="22" height="14" rx="3" fill="#2A2F37" stroke="#0A0C10"></rect>
+<path d="M19 16v12M23 16v12M27 16v12" stroke="rgba(255,255,255,.18)" stroke-width="1.5"></path>
+<rect x="36" y="18.5" width="16" height="7" rx="1" fill="#C9CED6" stroke="#0A0C10"></rect>
+<rect x="52" y="19.5" width="8" height="5" rx="2.5" fill="#E2B84B" stroke="#0A0C10"></rect>
+</g>
+</svg><span class="gear-name" aria-hidden="true">Revoke</span></button>
+<span class="sub" id="jk-ask" hidden>Revoke Claude at home? Its token stops working at once.</span>
+<button type="button" class="key sm" id="jk-cancel" hidden>Cancel</button>
+<button type="button" class="key sm sun" id="jk-yes" hidden>Revoke</button>
 </div>
+</div>
+</div>
+</section>
+
+<section class="win unit" aria-labelledby="ag-c2">
+<div class="unit-body" style="align-items: flex-start">
+<div class="plate"><h2 id="ag-c2" style="align-items: flex-start; overflow-wrap: anywhere"><span class="led ok" style="margin-top: 5px"></span>Claude Code on the basement build server</h2><span class="sub">Added by tikhon on 2 Nov</span></div>
+<div class="lcd" style="flex: 0 1 300px; min-height: 66px"><div class="lcd-l">NOT USED YET</div><div class="lcd-l">0 PROPOSALS</div></div>
+<div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; flex-wrap: wrap; gap: 6px" aria-label="Allowed"><span class="stk">Read the library</span><span class="stk">History</span></div>
+<div data-jack="in" style="display: flex; align-items: center; gap: 10px"><button type="button" class="jackbtn" aria-label="Revoke Claude Code on the basement build server"><svg class="jack" width="78" height="44" viewBox="0 0 78 44" aria-hidden="true">
+<defs><radialGradient id="jk2-nut" cx="38%" cy="30%" r="75%"><stop offset="0" stop-color="#F4F6F8"></stop><stop offset=".55" stop-color="#A3AAB4"></stop><stop offset="1" stop-color="#3F454E"></stop></radialGradient></defs>
+<circle cx="60" cy="22" r="15" fill="url(#jk2-nut)" stroke="#0A0C10" stroke-width="1.5"></circle>
+<circle cx="60" cy="22" r="7" fill="#07090C"></circle>
+<g class="plug">
+<path d="M14 22 C 4 22, 2 34, -8 44" fill="none" stroke="#0A0C10" stroke-width="7" stroke-linecap="round" opacity=".45"></path>
+<path d="M14 22 C 4 22, 2 34, -8 44" fill="none" stroke="#D9483B" stroke-width="5" stroke-linecap="round"></path>
+<rect x="14" y="15" width="22" height="14" rx="3" fill="#2A2F37" stroke="#0A0C10"></rect>
+<path d="M19 16v12M23 16v12M27 16v12" stroke="rgba(255,255,255,.18)" stroke-width="1.5"></path>
+<rect x="36" y="18.5" width="16" height="7" rx="1" fill="#C9CED6" stroke="#0A0C10"></rect>
+<rect x="52" y="19.5" width="8" height="5" rx="2.5" fill="#E2B84B" stroke="#0A0C10"></rect>
+</g>
+</svg><span class="gear-name" aria-hidden="true">Revoke</span></button></div>
+</div>
+</div>
+</section>
+
+<section class="win unit" aria-labelledby="ag-c3" style="opacity: .8">
+<div class="unit-body" style="align-items: flex-start">
+<div class="plate"><h2 id="ag-c3"><span class="led off"></span>Old laptop</h2><span class="sub">Revoked by tikhon</span></div>
+<div class="lcd" style="flex: 0 1 300px; min-height: 66px"><div class="lcd-l">REVOKED 2 DAYS AGO</div><div class="lcd-l">TOKEN REFUSED</div></div>
+<div data-jack="out" style="flex: 1 1 260px; display: flex; align-items: center; gap: 10px"><span class="jackbtn" style="cursor: default" aria-hidden="true"><svg class="jack" width="78" height="44" viewBox="0 0 78 44" aria-hidden="true">
+<defs><radialGradient id="jk3-nut" cx="38%" cy="30%" r="75%"><stop offset="0" stop-color="#F4F6F8"></stop><stop offset=".55" stop-color="#A3AAB4"></stop><stop offset="1" stop-color="#3F454E"></stop></radialGradient></defs>
+<circle cx="60" cy="22" r="15" fill="url(#jk3-nut)" stroke="#0A0C10" stroke-width="1.5"></circle>
+<circle cx="60" cy="22" r="7" fill="#07090C"></circle>
+<g class="plug">
+<path d="M14 22 C 4 22, 2 34, -8 44" fill="none" stroke="#0A0C10" stroke-width="7" stroke-linecap="round" opacity=".45"></path>
+<path d="M14 22 C 4 22, 2 34, -8 44" fill="none" stroke="#D9483B" stroke-width="5" stroke-linecap="round"></path>
+<rect x="14" y="15" width="22" height="14" rx="3" fill="#2A2F37" stroke="#0A0C10"></rect>
+<path d="M19 16v12M23 16v12M27 16v12" stroke="rgba(255,255,255,.18)" stroke-width="1.5"></path>
+<rect x="36" y="18.5" width="16" height="7" rx="1" fill="#C9CED6" stroke="#0A0C10"></rect>
+<rect x="52" y="19.5" width="8" height="5" rx="2.5" fill="#E2B84B" stroke="#0A0C10"></rect>
+</g>
+</svg></span><span class="sub">Unplugged. Its proposals stay in the Inbox.</span></div>
 </div>
 </section>
 
 <section class="win unit" aria-labelledby="ag-n">
 <div class="unit-body" style="align-items: flex-start">
-<div class="plate"><h2 id="ag-n"><span class="led off"></span>Connect</h2><span class="sub">Shelf shows the secret once</span></div>
+<div class="plate"><h2 id="ag-n"><span class="led off"></span>Connect</h2><span class="sub">Shelf shows the prompt once</span></div>
 <form style="flex: 1 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
-<label class="lbl-f">Name<input class="input" value="Claude on the laptop" readonly="readonly" style="height: 40px"></label>
+<label class="lbl-f">Name<input class="input" value="Claude on the laptop" readonly="readonly" aria-readonly="true" style="height: 40px; opacity: .75"></label>
 <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
 <legend class="lbl-f" style="padding: 0 0 8px">Allowed</legend>
 <div class="lib-bank" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px">
-<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Read the library</span><span class="rk-state">Albums, tags, local suggestions</span></span></button>
-<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Look up</span><span class="rk-state">MusicBrainz, sources, LRCLIB</span></span></button>
-<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">History</span><span class="rk-state">Changes and who made them</span></span></button>
-<button type="button" class="rocker" role="switch" aria-checked="false"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Upload covers</span><span class="rk-state">Images for proposals</span></span></button>
-<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Propose</span><span class="rk-state">Create, revise, comment, withdraw</span></span></button>
-<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Memory</span><span class="rk-state">Notes kept between runs</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="true" aria-disabled="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Read the library</span><span class="rk-state">Albums, tags, local suggestions</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="true" aria-disabled="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Look up</span><span class="rk-state">MusicBrainz, sources, LRCLIB</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="true" aria-disabled="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">History</span><span class="rk-state">Changes and who made them</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="false" aria-disabled="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Upload covers</span><span class="rk-state">Images for proposals</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="true" aria-disabled="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Propose</span><span class="rk-state">Create, revise, comment, withdraw</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="true" aria-disabled="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Memory</span><span class="rk-state">Notes kept between runs</span></span></button>
 </div>
 </fieldset>
-<div style="display: flex; align-items: center; gap: 14px"><button type="button" class="key sun">Connect</button><span class="sub">No agent can accept, save or delete.</span></div>
+<div style="display: flex; align-items: center; gap: 14px"><button type="button" class="key has-tip" disabled="disabled" data-tip-h="Connect" data-tip="Makes a connection with the permissions that are on. No agent can accept, save or delete, whatever it is allowed."><span class="tip-t">Connect</span></button></div>
 
-<div class="note" role="region" aria-label="New connection secret" style="flex-direction: column; gap: 10px; border-color: var(--sun)">
-<span style="font-weight: 600">Secret for Claude on the laptop</span>
-<span class="sub">Put it in the agent's environment as SHELF_AGENT_TOKEN, never in a prompt or chat. Shelf keeps only its hash.</span>
+<div class="note" role="region" aria-label="New connection prompt" style="flex-direction: column; align-items: stretch; gap: 10px; border-color: var(--sun)">
+<span style="font-weight: 600">Prompt for Claude on the laptop</span>
+<span class="sub">Shelf shows it once. The prompt holds the connection's secret, so paste it only into the agent. The secret reaches tags, lyrics, file names, history and authors.</span>
+<pre class="term" style="margin: 0; max-height: 230px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere">You tag the music library of a Music Shelf server. Navidrome reads the files Shelf tags, so every tag must follow Navidrome's tagging guides:
+- https://www.navidrome.org/docs/usage/library/tagging/
+- https://www.navidrome.org/docs/usage/customtags/
+Read both before your first proposal. You can only propose changes. A Shelf user accepts them in the Inbox.
+
+Connection
+The API base is https://shelf.music.tikhonnnnn.com/api/agent/v1. Send "Authorization: Bearer shelf_agent_••••••••••••••••••••••••••••••••••••" on every request. Never write the token into a URL, comment, memory or log.
+
+Start every run in this order
+1. POST /runs with {"client": "&lt;your name and model&gt;"}. Keep run_id …
+2. Read feedback. "outstanding" in the /runs response lists your connection's change requests, unanswered user comments and new write outcomes …</pre>
+<span class="sub">The secret alone, for SHELF_AGENT_TOKEN</span>
 <input class="input mono" value="shelf_agent_••••••••••••••••••••••••••••••••••••" readonly="readonly" aria-label="Secret" style="height: 40px; font-size: 14px">
-<div style="display: flex; gap: 10px"><button type="button" class="key sm">Copy secret</button><button type="button" class="key sm">I stored it</button><span style="flex: 1"></span><button type="button" class="key sm">Copy setup prompt</button></div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px"><button type="button" class="key sm sun" id="cp-prompt">Copy prompt</button><button type="button" class="key sm" id="cp-secret">Copy secret</button><span style="flex: 1"></span><span class="sub" id="cp-done-ask" hidden>Nothing copied yet, and Shelf shows it only once.</span><button type="button" class="key sm" id="cp-anyway" hidden>Close anyway</button><button type="button" class="key sm" id="cp-done">Done</button></div>
 </div>
 </form>
 </div>
 </section>
+
 </div>
 <script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+<script>
+// Review-only: Revoke pulls the plug half out and asks; Revoke pulls it out and the connection's lamp goes dark.
+(() => {
+  const box = document.getElementById("jk"), ask = document.getElementById("jk-ask"), no = document.getElementById("jk-cancel"), yes = document.getElementById("jk-yes");
+  const lamp = box.closest("section").querySelector("h2 .led"), lcd = box.closest("section").querySelector(".lcd");
+  const set = (st) => { box.dataset.jack = st; ask.hidden = no.hidden = yes.hidden = st !== "asking"; };
+  document.getElementById("jk-pull").addEventListener("click", () => {
+    if (box.dataset.jack === "out") { set("in"); lamp.className = "led ok"; lcd.innerHTML = '<div class="lcd-l">LAST RUN 3 MIN AGO</div><div class="lcd-l">3 PROPOSALS · 1 RULE</div>'; return; }
+    set("asking");
+  });
+  no.addEventListener("click", () => set("in"));
+  yes.addEventListener("click", () => { set("out"); lamp.className = "led off"; lcd.innerHTML = '<div class="lcd-l">REVOKED JUST NOW</div><div class="lcd-l">TOKEN REFUSED</div>'; });
+})();
+</script>
+<script>
+(() => {
+  let copied = false;
+  const ask = document.getElementById("cp-done-ask"), anyway = document.getElementById("cp-anyway"), done = document.getElementById("cp-done");
+  ["cp-prompt", "cp-secret"].forEach((id) => document.getElementById(id).addEventListener("click", () => { copied = true; ask.hidden = anyway.hidden = true; }));
+  done.addEventListener("click", () => { if (!copied) { ask.hidden = anyway.hidden = false; } });
+})();
+</script>
+<script src="../tips.js"></script>
 </body>
 </html>

@@ -8,6 +8,8 @@
 <link rel="stylesheet" href="../tokens.css">
 <link rel="stylesheet" href="../components.css">
 <link rel="stylesheet" href="../library.css">
+<link rel="stylesheet" href="../gear.css">
+<link rel="stylesheet" href="../tips.css">
 <style>
 body{margin:0}
 a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
@@ -30,16 +32,16 @@ a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
 </div>
 </header>
 
-<div style="flex: 1; min-height: 0; display: flex; gap: 20px; align-items: flex-start; padding: 20px var(--gutter) 24px">
+<div class="lib-main" style="padding: 20px var(--gutter) 24px">
 
-<section class="win" aria-labelledby="ib-h" style="flex: 0 0 420px; align-self: stretch">
-<div class="tb"><h1 id="ib-h">Inbox</h1><span class="stripes"></span><a class="wbtn txt" href="#">Memory</a></div>
+<section class="win" id="ib-list" aria-labelledby="ib-h" style="flex: 0 0 420px; align-self: stretch">
+<div class="tb"><h1 id="ib-h">Inbox</h1><span class="stripes"></span><a class="wbtn txt fdbtn has-tip" href="#" data-tip-h="Memory" data-tip="What agents keep between runs: your rules, the preferences they inferred and their notes. Every connection shares it."><span class="fd" aria-hidden="true"><span class="fd-disk"></span><span class="fd-face"></span></span><span class="tip-t">Memory</span></a></div>
 <div class="rotary" role="radiogroup" aria-label="Show" style="border-top: 0">
 <div class="rot-labels">
-<button type="button" role="radio" aria-checked="true"><span class="led"></span>Pending</button>
-<button type="button" role="radio" aria-checked="false"><span class="led"></span>Reviewed</button>
+<button type="button" role="radio" aria-checked="true" class="has-tip" data-tip-h="Pending" data-tip="Proposals with fields nobody has accepted or declined yet."><span class="led"></span><span class="tip-t">Pending</span></button>
+<button type="button" role="radio" aria-checked="false" class="has-tip" data-tip-h="Reviewed" data-tip="Every field is accepted or declined. Each proposal shows what its write did."><span class="led"></span><span class="tip-t">Reviewed</span></button>
 <button type="button" class="knob grey" style="--s: 44px; --a: -75deg" aria-label="Show the next state, now Pending"><i></i></button>
-<button type="button" role="radio" aria-checked="false"><span class="led"></span>Withdrawn</button>
+<button type="button" role="radio" aria-checked="false" class="has-tip" data-tip-h="Withdrawn" data-tip="The agent took these back. Shelf wrote nothing from them."><span class="led"></span><span class="tip-t">Withdrawn</span></button>
 <button type="button" role="radio" aria-checked="false"><span class="led"></span>All</button>
 </div>
 </div>
@@ -48,65 +50,73 @@ a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
 <button type="button" class="key sm">Tags and covers<svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="width: 14px; height: 14px"><path d="m6 9 6 6 6-6"></path></svg></button>
 </div>
 <ul style="list-style: none; margin: 0; padding: 0" aria-label="Proposals">
-<li style="display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--sel); box-shadow: inset 3px 0 0 var(--lamp)">
+<li style="border-bottom: 1px solid var(--line); background: var(--sel); box-shadow: inset 3px 0 0 var(--lamp)">
+<a href="#" aria-current="page" style="display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 14px; color: inherit; text-decoration: none">
 <span class="cv a-tide" style="width: 46px; height: 46px"></span>
-<a href="#" aria-current="page" style="min-width: 0; display: flex; flex-direction: column; gap: 2px; color: inherit; text-decoration: none">
+<span style="min-width: 0; display: flex; flex-direction: column; gap: 2px">
 <span class="ell" style="font-weight: 600; font-size: 15px">Spirit of Eden</span>
 <span class="sub ell">Talk Talk · Original date, Release date, Album artists</span>
 <span class="t2 xs ell">Claude at home · 3 min ago</span>
+</span>
+<span class="vfd num has-tip" data-tip-h="Confidence" data-tip="The agent&#x27;s own rating, from 0 to 100. Shelf doesn&#x27;t check it or mix it with other suggestions." style="height: 26px; font-size: 13px" aria-label="Confidence 86%">86%</span>
 </a>
-<span class="vfd num" title="Confidence" style="height: 26px; font-size: 13px">86%</span>
 </li>
-<li style="display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line)">
+<li style="border-bottom: 1px solid var(--line)">
+<a href="#" style="display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 14px; color: inherit; text-decoration: none">
 <span class="cv a-night" style="width: 46px; height: 46px"></span>
-<a href="#" style="min-width: 0; display: flex; flex-direction: column; gap: 2px; color: inherit; text-decoration: none">
+<span style="min-width: 0; display: flex; flex-direction: column; gap: 2px">
 <span class="ell" style="font-weight: 600; font-size: 15px">Dummy</span>
 <span class="sub ell">Portishead · Genre</span>
 <span class="t2 xs ell">Claude at home · 3 min ago</span>
+</span>
+<span class="vfd num has-tip" data-tip-h="Confidence" data-tip="The agent&#x27;s own rating, from 0 to 100. Shelf doesn&#x27;t check it or mix it with other suggestions." style="height: 26px; font-size: 13px" aria-label="Confidence 72%">72%</span>
 </a>
-<span class="vfd num" title="Confidence" style="height: 26px; font-size: 13px">72%</span>
 </li>
-<li style="display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line)">
+<li style="border-bottom: 1px solid var(--line)">
+<a href="#" style="display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 14px; color: inherit; text-decoration: none">
 <span class="cv a-signal" style="width: 46px; height: 46px"></span>
-<a href="#" style="min-width: 0; display: flex; flex-direction: column; gap: 2px; color: inherit; text-decoration: none">
+<span style="min-width: 0; display: flex; flex-direction: column; gap: 2px">
 <span class="ell" style="font-weight: 600; font-size: 15px">Computerwelt</span>
 <span class="sub ell">Kraftwerk · ALBUMSORT</span>
 <span class="t2 xs ell">Claude at home · changes asked · 5 min ago</span>
+</span>
+<span class="vfd num has-tip" data-tip-h="Confidence" data-tip="The agent&#x27;s own rating, from 0 to 100. Shelf doesn&#x27;t check it or mix it with other suggestions." style="height: 26px; font-size: 13px" aria-label="Confidence 41%">41%</span>
 </a>
-<span class="vfd num" title="Confidence" style="height: 26px; font-size: 13px">41%</span>
 </li>
 </ul>
 </section>
 
+<button type="button" class="lib-split" aria-label="Resize the proposal list. Left and right arrows change the width." title="Drag to resize"></button>
+
 <section class="win" aria-labelledby="pd-h" style="flex: 1; min-width: 0; align-self: stretch; display: flex; flex-direction: column">
-<div class="tb"><h2 id="pd-h">Spirit of Eden</h2><span class="stripes"></span><a class="wbtn txt" href="#">Open album</a><button type="button" class="wbtn" aria-label="Close the proposal"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<div class="tb"><h2 id="pd-h">Spirit of Eden</h2><span class="stripes"></span><a class="wbtn txt has-tip" href="#" data-tip-h="Open album" data-tip="Opens the album in the Library, where this proposal&#x27;s values show as suggestions."><span class="tip-t">Open album</span></a><button type="button" class="wbtn" aria-label="Close the proposal"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
 <div class="vscroll" style="gap: 0">
 
 <div style="display: flex; gap: 16px; align-items: flex-start; padding: 16px 18px">
 <span class="cv a-tide" style="width: 72px; height: 72px; flex: none"></span>
 <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
 <h3 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25">Set the original release date and album artists</h3>
-<span class="sub">Talk Talk · proposed by Claude at home 3 min ago · revision 1</span>
+<span class="sub">Talk Talk · proposed by Claude at home 3 min ago · <span class="has-tip" data-tip-h="Revision" data-tip="A revision is a whole new version of the proposal, from the agent or from edits you save. Accept works on the newest."><span class="tip-t">revision 1</span></span></span>
 <span class="mono t2 xs">Talk Talk/Spirit of Eden</span>
 </div>
-<div class="lcd" style="flex: none; flex-direction: row; align-items: baseline; gap: 8px; padding: 8px 12px"><span class="lcd-big num" style="font-size: 26px">86%</span><span class="lcd-l">CONFIDENCE</span></div>
+<div class="lcd has-tip" data-tip-h="Confidence" data-tip="The agent&#x27;s own rating, from 0 to 100. Shelf doesn&#x27;t check it or mix it with other suggestions." style="flex: none; flex-direction: row; align-items: baseline; gap: 8px; padding: 8px 12px"><span class="lcd-big num" style="font-size: 26px" aria-label="Confidence 86%">86%</span><span class="lcd-l">CONFIDENCE</span></div>
 </div>
 
 <div class="note" style="margin: 0 18px; flex-direction: column; gap: 10px">
 <p style="margin: 0">Spirit of Eden came out in September 1988 on Parlophone. The files carry 2012, the year of the remaster. MusicBrainz lists 1988-09-12 as the first release, so the original date and the release date should differ.</p>
-<p class="t2 sm" style="margin: 0"><span style="font-weight: 600; color: var(--text)">Not sure:</span> the 2012 remaster may time Wealth differently. Durations are unchanged.</p>
+<p class="t2 sm" style="margin: 0"><span class="has-tip" data-tip-h="Not sure" data-tip="What the agent couldn&#x27;t confirm. Check it before you accept." style="font-weight: 600; color: var(--text)"><span class="tip-t">Not sure:</span></span> the 2012 remaster may time Wealth differently. Durations are unchanged.</p>
 <div class="sugs" style="display: flex; flex-wrap: wrap; gap: 8px">
-<a class="sug" href="#" style="text-decoration: none"><span class="sug-v">First release 1988-09-12</span><span class="sug-s">MusicBrainz</span></a>
+<a class="sug has-tip" href="#" data-tip-h="Evidence" data-tip="Where the agent found it. A linked tape opens the source." style="text-decoration: none"><span class="sug-v tip-t">First release 1988-09-12</span><span class="sug-s">MusicBrainz <span aria-hidden="true">↗</span></span></a>
 <span class="sug"><span class="sug-v">DATE 2012 in all 6 files</span><span class="sug-s">Files</span></span>
 </div>
 </div>
 
 <div style="display: flex; align-items: center; justify-content: space-between; padding: 18px 18px 8px">
 <h3 class="px" style="margin: 0; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3)">Fields</h3>
-<span class="t2 sm">3 of 3 on</span>
+<span class="t2 sm has-tip" data-tip-h="Fields on" data-tip="Accept writes the fields that are on. Fields left off stay pending until you decline them."><span class="tip-t">3 of 3 on</span></span>
 </div>
 <div style="position: relative; margin: 0 18px; padding-left: 50px; border-top: 1px solid var(--line)">
-<svg width="46" height="200" viewBox="0 0 46 200" role="img" aria-label="Original date and Release date go together" style="position: absolute; left: 0; top: 0">
+<svg class="has-tip" data-tip-pinned width="46" height="200" viewBox="0 0 46 200" role="img" aria-label="Original date and Release date go together" data-tip-h="Linked fields" data-tip="Original date and Release date go together. Switching a field on switches on the fields it needs, and switching it off switches off the fields that need it." style="position: absolute; left: 0; top: 0">
 <path d="M30 42 C 2 62, 2 106, 30 126" fill="none" stroke="#0A0C10" stroke-width="8" stroke-linecap="round" opacity=".5" transform="translate(2 3)"></path>
 <path d="M30 42 C 2 62, 2 106, 30 126" fill="none" stroke="#D9483B" stroke-width="6" stroke-linecap="round"></path>
 <path d="M28 44 C 4 63, 4 104, 28 123" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round"></path>
@@ -117,30 +127,30 @@ a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
 </svg>
 
 <div style="display: grid; grid-template-columns: 250px minmax(0, 1fr) auto; gap: 16px; align-items: center; height: 84px; border-bottom: 1px solid var(--line)">
-<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Original date</span><span class="rk-state num">All 6 tracks</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name has-tip" data-tip-h="Original date" data-tip="The first release. While it is set and no release date exists, Navidrome reads DATE as the release date."><span class="tip-t">Original date</span></span><span class="rk-state num">All 6 tracks</span></span></button>
 <div style="min-width: 0; display: flex; flex-direction: column; gap: 4px; opacity: 1">
 <input class="lib-in stg" value="1988-09-12" aria-label="Original date, new value" readonly="readonly">
 <span class="lf-was">Was empty</span>
 </div>
-<button type="button" class="key sm flat">Per track</button>
+<button type="button" class="key sm flat has-tip" data-tip-h="Per track" data-tip="Gives each track its own value, so you can change one track alone."><span class="tip-t">Per track</span></button>
 </div>
 
 <div style="display: grid; grid-template-columns: 250px minmax(0, 1fr) auto; gap: 16px; align-items: center; height: 84px; border-bottom: 1px solid var(--line)">
-<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Release date</span><span class="rk-state num">All 6 tracks</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name has-tip" data-tip-h="Release date" data-tip="The date of this edition, as YYYY, YYYY-MM or YYYY-MM-DD. A plain YEAR counts as the release date."><span class="tip-t">Release date</span></span><span class="rk-state num">All 6 tracks</span></span></button>
 <div style="min-width: 0; display: flex; flex-direction: column; gap: 4px; opacity: 1">
 <input class="lib-in stg" value="2012-03-26" aria-label="Release date, new value" readonly="readonly">
 <span class="lf-was">Was empty</span>
 </div>
-<button type="button" class="key sm flat">Per track</button>
+<button type="button" class="key sm flat has-tip" data-tip-h="Per track" data-tip="Gives each track its own value, so you can change one track alone."><span class="tip-t">Per track</span></button>
 </div>
 
 <div style="display: grid; grid-template-columns: 250px minmax(0, 1fr) auto; gap: 16px; align-items: center; height: 84px; border-bottom: 1px solid var(--line)">
-<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Album artists</span><span class="rk-state num">All 6 tracks</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name has-tip" data-tip-h="Album artists" data-tip="One album artist per value, so Navidrome links each of them."><span class="tip-t">Album artists</span></span><span class="rk-state num">All 6 tracks</span></span></button>
 <div style="min-width: 0; display: flex; flex-direction: column; gap: 4px; opacity: 1">
 <input class="lib-in stg" value="Talk Talk" aria-label="Album artists, new value" readonly="readonly">
 <span class="lf-was">Was empty</span>
 </div>
-<button type="button" class="key sm flat">Per track</button>
+<button type="button" class="key sm flat has-tip" data-tip-h="Per track" data-tip="Gives each track its own value, so you can change one track alone."><span class="tip-t">Per track</span></button>
 </div>
 
 </div>
@@ -150,7 +160,7 @@ a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
 <div class="lib-sum">
 <div class="lcd"><span class="lcd-big num">3</span><span class="lcd-l">FIELDS</span></div>
 <div class="lcd"><span class="lcd-big num">6</span><span class="lcd-l">FILES</span></div>
-<div class="lcd"><span class="lcd-big num">18</span><span class="lcd-l">TAG WRITES</span></div>
+<div class="lcd has-tip" data-tip-h="Tag writes" data-tip="One tag in one file. 3 fields in 6 files make 18."><span class="lcd-big num">18</span><span class="lcd-l">TAG WRITES</span></div>
 </div>
 <div role="table" aria-label="What Accept writes" style="border: 1px solid var(--ink); border-radius: 6px; overflow: hidden">
 <div role="row" style="display: grid; grid-template-columns: 180px 130px minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 8px 14px; background: var(--win-2); font-family: var(--label); font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3)"><span role="columnheader">Tag</span><span role="columnheader">Files</span><span role="columnheader">Before</span><span role="columnheader">After</span></div>
@@ -173,25 +183,24 @@ a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
 </div>
 
 <div style="display: flex; flex-direction: column; gap: 10px; padding: 14px 18px 18px; border-top: 1px solid var(--ink)">
-<h3 class="px" style="margin: 0; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3)">Talkback</h3>
+<h3 class="px" style="margin: 0; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3)"><span class="has-tip" data-tip-h="Talkback" data-tip="Your comments and the agent&#x27;s replies. The agent reads them on its next run. Shelf doesn&#x27;t wake it."><span class="tip-t">Talkback</span></span></h3>
 <div style="display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; background: var(--win-2); border-radius: 6px; border: 1px solid var(--ink)">
 <span class="sm"><span style="font-weight: 600">Claude at home</span> <span class="t2">3 min ago</span></span>
 <span>I can also add RELEASECOUNTRY GB if you want it.</span>
 </div>
 <label class="lbl-f">Reply<textarea class="input" rows="2" style="height: auto; padding: 10px 12px; resize: vertical" readonly="readonly"></textarea></label>
 <div style="display: flex; align-items: center; gap: 16px">
-<button type="button" class="rocker" role="switch" aria-checked="false"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Ask for changes</span><span class="rk-state">A comment only</span></span></button>
 <span style="flex: 1"></span>
-<button type="button" class="key">Send</button>
+<button type="button" class="rocker" role="switch" aria-checked="false" id="ask"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name has-tip" data-tip-h="Ask for changes" data-tip="On, the key asks the agent for a new revision. Off, it posts a comment. Neither writes files."><span class="tip-t">Ask for changes</span></span></span></button>
+<button type="button" class="key" id="send">Send comment</button>
 </div>
 </div>
 </div>
 
 <div class="lib-save">
 
-<span class="t2" style="flex: 1; min-width: 0">Accept writes 3 fields to 6 files. History can undo it.</span>
-<button type="button" class="key">Decline the rest</button>
-<button type="button" class="key sun">Accept 3 fields</button>
+<span class="t2" style="flex: 1; min-width: 0">3 fields · 6 files</span>
+<button type="button" class="key sun has-tip" data-tip-h="Accept" data-tip="Writes the fields that are on as one change, which History can undo. If the preview changed since you opened it, Shelf shows the new one and asks again."><span class="tip-t">Accept 3 fields</span></button>
 
 
 </div>
@@ -199,5 +208,30 @@ a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
 </div>
 </div>
 <script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+<script>
+// Review-only: the divider moves the list's edge, as LibSplit does in the Library, between 300 and 640px.
+(() => {
+  const list = document.getElementById("ib-list"), split = document.querySelector(".lib-split");
+  let w = 420, from = null;
+  const set = (d) => { w = Math.min(640, Math.max(300, w + d)); list.style.flex = `0 0 ${w}px`; };
+  split.addEventListener("pointerdown", (e) => { from = e.clientX; split.setPointerCapture(e.pointerId); });
+  split.addEventListener("pointermove", (e) => { if (from === null) return; set(e.clientX - from); from = e.clientX; });
+  split.addEventListener("pointerup", () => (from = null));
+  split.addEventListener("pointercancel", () => (from = null));
+  split.addEventListener("keydown", (e) => { if (e.key === "ArrowLeft") set(-20); if (e.key === "ArrowRight") set(20); });
+})();
+</script>
+<script>
+// Review-only: the Send key says what it will do.
+(() => {
+  const ask = document.getElementById("ask"), send = document.getElementById("send");
+  ask.addEventListener("click", () => {
+    const on = ask.getAttribute("aria-checked") !== "true";
+    ask.setAttribute("aria-checked", String(on));
+    send.textContent = on ? "Ask for changes" : "Send comment";
+  });
+})();
+</script>
+<script src="../tips.js"></script>
 </body>
 </html>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Phone · Status, Agents</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="../library.css">
+<link rel="stylesheet" href="../slide.css">
+<link rel="stylesheet" href="../gear.css">
+<link rel="stylesheet" href="../tips.css">
+<style>body{margin:0}</style>
+</head>
+<body>
+<div class="rs ph desk " style="position: relative; width: 390px; height: 844px; overflow: hidden">
+<div class="stack">
+<section class="win" aria-labelledby="pg-t">
+<div class="tb"><h1 id="pg-t">Status</h1><span class="stripes"></span></div>
+<div class="vscroll">
+<section class="smod" aria-labelledby="pg-a">
+<div class="smod-h"><span class="led ok"></span><h2 id="pg-a">Agents</h2><span class="sub">A person accepts each change</span></div>
+<div class="lcd"><div class="lcd-l">2 CONNECTED</div><div class="lcd-l">3 PROPOSALS PENDING</div></div>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px">
+<a class="msgbtn" href="#" data-lit aria-label="Open the Inbox, proposals wait" style="min-height: 54px"><span class="msg-cap" aria-hidden="true"><span class="msg-lens"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h5l1.5 3h5L16 13h5"></path><path d="M5 5h14l2 8v6H3v-6z"></path></svg></span></span><span class="gear-name" aria-hidden="true">Inbox</span></a>
+<a class="key fdbtn" href="#" style="min-height: 46px"><span class="fd" aria-hidden="true"><span class="fd-disk"></span><span class="fd-face"></span></span>Memory</a>
+</div>
+</section>
+<section class="smod" aria-labelledby="pg-c">
+<div class="smod-h"><span class="led ok"></span><h2 id="pg-c">Claude at home</h2><span class="sub">Added by CLI</span></div>
+<div class="lcd"><div class="lcd-l">LAST RUN 3 MIN AGO</div><div class="lcd-l">3 PROPOSALS · 1 RULE</div></div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px" aria-label="Allowed"><span class="stk">Read the library</span><span class="stk">Look up</span><span class="stk">History</span><span class="stk">Propose</span><span class="stk">Memory</span></div>
+<button type="button" class="jackbtn" aria-label="Revoke Claude at home" style="min-height: 54px"><svg class="jack" width="78" height="44" viewBox="0 0 78 44" aria-hidden="true">
+<defs><radialGradient id="pj-nut" cx="38%" cy="30%" r="75%"><stop offset="0" stop-color="#F4F6F8"></stop><stop offset=".55" stop-color="#A3AAB4"></stop><stop offset="1" stop-color="#3F454E"></stop></radialGradient></defs>
+<circle cx="60" cy="22" r="15" fill="url(#pj-nut)" stroke="#0A0C10" stroke-width="1.5"></circle>
+<circle cx="60" cy="22" r="7" fill="#07090C"></circle>
+<g class="plug">
+<path d="M14 22 C 4 22, 2 34, -8 44" fill="none" stroke="#0A0C10" stroke-width="7" stroke-linecap="round" opacity=".45"></path>
+<path d="M14 22 C 4 22, 2 34, -8 44" fill="none" stroke="#D9483B" stroke-width="5" stroke-linecap="round"></path>
+<rect x="14" y="15" width="22" height="14" rx="3" fill="#2A2F37" stroke="#0A0C10"></rect>
+<path d="M19 16v12M23 16v12M27 16v12" stroke="rgba(255,255,255,.18)" stroke-width="1.5"></path>
+<rect x="36" y="18.5" width="16" height="7" rx="1" fill="#C9CED6" stroke="#0A0C10"></rect>
+<rect x="52" y="19.5" width="8" height="5" rx="2.5" fill="#E2B84B" stroke="#0A0C10"></rect>
+</g>
+</svg><span class="gear-name" aria-hidden="true">Revoke</span></button>
+</section>
+<section class="smod" aria-labelledby="pg-n" style="border-bottom: 0">
+<div class="smod-h"><span class="led off"></span><h2 id="pg-n">Connect</h2><span class="sub">Shelf shows the prompt once</span></div>
+<label class="lbl-f">Name<input class="input" autocomplete="off" value="Claude on the phone" readonly="readonly"></label>
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 2px"><legend class="lbl-f" style="padding: 0 0 6px">Allowed</legend>
+<button type="button" class="rocker" role="switch" aria-checked="true" style="min-height: 56px"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Read the library</span><span class="rk-state" style="white-space: normal">Albums, tags, local suggestions</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="true" style="min-height: 56px"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Look up</span><span class="rk-state" style="white-space: normal">MusicBrainz, sources, LRCLIB</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="true" style="min-height: 56px"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">History</span><span class="rk-state" style="white-space: normal">Changes and who made them</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="false" style="min-height: 56px"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Upload covers</span><span class="rk-state" style="white-space: normal">Images for proposals</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="true" style="min-height: 56px"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Propose</span><span class="rk-state" style="white-space: normal">Create, revise, comment, withdraw</span></span></button>
+<button type="button" class="rocker" role="switch" aria-checked="true" style="min-height: 56px"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Memory</span><span class="rk-state" style="white-space: normal">Notes kept between runs</span></span></button>
+</fieldset>
+<button type="button" class="key sun block">Connect</button>
+</section>
+</div>
+</section>
+</div>
+<nav class="dock" aria-label="Main">
+<a href="#"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4v16M9 4v16M13.5 4.5l5 15"></path></svg>Library<span class="led" title="Proposals wait for review"></span></a>
+<a href="#"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m20 20-4.5-4.5"></path></svg>Search</a>
+<a href="#"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"></rect><circle cx="9" cy="12" r="2"></circle><circle cx="15" cy="12" r="2"></circle><path d="M7 18l1.5-3h7L17 18"></path></svg>Downloads</a>
+<a class="on" href="#" aria-current="page"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17a8 8 0 1 1 16 0"></path><path d="M12 17l4-5"></path></svg>Status</a>
+</nav>
+</div>
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>

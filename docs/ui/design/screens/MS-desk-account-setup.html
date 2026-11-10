@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Shelf · Desktop · create the first account</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600&amp;display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="../library.css">
+<link rel="stylesheet" href="../slide.css">
+<style>
+body{margin:0}
+a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
+</style>
+</head>
+<body>
+<div class="rs desk console " style="width: 1440px; height: 900px; position: relative; overflow: hidden; display: flex; flex-direction: column">
+
+<main style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; padding: 0 var(--gutter) 40px">
+<div class="win unit" aria-hidden="true" style="width: 780px; height: 58px; flex: none">
+<div class="unit-body" style="justify-content: center; padding: 0 18px">
+<span style="display: block; width: 420px; height: 16px; border-radius: 3px; background: repeating-linear-gradient(90deg, #0A0C10 0 4px, transparent 4px 14px); opacity: .75"></span>
+</div>
+</div>
+
+<section class="win unit" aria-labelledby="si-h" style="width: 780px; flex: none">
+<div class="unit-body" style="align-items: stretch; gap: 22px 30px; padding: 22px 24px">
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+<h1 id="si-h" class="sr">Create the first Music Shelf account</h1>
+<div class="lcd" role="status" style="flex: none; min-height: 86px"><div class="lcd-l dim">MUSIC SHELF</div><div class="lcd-l">NO ACCOUNTS YET</div><div class="lcd-l">CREATE THE FIRST ONE</div></div>
+<form style="display: flex; flex-direction: column; gap: 14px">
+<label class="lbl-f">Username<input class="input" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="32" value="tikhon"></label>
+<label class="lbl-f">Password<input class="input" name="password" type="password" autocomplete="new-password" minlength="8" value="musicshelf"></label>
+<label class="lbl-f">Repeat password<input class="input" name="password2" type="password" autocomplete="new-password" minlength="8" value=""></label>
+<button type="submit" class="key sun lg block">Create account</button>
+</form>
+</div>
+</div>
+</section>
+
+<div class="win unit" aria-hidden="true" style="width: 780px; height: 58px; flex: none">
+<div class="unit-body" style="justify-content: center; padding: 0 18px">
+<span style="display: block; width: 420px; height: 16px; border-radius: 3px; background: repeating-linear-gradient(90deg, #0A0C10 0 4px, transparent 4px 14px); opacity: .75"></span>
+</div>
+</div>
+
+</main>
+</div>
+<script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+</body>
+</html>

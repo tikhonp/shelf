@@ -1,0 +1,35 @@
+/* The passkey slide switch: a horizontal slide on the panel. Sliding it to ON asks the browser for a passkey,
+   so the form keeps one key, Sign in. It springs back to OFF when the passkey is canceled or fails. */
+.rs .slide { display: flex; flex-direction: column; gap: 8px; padding: 0; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; font: inherit; }
+.rs .slide:focus-visible { outline: 3px solid var(--focus); outline-offset: 4px; border-radius: 6px; }
+.rs .sl-name { font: 700 13px/1 var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--text-2); }
+.rs .sl-row { display: flex; align-items: center; gap: 10px; }
+.rs .sl-t { font: 700 11px/1 var(--label); letter-spacing: .12em; color: var(--text-3); }
+.rs .slide[aria-checked="false"] .sl-t.off, .rs .slide[aria-checked="true"] .sl-t.on { color: var(--text); }
+.rs .sl-track { position: relative; flex: none; width: 112px; height: 32px; border-radius: 5px; background: #07090C; box-shadow: inset 1px 2px 5px rgba(0, 0, 0, .9), 0 1px 0 rgba(255, 255, 255, .1); }
+/* The slot the cap runs in. */
+.rs .sl-track::before { content: ""; position: absolute; left: 12px; right: 12px; top: 50%; height: 2px; margin-top: -1px; border-radius: 1px; background: #1E232B; }
+.rs .sl-cap { position: absolute; top: 3px; left: 3px; width: 50px; height: 26px; border-radius: 3px; border: 1px solid var(--key-edge); background: linear-gradient(180deg, var(--key-hi), var(--key) 55%, var(--key-lo)); box-shadow: 1px 2px 3px rgba(0, 0, 0, .5), inset 0 1px 0 #fff; transition: left .28s cubic-bezier(.3, 1.4, .5, 1); }
+/* Grip ridges across the cap. */
+.rs .sl-cap::before { content: ""; position: absolute; left: 50%; top: 6px; bottom: 6px; width: 14px; margin-left: -7px; background: repeating-linear-gradient(90deg, rgba(0, 0, 0, .28) 0 2px, transparent 2px 4px); }
+.rs .slide[aria-checked="true"] .sl-cap { left: 59px; }
+.rs .slide:hover .sl-cap { filter: brightness(1.04); }
+.rs .slide[aria-disabled="true"] { cursor: default; }
+
+/* On the phone and in narrow units the name sits on the left and the slide on the right, in a 56px row. */
+.rs .slide.row { flex-direction: row; align-items: center; justify-content: space-between; min-height: 56px; width: 100%; }
+
+@media (prefers-reduced-motion: reduce) { .rs .sl-cap { transition: none; } }
+
+/* The display carries the state now that the unit has no lamp, so failures change its color, not only its words.
+   A failure is red and an alert. A soft stop, such as a canceled passkey, is amber. */
+.rs .lcd.err { background: #2A0F0D; color: #FF9A8C; }
+.rs .lcd.warn { background: #2A2008; color: #FFD27A; }
+.rs.day .lcd.err { background: #E2B7AA; color: #4A1208; }
+.rs.day .lcd.warn { background: #DDD08F; color: #3A2A05; }
+/* The first line names the app, quieter than the state under it. */
+.rs .lcd-l.dim { opacity: .75; font-size: 13px; }
+.rs.day .lcd-l.dim { opacity: .85; }
+/* The key switch beside the slide starts the same passkey sign-in. */
+.rs .keysw[data-press] { cursor: pointer; }
+.rs .slide { touch-action: pan-y; }

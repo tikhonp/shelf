@@ -8,13 +8,15 @@
 <link rel="stylesheet" href="../tokens.css">
 <link rel="stylesheet" href="../components.css">
 <link rel="stylesheet" href="../library.css">
+<link rel="stylesheet" href="../tips.css">
+<link rel="stylesheet" href="../gear.css">
 <style>body{margin:0}</style>
 </head>
 <body>
 <div class="rs ph desk " style="position: relative; width: 390px; height: 844px; overflow: hidden">
 <div class="stack">
 <section class="win" aria-labelledby="pl-h">
-<div class="tb"><button type="button" class="wbtn" aria-label="Back to the Library"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><h1 id="pl-h">Inbox</h1><span class="stripes"></span><a class="wbtn txt" href="#">Memory</a></div>
+<div class="tb"><button type="button" class="wbtn" aria-label="Back to the Library"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><h1 id="pl-h">Inbox</h1><span class="stripes"></span><button type="button" class="wbtn q" aria-label="Note on this page" aria-pressed="false">?</button><a class="wbtn txt fdbtn" href="#"><span class="fd" aria-hidden="true"><span class="fd-disk"></span><span class="fd-face"></span></span>Memory</a></div>
 <div class="rotary" role="radiogroup" aria-label="Show" style="border-top: 0">
 <div class="rot-labels">
 <button type="button" role="radio" aria-checked="true"><span class="led"></span>Pending</button>
@@ -26,36 +28,46 @@
 </div>
 <div class="vscroll" style="gap: 0">
 <ul style="list-style: none; margin: 0; padding: 0" aria-label="Proposals">
-<li style="display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 72px; padding: 8px 12px; border-bottom: 1px solid var(--line)">
+<li style="border-bottom: 1px solid var(--line)">
+<a href="#" style="display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 72px; padding: 8px 12px; color: inherit; text-decoration: none">
 <span class="cv a-tide" style="width: 46px; height: 46px"></span>
-<a href="#" style="min-width: 0; display: flex; flex-direction: column; gap: 2px; color: inherit; text-decoration: none">
+<span style="min-width: 0; display: flex; flex-direction: column; gap: 2px">
 <span class="ell" style="font-weight: 600; font-size: 15px">Spirit of Eden</span>
 <span class="sub ell">Original date, Release date, Album artists</span>
 <span class="t2 xs ell">Talk Talk · 3 min ago</span>
+</span>
+<span class="vfd num" style="height: 26px; font-size: 13px" aria-label="Confidence 86%">86%</span>
 </a>
-<span class="vfd num" style="height: 26px; font-size: 13px">86%</span>
 </li>
-<li style="display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 72px; padding: 8px 12px; border-bottom: 1px solid var(--line)">
+<li style="border-bottom: 1px solid var(--line)">
+<a href="#" style="display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 72px; padding: 8px 12px; color: inherit; text-decoration: none">
 <span class="cv a-night" style="width: 46px; height: 46px"></span>
-<a href="#" style="min-width: 0; display: flex; flex-direction: column; gap: 2px; color: inherit; text-decoration: none">
+<span style="min-width: 0; display: flex; flex-direction: column; gap: 2px">
 <span class="ell" style="font-weight: 600; font-size: 15px">Dummy</span>
 <span class="sub ell">Genre</span>
 <span class="t2 xs ell">Portishead · 3 min ago</span>
+</span>
+<span class="vfd num" style="height: 26px; font-size: 13px" aria-label="Confidence 72%">72%</span>
 </a>
-<span class="vfd num" style="height: 26px; font-size: 13px">72%</span>
 </li>
-<li style="display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 72px; padding: 8px 12px; border-bottom: 1px solid var(--line)">
+<li style="border-bottom: 1px solid var(--line)">
+<a href="#" style="display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 72px; padding: 8px 12px; color: inherit; text-decoration: none">
 <span class="cv a-signal" style="width: 46px; height: 46px"></span>
-<a href="#" style="min-width: 0; display: flex; flex-direction: column; gap: 2px; color: inherit; text-decoration: none">
+<span style="min-width: 0; display: flex; flex-direction: column; gap: 2px">
 <span class="ell" style="font-weight: 600; font-size: 15px">Computerwelt</span>
 <span class="sub ell">ALBUMSORT</span>
 <span class="t2 xs ell">Kraftwerk · changes asked · 5 min ago</span>
+</span>
+<span class="vfd num" style="height: 26px; font-size: 13px" aria-label="Confidence 41%">41%</span>
 </a>
-<span class="vfd num" style="height: 26px; font-size: 13px">41%</span>
 </li>
 </ul>
 </div>
 </section>
+<div class="win slot tall" id="note-slot" role="note" aria-labelledby="pn-t" hidden>
+<div class="tb" style="min-height: 46px"><h2 id="pn-t" style="font-size: 16px; white-space: normal; line-height: 1.15">Inbox</h2><span class="stripes"></span><button type="button" class="wbtn" data-close aria-label="Close the note"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<div class="lib-note"><p>Agents propose tag and cover changes here, one album each. Nothing changes until you accept. Pending waits for you, Reviewed shows what each write did, and Withdrawn holds what the agent took back. A row's number is the agent's own confidence.</p></div>
+</div>
 </div>
 <nav class="dock" aria-label="Main">
 <a class="on" href="#" aria-current="page"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4v16M9 4v16M13.5 4.5l5 15"></path></svg>Library<span class="led" title="Proposals wait for review"></span></a>
@@ -65,5 +77,6 @@
 </nav>
 </div>
 <script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+<script src="../tips.js"></script>
 </body>
 </html>

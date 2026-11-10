@@ -8,20 +8,57 @@
 <link rel="stylesheet" href="../tokens.css">
 <link rel="stylesheet" href="../components.css">
 <link rel="stylesheet" href="../library.css">
+<link rel="stylesheet" href="../tips.css">
+<style>
+/* Sign out turns the sign-in key switch back to OFF. The whole switch is the button. */
+.rs .keyout { display: inline-flex; align-items: center; gap: 12px; padding: 4px 12px 4px 4px; border: 0; border-radius: 6px; background: transparent; color: var(--text); cursor: pointer; font: inherit; }
+.rs .keyout:hover .ko-bow { transform: rotate(30deg); }
+.rs .keyout:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.rs .keyout .keysw { color: var(--text-2); }
+.rs .ko-bow { transform: rotate(40deg); transform-origin: 75px 72px; transition: transform .5s cubic-bezier(.3, 1.5, .5, 1); }
+.rs .keyout[data-on="false"] .ko-bow { transform: rotate(-40deg); }
+.rs .keyout[data-on="asking"] .ko-bow { transform: rotate(0deg); }
+.rs .ko-name { font: 700 15px/1 var(--label); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .rs .ko-bow { transition: none; } }
+</style>
 <style>body{margin:0}</style>
 </head>
 <body>
-<div class="rs desk " style="width: 1180px; height: 1080px; box-sizing: border-box; padding: 28px 24px; display: flex; flex-direction: column; gap: 16px">
+<div class="rs desk " style="width: 1180px; height: 1000px; box-sizing: border-box; padding: 28px 24px; display: flex; flex-direction: column; gap: 16px">
 <div style="display: flex; flex-direction: column; gap: 4px; padding: 0 4px 6px">
 <h1 class="px" style="font-size: 22px; margin: 0">Status · Account</h1>
-<p class="t2 sm" style="margin: 0">Account becomes three units in the Status rack, under Density. Each key is as wide as its label.</p>
+<p class="t2 sm" style="margin: 0">Account becomes three units in the Status rack, under Density. Each key is as wide as its label. Sign out is the key switch from sign-in, at ON. Pressing it turns the key back to OFF, and the console goes dark into sign-in. With Library edits staged it stops halfway and asks first.</p>
 </div>
 
 <section class="win unit" aria-labelledby="ac-a">
 <div class="unit-body">
 <div class="plate"><h2 id="ac-a"><span class="led ok"></span>Account</h2><span class="sub">Shelf sign-in</span></div>
 <div class="lcd" style="flex: 0 1 300px; min-height: 66px"><div class="lcd-l">TIKHON</div><div class="lcd-l">2 PASSKEYS · SINCE 4 NOV</div></div>
-<button type="button" class="key">Sign out of Shelf</button>
+<button type="button" class="keyout" data-on="true" aria-label="Sign out of Shelf" id="pwr">
+<svg class="keysw" width="120" height="99" viewBox="0 0 150 124" aria-hidden="true" style="flex: none; color: var(--text-2)">
+<defs><radialGradient id="ko-chrome" cx="38%" cy="28%" r="80%"><stop offset="0" stop-color="#F4F6F8"></stop><stop offset=".5" stop-color="#A3AAB4"></stop><stop offset="1" stop-color="#3F454E"></stop></radialGradient>
+<linearGradient id="ko-key" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7F3EA"></stop><stop offset="1" stop-color="#BDB29A"></stop></linearGradient></defs>
+<text x="14" y="22" fill="currentColor" style="font: 700 15px var(--label); letter-spacing: .1em">OFF</text>
+<text x="108" y="22" fill="currentColor" style="font: 700 15px var(--label); letter-spacing: .1em">ON</text>
+<line x1="43" y1="31" x2="49" y2="38" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+<line x1="107" y1="31" x2="101" y2="38" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+<circle cx="75" cy="72" r="44" fill="url(#ko-chrome)" stroke="#0A0C10" stroke-width="1.5"></circle>
+<circle cx="75" cy="72" r="32" fill="#1B1F26" stroke="#0A0C10"></circle>
+<circle cx="75" cy="72" r="32" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="2" stroke-dasharray="40 160"></circle>
+<g class="ko-bow">
+<rect x="71" y="44" width="8" height="56" rx="2" fill="#07090C"></rect>
+<ellipse cx="75" cy="72" rx="13" ry="27" fill="url(#ko-key)" stroke="#0A0C10" stroke-width="1.5"></ellipse>
+<circle cx="75" cy="55" r="4" fill="#1B1F26"></circle>
+<line x1="75" y1="66" x2="75" y2="92" stroke="rgba(0,0,0,.25)" stroke-width="2" stroke-linecap="round"></line>
+</g>
+</svg>
+<span class="ko-name" aria-hidden="true">Sign out</span>
+</button>
+<div class="note" id="ko-ask" role="group" aria-label="Sign out with staged edits" hidden style="flex: 1 1 320px; flex-direction: column; gap: 8px; border-color: var(--sun)">
+<span style="font-weight: 600">Sign out with 3 staged edits?</span>
+<span class="sub">They are in the Library and haven't been saved. Signing out drops them.</span>
+<div style="display: flex; gap: 10px"><button type="button" class="key sm" id="ko-no">Keep editing</button><button type="button" class="key sm sun" id="ko-yes">Sign out</button></div>
+</div>
 </div>
 </section>
 
@@ -42,10 +79,10 @@
 <div class="note" role="group" aria-label="Remove iPhone" style="flex: 1 1 100%; flex-wrap: wrap; align-items: flex-end; border-color: var(--sun)">
 <div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 8px">
 <span style="font-weight: 600">Remove iPhone?</span>
-<span class="sub">Confirm it is you first. Removing a passkey signs you out here.</span>
-<label class="lbl-f">Password<input class="input" type="password" value="" readonly="readonly" style="height: 40px"></label>
+<span class="sub">Removing a passkey signs you out here.</span>
+<label class="lbl-f">Password<input class="input" type="password" value="" id="rm-pw" style="height: 40px"></label>
 </div>
-<div style="display: flex; gap: 10px"><button type="button" class="key sm">Cancel</button><button type="button" class="key sm">Use a passkey</button><button type="button" class="key sm sun">Remove</button></div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px"><button type="button" class="key sm">Cancel</button><span style="flex: 1"></span><button type="button" class="key sm">Confirm with a passkey</button><button type="button" class="key sm sun" id="rm-go" disabled="disabled">Remove</button></div>
 </div>
 </li>
 </ul>
@@ -67,11 +104,34 @@
 <label class="lbl-f">New<input class="input" type="password" autocomplete="new-password" value="" readonly="readonly" style="height: 40px"></label>
 <label class="lbl-f">New, again<input class="input" type="password" autocomplete="new-password" value="" readonly="readonly" style="height: 40px"></label>
 </div>
-<div style="display: flex; align-items: center; gap: 14px"><button type="button" class="key">Change password</button><span class="sub">Then you sign in again with the new one.</span></div>
+<div style="display: flex; align-items: center; gap: 14px"><button type="button" class="key has-tip" data-tip-h="Change password" data-tip="Every session ends, this one too, and you sign in again with the new password."><span class="tip-t">Change password</span></button></div>
 </form>
 </div>
 </section>
 </div>
 <script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+<script>
+// Review-only: the sample has 3 staged edits, so the key stops halfway and asks. Sign out turns it to OFF.
+(() => {
+  const sw = document.getElementById("pwr"), unit = sw.closest("section"), ask = document.getElementById("ko-ask");
+  const lcd = unit.querySelector(".lcd"), lamp = unit.querySelector("h2 .led"), was = lcd.innerHTML;
+  let t;
+  const off = () => {
+    ask.hidden = true; sw.dataset.on = "false"; lamp.className = "led warn blink";
+    lcd.innerHTML = '<div class="lcd-l">SIGNING OUT</div><div class="lcd-l">TIKHON</div>';
+    t = setTimeout(() => { lamp.className = "led off"; lcd.innerHTML = '<div class="lcd-l">SIGNED OUT</div><div class="lcd-l">PRESS AGAIN TO RESET</div>'; }, 1200);
+  };
+  sw.addEventListener("click", () => {
+    clearTimeout(t);
+    if (sw.dataset.on === "true") { sw.dataset.on = "asking"; ask.hidden = false; }
+    else if (sw.dataset.on === "false") { sw.dataset.on = "true"; lamp.className = "led ok"; lcd.innerHTML = was; }
+  });
+  document.getElementById("ko-no").addEventListener("click", () => { ask.hidden = true; sw.dataset.on = "true"; });
+  document.getElementById("ko-yes").addEventListener("click", off);
+  const pw = document.getElementById("rm-pw"), go = document.getElementById("rm-go");
+  pw.addEventListener("input", () => { go.disabled = !pw.value; });
+})();
+</script>
+<script src="../tips.js"></script>
 </body>
 </html>

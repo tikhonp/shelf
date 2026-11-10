@@ -8,13 +8,14 @@
 <link rel="stylesheet" href="../tokens.css">
 <link rel="stylesheet" href="../components.css">
 <link rel="stylesheet" href="../library.css">
+<link rel="stylesheet" href="../tips.css">
 <style>body{margin:0}</style>
 </head>
 <body>
 <div class="rs ph desk " style="position: relative; width: 390px; height: 844px; overflow: hidden">
 <div class="stack">
 <section class="win" aria-labelledby="pp-h">
-<div class="tb"><button type="button" class="wbtn" aria-label="Back to the inbox"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><h1 id="pp-h">Spirit of Eden</h1><span class="stripes"></span><span class="vfd num" title="Confidence" style="height: 26px; font-size: 13px">86%</span></div>
+<div class="tb"><button type="button" class="wbtn" aria-label="Back to the inbox"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><h1 id="pp-h">Spirit of Eden</h1><span class="stripes"></span><span class="vfd num" aria-label="Confidence 86%" style="height: 26px; font-size: 13px">86%</span><button type="button" class="wbtn q" aria-label="Note on this page" aria-pressed="false">?</button></div>
 <div class="vscroll" style="gap: 12px; padding: 14px 12px">
 <div style="display: flex; flex-direction: column; gap: 4px">
 <h2 style="margin: 0; font-size: 18px; font-weight: 700; line-height: 1.25">Set the original release date and album artists</h2>
@@ -22,7 +23,8 @@
 </div>
 <div class="note" style="flex-direction: column; gap: 8px; padding: 12px">
 <p style="margin: 0; font-size: 14px">The files carry 2012, the year of the remaster. MusicBrainz lists 1988-09-12 as the first release.</p>
-<div style="display: flex; flex-wrap: wrap; gap: 8px"><a class="sug" href="#" style="text-decoration: none"><span class="sug-v">1988-09-12</span><span class="sug-s">MusicBrainz</span></a></div>
+<p class="t2 sm" style="margin: 0"><span style="font-weight: 600; color: var(--text)">Not sure:</span> the 2012 remaster may time Wealth differently.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 8px"><a class="sug" href="#" style="text-decoration: none"><span class="sug-v">1988-09-12</span><span class="sug-s">MusicBrainz <span aria-hidden="true">↗</span></span></a></div>
 </div>
 <div style="position: relative; padding-left: 40px; border-top: 1px solid var(--line)">
 <svg width="38" height="210" viewBox="0 0 38 210" role="img" aria-label="Original date and Release date go together" style="position: absolute; left: 0; top: 0">
@@ -33,22 +35,43 @@
 <rect x="20" y="28" width="11" height="11" rx="2.5" fill="#D9483B" stroke="#0A0C10"></rect>
 <rect x="20" y="128" width="11" height="11" rx="2.5" fill="#D9483B" stroke="#0A0C10"></rect>
 </svg>
-<div style="display: flex; flex-direction: column; gap: 6px; justify-content: center; height: 100px; border-bottom: 1px solid var(--line)">
-<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Original date</span><span class="rk-state">1988-09-12, was empty</span></span></button>
+<div style="display: flex; align-items: center; gap: 2px; height: 100px; border-bottom: 1px solid var(--line)">
+<button type="button" class="rocker" role="switch" aria-checked="true" aria-label="Original date" style="flex: none; min-height: 64px; padding: 4px 8px 4px 4px"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span></button>
+<a href="#" aria-label="Edit Original date, 1988-09-12, was empty" style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: 64px; padding-right: 4px; color: inherit; text-decoration: none"><span class="rk-t" style="flex: 1; min-width: 0"><span class="rk-name">Original date</span><span class="rk-state" style="white-space: normal">1988-09-12, was empty</span></span><svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="flex: none; opacity: .7"><path d="M9 5l7 7-7 7"></path></svg></a>
 </div>
-<div style="display: flex; flex-direction: column; gap: 6px; justify-content: center; height: 100px; border-bottom: 1px solid var(--line)">
-<button type="button" class="rocker" role="switch" aria-checked="true"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Release date</span><span class="rk-state">2012-03-26, was empty</span></span></button>
+<div style="display: flex; align-items: center; gap: 2px; height: 100px; border-bottom: 1px solid var(--line)">
+<button type="button" class="rocker" role="switch" aria-checked="true" aria-label="Release date" style="flex: none; min-height: 64px; padding: 4px 8px 4px 4px"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span></button>
+<a href="#" aria-label="Edit Release date, 2012-03-26, was empty" style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: 64px; padding-right: 4px; color: inherit; text-decoration: none"><span class="rk-t" style="flex: 1; min-width: 0"><span class="rk-name">Release date</span><span class="rk-state" style="white-space: normal">2012-03-26, was empty</span></span><svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="flex: none; opacity: .7"><path d="M9 5l7 7-7 7"></path></svg></a>
 </div>
-<div style="display: flex; flex-direction: column; gap: 6px; justify-content: center; height: 100px; border-bottom: 1px solid var(--line)">
-<button type="button" class="rocker" role="switch" aria-checked="false"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Album artists</span><span class="rk-state">Talk Talk, was empty</span></span></button>
+<div style="display: flex; align-items: center; gap: 2px; height: 100px; border-bottom: 1px solid var(--line)">
+<button type="button" class="rocker" role="switch" aria-checked="false" aria-label="Album artists" style="flex: none; min-height: 64px; padding: 4px 8px 4px 4px"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span></button>
+<a href="#" aria-label="Edit Album artists, Talk Talk, was empty" style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: 64px; padding-right: 4px; color: inherit; text-decoration: none"><span class="rk-t" style="flex: 1; min-width: 0"><span class="rk-name">Album artists</span><span class="rk-state" style="white-space: normal">Talk Talk, was empty</span></span><svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="flex: none; opacity: .7"><path d="M9 5l7 7-7 7"></path></svg></a>
+</div>
+</div>
+<a href="#" class="key sm" style="align-self: flex-start; text-decoration: none">What Accept writes</a>
+<div style="display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid var(--ink)">
+<h3 class="px" style="margin: 0; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3)">Talkback</h3>
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; background: var(--win-2); border-radius: 6px; border: 1px solid var(--ink)">
+<span class="sm"><span style="font-weight: 600">Claude at home</span> <span class="t2">3 min ago</span></span>
+<span>I can also add RELEASECOUNTRY GB if you want it.</span>
+</div>
+<label class="lbl-f">Reply<textarea class="input" rows="2" style="height: auto; padding: 10px 12px; font-size: 16px" readonly="readonly"></textarea></label>
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="flex: 1"></span>
+<button type="button" class="rocker" role="switch" aria-checked="false" id="ask" style="min-height: 56px"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">Ask for changes</span></span></button>
+<button type="button" class="key" id="send">Send comment</button>
 </div>
 </div>
 </div>
 </section>
+<div class="win slot tall" id="note-slot" role="note" aria-labelledby="pn-t" hidden>
+<div class="tb" style="min-height: 46px"><h2 id="pn-t" style="font-size: 16px; white-space: normal; line-height: 1.15">Review</h2><span class="stripes"></span><button type="button" class="wbtn" data-close aria-label="Close the note"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<div class="lib-note"><p>Accept writes the fields that are on, and History can undo it. Decline declines the ones that are off. The red cable joins fields that switch on and off together. Press a field to edit its value. 86% is the agent's own confidence.</p></div>
+</div>
 <section class="win slot" aria-label="Review">
 <div class="lib-save">
 <span class="t2 sm" style="flex: 1; min-width: 0">2 fields · 6 files</span>
-<button type="button" class="key">Decline</button>
+<button type="button" class="key">Decline 1</button>
 <button type="button" class="key sun">Accept 2</button>
 </div>
 </section>
@@ -61,5 +84,16 @@
 </nav>
 </div>
 <script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+<script>
+(() => {
+  const ask = document.getElementById("ask"), send = document.getElementById("send");
+  ask.addEventListener("click", () => {
+    const on = ask.getAttribute("aria-checked") !== "true";
+    ask.setAttribute("aria-checked", String(on));
+    send.textContent = on ? "Ask for changes" : "Send comment";
+  });
+})();
+</script>
+<script src="../tips.js"></script>
 </body>
 </html>

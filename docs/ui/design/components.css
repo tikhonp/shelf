@@ -333,6 +333,8 @@ body:has(.rs.day) { background: #CBC6BC; }
 .rs .unit-body { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; padding: 16px 18px; }
 .rs .plate { display: flex; flex-direction: column; gap: 6px; width: 190px; flex: none; }
 .rs .plate h2 { display: flex; align-items: center; gap: 10px; font-family: var(--label); font-size: 18px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+/* The line under a plate's title starts where the title text does, past its 11px lamp and 10px gap. A plate without a lamp needs no indent. */
+.rs .plate h2:has(> .led) + .sub { padding-left: 21px; }
 
 /* Meter: one SVG, viewBox 0 0 200 120, pivot at (100, 150), sweep -40deg to +40deg. The needle angle is
    -40 + 80 * value. Only the rate-limit wait uses it, because there the wait is the one thing on screen. */

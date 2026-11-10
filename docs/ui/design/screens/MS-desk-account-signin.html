@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="../tokens.css">
 <link rel="stylesheet" href="../components.css">
 <link rel="stylesheet" href="../library.css">
+<link rel="stylesheet" href="../slide.css">
 <style>
 body{margin:0}
 a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
@@ -15,22 +16,6 @@ a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
 </head>
 <body>
 <div class="rs desk console " style="width: 1440px; height: 900px; position: relative; overflow: hidden; display: flex; flex-direction: column">
-<header class="menubar">
-<span class="brand"><span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>Music Shelf</span>
-<nav aria-label="Main, after sign-in" style="display: flex; gap: 6px; opacity: .35; transition: opacity .4s">
-<span class="mb-item" aria-disabled="true">Library</span>
-<span class="mb-item" aria-disabled="true">Inbox</span>
-<span class="mb-item" aria-disabled="true">Search</span>
-<span class="mb-item" aria-disabled="true">Downloads</span>
-<span class="mb-item" aria-disabled="true">Status</span>
-</nav>
-<div class="mb-right">
-<span class="led off" title="Qobuz"></span>
-<span class="led off" title="Apple Music"></span>
-<span class="led off" title="Navidrome"></span>
-<span class="vfd num" aria-label="Clock">--:--</span>
-</div>
-</header>
 
 <main style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; padding: 0 var(--gutter) 40px">
 <div class="win unit" aria-hidden="true" style="width: 780px; height: 58px; flex: none">
@@ -42,18 +27,15 @@ a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
 <section class="win unit" aria-labelledby="si-h" style="width: 780px; flex: none">
 <div class="unit-body" style="align-items: stretch; gap: 22px 30px; padding: 22px 24px">
 <div style="width: 214px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 12px">
-<div style="align-self: stretch; display: flex; flex-direction: column; gap: 4px">
-<h1 id="si-h" style="display: flex; align-items: center; gap: 10px; font-family: var(--label); font-size: 18px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; margin: 0"><span class="led off"></span>Sign in</h1>
-<span class="sub">to Music Shelf</span>
-</div>
-<svg width="150" height="124" viewBox="0 0 150 124" aria-hidden="true" style="color: var(--text-2); margin-top: 4px">
+<h1 id="si-h" class="sr">Sign in to Music Shelf</h1>
+<svg class="keysw" data-press width="150" height="124" viewBox="0 0 150 124" aria-hidden="true" style="color: var(--text-2)">
 <defs>
 <radialGradient id="ks-chrome" cx="38%" cy="28%" r="80%"><stop offset="0" stop-color="#F4F6F8"></stop><stop offset=".5" stop-color="#A3AAB4"></stop><stop offset="1" stop-color="#3F454E"></stop></radialGradient>
 <linearGradient id="ks-key" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7F3EA"></stop><stop offset="1" stop-color="#BDB29A"></stop></linearGradient>
 </defs>
 <text x="20" y="22" fill="currentColor" style="font: 700 12px var(--label); letter-spacing: .12em">OFF</text>
 <text x="112" y="22" fill="currentColor" style="font: 700 12px var(--label); letter-spacing: .12em">ON</text>
-<circle cx="137" cy="18" r="4.5" fill="#3A4554" stroke="#0A0C10"></circle>
+
 <line x1="43" y1="31" x2="49" y2="38" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
 <line x1="107" y1="31" x2="101" y2="38" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
 <circle cx="75" cy="72" r="44" fill="url(#ks-chrome)" stroke="#0A0C10" stroke-width="1.5"></circle>
@@ -66,11 +48,14 @@ a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
 <line x1="75" y1="66" x2="75" y2="92" stroke="rgba(0,0,0,.25)" stroke-width="2" stroke-linecap="round"></line>
 </g>
 </svg>
-<button type="button" class="key block">Sign in with a passkey</button>
+<button type="button" class="slide" role="switch" aria-checked="false" aria-label="Sign in with a passkey" data-demo style="margin-top: auto; align-items: center; padding-bottom: 6px">
+<span class="sl-name">Passkey</span>
+<span class="sl-row"><span class="sl-t off">OFF</span><span class="sl-track"><span class="sl-cap"></span></span><span class="sl-t on">ON</span></span>
+</button>
 </div>
 
 <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px">
-<div class="lcd" role="status" style="flex: none; min-height: 66px"><div class="lcd-l">SIGNED OUT</div><div class="lcd-l">PASSWORD OR PASSKEY</div></div>
+<div class="lcd" role="status" style="flex: none; min-height: 86px"><div class="lcd-l dim">MUSIC SHELF</div><div class="lcd-l">SIGNED OUT</div><div class="lcd-l">PASSWORD OR PASSKEY</div></div>
 <form style="display: flex; flex-direction: column; gap: 14px">
 <label class="lbl-f">Username<input class="input" name="username" autocomplete="username webauthn" autocapitalize="none" spellcheck="false" value="tikhon"></label>
 <label class="lbl-f">Password<input class="input" name="password" type="password" autocomplete="current-password" value=""></label>
@@ -89,5 +74,6 @@ a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
 </main>
 </div>
 <script>if (new URLSearchParams(location.search).get("theme") === "day") document.querySelectorAll(".rs").forEach((e) => e.classList.add("day"));</script>
+<script src="../slide-demo.js"></script>
 </body>
 </html>

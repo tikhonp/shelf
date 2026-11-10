@@ -1,0 +1,5 @@
+.rs [hidden] { display: none !important; }
+/* Notes on Inbox names and actions, the Library's .tipbox pattern. A key keeps its pointer, because a press acts. */
+.rs button.has-tip, .rs a.has-tip, .rs .rocker .has-tip { cursor: pointer; }
+.rs svg.has-tip { cursor: help; }
+.rs .key.has-tip:hover .tip-t { text-decoration: none; }

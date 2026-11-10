@@ -22,7 +22,7 @@ Production runs `main-0d8516f`, which the owner deployed on 2026-11-10. Optional
 
 shelf-wrapper builds from upstream's `ghcr.io/worldobservationlog/wrapper-lite` image pinned by digest. The index holds 11,461 tracks and 1,008 Navidrome album IDs, forming 1,013 albums because 5 Navidrome albums span two folders.
 
-The sign-in and agent review redesign is built and live. [The design plan](plans/signin-and-agent-review-design.md) records its decisions.
+The sign-in and agent review redesign is built and live. [The design plan](plans/signin-and-agent-review-design.md) records its decisions. [A second pass](plans/signin-and-agent-review-second-pass.md) is designed and waits to be built, with the bugs its review found.
 
 ## Operational notes
 
