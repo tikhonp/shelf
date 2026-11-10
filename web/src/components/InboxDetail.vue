@@ -5,6 +5,7 @@ import type { Evidence, Refusal } from '../api/agents'
 import { useNow } from '../lib/clock'
 import { ago, count } from '../lib/format'
 import { eventLine, opName, outcomeClass, outcomeWord, stateClass, stateWord } from '../lib/inbox'
+import { fieldLabel } from '../lib/tags'
 import { ordered, useInbox } from '../stores/inbox'
 import Cover from './Cover.vue'
 import Icon from './Icon.vue'
@@ -72,7 +73,8 @@ const cascadeText = computed(() => {
 
 // Evidence is tape like a suggestion: the value, then where it came from. Only a web address opens.
 const kinds: Record<string, string> = { suggestion: 'Suggestion', memory: 'Memory', change: 'Change', event: 'Event', note: 'Note', link: 'Link' }
-const tapeValue = (e: Evidence) => e.text || e.url || ([e.field, e.key, e.anchor].filter((x) => typeof x === 'string' && x).join(' · ') || kinds[e.kind] || e.kind)
+// A field is named in the editor's words; a raw key stays as the file holds it.
+const tapeValue = (e: Evidence) => e.text || e.url || ([typeof e.field === 'string' && e.field ? fieldLabel(e.field) : '', e.key, e.anchor].filter((x) => typeof x === 'string' && x).join(' · ') || kinds[e.kind] || e.kind)
 const tapeSource = (e: Evidence) => (typeof e.source === 'string' && e.source ? e.source : kinds[e.kind] ?? e.kind)
 const href = (e: Evidence) => (e.kind === 'link' && typeof e.url === 'string' && /^https?:\/\//i.test(e.url) ? e.url : '')
 
@@ -159,8 +161,9 @@ async function send() {
           <p class="t2 sm">
             <template v-if="a.outcome.files">{{ a.outcome.written ?? 0 }} of {{ count(a.outcome.files, 'file') }} written. </template>
             <template v-if="a.outcome.error">{{ a.outcome.error }} </template>
-            <RouterLink v-if="!a.outcome.expired" :to="{ path: '/library', query: { history: '1' } }">Change {{ a.change_id }} in History</RouterLink>
-            <span v-else>Change {{ a.change_id }} left the history.</span>
+            <span v-if="a.outcome.expired">Change {{ a.change_id }} left the history.</span>
+            <span v-else-if="phone">Change {{ a.change_id }} is in History on a desktop.</span>
+            <RouterLink v-else :to="{ path: '/library', query: { history: '1' } }">Change {{ a.change_id }} in History</RouterLink>
           </p>
         </div>
       </section>

@@ -317,9 +317,9 @@ function rowOf(key: string, group: TagRow['group'], fields: string[], tracks: Li
   }
 }
 
-// tagRows lists every tag of the tracks for All fields, and the keys only the
-// stage holds. known lists the keys Navidrome reads.
-export function tagRows(tracks: LibraryTrack[], stage: Stage, known: string[]): TagRow[] {
+// tagRows lists every tag of the tracks for All fields, and the targets only the
+// stage or a pending proposal names. known lists the keys Navidrome reads.
+export function tagRows(tracks: LibraryTrack[], stage: Stage, known: string[], proposed: Target[] = []): TagRow[] {
   const rows = new Map<string, TagRow>()
   for (const group of ['standard', 'extended'] as const) {
     for (const t of tracks) {
@@ -328,11 +328,18 @@ export function tagRows(tracks: LibraryTrack[], stage: Stage, known: string[]): 
       }
     }
   }
-  for (const t of tracks) {
-    for (const target of Object.keys(stage[t.id] ?? {})) {
-      const key = target.startsWith('key:') ? target.slice(4) : null
-      if (key && !rows.has(key)) rows.set(key, rowOf(key, known.includes(key) ? 'standard' : 'extended', [], tracks, true))
+  const targets = [...tracks.flatMap((t) => Object.keys(stage[t.id] ?? {})), ...proposed]
+  for (const target of targets) {
+    const key = target.startsWith('key:') ? target.slice(4) : null
+    if (key) {
+      if (!rows.has(key)) rows.set(key, rowOf(key, known.includes(key) ? 'standard' : 'extended', [], tracks, true))
+      continue
     }
+    // A field no file holds yet, such as Album artists an agent proposes, gets a row of its own, so its tape shows.
+    // Its key is the field's usual tag name; Save writes the field and picks the key itself.
+    if (mainFields.some((f) => f.field === target) || [...rows.values()].some((r) => r.fields.includes(target))) continue
+    const name = target.toUpperCase()
+    if (!rows.has(name)) rows.set(name, { ...rowOf(name, known.includes(name) ? 'standard' : 'extended', [target], tracks, true), target })
   }
   return [...rows.values()]
 }

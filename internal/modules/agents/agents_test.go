@@ -256,6 +256,18 @@ func TestProposalDoesNotWriteAndAcceptanceIsIdempotent(t *testing.T) {
 		t.Fatal("decline wrote library")
 	}
 }
+func TestUnknownAgentPathIsNotFound(t *testing.T) {
+	r := rig(t, true, nil)
+	res := r.call(t, "GET", "/api/agent/v1/library/albums", nil, true)
+	want(t, res, 404)
+	var b struct {
+		Code string `json:"code"`
+	}
+	_ = json.Unmarshal(res.Body.Bytes(), &b)
+	if b.Code != "not_found" {
+		t.Fatalf("code %q: %s", b.Code, res.Body.String())
+	}
+}
 func TestListNamesFieldsWithoutValues(t *testing.T) {
 	r := rig(t, true, nil)
 	create(t, r)

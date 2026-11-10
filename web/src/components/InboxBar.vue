@@ -50,7 +50,9 @@ const summary = computed(() => {
         <div v-if="accepted" class="line g8 wrap ib-out">
           <span class="pill" :class="outcomeClass(accepted)">{{ outcomeWord(accepted) }}</span>
           <span class="sm"><template v-if="accepted.outcome.files">{{ accepted.outcome.written ?? 0 }} of {{ count(accepted.outcome.files, 'file') }}</template></span>
-          <RouterLink v-if="!accepted.outcome.expired" class="sm" :to="{ path: '/library', query: { history: '1' } }">Change {{ accepted.change_id }} in History</RouterLink>
+          <!-- The phone has no History, so a link there would land on the album list. -->
+          <span v-if="!accepted.outcome.expired && phone" class="sm t2">Change {{ accepted.change_id }} is in History on a desktop.</span>
+          <RouterLink v-else-if="!accepted.outcome.expired" class="sm" :to="{ path: '/library', query: { history: '1' } }">Change {{ accepted.change_id }} in History</RouterLink>
         </div>
         <template v-if="canReview && declining">
           <label class="lbl-f grow">Why decline {{ inbox.selected.length ? 'the rest' : 'every field' }}? Optional<input v-model="reason" class="lib-in" maxlength="4000" /></label>

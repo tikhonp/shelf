@@ -57,9 +57,13 @@ func (m *Module) h(f echo.HandlerFunc) echo.HandlerFunc {
 		var ae *apiError
 		if !errors.As(err, &ae) {
 			var he *echo.HTTPError
+			// Echo's own errors, such as a path no route matches, carry only a status code.
+			var sc echo.HTTPStatusCoder
 			switch {
 			case errors.As(err, &he) && he.Code < 500:
 				ae = fail(he.Code, codeFor(he.Code), he.Message)
+			case errors.As(err, &sc) && sc.StatusCode() < 500:
+				ae = fail(sc.StatusCode(), codeFor(sc.StatusCode()), http.StatusText(sc.StatusCode()))
 			case c.Request().Context().Err() != nil:
 				return err
 			default:

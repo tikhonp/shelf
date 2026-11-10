@@ -17,7 +17,9 @@ onMounted(async () => {
   known.value = (await get<{ keys: string[] }>('/api/library/keys').catch(() => ({ keys: [] }))).keys
 })
 
-const rows = computed(() => tagRows(editor.scope, editor.stage, known.value))
+// A pending proposal's field gets a row even when no file holds it yet, so its tape shows.
+const proposed = computed(() => (editor.suggestions?.album ?? []).filter((s) => s.proposal).map((s) => s.field))
+const rows = computed(() => tagRows(editor.scope, editor.stage, known.value, proposed.value))
 const standard = computed(() => rows.value.filter((r) => r.group === 'standard'))
 const extended = computed(() => rows.value.filter((r) => r.group === 'extended'))
 

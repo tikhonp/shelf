@@ -180,7 +180,7 @@ A field shows its three best suggestions, plus pending agent proposal tapes. An 
 
 | Source | What it suggests | Base confidence |
 | --- | --- | --- |
-| Agent proposals | Exact pending tag values on the proposal's tracks, including removals. Desktop and phone show the connection name. Pressing the tape stages the values; an ordinary Save accepts operations it writes in full. Artwork stays in the Inbox. | The agent's percentage, without combining sources; "Not rated" if omitted |
+| Agent proposals | Exact pending tag values on the proposal's tracks, including removals. Desktop and phone show the connection name. A field no file holds yet, such as Album artists, gets its own row in All fields, and its tape shows there. Pressing the tape stages the values; an ordinary Save accepts operations it writes in full. Artwork stays in the Inbox. | The agent's percentage, without combining sources; "Not rated" if omitted |
 | File name | Track, disc and title from names such as `01 - Title`, `01. Title` and `1-02 Title`, and the artist from `01 Artist - Title` when the track has none. A disc folder such as `CD 2` gives the disc. Only where the track lacks the field. | track 60%, disc 50%, title 45%, artist 35% |
 | Folder | Album and album artist from names such as `Artist - Album (1959) [24B-96kHz]`, or the album from the folder and the artist from the folder above it. Only where no track has the field. | album 50%, album artist 40% |
 | Other tracks | Where the tracks differ on a field they should share, each value some of them hold. | 40%, plus up to 50% by the share of tracks that hold it |
@@ -450,6 +450,7 @@ The test's container installs Alpine's ffmpeg, the one production has, because a
 | An undo that meets a tag changed since | `TestRunUndoLeavesWhatChangedSince` |
 | Retention and Clear history keep a run whole | `TestHistoryRetentionKeepsARunWhole` |
 | Clear history keeps a proposal's change for 10 minutes after it ends, and after its undo ends | `TestPortHistoryAfterTrim`, `TestPortTrimKeepsProposalChangeAfterRecentUndo` |
+| A proposal for a field no file holds, such as Album artists, gets an All fields row for its tape; a staged field gets one too; a held field never gets two | `web/src/lib/tags.test.ts` |
 | ReplayGain in FLAC and M4A, audio not decoded twice, a file ffmpeg can't read | `TestRunWritesReplayGain`, `TestRunMeasureFailureSkipsTheAlbum` |
 | Gates, pooled blocks against one decode, no signal, a stopped decode, tag formats | `loudness`: `TestIntegratedGates`, `TestPoolMatchesOneDecode`, `TestParseKeepsThePeakAndSkipsNoSignal`, `TestAnalyzeStopsWithItsContext`, `TestFormats` |
 | AcoustID as the last resort, a miss, a failure, no key, MusicBrainz down | `TestAudioFindsTheAnchorWhenTextFindsNothing`, `TestAudioThatFindsNothingIsKeptAsAMiss`, `TestFailedFingerprintStoresNothing`, `TestNoKeyNoFingerprint`, `TestAudioDoesNothingWhenMusicBrainzFails`, `TestAudioWaitsForTextLookups` |

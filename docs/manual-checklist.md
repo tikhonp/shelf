@@ -62,9 +62,15 @@ Last run: passed in production, run by the owner before 2026-11-10. The gateway'
 
 ## Optional agents
 
-Production turned agents on before this checklist ran. Run it after deploying the review fixes and the redesign from 2026-11-10.
+This checklist ran in production on 2026-11-10 on `main-846ae08`, with agents already on. The writes went to Darkside EP, and undo restored its files byte for byte afterwards. A temporary account, `checklist`, acted as a second user, and the owner's CLI deleted it at the end. The phone items ran on a real Android phone. Every item passed except the Clear history item, which the owner skipped to keep History's undo entries; automated tests cover it. The run found five bugs, fixed afterwards:
 
-The traversal item passed on 2026-11-10 on `main-6210916`: all three paths got 400, and the agent and library APIs got 401 without credentials.
+- An agent request to a path with no route answered 500 instead of 404.
+- The design contract listed `/library/albums` for agents; the path is `/albums`.
+- Evidence tape named a field by its ID, such as `originaldate`.
+- On the phone, "Change N in History" led to the album list, because the phone has no History.
+- A proposal for a field no file held, such as Album artists, showed under Proposed but had no tape.
+
+Undo requests sent within a second of each other on one album answer 202, and only the first writes. The writer refuses the others, because the files changed under them. It writes nothing wrong, but an API client can't tell. Pressing Undo in History one change at a time works.
 
 - Enable `SHELF_AGENT_ENABLED=true` on a disposable library. The Inbox and Agents panel appear; disable it and confirm both disappear while saved records remain.
 - Create a connection from the CLI, or from Status with Shelf sign-in enabled. Copy its secret separately from the setup prompt. Listing connections must never show that secret again.

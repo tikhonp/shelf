@@ -46,12 +46,12 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
-async function openDetail(over: Record<string, unknown> = {}) {
+async function openDetail(over: Record<string, unknown> = {}, phone = false) {
   stubApi({ '/api/inbox/proposals/4/preview': { preview: sameOnSix(), refusal: null, missing: [] }, '/api/inbox/proposals/4': detail(), ...over })
   const router = createAppRouter(createMemoryHistory())
   await router.push('/inbox/4')
   await useInbox().open(4)
-  const w = mount(InboxDetail, { global: { plugins: [router] } })
+  const w = mount(InboxDetail, { props: { phone }, global: { plugins: [router] } })
   await flushPromises()
   return w
 }
@@ -97,6 +97,14 @@ test('evidence is tape, and only a web address opens', async () => {
   expect(links[0]!.attributes('rel')).toBe('noopener noreferrer')
   expect(w.findAll('.ib-tapes .sug')).toHaveLength(3)
   expect(w.find('.ib-tapes').text()).not.toMatch(/\blink\b|\bnote\b/)
+})
+
+test('evidence that names a field uses the editor word, not the field ID', async () => {
+  const d = detail()
+  d.current.evidence = [{ kind: 'suggestion', source: 'musicbrainz', field: 'originaldate' }, { kind: 'suggestion', source: 'file', key: 'ORIGINALYEAR' }]
+  const w = await openDetail({ '/api/inbox/proposals/4': d })
+  const tapes = w.findAll('.ib-tapes .sug-v').map((t) => t.text())
+  expect(tapes).toEqual(['Original date', 'ORIGINALYEAR'])
 })
 
 test('one reply box: Send comments, or requests changes with the rocker on', async () => {
@@ -305,4 +313,12 @@ test('after Accept the bar shows the outcome, the files and the change in Histor
   expect(out.find('.pill').text()).toBe('Written')
   expect(out.text()).toContain('6 of 6 files')
   expect(out.text()).toContain('Change 31 in History')
+})
+
+test('on the phone, which has no History, the change is named without a link', async () => {
+  const d = detail()
+  d.acceptances = [{ id: 9, revision: 1, ops: ['originaldate', 'releasedate'], change_id: 31, author: 'alice', created_at: '2026-11-09T10:00:00Z', outcome: { state: 'done', files: 6, written: 6 } } as never]
+  const w = await openDetail({ '/api/inbox/proposals/4': d }, true)
+  expect(w.text()).toContain('Change 31 is in History on a desktop.')
+  expect(w.findAll('a').some((a) => (a.attributes('href') ?? '').includes('history=1'))).toBe(false)
 })

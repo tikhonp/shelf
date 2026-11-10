@@ -165,3 +165,18 @@ test('a value over 100 characters is long', () => {
   expect(isLong(['x'.repeat(100)])).toBe(false)
   expect(isLong(['short', 'x'.repeat(101)])).toBe(true)
 })
+
+test('a field no file holds gets a row when a proposal names it or the stage holds it, and a held one never twice', () => {
+  const t = track(1, { genre: ['Rock'] })
+  const rows = tagRows([t], {}, ['ALBUMARTISTS'], ['albumartists', 'genre', 'key:CATALOGNUMBER'])
+  expect(rows.map((r) => [r.key, r.target, r.group, r.custom])).toEqual([
+    ['GENRE', 'genre', 'standard', false],
+    ['ALBUMARTISTS', 'albumartists', 'standard', true],
+    ['CATALOGNUMBER', 'key:CATALOGNUMBER', 'extended', true],
+  ])
+  expect(rows[1]!.fields).toEqual(['albumartists'])
+  const staged = stageEdit({}, [t], 'mood', ['Calm'])
+  expect(tagRows([t], staged, []).map((r) => r.target)).toEqual(['genre', 'mood'])
+  const held = track(2, { albumartists: ['DARKSIDE'] })
+  expect(tagRows([held], {}, [], ['albumartists']).filter((r) => r.fields.includes('albumartists'))).toHaveLength(1)
+})

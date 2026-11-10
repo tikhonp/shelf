@@ -224,7 +224,7 @@ The canvas boards are `project/Lib-*.dc.html`, styled by `project/retro.css` and
 - An added custom field shows the same staged look as other edits. A deleted one stays in its row, struck through, until Save.
 - All fields is a small rocker in the Editor's title bar. On the phone, the same rocker pattern sets Compilation, and All fields doesn't exist.
 - The Save bar sits at the foot of the Editor on the desktop. On the phone it takes a slot above the tab bar, and so does the player. The desktop player sits at the foot of the track list. Both players appear only while a track plays.
-- Select and History are caps in the Library title bar, and the bulk run and History open beside the album list. The phone has neither.
+- Select and History are caps in the Library title bar, and the bulk run and History open beside the album list. The phone has neither, so on the phone the Inbox names an accepted change, such as "Change 84 is in History on a desktop", instead of linking to History.
 - Dividers (`.lib-split`) resize the panels by dragging or with the left and right arrows. Below 1100px the panels stack and the dividers go.
 - The filter menu shows how many albums each entry holds.
 - A phone confirm, such as the split warning, is a slot. A desktop confirm is a dialog.

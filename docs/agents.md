@@ -62,7 +62,7 @@ Acceptance, per-field decisions, the library change, and the write job commit to
 
 ## Proposal values in the Library
 
-The editor shows pending proposals under Proposed. Each row names the agent and fields and links to its Inbox review. Pending tags also appear as suggestion tape on desktop and phone. Each tape shows the connection name and the agent's confidence. An omitted confidence says "Not rated". Shelf never combines it with other sources' confidence.
+The editor shows pending proposals under Proposed. Each row names the agent and fields and links to its Inbox review. Pending tags also appear as suggestion tape on desktop and phone. A field no file holds yet, such as Album artists, gets its own row in All fields for its tape. Each tape shows the connection name and the agent's confidence. An omitted confidence says "Not rated". Shelf never combines it with other sources' confidence.
 
 Pressing a proposal tape stages its exact values on its target tracks. The Save runs the usual checks and writes. Shelf then accepts each tag operation whose values that Save wrote on every target file. Other values, missing files and unwritten files leave it pending. Artwork still needs Inbox acceptance. Track IDs and recorded paths must both match.
 

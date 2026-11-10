@@ -730,11 +730,11 @@ Rules and proposed rules come with bodies; preferences, context and tombstones c
 
 ### Library
 
-- `GET /library/albums?q=&filter=&folder=&source=&sort=&order=&limit=&offset=` → `AlbumPage` (`library.read`)
-- `GET /library/albums/:id` → `Album` (`library.read`)
-- `GET /library/albums/:id/suggestions?external=0|1` → the library's suggestions JSON. `external=1` needs `library.lookup` and counts against `lookup`.
-- `GET /library/albums/:id/cover` → image bytes (`library.read`)
-- `GET /library/history?after=&limit=` → `HistoryPage` (`history.read`)
+- `GET /albums?search=&limit=&offset=` → `AlbumPage` (`library.read`)
+- `GET /albums/:id` → `Album` (`library.read`)
+- `GET /albums/:id/suggestions?external=false|true` → the library's suggestions JSON. `external=true` needs `library.lookup` and counts against `lookup`.
+- `GET /albums/:id/cover` → image bytes (`library.read`)
+- `GET /history?after=&limit=` → `HistoryPage` (`history.read`)
 - `POST /covers` with an image body → `Image`, 201 (`covers.upload`)
 - `POST /covers/offers/:offer` → `Image`, 201 (`library.lookup`, counts `offer`). The offer ID comes from suggestions' `covers[].image`.
 
