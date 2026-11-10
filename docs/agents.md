@@ -10,7 +10,9 @@ Set `SHELF_AGENT_ENABLED=true`. The default is `false`. This switch is independe
 
 The module's migrations run even when disabled, so proposals and memory survive switching it off and CLI revocation remains available. Disabled means no agent or inbox endpoints, navigation, or background outcome processing. Already accepted library jobs continue through their existing lifecycle.
 
-With Shelf sign-in enabled, open Status, then Agents, to create a named connection. Choose its permissions. Shelf then shows the setup prompt with the connection's secret in it, once. Paste that prompt into the agent to start it. The secret alone is shown too, for an agent that reads `SHELF_AGENT_TOKEN` from its environment. Shelf stores the secret's hash, so the setup prompt under Agents holds no secret and names `SHELF_AGENT_TOKEN` instead. The browser holds a newly created secret only until it is dismissed or the user leaves the panel.
+With Shelf sign-in enabled, open Status, then Agents, to create a named connection. Choose its permissions. Shelf then shows the setup prompt with the connection's secret in it, once. Paste that prompt into the agent to start it. The secret alone is shown too, for an agent that reads `SHELF_AGENT_TOKEN` from its environment. While the prompt shows, the Connect form is locked, and Done closes the prompt. When neither the prompt nor the secret was copied, Done asks first, and Close anyway closes it. Shelf stores only the secret's hash, so no page shows the prompt again. A connection that lost its prompt is revoked and connected again. The browser holds a newly created secret only until Done or until the user leaves Status.
+
+Each connection has its own unit on Status with its permissions, its last run, its proposals with fields still pending and its active rules. Revoke is the connection's patch cable. Pressing it asks first, and Revoke pulls the plug out. A revoked connection keeps a dim unit that names who revoked it, and its proposals stay in the Inbox.
 
 Without Shelf sign-in, create connections from the CLI:
 

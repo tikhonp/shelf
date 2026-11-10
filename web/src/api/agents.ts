@@ -283,6 +283,12 @@ export interface Connection {
   last_used_at: string | null
   revoked_at: string | null
   revoke_reason: string
+  // revoked_by is the name of who revoked it, empty when unknown.
+  revoked_by?: string
+  last_run_at?: string | null
+  // proposals counts the connection's proposals with fields still pending, and rules its active memory rules.
+  proposals?: number
+  rules?: number
 }
 
 export interface Setup {

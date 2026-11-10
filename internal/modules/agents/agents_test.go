@@ -515,3 +515,70 @@ func (l *testLibrary) SaveHistory(_ context.Context, after int64, _ int) (librar
 	}
 	return page, nil
 }
+
+func TestConnectionListFacts(t *testing.T) {
+	r := rig(t, true, nil)
+	ctx := context.Background()
+	other, _, err := r.m.AddConnection(ctx, "Other", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	list := func() []Connection {
+		t.Helper()
+		res := r.call(t, "GET", "/api/inbox/connections", nil, false)
+		want(t, res, 200)
+		var rows []Connection
+		if err := json.Unmarshal(res.Body.Bytes(), &rows); err != nil {
+			t.Fatal(err)
+		}
+		return rows
+	}
+	rows := list()
+	if rows[1].LastRunAt != nil || rows[1].RevokedBy != "" || rows[1].Proposals != 0 || rows[1].Rules != 0 {
+		t.Fatalf("empty connection: %+v", rows[1])
+	}
+	exec := func(query string, args ...any) {
+		t.Helper()
+		if _, err := r.app.DB.W.Exec(query, args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	exec(`INSERT INTO agents_runs(connection_id,started_at,last_seen_at) VALUES(?,?,?),(?,?,?)`, other.ID, "2026-01-01T00:00:00.000Z", "2026-01-01T00:00:00.000Z", other.ID, "2026-02-01T00:00:00.123Z", "2026-02-01T00:00:00.123Z")
+	for i, pending := range []int{2, 1, 0, 3} {
+		var withdrawn any
+		if i == 3 {
+			withdrawn = "2026-01-01T00:00:00.000Z"
+		}
+		exec(`INSERT INTO agents_proposals(connection_id,run_id,album_id,folder,title,artist,head,pending,withdrawn_at,created_at,updated_at) VALUES(?, ?, 1, '', '', '', 1, ?, ?, '', '')`, other.ID, r.run, pending, withdrawn)
+	}
+	for i, state := range []struct {
+		layer, status string
+		conn          any
+	}{
+		{"rule", "active", other.ID}, {"rule", "active", other.ID}, {"rule", "proposed", other.ID}, {"rule", "deleted", other.ID}, {"context", "active", other.ID}, {"preference", "active", other.ID}, {"rule", "active", int64(1)}, {"rule", "active", nil},
+	} {
+		exec(`INSERT INTO agents_memory(key,layer,status,title,body,version,author_kind,author_id,author,connection_id,created_at,updated_at) VALUES(?,?,?,'','',1,'user','','',?,'','')`, fmt.Sprintf("rule-%d", i), state.layer, state.status, state.conn)
+	}
+	user := identity.With(ctx, identity.Account(42, "Alice"))
+	if err := r.m.RevokeConnection(user, other.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.m.RevokeConnection(ctx, 1); err != nil {
+		t.Fatal(err)
+	}
+	rows = list()
+	c := rows[1]
+	if c.LastRunAt == nil || *c.LastRunAt != "2026-02-01T00:00:00.123Z" || c.Proposals != 2 || c.Rules != 2 || c.RevokedBy != "Alice" {
+		t.Fatalf("connection facts: %+v", c)
+	}
+	if rows[0].RevokedBy != "CLI" || rows[0].Proposals != 0 || rows[0].Rules != 1 {
+		t.Fatalf("CLI connection: %+v", rows[0])
+	}
+	var authorID string
+	if err := r.app.DB.R.Get(&authorID, `SELECT revoked_by FROM agents_connections WHERE id=?`, other.ID); err != nil {
+		t.Fatal(err)
+	}
+	if authorID != "user:42" {
+		t.Fatalf("revoked_by ID = %q", authorID)
+	}
+}

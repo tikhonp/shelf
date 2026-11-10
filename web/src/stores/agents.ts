@@ -4,7 +4,7 @@ import { listOf, type Connection, type Setup } from '../api/agents'
 import { errorText, get, post } from '../api/client'
 import { useInbox } from './inbox'
 
-// Agent connections and the setup prompt, for the Agents panel on Status.
+// Agent connections and the operations a new one can have, for the Agents units on Status.
 export const useAgents = defineStore('agents', () => {
   const connections = ref<Connection[]>([])
   const setup = ref<Setup | null>(null)

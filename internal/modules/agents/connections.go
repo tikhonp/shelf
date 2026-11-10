@@ -76,29 +76,34 @@ type Connection struct {
 	LastUsedAt   *string  `json:"last_used_at"`
 	RevokedAt    *string  `json:"revoked_at"`
 	RevokeReason string   `json:"revoke_reason"`
+	RevokedBy    string   `json:"revoked_by"`
+	LastRunAt    *string  `json:"last_run_at"`
+	Proposals    int      `json:"proposals"`
+	Rules        int      `json:"rules"`
 	AccountID    *int64   `json:"-"`
 }
 
 type connRow struct {
-	ID           int64          `db:"id"`
-	Name         string         `db:"name"`
-	TokenHash    string         `db:"token_hash"`
-	Operations   string         `db:"operations"`
-	AccountID    sql.NullInt64  `db:"account_id"`
-	CreatedByID  string         `db:"created_by_id"`
-	CreatedBy    string         `db:"created_by"`
-	CreatedAt    db.Time        `db:"created_at"`
-	LastUsedAt   db.Time        `db:"last_used_at"`
-	RevokedAt    db.Time        `db:"revoked_at"`
-	RevokedBy    sql.NullString `db:"revoked_by"`
-	RevokeReason string         `db:"revoke_reason"`
+	ID            int64          `db:"id"`
+	Name          string         `db:"name"`
+	TokenHash     string         `db:"token_hash"`
+	Operations    string         `db:"operations"`
+	AccountID     sql.NullInt64  `db:"account_id"`
+	CreatedByID   string         `db:"created_by_id"`
+	CreatedBy     string         `db:"created_by"`
+	CreatedAt     db.Time        `db:"created_at"`
+	LastUsedAt    db.Time        `db:"last_used_at"`
+	RevokedAt     db.Time        `db:"revoked_at"`
+	RevokedBy     sql.NullString `db:"revoked_by"`
+	RevokeReason  string         `db:"revoke_reason"`
+	RevokedByName string         `db:"revoked_by_name"`
 }
 
-const connCols = `id, name, token_hash, operations, account_id, created_by_id, created_by, created_at, last_used_at, revoked_at, revoked_by, revoke_reason`
+const connCols = `id, name, token_hash, operations, account_id, created_by_id, created_by, created_at, last_used_at, revoked_at, revoked_by, revoke_reason, revoked_by_name`
 
 func (r connRow) conn() Connection {
 	c := Connection{ID: r.ID, Name: r.Name, CreatedByID: r.CreatedByID, CreatedBy: r.CreatedBy,
-		CreatedAt: stamp(r.CreatedAt), LastUsedAt: optStamp(r.LastUsedAt), RevokedAt: optStamp(r.RevokedAt), RevokeReason: r.RevokeReason}
+		CreatedAt: stamp(r.CreatedAt), LastUsedAt: optStamp(r.LastUsedAt), RevokedAt: optStamp(r.RevokedAt), RevokeReason: r.RevokeReason, RevokedBy: r.RevokedByName}
 	_ = json.Unmarshal([]byte(r.Operations), &c.Operations)
 	if c.Operations == nil {
 		c.Operations = []string{}
@@ -240,13 +245,27 @@ func (m *Module) connection(ctx context.Context, id int64) (Connection, error) {
 
 // ListConnections lists every connection, revoked ones included, by ID.
 func (m *Module) ListConnections(ctx context.Context) ([]Connection, error) {
-	rows := []connRow{}
-	if err := m.db.R.SelectContext(ctx, &rows, `SELECT `+connCols+` FROM agents_connections ORDER BY id`); err != nil {
+	rows := []struct {
+		connRow
+		LastRunAt db.Time `db:"last_run_at"`
+		Proposals int     `db:"proposals"`
+		Rules     int     `db:"rules"`
+	}{}
+	if err := m.db.R.SelectContext(ctx, &rows, `SELECT c.*,
+		r.last_run_at, coalesce(p.proposals, 0) AS proposals, coalesce(m.rules, 0) AS rules
+		FROM agents_connections c
+		LEFT JOIN (SELECT connection_id, max(started_at) AS last_run_at FROM agents_runs GROUP BY connection_id) r ON r.connection_id = c.id
+		LEFT JOIN (SELECT connection_id, count(*) AS proposals FROM agents_proposals WHERE pending > 0 AND withdrawn_at IS NULL GROUP BY connection_id) p ON p.connection_id = c.id
+		LEFT JOIN (SELECT connection_id, count(*) AS rules FROM agents_memory WHERE layer = 'rule' AND status = 'active' GROUP BY connection_id) m ON m.connection_id = c.id
+		ORDER BY c.id`); err != nil {
 		return nil, err
 	}
 	out := make([]Connection, len(rows))
 	for i, r := range rows {
 		out[i] = r.conn()
+		out[i].LastRunAt = optStamp(r.LastRunAt)
+		out[i].Proposals = r.Proposals
+		out[i].Rules = r.Rules
 	}
 	return out, nil
 }
@@ -259,10 +278,10 @@ func (m *Module) RevokeConnection(ctx context.Context, id int64) error {
 	if a.ID == "" || a.ID == "cli" {
 		a, reason = identity.Author{ID: "cli", Name: "CLI"}, "cli"
 	}
-	return m.revoke(ctx, id, a.ID, reason)
+	return m.revoke(ctx, id, a.ID, a.Name, reason)
 }
 
-func (m *Module) revoke(ctx context.Context, id int64, by, reason string) error {
+func (m *Module) revoke(ctx context.Context, id int64, by, name, reason string) error {
 	return m.db.Write(ctx, func(tx *sqlx.Tx) error {
 		var revoked db.Time
 		err := tx.GetContext(ctx, &revoked, `SELECT revoked_at FROM agents_connections WHERE id = ?`, id)
@@ -275,8 +294,8 @@ func (m *Module) revoke(ctx context.Context, id int64, by, reason string) error 
 		if !revoked.IsZero() {
 			return ErrAlreadyRevoked
 		}
-		_, err = tx.ExecContext(ctx, `UPDATE agents_connections SET revoked_at = ?, revoked_by = ?, revoke_reason = ? WHERE id = ?`,
-			m.now(), by, reason, id)
+		_, err = tx.ExecContext(ctx, `UPDATE agents_connections SET revoked_at = ?, revoked_by = ?, revoked_by_name = ?, revoke_reason = ? WHERE id = ?`,
+			m.now(), by, name, reason, id)
 		return err
 	})
 }
@@ -347,7 +366,7 @@ func (m *Module) agentAuth(next echo.HandlerFunc) echo.HandlerFunc {
 				return err
 			}
 			if !exists {
-				if err := m.revoke(ctx, conn.ID, "system", "account_deleted"); err != nil && !errors.Is(err, ErrAlreadyRevoked) {
+				if err := m.revoke(ctx, conn.ID, "system", "", "account_deleted"); err != nil && !errors.Is(err, ErrAlreadyRevoked) {
 					return err
 				}
 				return fail(http.StatusUnauthorized, "revoked", "the account that created this connection was deleted")

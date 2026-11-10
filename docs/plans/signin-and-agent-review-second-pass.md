@@ -44,6 +44,8 @@ With no accounts, the display reads NO ACCOUNTS YET / CREATE THE FIRST ONE, and 
 
 Today the server only reports `setup_needed`, and the UI tells the user to run `shelf manage users add`. This needs a new endpoint that creates an account only while none exists, in the same transaction as the count, so two requests can't both succeed. See [the risk below](#found-on-2026-11-10).
 
+The owner accepted that risk. An environment option turns the screen off, and the UI then names `shelf manage users add` as it does today.
+
 ## Account on Status
 
 `AccountSettings.vue`, `PartCard.vue`.
@@ -58,7 +60,9 @@ Built on 2026-11-10. Rename and Add passkey use the same confirm as Remove, besi
 
 ## Agents on Status
 
-`AgentsPanel.vue`. The target is the layout in the screens, a rack unit per connection, not today's single card.
+`AgentsPanel.vue`, `PatchJack.vue`. The target is the layout in the screens, a rack unit per connection, not today's single card.
+
+Built on 2026-11-10. The connection list gained who revoked a connection, its last run, its proposals with fields still pending, and its active rules, for the displays. A connection revoked before then names only how it was revoked. The Agents unit lost its paragraph, since Open the Inbox and Memory name where to go. A copy that fails says so beside Copy prompt and selects the text.
 
 - The Agents unit has a display with the connections and the pending proposals. Open the Inbox is a square lamp that glows amber while proposals wait (`.msgbtn[data-lit]`). Under the pointer only the lens brightens. Memory is a floppy disk half out of its drive that slides in under the pointer (`.fdbtn`). The Inbox title bars use the same Memory key.
 - Each connection has a unit with a lamp, its name, who added it and when, a display with its last run and proposals, and its permissions as tape. A long name wraps in the plate.
@@ -92,15 +96,15 @@ These go into the app's stylesheets. Only the first touches pages outside this w
 These are bugs in the running app and questions to settle before building.
 
 1. **Sign out drops staged edits without asking.** `logout` in `web/src/stores/auth.ts` reloads the page, and the edits `editor.kept` counts are lost. The design asks first. Fixed on 2026-11-10, and the sign-out key switch asks the same way.
-2. **Creating the first account from the UI is open to anyone.** On a fresh install, whoever reaches the page first gets the account. Production has accounts, so only a new install is open to this. A one-time setup code the server prints in its log would close it. The owner hasn't chosen yet.
-3. **Helper text shows at rest.** "Accept writes 3 fields to 6 files. History can undo it." (`InboxBar.vue:30`), "No agent can accept, save or delete." (`AgentsPanel.vue:110`) and "Then you sign in again with the new one." (`AccountSettings.vue:116`). Each becomes a note. The Status one is fixed.
+2. **Creating the first account from the UI is open to anyone.** On a fresh install, whoever reaches the page first gets the account. Production has accounts, so only a new install is open to this. On 2026-11-10 the owner accepted the risk, with no setup code, and asked for an environment option that turns off creating the first account in the UI.
+3. **Helper text shows at rest.** "Accept writes 3 fields to 6 files. History can undo it." (`InboxBar.vue:30`), "No agent can accept, save or delete." (`AgentsPanel.vue:110`) and "Then you sign in again with the new one." (`AccountSettings.vue:116`). Each becomes a note. Both Status ones are fixed.
 4. **The small key switch's legends are unreadable.** `AccountDesk.vue:138` draws it 96px wide, and OFF and ON come out under 8px. The design draws it at 120px. Fixed on 2026-11-10, and below 150px the legends grow.
 5. **The phone's decline key says only "Decline"** (`InboxBar.vue:67`), which reads as declining everything beside "Accept 2".
 6. **Send does two things under one label** (`InboxDetail.vue:186`). It posts a comment or asks for changes, after the rocker.
-7. **"I stored it" drops a secret that shows only once**, and doesn't ask when the user copied nothing (`AgentsPanel.vue:73`). Connect and Copy prompt are both amber while the prompt shows.
+7. **"I stored it" drops a secret that shows only once**, and doesn't ask when the user copied nothing (`AgentsPanel.vue:73`). Connect and Copy prompt are both amber while the prompt shows. Fixed on 2026-11-10.
 8. **The sign-in title bar repeats the Sign in key** on the phone (`AccountDesk.vue:111`), and no sign-in screen names Music Shelf.
 9. **Render the help slot and confirm rows with `v-if`, not `hidden`.** `.win` and `.key` set `display`, which beats the `hidden` attribute, so a hidden slot still shows. The screens needed `.rs [hidden] { display: none !important; }` for this.
-10. **Removing the Setup prompt section** leaves no way in the UI to see the prompt again for an existing connection. The CLI still prints it with `SHELF_PUBLIC_URL` set. A connection that lost its prompt is revoked and connected again.
+10. **Removing the Setup prompt section** leaves no way in the UI to see the prompt again for an existing connection. The CLI still prints it with `SHELF_PUBLIC_URL` set. A connection that lost its prompt is revoked and connected again. Done on 2026-11-10.
 11. **The phone sign-in moves from the top to the center** with this design. The first redesign put it at the top for the keyboard. The new layout has to move it up while the keyboard is open, and S4 draws that state.
 12. **`docs/ui/design/README.md` said the redesign wasn't built**, after it was. This export fixes it.
 

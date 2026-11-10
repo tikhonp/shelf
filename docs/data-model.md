@@ -289,7 +289,7 @@ The agents module always migrates its STRICT tables, including when the feature 
 
 | Table | Stored data |
 | --- | --- |
-| `agents_connections` | Connection identity, hashed token, operations, creating account and author, timestamps, revocation. No foreign key crosses module boundaries. |
+| `agents_connections` | Connection identity, hashed token, operations, creating account and author, timestamps, and the revocation with its reason, the revoker's ID and the name `revoked_by_name` captured then. No foreign key crosses module boundaries. |
 | `agents_runs` | Connection-bound external sessions. |
 | `agents_proposals` | Original album context, review group, follow-up link, current revision, pending count, withdrawal and revision-request flags. |
 | `agents_revisions` | Immutable agent/user values, evidence, recorded file paths and revisions, operations, preview and per-operation digests. |

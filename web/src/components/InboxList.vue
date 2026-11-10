@@ -77,7 +77,7 @@ const pill = (p: ProposalSummary) => inbox.filters.state === 'all' || (p.state =
     <p v-if="inbox.listError" class="bad-text pad" role="alert">{{ inbox.listError }}</p>
     <div v-if="!inbox.listLoading && inbox.proposals.length === 0 && !inbox.listError" class="empty">
       <h2>{{ inbox.filters.state === 'pending' ? 'Nothing to review' : 'No proposals' }}</h2>
-      <p>Proposals from a connected agent show here. Status has the setup prompt.</p>
+      <p>Proposals from a connected agent show here. Connect one on Status.</p>
     </div>
     <ul v-else class="rows ib-rows" aria-label="Proposals">
       <li v-for="p in inbox.proposals" :key="p.id" class="row ib-row" :class="{ cur: selected === p.id }">

@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { ApiError, errorText } from '../api/client'
 import { addPasskey, passkeyLogin, supportsPasskeys } from '../lib/passkeys'
+import { shortDay } from '../lib/format'
 import { usePhone } from '../lib/viewport'
 import { accountCall, useAuth, type Passkey } from '../stores/auth'
 import { useEditor } from '../stores/editor'
@@ -32,7 +33,6 @@ const part = ref<'account' | 'passkeys' | 'password'>('passkeys')
 const pending = ref<{ at: string; question: string; sub?: string; label: string; action: () => Promise<void> } | null>(null)
 const passkeys = supportsPasskeys()
 const lines = computed(() => [auth.account?.username?.toUpperCase() ?? '', `${keys.value.length} ${keys.value.length === 1 ? 'PASSKEY' : 'PASSKEYS'}`])
-const day = (at: string) => new Date(at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 
 function signOut() {
   if (key.value !== 'on') return
@@ -122,7 +122,7 @@ async function rename(id: string, name: string) {
               </div>
             </form>
             <template v-else>
-              <span class="pk-t"><span class="pk-name">{{ k.name }}</span><span class="sub">Added {{ day(k.created_at) }} · {{ k.last_used_at ? `used ${day(k.last_used_at)}` : 'not used yet' }}</span></span>
+              <span class="pk-t"><span class="pk-name">{{ k.name }}</span><span class="sub">Added {{ shortDay(k.created_at) }} · {{ k.last_used_at ? `used ${shortDay(k.last_used_at)}` : 'not used yet' }}</span></span>
               <div class="pk-keys">
                 <button class="key" :class="{ sm: !phone }" type="button" :disabled="busy" @click="startRename(k)">Rename</button>
                 <button class="key" :class="{ sm: !phone }" type="button" :disabled="busy" @click="renaming = ''; attempt({ at: k.id, question: `Remove ${k.name}?`, sub: 'Removing a passkey signs you out here.', label: 'Remove' }, () => remove(k.id))">Remove</button>

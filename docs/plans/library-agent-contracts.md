@@ -383,6 +383,7 @@ CREATE TABLE agents_connections (
     last_used_at  TEXT,
     revoked_at    TEXT,
     revoked_by    TEXT,
+    revoked_by_name TEXT NOT NULL DEFAULT '',
     revoke_reason TEXT NOT NULL DEFAULT ''          -- '' | user | cli | account_deleted
 ) STRICT;
 CREATE UNIQUE INDEX agents_connections_name ON agents_connections (name) WHERE revoked_at IS NULL;
@@ -818,7 +819,8 @@ Ordinary auth. Author is `identity.From(ctx)`.
 - `DELETE /api/inbox/memory/:id?expected_version=` → tombstone (preference) or removal (rule, context).
 - `POST /api/inbox/memory/reset` `{layers}`.
 - `GET /api/inbox/memory/export` → `{exported_at, learning, memory: [all documents incl. tombstones]}` as an attachment.
-- `GET /api/inbox/connections` → `[{id, name, operations, created_by, created_at, last_used_at, revoked_at, revoke_reason}]`.
+- `GET /api/inbox/connections` → `[{id, name, operations, created_by, created_at, last_used_at, revoked_at, revoked_by, revoke_reason, last_run_at, proposals, rules}]`.
+  `revoked_by` is the name of who revoked the connection, captured at the time, and empty when unknown. `last_run_at` is when its latest run started, in RFC3339Nano UTC, or null. `proposals` counts its proposals that aren't withdrawn and still have pending fields. `rules` counts the active rules it wrote.
 - `POST /api/inbox/connections` `{name, operations?}` → 201 `{connection, token, prompt}`, where `prompt` is the setup prompt with the token in place of `$SHELF_AGENT_TOKEN`. Provider `none`: 403 with the CLI command.
 - `POST /api/inbox/connections/:id/revoke`.
 - `GET /api/inbox/setup` → `{api_base, review_base, operations: [{name, summary}], prompt}`. `api_base` uses `SHELF_PUBLIC_URL` when set, else the request's origin. This prompt names an environment variable `SHELF_AGENT_TOKEN` and never contains a token.

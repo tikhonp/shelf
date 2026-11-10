@@ -36,7 +36,7 @@ export function size(bytes: number): string {
   return `${(bytes / 1e9).toFixed(1)} GB`
 }
 
-function plural(n: number, word: string): string {
+export function plural(n: number, word: string): string {
   return `${n} ${word}${n === 1 ? '' : 's'}`
 }
 
@@ -110,4 +110,9 @@ export function kindWord(kind: string): string {
 // count says "1 track" or "12 tracks".
 export function count(n: number, word: string): string {
   return plural(n, word)
+}
+
+// shortDay is a date as "4 Nov", for when a passkey or a connection was added.
+export function shortDay(time: string): string {
+  return new Date(time).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
