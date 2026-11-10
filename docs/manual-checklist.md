@@ -62,7 +62,7 @@ Last run: passed in production, run by the owner before 2026-11-10. The gateway'
 
 ## Optional agents
 
-This checklist ran in production on 2026-11-10 on `main-846ae08`, with agents already on. The writes went to Darkside EP, and undo restored its files byte for byte afterwards. A temporary account, `checklist`, acted as a second user, and the owner's CLI deleted it at the end. The phone items ran on a real Android phone. Every item passed except the Clear history item, which the owner skipped to keep History's undo entries; automated tests cover it. The run found five bugs, fixed afterwards:
+This checklist ran in production on 2026-11-10 on `main-846ae08`, with agents already on. The writes went to Darkside EP, and undo restored its files byte for byte afterwards. A temporary account, `checklist`, acted as a second user, and the owner's CLI deleted it at the end. The phone items ran on a real Android phone. Every item passed. The owner first skipped the Clear history item to keep History's undo entries, and it passed later that day on `main-de2180a`. An Inbox acceptance wrote Album artists to Darkside EP, and about 30 seconds later Clear history deleted 19 changes. It kept the acceptance's change, and the acceptance still showed Written. Older acceptances whose changes it deleted still showed Undone. Undoing the kept change restored the files. The run found five bugs, fixed afterwards:
 
 - An agent request to a path with no route answered 500 instead of 404.
 - The design contract listed `/library/albums` for agents; the path is `/albums`.
