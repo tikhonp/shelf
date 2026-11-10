@@ -76,7 +76,7 @@ Today the server only reports `setup_needed`, and the UI tells the user to run `
 
 ## Shared styles
 
-These go into the app's stylesheets. Only the first touches pages outside this work.
+These go into the app's stylesheets. Only the first touches pages outside this work. They went into `web/src/styles` on 2026-11-10. The plate rule is in `shell.css`, beside the other plate rules. The app leaves out the screens' `[hidden]` rule and uses `v-if` instead.
 
 - `components.css`: the line under a plate's title is indented 21px to start where the title text does, past the lamp. The rule is `.plate h2:has(> .led) + .sub`, so Density and Notices, which have no lamp, stay as they are. Every Status unit with a lamp shifts.
 - `slide.css`: the slide, `.lcd.err`, `.lcd.warn` and `.lcd-l.dim`, with Day colors. The Day dim line has a higher opacity so it passes contrast.

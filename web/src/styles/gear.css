@@ -1,0 +1,47 @@
+
+/* Agent controls drawn as studio gear. Memory is a floppy disk going into a drive, Open the Inbox is a lit
+   message lamp, and Revoke pulls a connection's patch cable out of its jack. Each keeps its words beside it. */
+
+/* Memory: the disk sits half out of the drive and slides in under the pointer. */
+.rs .fd { position: relative; display: inline-block; flex: none; width: 30px; height: 26px; }
+.rs .fd-disk { position: absolute; left: 5px; top: -1px; width: 20px; height: 20px; background: #3463A8; clip-path: polygon(0 0, 82% 0, 100% 18%, 100% 100%, 0 100%); box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .25); transition: transform .25s cubic-bezier(.3, 1.2, .5, 1); }
+.rs .fd-disk::before { content: ""; position: absolute; left: 3px; right: 4px; top: 3px; height: 8px; border-radius: 1px; background: repeating-linear-gradient(180deg, #F2EEE4 0 2px, #D8D2C4 2px 3px); }
+.rs .fd-disk::after { content: ""; position: absolute; left: 2px; top: 13px; width: 3px; height: 3px; background: #0A0C10; }
+.rs .fd-face { position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; height: 12px; border: 1px solid #0A0C10; border-radius: 2px; background: linear-gradient(180deg, #46505C, #262B32); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18); }
+.rs .fd-face::before { content: ""; position: absolute; left: 4px; right: 4px; top: 2px; height: 2px; border-radius: 1px; background: #07090C; }
+.rs .fd-face::after { content: ""; position: absolute; right: 3px; bottom: 2px; width: 3px; height: 3px; border-radius: 50%; background: #3A4554; transition: background .2s, box-shadow .2s; }
+.rs .fdbtn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.rs .fdbtn:hover .fd-disk, .rs .fdbtn:focus-visible .fd-disk { transform: translateY(5px); }
+.rs .fdbtn:active .fd-disk { transform: translateY(9px); }
+.rs .fdbtn:active .fd-face::after { background: #5BE38A; box-shadow: 0 0 4px #5BE38A; }
+/* In a title bar the drive shrinks to the cap. */
+.rs .wbtn.fdbtn { gap: 6px; }
+.rs .wbtn.fdbtn .fd { transform: scale(.74); margin: -4px -5px -4px -6px; }
+
+/* Open the Inbox: a square lamp that glows amber while proposals wait. */
+.rs .msgbtn { display: inline-flex; align-items: center; gap: 12px; padding: 4px 12px 4px 4px; border-radius: 6px; color: var(--text); text-decoration: none; }
+/* The pointer lights only the lamp, never the whole control. */
+.rs .msgbtn:hover .msg-lens { filter: brightness(1.1); }
+.rs .msgbtn:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.rs .msg-cap { flex: none; display: grid; place-items: center; width: 46px; height: 46px; padding: 3px; border-radius: 6px; background: #07090C; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .9), 0 1px 0 rgba(255, 255, 255, .1); }
+.rs .msg-lens { display: grid; place-items: center; width: 100%; height: 100%; border-radius: 4px; background: radial-gradient(ellipse at 50% 35%, #4A3A22, #2A2116 70%); color: #6B5536; transition: background .3s, box-shadow .3s; }
+.rs .msg-lens svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.rs .msgbtn[data-lit] .msg-lens { background: radial-gradient(ellipse at 50% 35%, #FFE3A6, #F4B24A 55%, #C9861F); color: #5A3A08; box-shadow: 0 0 16px rgba(244, 178, 74, .55), inset 0 1px 0 #fff; }
+.rs .msgbtn:active .msg-lens { transform: translateY(1px); }
+.rs .gear-name { font: 700 15px/1 var(--label); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+
+/* Revoke: the connection's cable is plugged into a jack. Pressing pulls the plug half out and asks; Revoke pulls it out. */
+.rs .jackbtn { display: inline-flex; align-items: center; gap: 10px; padding: 4px 12px 4px 4px; border: 0; border-radius: 6px; background: transparent; color: var(--text); cursor: pointer; font: inherit; }
+
+.rs .jackbtn:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.rs .jack { flex: none; overflow: visible; }
+.rs .jack .plug { transition: transform .3s cubic-bezier(.3, 1.3, .5, 1); }
+.rs .jackbtn:hover .plug { transform: translateX(-2px); }
+.rs [data-jack="asking"] .plug { transform: translateX(-9px); }
+.rs [data-jack="out"] .plug { transform: translate(-22px, 10px) rotate(-18deg); }
+.rs [data-jack="out"] .jack { opacity: .8; }
+@media (prefers-reduced-motion: reduce) { .rs .fd-disk, .rs .jack .plug, .rs .msg-lens { transition: none; } }
+
+/* A locked rocker, such as the permissions while a new prompt shows, keeps its position but dims. */
+.rs .rocker[aria-disabled="true"] { opacity: .55; cursor: default; }
+.rs .rocker[aria-disabled="true"]:hover { background: transparent; }
