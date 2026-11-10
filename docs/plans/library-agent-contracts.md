@@ -42,7 +42,7 @@ Platform changes (`internal/platform/auth/http.go`, `internal/platform/httpx/htt
 
 Agent auth (agents module middleware on the `/api/agent/v1` group):
 
-- Header `Authorization: Bearer shelf_agent_<43 base64url chars>` (32 random bytes). Anything else is 401 `{"error":"...","code":"unauthorized"}`.
+- Header `Authorization: Bearer shelf_agent_<43 base64url chars>` (32 random bytes). The scheme matches in any case, and Shelf ignores whitespace around the parts. Anything else is 401 `{"error":"...","code":"unauthorized"}`, whose message says whether the header was missing, used another scheme, had no token or more than one value, or held a token of the wrong shape, with that token's length. It never repeats the header.
 - Lookup by `sha256(token)` hex in `agents_connections.token_hash`. Revoked → 401 `code: revoked`. Creator account gone → store `revoked_at`, `revoke_reason='account_deleted'`, then 401.
 - Per-route operation check: 403 `code: forbidden_operation` with `operation` named.
 - Context gets `identity.Author{ID:"agent:<id>", Name:<connection name>}` for request logs only.

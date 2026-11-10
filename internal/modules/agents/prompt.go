@@ -47,7 +47,7 @@ List the review link ({review}<id>) of every proposal you created or revised, an
 
 // prompt fills in the addresses and, for a new connection, its token.
 func prompt(base, review, token string) string {
-	auth := `Send "Authorization: Bearer $SHELF_AGENT_TOKEN". The token is in your environment.`
+	auth := `Send "Authorization: Bearer $SHELF_AGENT_TOKEN" on every request. The token is in your environment.`
 	if token != "" {
 		auth = `Send "Authorization: Bearer ` + token + `" on every request.`
 	}

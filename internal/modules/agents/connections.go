@@ -338,15 +338,35 @@ const connKey = "agents.connection"
 
 func current(c *echo.Context) Connection { v, _ := c.Get(connKey).(Connection); return v }
 
+// bearerToken takes the agent token from an Authorization header. An agent
+// that gets a 401 on one call and not the others has to see what went
+// wrong with that call's header, so each problem gets its own message.
+// Messages never repeat the header, which may hold a real token.
+func bearerToken(h string) (token, problem string) {
+	f := strings.Fields(h)
+	switch {
+	case len(f) == 0:
+		return "", "the request had no Authorization header. Send Authorization: Bearer <agent token> on every request, POSTs included"
+	case !strings.EqualFold(f[0], "Bearer"):
+		return "", "the Authorization header must use the Bearer scheme: Authorization: Bearer <agent token>"
+	case len(f) == 1:
+		return "", "the Authorization header has no token after Bearer"
+	case len(f) > 2:
+		return "", "the Authorization header holds more than one value after Bearer. Send only the agent token"
+	case !tokenPattern.MatchString(f[1]):
+		return "", fmt.Sprintf("the bearer token is not an agent token: an agent token is shelf_agent_ and 43 more characters, and this one has %d", len(f[1]))
+	}
+	return f[1], ""
+}
+
 // agentAuth authenticates every /api/agent/v1 request by its bearer token.
 // Session cookies play no part.
 func (m *Module) agentAuth(next echo.HandlerFunc) echo.HandlerFunc {
 	return m.h(func(c *echo.Context) error {
 		ctx := c.Request().Context()
-		h := c.Request().Header.Get("Authorization")
-		scheme, token, ok := strings.Cut(h, " ")
-		if !ok || !strings.EqualFold(scheme, "Bearer") || !tokenPattern.MatchString(token) {
-			return fail(http.StatusUnauthorized, "unauthorized", "send Authorization: Bearer <agent token>")
+		token, problem := bearerToken(c.Request().Header.Get("Authorization"))
+		if problem != "" {
+			return fail(http.StatusUnauthorized, "unauthorized", problem)
 		}
 		var r connRow
 		err := m.db.R.GetContext(ctx, &r, `SELECT `+connCols+` FROM agents_connections WHERE token_hash = ?`, hashToken(token))

@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -580,5 +581,38 @@ func TestConnectionListFacts(t *testing.T) {
 	}
 	if authorID != "user:42" {
 		t.Fatalf("revoked_by ID = %q", authorID)
+	}
+}
+
+// An agent whose one call fails has to learn from the 401 what was wrong
+// with that call's header, and the answer must not echo the token.
+func TestAgentAuthSaysWhatIsWrongWithTheHeader(t *testing.T) {
+	r := rig(t, true, nil)
+	short := "shelf_agent_" + strings.Repeat("a", 42)
+	for _, c := range []struct{ header, want string }{
+		{"", "no Authorization header"},
+		{"Basic " + r.token, "Bearer scheme"},
+		{"Bearer", "no token after Bearer"},
+		{"Bearer " + r.token + " " + r.token, "more than one value"},
+		{"Bearer " + short, "this one has 54"},
+	} {
+		req := httptest.NewRequest("POST", "/api/agent/v1/memory/commit", strings.NewReader(`{}`))
+		req.Header.Set("Content-Type", "application/json")
+		if c.header != "" {
+			req.Header.Set("Authorization", c.header)
+		}
+		rec := httptest.NewRecorder()
+		r.handler.ServeHTTP(rec, req)
+		want(t, rec, 401)
+		if body := rec.Body.String(); !strings.Contains(body, c.want) || strings.Contains(body, "shelf_agent_a") || strings.Contains(body, r.token) {
+			t.Errorf("%q: %s", c.header, body)
+		}
+	}
+	for _, h := range []string{"bearer " + r.token, "  Bearer   " + r.token + "\t"} {
+		req := httptest.NewRequest("GET", "/api/agent/v1/memory", nil)
+		req.Header.Set("Authorization", h)
+		rec := httptest.NewRecorder()
+		r.handler.ServeHTTP(rec, req)
+		want(t, rec, 200)
 	}
 }
