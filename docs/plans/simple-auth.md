@@ -1,6 +1,6 @@
 # Optional authentication and change authors
 
-Status: implemented locally, 2026-11-06. Claude Opus 5.5 and Codex agreed on the design after two reviews. [auth.md](../auth.md) describes the implementation. Production cutover and real-device passkey checks remain pending.
+Status: implemented locally, 2026-11-06. Claude Opus 5.5 and Codex agreed on the design after two reviews. [auth.md](../auth.md) describes the implementation. Production signs in with Shelf accounts, and the passkey checks passed on real devices on 2026-11-10.
 
 ## Agreed behavior
 

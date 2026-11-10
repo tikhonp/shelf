@@ -1,6 +1,6 @@
 # Library agent: implementation contract
 
-Status: draft contract, 2026-11-07, for [library-agent.md](library-agent.md). Implemented locally; [agents.md](../agents.md) describes current behavior. This document records the design discussion. It fixes the API, types, ports, tables and file ownership so the work can be split. Where it departs from the feature draft, the section "Departures from the draft" says why.
+Status: draft contract, 2026-11-07, for [library-agent.md](library-agent.md). Built and running in production. [agents.md](../agents.md) describes current behavior. This document records the design discussion. It fixes the API, types, ports, tables and file ownership so the work can be split. Where it departs from the feature draft, the section "Departures from the draft" says why.
 
 ## Departures from the draft
 

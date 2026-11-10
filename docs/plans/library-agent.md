@@ -1,6 +1,6 @@
 # Library agent and review inbox
 
-Status: feature draft, 2026-11-07. Implemented locally; [agents.md](../agents.md) describes current behavior. This document records the design discussion. The owner confirmed the product choices below; implementation details remain proposals. Requested review: Claude Opus.
+Status: feature draft, 2026-11-07. Built and running in production. [agents.md](../agents.md) describes current behavior. This document records the design discussion. The owner confirmed the product choices below; implementation details remain proposals. Requested review: Claude Opus.
 
 Review status: Claude Opus 5.5 reviewed the draft against the repository on 2026-11-07 and recommended proceeding after revision. This draft incorporates the findings below; the revised draft has not had a second review.
 

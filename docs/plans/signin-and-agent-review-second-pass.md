@@ -1,6 +1,6 @@
 # Sign-in and agent review, second pass
 
-Status: built on main on 2026-11-10, not deployed. Production still runs `main-0d8516f`. The owner reviewed the screens of the [first redesign](signin-and-agent-review-design.md) over 15 rounds of notes, then Fable 5.2 reviewed them, and the owner accepted its fixes. The static exports are in [ui/design/screens](../ui/design/screens), and [ui/design/README.md](../ui/design/README.md) lists them. The review board is a private artifact, https://claude.ai/artifact/3QghuteHwNFLqehu4RNE3d.
+Status: built on 2026-11-10 and running in production. The owner reviewed the screens of the [first redesign](signin-and-agent-review-design.md) over 15 rounds of notes, then Fable 5.2 reviewed them, and the owner accepted its fixes. The static exports are in [ui/design/screens](../ui/design/screens), and [ui/design/README.md](../ui/design/README.md) lists them. The review board is a private artifact, https://claude.ai/artifact/3QghuteHwNFLqehu4RNE3d.
 
 The Library screens were not reviewed. The work must not change the Library tab, apart from the Memory key in the Inbox title bars and the plate rule under [Shared styles](#shared-styles).
 
