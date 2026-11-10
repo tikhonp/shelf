@@ -142,3 +142,12 @@ test('the phone ignores the density and offers no switch', async () => {
   expect(wrapper.find('.rs').classes()).not.toContain('compact')
   expect(wrapper.find('[aria-label="Density"]').exists()).toBe(false)
 })
+
+test('the phone Status has the Account, Passkeys and Password units before Theme', async () => {
+  stubApi(routes({ '/api/auth': { provider: 'simple', account: { id: 1, username: 'alice' }, setup_needed: false }, '/api/auth/passkeys': { passkeys: [] } }))
+  phoneWindow()
+  const { wrapper } = await mountAt('/status')
+  const labels = wrapper.findAll('section.smod').map((s) => s.attributes('aria-label'))
+  expect(labels.slice(-4)).toEqual(['Account', 'Passkeys', 'Password', 'Theme'])
+  expect(wrapper.find('button[aria-label="Sign out of Shelf"]').exists()).toBe(true)
+})

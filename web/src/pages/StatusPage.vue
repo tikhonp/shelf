@@ -144,6 +144,7 @@ const lines = (s: Source) => [s.enabled ? (s.health.ok ? 'WORKS' : (s.health.mes
         </PartCard>
         <AgentsPanel />
         <NoticeChoice />
+        <AccountSettings />
         <section class="smod last" aria-label="Theme">
           <div class="smod-h"><h2>Theme</h2></div>
           <div class="segk block" role="radiogroup" aria-label="Theme">
