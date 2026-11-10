@@ -134,6 +134,15 @@ func portIssues(is []Issue) []libraryport.Issue {
 	return out
 }
 
+func (port) Fields() []libraryport.Field {
+	fs := tagio.Fields()
+	out := make([]libraryport.Field, len(fs))
+	for i, f := range fs {
+		out[i] = libraryport.Field{Name: f.Name, Key: f.Key, Album: f.Album, Type: f.Type}
+	}
+	return out
+}
+
 func (p port) Album(ctx context.Context, id int64) (libraryport.Album, error) {
 	m := p.m
 	d, opened, err := m.openAlbum(ctx, id)

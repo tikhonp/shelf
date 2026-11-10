@@ -24,9 +24,11 @@ shelf manage agents revoke <id>
 
 ## Agent access
 
-Set `SHELF_PUBLIC_URL` to the canonical public address so generated prompts and review links use the correct HTTPS origin behind a gateway. Without it, Shelf uses the direct request host and transport.
+Set `SHELF_PUBLIC_URL` to the canonical public address so generated prompts and review links use the correct HTTPS origin behind a gateway.
 
-The JSON API is under `/api/agent/v1/`. Its API description lists the supported endpoints. It requires a bearer credential on every request, regardless of Shelf's account mode. A browser session cookie alone does not authenticate an agent call. Agent bearer credentials are rejected on every other API prefix, including account, review, and ordinary library routes.
+The setup prompt tells the agent to follow Navidrome's tagging guides, to tag each release completely, and to research it with every tool it has, such as MusicBrainz, Discogs, Last.fm and RateYourMusic. The user's first message names the work. Without it, Shelf uses the direct request host and transport.
+
+The JSON API is under `/api/agent/v1/`. Its root lists the endpoints, the Navidrome fields a proposal may set, and every request body with its fields. It requires a bearer credential on every request, regardless of Shelf's account mode. A browser session cookie alone does not authenticate an agent call. Agent bearer credentials are rejected on every other API prefix, including account, review, and ordinary library routes.
 
 Permissions cover library reads, external lookups, history reads, image uploads, proposal writes, and memory writes. A valid connection can read shared memory and proposal feedback. It cannot retrieve source credentials, run shell commands, query arbitrary SQL, download audio, or write music files directly. Metadata reads can expose tags, lyrics, file names, history, and author names. Grant a connection only the data and operations its external agent needs.
 
@@ -98,7 +100,7 @@ User corrections override inferred preferences. Tombstones preserve deleted pref
 
 The agent can inspect existing library history to learn from manual tagging, including authors and undo state. History is bounded and can be cleared; the API reports coverage gaps. It returns completed changes in ID order and waits behind unfinished changes, so an agent cannot advance past a pending Save and miss its eventual result. The trim marker also waits behind unfinished changes, even after Clear history. A proposal's change stays in the history for 10 minutes after it, or its undo or redo, ends, so a Clear can't erase an outcome before the Inbox records it. Each history file reports whether its planned diff was written, including partial Saves. Proposal decisions and comments have their own durable feed. Shelf records no general UI tracking.
 
-At the start of a fresh run, the agent bootstraps its connection, reads shared rules and context, retrieves unprocessed feedback, and checks outstanding proposal state. It then proposes revisions or new changes and saves useful context. The setup prompt asks it to return links to every proposal it creates. Shelf does not run or schedule the agent or notify it to wake up in this version.
+At the start of a fresh run, the agent bootstraps its connection, reads unprocessed feedback and the outstanding proposals of its connection, then reads shared rules and the context it needs. Only then does it propose revisions or new changes. It saves useful context before it ends. The setup prompt asks it to return links to every proposal it creates. Shelf does not run or schedule the agent or notify it to wake up in this version.
 
 ## Storage and limits
 

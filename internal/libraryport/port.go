@@ -28,6 +28,8 @@ type Port interface {
 	// gives only local suggestions. It never enqueues a fingerprint job.
 	Suggestions(ctx context.Context, albumID int64, external bool) (json.RawMessage, error)
 	AlbumCover(ctx context.Context, albumID int64) ([]byte, string, error) // bytes, MIME
+	// Fields lists the Navidrome fields a tag edit may name.
+	Fields() []Field
 
 	History(ctx context.Context, after int64, limit int) (HistoryPage, error)
 	// SaveHistory includes every file so proposal reconciliation cannot miss a target.
@@ -189,6 +191,16 @@ type Refusal struct {
 	Error   string `json:"error"`
 	Reason  string `json:"reason"` // refused | conflict | locked | busy | regrouped
 	TrackID int64  `json:"track_id,omitempty"`
+}
+
+// Field is a Navidrome field an edit may name. Key is what a write adds
+// when a file holds none of the field's keys. Type is "", "date", "uuid" or
+// "pair".
+type Field struct {
+	Name  string `json:"name"`
+	Key   string `json:"key"`
+	Album bool   `json:"album,omitempty"`
+	Type  string `json:"type,omitempty"`
 }
 
 type Image struct {

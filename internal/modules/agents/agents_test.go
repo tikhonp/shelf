@@ -47,6 +47,9 @@ func (l *testLibrary) Album(context.Context, int64) (libraryport.Album, error) {
 func (l *testLibrary) Albums(context.Context, libraryport.AlbumQuery) (libraryport.AlbumPage, error) {
 	return libraryport.AlbumPage{Albums: []libraryport.AlbumSummary{l.album.AlbumSummary}, Total: 1}, nil
 }
+func (*testLibrary) Fields() []libraryport.Field {
+	return []libraryport.Field{{Name: "genre", Key: "GENRE"}, {Name: "albumartists", Key: "ALBUMARTISTS", Album: true}}
+}
 func (l *testLibrary) AlbumsOf(_ context.Context, ps []string) (map[string]int64, error) {
 	out := map[string]int64{}
 	for _, p := range ps {
