@@ -118,6 +118,23 @@ test('the passkey confirm offers a passkey where the browser has them, and Cance
   vi.stubGlobal('EventSource', FakeEventSource)
 })
 
+test('an account without passkeys confirms adding one with its password only', async () => {
+  vi.stubGlobal('isSecureContext', true)
+  vi.stubGlobal('PublicKeyCredential', class {})
+  stubApi({ '/api/auth/passkeys/begin': new Reply(403, { error: 'Confirm your password' }), '/api/auth/passkeys': { passkeys: [] } })
+  const auth = useAuth()
+  auth.provider = 'simple'; auth.account = { id: 1, username: 'Alice' }
+  const w = mount(AccountSettings)
+  await flushPromises()
+  await w.get('.pk-add input').setValue('Laptop')
+  await w.get('.pk-add').trigger('submit')
+  await flushPromises()
+  expect(w.get('form.pk-ask').findAll('button').map((b) => b.text())).toEqual(['Cancel', 'Add passkey'])
+  w.unmount()
+  vi.unstubAllGlobals()
+  vi.stubGlobal('EventSource', FakeEventSource)
+})
+
 test('rename opens the name in place and saves it', async () => {
   const calls = stubApi({ '/api/auth/passkeys': { passkeys: [{ id: 'one', name: 'iPhone', created_at: '2026-01-01', last_used_at: '2026-01-04' }] }, '/api/auth/passkeys/one/name': {} })
   const auth = useAuth()

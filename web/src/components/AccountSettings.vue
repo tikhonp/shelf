@@ -144,7 +144,7 @@ async function rename(id: string, name: string) {
               <div class="pk-ask-keys">
                 <button class="key" :class="{ sm: !phone }" type="button" :disabled="busy" @click="cancel">Cancel</button>
                 <span class="grow"></span>
-                <button v-if="passkeys" class="key" :class="{ sm: !phone }" type="button" :disabled="busy" @click="confirmAction(true)">Confirm with a passkey</button>
+                <button v-if="passkeys && keys.length" class="key" :class="{ sm: !phone }" type="button" :disabled="busy" @click="confirmAction(true)">Confirm with a passkey</button>
                 <button class="key sun" :class="{ sm: !phone }" type="submit" :disabled="busy || !proof">{{ pending.label }}</button>
               </div>
             </form>
@@ -163,7 +163,7 @@ async function rename(id: string, name: string) {
           <div class="pk-ask-keys">
             <button class="key" :class="{ sm: !phone }" type="button" :disabled="busy" @click="cancel">Cancel</button>
             <span class="grow"></span>
-            <button v-if="passkeys" class="key" :class="{ sm: !phone }" type="button" :disabled="busy" @click="confirmAction(true)">Confirm with a passkey</button>
+            <button v-if="passkeys && keys.length" class="key" :class="{ sm: !phone }" type="button" :disabled="busy" @click="confirmAction(true)">Confirm with a passkey</button>
             <button class="key sun" :class="{ sm: !phone }" type="submit" :disabled="busy || !proof">{{ pending.label }}</button>
           </div>
         </form>
@@ -186,6 +186,8 @@ async function rename(id: string, name: string) {
 
 <style scoped>
 .rs .account-content { flex: 1 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+/* On the phone the unit is a column, so a 560px basis would become a height and stretch the add confirm. */
+.rs .smod .account-content { flex: none; }
 .rs .action-row { display: flex; flex-wrap: wrap; gap: 10px; }
 .rs .ko-ask { flex: 1 1 320px; flex-direction: column; gap: 8px; border-color: var(--sun); }
 .rs .passkeys { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
