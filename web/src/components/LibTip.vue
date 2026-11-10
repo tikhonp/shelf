@@ -18,7 +18,9 @@ function place() {
   const width = 320
   at.value = { '--x': `${Math.max(8, Math.min(r.left, window.innerWidth - width - 8))}px`, '--y': `${r.bottom + 6}px` }
 }
-function enter() {
+// A tap also sends pointerenter, with no leave to close the note, so only a mouse opens it.
+function enter(e: PointerEvent) {
+  if (e.pointerType !== 'mouse') return
   timer = setTimeout(() => {
     place()
     hover.value = true
@@ -32,6 +34,6 @@ onBeforeUnmount(() => clearTimeout(timer))
 </script>
 
 <template>
-  <span ref="root" :class="{ 'has-tip': note }" :aria-describedby="shown ? id : undefined" @mouseenter="enter" @mouseleave="leave"><span class="tip-t"><slot /></span></span>
+  <span ref="root" :class="{ 'has-tip': note }" :aria-describedby="shown ? id : undefined" @pointerenter="enter" @pointerleave="leave"><span class="tip-t"><slot /></span></span>
   <Teleport v-if="shown" to=".rs"><span :id="id" v-vars="at" class="tipbox at" role="tooltip"><span class="tip-h">{{ title }}</span><span>{{ note }}</span></span></Teleport>
 </template>

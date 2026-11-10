@@ -378,12 +378,16 @@ test('help notes sit on names and keys, never at rest, and open 350ms after the 
     expect(w.find('.ib-bank > .has-tip svg.ib-cable').exists()).toBe(true)
     expect(document.querySelector('.tipbox')).toBeNull()
     const accept = w.findAll('.has-tip').find((t) => t.text() === 'Accept 3 fields')!
-    await accept.trigger('mouseenter')
+    // A tap on the phone opens no note.
+    await accept.trigger('pointerenter', { pointerType: 'touch' })
+    await vi.advanceTimersByTimeAsync(400)
+    expect(document.querySelector('.tipbox')).toBeNull()
+    await accept.trigger('pointerenter', { pointerType: 'mouse' })
     await vi.advanceTimersByTimeAsync(300)
     expect(document.querySelector('.tipbox')).toBeNull()
     await vi.advanceTimersByTimeAsync(60)
     expect(document.querySelector('.tipbox')?.textContent).toContain('Writes the fields that are on as one change, which History can undo.')
-    await accept.trigger('mouseleave')
+    await accept.trigger('pointerleave', { pointerType: 'mouse' })
     expect(document.querySelector('.tipbox')).toBeNull()
     w.unmount()
   } finally {
