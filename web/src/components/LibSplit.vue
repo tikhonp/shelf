@@ -4,7 +4,9 @@ const emit = defineEmits<{ move: [number] }>()
 
 let from: number | null = null
 
+// Without preventDefault Chrome starts its own drag on the first move and cancels the pointer.
 function down(e: PointerEvent) {
+  e.preventDefault()
   from = e.clientX
   ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
 }
