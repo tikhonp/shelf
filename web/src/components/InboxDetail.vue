@@ -5,7 +5,9 @@ import type { Evidence, Refusal } from '../api/agents'
 import { useNow } from '../lib/clock'
 import { ago, count } from '../lib/format'
 import { eventLine, opName, outcomeClass, outcomeWord, stateClass, stateWord } from '../lib/inbox'
+import { inboxNotes, reviewNote } from '../lib/notes'
 import { fieldLabel } from '../lib/tags'
+import { useHelp } from '../stores/help'
 import { ordered, useInbox } from '../stores/inbox'
 import Cover from './Cover.vue'
 import Icon from './Icon.vue'
@@ -13,10 +15,14 @@ import InboxBar from './InboxBar.vue'
 import InboxCable, { type CablePair } from './InboxCable.vue'
 import InboxDiff from './InboxDiff.vue'
 import InboxOp from './InboxOp.vue'
+import LibTip from './LibTip.vue'
 
-defineProps<{ phone?: boolean }>()
+const props = defineProps<{ phone?: boolean }>()
 defineEmits<{ close: [] }>()
 const inbox = useInbox()
+const help = useHelp()
+// A note on the phone opens from the ? cap, so a tap never opens one under the finger.
+const tip = (note: string) => (props.phone ? '' : note)
 const now = useNow()
 
 const d = computed(() => inbox.detail)
@@ -39,9 +45,13 @@ const byLine = computed(() => {
   const v = d.value
   if (!v) return ''
   const when = head.value ? ` · ${ago(head.value.created_at, now.value)}` : ''
-  const who = head.value && head.value.author !== v.connection.name ? `, edited by ${head.value.author}` : ''
-  return `${v.connection.name}${when} · revision ${v.head}${who}`
+  return `${v.connection.name}${when} · `
 })
+const editedBy = computed(() => (head.value && head.value.author !== d.value?.connection.name ? `, edited by ${head.value.author}` : ''))
+const cableNote = computed(() => [...pairs.value.map((p) => `${p.label}.`), inboxNotes.cable].join(' '))
+function toggleNote() {
+  help.note = help.note ? null : { title: 'Review', text: reviewNote(d.value?.current.confidence, pairs.value.length > 0) }
+}
 
 // The diff the reviewer accepts is the one for the selection; with nothing selected the page shows every pending field.
 const diff = computed(() => {
@@ -90,7 +100,8 @@ async function send() {
       <button v-if="phone" type="button" class="wbtn" aria-label="Back to the inbox" @click="$emit('close')"><Icon name="back" /></button>
       <h2 id="ibd-h" class="ell">{{ d?.album.title ?? 'Proposal' }}</h2>
       <span class="stripes"></span>
-      <RouterLink v-if="albumId" class="wbtn txt" :to="`/library/${albumId}`">Open album</RouterLink>
+      <RouterLink v-if="albumId" class="wbtn txt" :to="`/library/${albumId}`"><LibTip title="Open album" :note="tip(inboxNotes.openAlbum)">Open album</LibTip></RouterLink>
+      <button v-if="phone && d" type="button" class="wbtn q" aria-label="Note on this page" :aria-pressed="!!help.note" @click="toggleNote">?</button>
       <button v-if="!phone" type="button" class="wbtn" aria-label="Close the proposal" @click="$emit('close')"><Icon name="close" /></button>
     </div>
     <p v-if="inbox.detailLoading && !d" class="t2 pad" role="status">Loading the proposal...</p>
@@ -100,7 +111,7 @@ async function send() {
         <Cover :url="cover" :size="phone ? 64 : 84" />
         <div class="col g4 grow">
           <h3 class="ib-title">{{ d.current.title }}</h3>
-          <p class="t2 sm">{{ byLine }}</p>
+          <p class="t2 sm">{{ byLine }}<LibTip title="Revision" :note="tip(inboxNotes.revision)">revision {{ d.head }}</LibTip>{{ editedBy }}</p>
           <p class="t2 sm mono ell" :title="d.album.folder">{{ d.album.folder }}</p>
           <p v-if="!albumId" class="t2 sm">The album changed since; the recorded diff shows.</p>
           <div v-if="d.state !== 'pending' || d.changes_requested" class="line g8"><span class="pill" :class="stateClass(d.state, d.changes_requested)">{{ stateWord(d) }}</span></div>
@@ -108,18 +119,18 @@ async function send() {
           <p v-if="d.group" class="t2 sm">Group {{ d.group }}. Each album in a group is reviewed and written on its own.</p>
         </div>
         <div v-if="d.current.confidence != null" class="lcd ib-conf" role="img" :aria-label="`Confidence ${d.current.confidence}%`">
-          <span class="lcd-l">SURE</span><span class="lcd-big num">{{ d.current.confidence }}%</span>
+          <span class="lcd-l">SURE</span><span class="lcd-big num"><LibTip title="Confidence" :note="tip(inboxNotes.confidence)">{{ d.current.confidence }}%</LibTip></span>
         </div>
       </header>
 
       <div class="note ib-why" role="note" aria-label="The agent's explanation">
         <div class="col g8 grow">
           <p class="ib-reason">{{ d.current.reason }}</p>
-          <p v-if="d.current.uncertainties" class="t2"><span class="bold">Not sure:</span> {{ d.current.uncertainties }}</p>
+          <p v-if="d.current.uncertainties" class="t2"><span class="bold"><LibTip title="Not sure" :note="tip(inboxNotes.notSure)">Not sure:</LibTip></span> {{ d.current.uncertainties }}</p>
           <div v-if="d.current.evidence.length" class="ib-tapes" aria-label="Evidence">
             <template v-for="(e, i) in d.current.evidence" :key="i">
-              <a v-if="href(e)" class="sug" :href="href(e)" target="_blank" rel="noopener noreferrer"><span class="sug-v">{{ tapeValue(e) }}</span><span class="sug-s">{{ tapeSource(e) }}</span></a>
-              <span v-else class="sug tape"><span class="sug-v">{{ tapeValue(e) }}</span><span class="sug-s">{{ tapeSource(e) }}</span></span>
+              <a v-if="href(e)" class="sug" :href="href(e)" target="_blank" rel="noopener noreferrer"><span class="sug-v"><LibTip title="Evidence" :note="i === 0 ? tip(inboxNotes.evidence) : ''">{{ tapeValue(e) }}</LibTip></span><span class="sug-s">{{ tapeSource(e) }} <span aria-hidden="true">↗</span></span></a>
+              <span v-else class="sug tape"><span class="sug-v"><LibTip title="Evidence" :note="i === 0 ? tip(inboxNotes.evidence) : ''">{{ tapeValue(e) }}</LibTip></span><span class="sug-s">{{ tapeSource(e) }}</span></span>
             </template>
           </div>
         </div>
@@ -134,7 +145,7 @@ async function send() {
           </span>
         </div>
         <div ref="bank" class="ib-bank" :class="{ cabled: pairs.length, narrow: phone }">
-          <InboxCable v-if="pairs.length" :pairs="pairs" :bank="bank" :narrow="phone" />
+          <LibTip v-if="pairs.length" title="Linked fields" :note="tip(cableNote)"><InboxCable :pairs="pairs" :bank="bank" :narrow="phone" /></LibTip>
           <InboxOp v-for="op in ops" :key="op.id" :op="op" :phone="phone" />
         </div>
         <p v-if="cascadeText" class="t2 sm pad ib-moved" role="status">{{ cascadeText }}</p>
@@ -144,7 +155,7 @@ async function send() {
       <div v-if="writes" class="ib-lcds pad" role="group" aria-label="What Accept writes">
         <div class="lcd tight"><span class="lcd-big num">{{ writes.fields }}</span><span class="lcd-l">{{ writes.fields === 1 ? 'FIELD' : 'FIELDS' }}</span></div>
         <div class="lcd tight"><span class="lcd-big num">{{ writes.files }}</span><span class="lcd-l">{{ writes.files === 1 ? 'FILE' : 'FILES' }}</span></div>
-        <div class="lcd tight"><span class="lcd-big num">{{ writes.tags }}</span><span class="lcd-l">TAG WRITES</span></div>
+        <div class="lcd tight"><span class="lcd-big num">{{ writes.tags }}</span><span class="lcd-l"><LibTip title="Tag writes" :note="tip(inboxNotes.tagWrites)">TAG WRITES</LibTip></span></div>
       </div>
 
       <p v-if="refusal" class="bad-text pad" role="alert">{{ refusal }}</p>
@@ -169,7 +180,7 @@ async function send() {
       </section>
 
       <section class="col" aria-label="Talkback">
-        <div class="ib-sec"><h3>Talkback</h3></div>
+        <div class="ib-sec"><h3><LibTip title="Talkback" :note="tip(inboxNotes.talkback)">Talkback</LibTip></h3></div>
         <ol class="ib-thread">
           <li v-for="e in d.events" :key="e.id" class="ib-ev-row" :class="e.actor_kind">
             <span class="sm"><span class="bold">{{ eventLine(e, d.current.ops) }}</span> <span class="t2">{{ ago(e.at, now) }}</span></span>
@@ -179,11 +190,11 @@ async function send() {
         <form class="col g8 pad" aria-label="Reply" @submit.prevent="send">
           <label class="lbl-f">Reply<textarea v-model="reply" class="ib-text" rows="3" maxlength="4000"></textarea></label>
           <div class="line g12 wrap">
-            <button v-if="hasPending" type="button" class="rocker flat" role="switch" :aria-checked="asking" @click="asking = !asking">
-              <span class="rk" aria-hidden="true"><span class="rk-case"><span class="rk-paddle"></span></span></span><span class="rk-name">Ask for changes</span>
+            <span class="grow"></span>
+            <button v-if="hasPending" type="button" class="rocker" role="switch" :aria-checked="asking" @click="asking = !asking">
+              <span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name"><LibTip title="Ask for changes" :note="tip(inboxNotes.ask)">Ask for changes</LibTip></span></span>
             </button>
-            <span class="t2 sm grow">{{ asking ? 'The proposal waits for a new revision from the agent.' : 'A comment decides nothing. The agent reads it on its next run.' }}</span>
-            <button type="submit" class="key sm" :disabled="inbox.busy || !reply.trim()">Send</button>
+            <button type="submit" class="key sm" :disabled="inbox.busy || !reply.trim()">{{ hasPending && asking ? 'Ask for changes' : 'Send comment' }}</button>
           </div>
         </form>
       </section>

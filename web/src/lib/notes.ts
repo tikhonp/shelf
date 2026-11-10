@@ -40,3 +40,31 @@ export const fieldNote = (field: string) => fields[field] ?? ''
 export const issueNote = (kind: string) => issues[kind] ?? ''
 export const fixNote = (fix: string) => fixes[fix] ?? ''
 export const scopeNote = 'What an edit reaches. Select a track to edit that track alone.'
+
+// Notes on the Inbox's names and keys. The Accept and Ask for changes notes say what the page used to show at rest.
+export const inboxNotes = {
+  memory: 'What agents keep between runs: your rules, the preferences they inferred and their notes. Every connection shares it.',
+  confidence: "The agent's own rating, from 0 to 100. Shelf doesn't check it or mix it with other suggestions.",
+  openAlbum: "Opens the album in the Library, where this proposal's values show as suggestions.",
+  revision: 'A revision is a whole new version of the proposal, from the agent or from edits you save. Accept works on the newest.',
+  notSure: "What the agent couldn't confirm. Check it before you accept.",
+  evidence: 'Where the agent found it. A linked tape opens the source.',
+  cable: 'Switching a field on switches on the fields it needs, and switching it off switches off the fields that need it.',
+  perTrack: 'Gives each track its own value, so you can change one track alone.',
+  tagWrites: 'One tag in one file. A field counts once for each file it writes to.',
+  talkback: "Your comments and the agent's replies. The agent reads them on its next run. Shelf doesn't wake it.",
+  ask: 'On, the key asks the agent for a new revision. Off, it posts a comment. Neither writes files.',
+  declineRest: 'Declines the fields that are off. Shelf writes nothing for them, and the agent reads your reason.',
+  declineAll: 'Declines every pending field. Shelf writes nothing, and the agent reads your reason.',
+  accept: 'Writes the fields that are on as one change, which History can undo. If the preview changed since you opened it, Shelf shows the new one and asks again.',
+}
+
+// reviewNote is the phone's note for a proposal, opened from the ? cap.
+export function reviewNote(confidence: number | null | undefined, cabled: boolean): string {
+  return [
+    'Accept writes the fields that are on, and History can undo it. Decline declines the ones that are off.',
+    cabled ? 'The red cable joins fields that switch on and off together.' : '',
+    'Press a field to edit its value.',
+    confidence != null ? `${confidence}% is the agent's own confidence.` : '',
+  ].filter(Boolean).join(' ')
+}

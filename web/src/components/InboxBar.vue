@@ -3,11 +3,13 @@ import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { count } from '../lib/format'
 import { outcomeClass, outcomeWord } from '../lib/inbox'
+import { inboxNotes } from '../lib/notes'
 import { selectable, useInbox } from '../stores/inbox'
+import LibTip from './LibTip.vue'
 
 // The review bar. On the desktop it sits at the foot of the proposal's window, where the Library's Save bar does.
 // On the phone it is a slot above the dock, so Accept is never a long scroll away.
-const props = defineProps<{ phone?: boolean }>()
+defineProps<{ phone?: boolean }>()
 const inbox = useInbox()
 const d = computed(() => inbox.detail)
 const reason = ref('')
@@ -27,7 +29,7 @@ async function declineRest() {
 }
 const summary = computed(() => {
   const w = inbox.writes
-  if (w) return props.phone ? `${count(w.fields, 'field')} · ${count(w.files, 'file')}` : `Accept writes ${count(w.fields, 'field')} to ${count(w.files, 'file')}. History can undo it.`
+  if (w) return `${count(w.fields, 'field')} · ${count(w.files, 'file')}`
   return inbox.selected.length === 0 ? 'Switch on the fields to accept.' : ''
 })
 </script>
@@ -64,8 +66,8 @@ const summary = computed(() => {
         <template v-else-if="canReview">
           <span class="sm grow ib-sum">{{ summary }}<template v-if="inbox.selected.length && !inbox.confirmed"> Confirm each warning first.</template></span>
           <div class="line g8">
-            <button v-if="inbox.rest.length" type="button" class="key" :class="{ sm: !phone }" :disabled="inbox.busy" @click="declining = true">{{ phone ? 'Decline' : inbox.selected.length ? 'Decline the rest' : 'Decline all' }}</button>
-            <button type="button" class="key sun" :class="{ sm: !phone }" :disabled="!inbox.canAccept" @click="inbox.accept()">Accept {{ phone ? inbox.selected.length : count(inbox.selected.length, 'field') }}</button>
+            <button v-if="inbox.rest.length" type="button" class="key" :class="{ sm: !phone }" :disabled="inbox.busy" @click="declining = true"><template v-if="phone">Decline {{ inbox.rest.length }}</template><LibTip v-else :title="inbox.selected.length ? 'Decline the rest' : 'Decline all'" :note="inbox.selected.length ? inboxNotes.declineRest : inboxNotes.declineAll">{{ inbox.selected.length ? 'Decline the rest' : 'Decline all' }}</LibTip></button>
+            <button type="button" class="key sun" :class="{ sm: !phone }" :disabled="!inbox.canAccept" @click="inbox.accept()"><template v-if="phone">Accept {{ inbox.selected.length }}</template><LibTip v-else title="Accept" :note="inboxNotes.accept">Accept {{ count(inbox.selected.length, 'field') }}</LibTip></button>
           </div>
         </template>
       </template>

@@ -2,8 +2,10 @@
 import { computed, ref } from 'vue'
 import type { Op, TagOp } from '../api/agents'
 import { decidedLine, decisionClass, decisionWord, isLong, opLabel, opName, trackLabel, wasLine } from '../lib/inbox'
+import { fieldNote, inboxNotes } from '../lib/notes'
 import { selectable, useInbox } from '../stores/inbox'
 import InboxValues from './InboxValues.vue'
+import LibTip from './LibTip.vue'
 
 const props = defineProps<{ op: Op; phone?: boolean }>()
 const inbox = useInbox()
@@ -16,6 +18,7 @@ const picked = computed(() => inbox.selected.includes(props.op.id))
 const stale = computed(() => !!d.value.live?.op_stale?.[props.op.id])
 const edited = computed(() => !!inbox.drafts[props.op.id])
 const label = computed(() => opLabel(props.op))
+const note = computed(() => (props.op.type === 'tag' && props.op.field ? fieldNote(props.op.field) : ''))
 const goesWith = computed(() => (props.op.requires ?? []).map((id) => opName(d.value.current.ops, id)))
 
 const tag = computed(() => (props.op.type === 'tag' ? (props.op as TagOp) : null))
@@ -64,9 +67,9 @@ const editing = computed(() => !props.phone || open.value)
         </template>
         <button v-else-if="canPick" type="button" class="rocker flat" role="switch" :aria-checked="picked" @click="inbox.toggle(op.id)">
           <span class="rk" aria-hidden="true"><span class="rk-case"><span class="rk-paddle"></span></span></span>
-          <span class="rk-t"><span class="rk-name">{{ label }}</span><span class="rk-state sm">{{ scope }}</span></span>
+          <span class="rk-t"><span class="rk-name"><LibTip :title="label" :note="note">{{ label }}</LibTip></span><span class="rk-state sm">{{ scope }}</span></span>
         </button>
-        <span v-else class="col g4"><span class="bold">{{ label }}</span><span class="t2 sm">{{ scope }}</span></span>
+        <span v-else class="col g4"><span class="bold"><LibTip :title="label" :note="phone ? '' : note">{{ label }}</LibTip></span><span class="t2 sm">{{ scope }}</span></span>
         <span v-if="goesWith.length" class="sr">Goes with {{ goesWith.join(', ') }}. They switch on and off together.</span>
       </div>
 
@@ -103,7 +106,7 @@ const editing = computed(() => !props.phone || open.value)
         <span v-if="stale" class="pill partial">Changed since proposed</span>
         <span v-if="decision && !pending" class="pill" :class="decisionClass(decision.decision)">{{ decisionWord(decision.decision) }}</span>
         <template v-if="tag && pending && editing">
-          <button v-if="!perTrack && tracks.length > 1" type="button" class="key sm flat" @click="split = true">Per track</button>
+          <button v-if="!perTrack && tracks.length > 1" type="button" class="key sm flat" @click="split = true"><LibTip title="Per track" :note="phone ? '' : inboxNotes.perTrack">Per track</LibTip></button>
           <button v-else-if="shared && split" type="button" class="key sm flat" @click="split = false">All tracks together</button>
         </template>
       </div>

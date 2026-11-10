@@ -75,6 +75,7 @@ const label = computed(() => props.pairs.map((p) => p.label).join('. '))
 <style scoped>
 .ib-cable { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
 .ib-cable-sh { stroke: #0A0C10; opacity: .5; }
-path.ib-cable-c { stroke: #D9483B; }
-rect.ib-cable-c { fill: #D9483B; }
+/* Only the cable and its plugs take the pointer. They open the note, and the rockers beside them stay pressable. */
+path.ib-cable-c { stroke: #D9483B; pointer-events: visibleStroke; cursor: help; }
+rect.ib-cable-c { fill: #D9483B; pointer-events: auto; cursor: help; }
 </style>

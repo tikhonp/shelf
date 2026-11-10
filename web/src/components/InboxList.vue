@@ -6,12 +6,14 @@ import { useNow } from '../lib/clock'
 import { finishedAt } from '../lib/format'
 import { typeAngles } from '../lib/formats'
 import { opLabel, stateClass, stateWord, summaryText } from '../lib/inbox'
+import { inboxNotes } from '../lib/notes'
 import { usePhone } from '../lib/viewport'
 import { useAgents } from '../stores/agents'
 import { filtersToQuery, useInbox, type Filters, type StateFilter } from '../stores/inbox'
 import Cover from './Cover.vue'
 import Icon from './Icon.vue'
 import Knob from './Knob.vue'
+import LibTip from './LibTip.vue'
 import PickMenu from './PickMenu.vue'
 
 defineProps<{ selected?: number }>()
@@ -60,7 +62,7 @@ const pill = (p: ProposalSummary) => inbox.filters.state === 'all' || (p.state =
       <RouterLink v-if="phone" class="wbtn" to="/library" aria-label="Back to the library" title="Library"><Icon name="back" /></RouterLink>
       <h1 id="ib-h">Inbox</h1>
       <span class="stripes"></span>
-      <RouterLink class="wbtn txt" to="/inbox/memory">Memory</RouterLink>
+      <RouterLink class="wbtn txt fdbtn" to="/inbox/memory"><span class="fd" aria-hidden="true"><span class="fd-disk"></span><span class="fd-face"></span></span><LibTip title="Memory" :note="phone ? '' : inboxNotes.memory">Memory</LibTip></RouterLink>
     </div>
     <div class="rotary" role="radiogroup" aria-label="State">
       <div class="rot-labels">
@@ -88,7 +90,7 @@ const pill = (p: ProposalSummary) => inbox.filters.state === 'all' || (p.state =
           <span class="sub ell t3">{{ p.connection.name }} · {{ finishedAt(p.updated_at, now) }}<template v-if="p.stale"> · Changed since proposed</template></span>
         </RouterLink>
         <span class="col g4 r">
-          <span v-if="p.confidence != null" class="lcd ib-sure num" :aria-label="`Confidence ${p.confidence}%`">{{ p.confidence }}%</span>
+          <span v-if="p.confidence != null" class="lcd ib-sure num" :aria-label="`Confidence ${p.confidence}%`"><LibTip title="Confidence" :note="phone ? '' : inboxNotes.confidence">{{ p.confidence }}%</LibTip></span>
           <span v-if="pill(p)" class="pill" :class="stateClass(p.state, p.changes_requested)">{{ stateWord(p) }}</span>
         </span>
       </li>

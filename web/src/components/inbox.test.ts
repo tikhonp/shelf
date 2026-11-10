@@ -95,6 +95,8 @@ test('evidence is tape, and only a web address opens', async () => {
   expect(links[0]!.attributes('href')).toBe('https://musicbrainz.org/release/x')
   expect(links[0]!.text()).toContain('Release credits')
   expect(links[0]!.attributes('rel')).toBe('noopener noreferrer')
+  expect(links[0]!.find('.sug-s [aria-hidden="true"]').text()).toBe('↗')
+  expect(w.findAll('.ib-tapes span.sug').every((t) => !t.text().includes('↗'))).toBe(true)
   expect(w.findAll('.ib-tapes .sug')).toHaveLength(3)
   expect(w.find('.ib-tapes').text()).not.toMatch(/\blink\b|\bnote\b/)
 })
@@ -114,12 +116,14 @@ test('one reply box: Send comments, or requests changes with the rocker on', asy
   const w = mount(InboxDetail, { global: { plugins: [router] } })
   await flushPromises()
   expect(w.findAll('textarea.ib-text')).toHaveLength(1)
+  expect(w.find('button[type="submit"]').text()).toBe('Send comment')
   await w.find('textarea.ib-text').setValue('Use the 1974 date')
   await w.find('form[aria-label="Reply"]').trigger('submit')
   await flushPromises()
   expect(calls.some((c) => c.url.endsWith('/comments'))).toBe(true)
   await w.find('textarea.ib-text').setValue('Drop the label')
   await w.find('form[aria-label="Reply"] .rocker').trigger('click')
+  expect(w.find('button[type="submit"]').text()).toBe('Ask for changes')
   await w.find('form[aria-label="Reply"]').trigger('submit')
   await flushPromises()
   expect(calls.some((c) => c.url.endsWith('/request-changes'))).toBe(true)
@@ -128,9 +132,10 @@ test('one reply box: Send comments, or requests changes with the rocker on', asy
 test('the review bar counts what Accept writes, and the displays count fields, files and tag writes', async () => {
   const w = await openDetail()
   const bar = w.find('[aria-label="Review"]')
-  expect(bar.text()).toContain('Accept writes 3 fields to 6 files. History can undo it.')
+  expect(bar.text()).toContain('3 fields · 6 files')
+  expect(bar.text()).not.toContain('Accept writes')
   expect(bar.text()).toContain('Accept 3 fields')
-  expect(w.findAll('.ib-lcds .lcd').map((l) => l.findAll('span').map((s) => s.text()).join(' '))).toEqual(['3 FIELDS', '6 FILES', '18 TAG WRITES'])
+  expect(w.findAll('.ib-lcds .lcd').map((l) => l.findAll(':scope > span').map((s) => s.text()).join(' '))).toEqual(['3 FIELDS', '6 FILES', '18 TAG WRITES'])
 })
 
 test('the diff has one row per tag while every file changes alike, and Show each file expands it', async () => {
@@ -289,7 +294,7 @@ test('on the phone the review bar is a slot above the dock, outside the proposal
   // Decline shows once a field is off, and declines the fields left off.
   await w.findAll('.ib-op .rocker')[2]!.trigger('click')
   await flushPromises()
-  expect(w.find('.stack > section.win.slot').findAll('button').map((b) => b.text())).toEqual(['Decline', 'Accept 2'])
+  expect(w.find('.stack > section.win.slot').findAll('button').map((b) => b.text())).toEqual(['Decline 1', 'Accept 2'])
 })
 
 test('on the phone a field row shows the new value, and pressing its label opens the field', async () => {
@@ -321,4 +326,86 @@ test('on the phone, which has no History, the change is named without a link', a
   const w = await openDetail({ '/api/inbox/proposals/4': d }, true)
   expect(w.text()).toContain('Change 31 is in History on a desktop.')
   expect(w.findAll('a').some((a) => (a.attributes('href') ?? '').includes('history=1'))).toBe(false)
+})
+
+
+test('the desktop proposal divider resizes, clamps and remembers the list width', async () => {
+  localStorage.removeItem('inbox.list')
+  vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener() {}, removeEventListener() {} }))
+  stubApi({
+    '/api/inbox/proposals/4/preview': { preview: sameOnSix(), refusal: null, missing: [] }, '/api/inbox/proposals/4': detail(),
+    '/api/inbox/proposals': { proposals: [], next: null }, '/api/inbox': { pending: 1, changes_requested: 0, connections: 1, accounts: 'none', can_create_connections: false },
+    '/api/agents': { connections: [] },
+  })
+  const router = createAppRouter(createMemoryHistory()); await router.push('/inbox')
+  const { default: InboxPage } = await import('../pages/InboxPage.vue')
+  const w = mount(InboxPage, { global: { plugins: [router] } })
+  await flushPromises()
+  expect(w.find('.lib-split').exists()).toBe(false)
+  await router.push('/inbox/4')
+  await flushPromises()
+  const split = w.find('.lib-split')
+  expect(split.attributes('aria-label')).toContain('proposal list')
+  const width = () => (w.find('.ib-page').element as HTMLElement).style.getPropertyValue('--list-w')
+  expect(width()).toBe('420px')
+  await split.trigger('keydown', { key: 'ArrowRight' })
+  expect(width()).toBe('440px')
+  expect(localStorage.getItem('inbox.list')).toBe('440')
+  for (let n = 0; n < 12; n++) await split.trigger('keydown', { key: 'ArrowRight' })
+  expect(width()).toBe('640px')
+  expect(localStorage.getItem('inbox.list')).toBe('640')
+  await split.trigger('keydown', { key: 'ArrowLeft' })
+  expect(width()).toBe('620px')
+  w.unmount()
+  const restored = mount(InboxPage, { global: { plugins: [router] } })
+  await flushPromises()
+  expect((restored.find('.ib-page').element as HTMLElement).style.getPropertyValue('--list-w')).toBe('620px')
+  restored.unmount()
+  localStorage.removeItem('inbox.list')
+})
+
+test('help notes sit on names and keys, never at rest, and open 350ms after the pointer arrives', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  const root = document.createElement('div')
+  root.className = 'rs'
+  document.body.appendChild(root)
+  try {
+    const w = await openDetail()
+    const tips = () => w.findAll('.has-tip').map((t) => t.text())
+    expect(tips()).toEqual(expect.arrayContaining(['Open album', 'revision 1', '86%', 'Not sure:', 'Release credits', 'Release date', 'Original date', 'TAG WRITES', 'Talkback', 'Ask for changes', 'Accept 3 fields']))
+    // Only the first tape carries the evidence note.
+    expect(tips().filter((t) => t === 'Booklet says 1974')).toEqual([])
+    expect(w.find('.ib-bank > .has-tip svg.ib-cable').exists()).toBe(true)
+    expect(document.querySelector('.tipbox')).toBeNull()
+    const accept = w.findAll('.has-tip').find((t) => t.text() === 'Accept 3 fields')!
+    await accept.trigger('mouseenter')
+    await vi.advanceTimersByTimeAsync(300)
+    expect(document.querySelector('.tipbox')).toBeNull()
+    await vi.advanceTimersByTimeAsync(60)
+    expect(document.querySelector('.tipbox')?.textContent).toContain('Writes the fields that are on as one change, which History can undo.')
+    await accept.trigger('mouseleave')
+    expect(document.querySelector('.tipbox')).toBeNull()
+    w.unmount()
+  } finally {
+    vi.useRealTimers()
+    root.remove()
+  }
+})
+
+test('on the phone no name carries a note, and the ? cap opens the page note above the review slot', async () => {
+  const w = await openOnPhone()
+  expect(w.find('.ib-detail .has-tip').exists()).toBe(false)
+  expect(w.find('[role="note"].slot').exists()).toBe(false)
+  const cap = w.find('button.wbtn.q')
+  expect(cap.attributes('aria-pressed')).toBe('false')
+  await cap.trigger('click')
+  const slots = w.findAll('.stack > .slot')
+  expect(slots.map((s) => s.attributes('role'))).toEqual(['note', 'region'])
+  expect(slots[0]!.text()).toContain('Review')
+  expect(slots[0]!.text()).toContain('The red cable joins fields that switch on and off together.')
+  expect(slots[0]!.text()).toContain("86% is the agent's own confidence.")
+  expect(cap.attributes('aria-pressed')).toBe('true')
+  await slots[0]!.find('button[aria-label="Close the note"]').trigger('click')
+  expect(w.find('[role="note"].slot').exists()).toBe(false)
+  w.unmount()
 })

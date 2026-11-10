@@ -1,6 +1,6 @@
 # Sign-in and agent review, second pass
 
-Status: designed on 2026-11-10 and not built yet. The owner reviewed the screens of the [first redesign](signin-and-agent-review-design.md) over 15 rounds of notes, then Fable 5.2 reviewed them, and the owner accepted its fixes. The static exports are in [ui/design/screens](../ui/design/screens), and [ui/design/README.md](../ui/design/README.md) lists them. The review board is a private artifact, https://claude.ai/artifact/3QghuteHwNFLqehu4RNE3d.
+Status: designed on 2026-11-10. By the end of that day the app had everything but the first-account screen. The owner reviewed the screens of the [first redesign](signin-and-agent-review-design.md) over 15 rounds of notes, then Fable 5.2 reviewed them, and the owner accepted its fixes. The static exports are in [ui/design/screens](../ui/design/screens), and [ui/design/README.md](../ui/design/README.md) lists them. The review board is a private artifact, https://claude.ai/artifact/3QghuteHwNFLqehu4RNE3d.
 
 The Library screens were not reviewed. The work must not change the Library tab, apart from the Memory key in the Inbox title bars and the plate rule under [Shared styles](#shared-styles).
 
@@ -75,6 +75,8 @@ Built on 2026-11-10. The connection list gained who revoked a connection, its la
 
 `InboxList.vue`, `InboxDetail.vue`, `InboxBar.vue`, `InboxOp.vue`, `LibSplit.vue`, `LibTip.vue`.
 
+Built on 2026-11-10. The note texts are in `web/src/lib/notes.ts`. Only the first evidence tape has a note, so the same note doesn't repeat on every tape. The list's state names have no notes, because the plan doesn't list them.
+
 - The desktop Inbox has the Library's divider between the list and the proposal. It drags, and the left and right arrows move it. The list stays between 300 and 640px. Below 1100px the panels stack and the divider goes.
 - Help notes work as in the Library editor and never show at rest. On the desktop a note opens 350ms after the pointer reaches a name, and names with a note gain a dotted underline. Notes sit on Memory, the confidence, Open album, the revision, Not sure, the evidence, the field names, the cable, Per track, Tag writes, Talkback, Ask for changes, Decline the rest and Accept. A key with a note keeps its pointer cursor and gets no underline. On the phone a `?` cap in the title bar opens the page's note in a slot above the review slot.
 - Linked evidence shows an arrow after its source. Plain evidence has none.
@@ -97,10 +99,10 @@ These are bugs in the running app and questions to settle before building.
 
 1. **Sign out drops staged edits without asking.** `logout` in `web/src/stores/auth.ts` reloads the page, and the edits `editor.kept` counts are lost. The design asks first. Fixed on 2026-11-10, and the sign-out key switch asks the same way.
 2. **Creating the first account from the UI is open to anyone.** On a fresh install, whoever reaches the page first gets the account. Production has accounts, so only a new install is open to this. On 2026-11-10 the owner accepted the risk, with no setup code, and asked for an environment option that turns off creating the first account in the UI.
-3. **Helper text shows at rest.** "Accept writes 3 fields to 6 files. History can undo it." (`InboxBar.vue:30`), "No agent can accept, save or delete." (`AgentsPanel.vue:110`) and "Then you sign in again with the new one." (`AccountSettings.vue:116`). Each becomes a note. Both Status ones are fixed.
+3. **Helper text shows at rest.** "Accept writes 3 fields to 6 files. History can undo it." (`InboxBar.vue:30`), "No agent can accept, save or delete." (`AgentsPanel.vue:110`) and "Then you sign in again with the new one." (`AccountSettings.vue:116`). Each becomes a note. Fixed on 2026-11-10.
 4. **The small key switch's legends are unreadable.** `AccountDesk.vue:138` draws it 96px wide, and OFF and ON come out under 8px. The design draws it at 120px. Fixed on 2026-11-10, and below 150px the legends grow.
-5. **The phone's decline key says only "Decline"** (`InboxBar.vue:67`), which reads as declining everything beside "Accept 2".
-6. **Send does two things under one label** (`InboxDetail.vue:186`). It posts a comment or asks for changes, after the rocker.
+5. **The phone's decline key says only "Decline"** (`InboxBar.vue:67`), which reads as declining everything beside "Accept 2". Fixed on 2026-11-10.
+6. **Send does two things under one label** (`InboxDetail.vue:186`). It posts a comment or asks for changes, after the rocker. Fixed on 2026-11-10.
 7. **"I stored it" drops a secret that shows only once**, and doesn't ask when the user copied nothing (`AgentsPanel.vue:73`). Connect and Copy prompt are both amber while the prompt shows. Fixed on 2026-11-10.
 8. **The sign-in title bar repeats the Sign in key** on the phone (`AccountDesk.vue:111`), and no sign-in screen names Music Shelf.
 9. **Render the help slot and confirm rows with `v-if`, not `hidden`.** `.win` and `.key` set `display`, which beats the `hidden` attribute, so a hidden slot still shows. The screens needed `.rs [hidden] { display: none !important; }` for this.
