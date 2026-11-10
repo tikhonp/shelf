@@ -113,7 +113,6 @@ const toggleLayer = (l: MemoryLayer) => (resetLayers.value = resetLayers.value.i
 <style scoped>
 .rs .pad { padding: 12px 14px; }
 .rs .bar { border-bottom: 1px solid var(--ink); }
-.rs .wrap { flex-wrap: wrap; }
 .rs .ask { margin: 12px 14px; align-items: flex-end; flex-wrap: wrap; }
 .rs .page > .mem-win { flex: 1; max-width: 1000px; }
 </style>

@@ -2,6 +2,7 @@
 .rs h4 { margin: 0; }
 .rs .col { display: flex; flex-direction: column; min-width: 0; }
 .rs .line { display: flex; align-items: center; min-width: 0; }
+.rs .wrap { flex-wrap: wrap; }
 .rs .grow { flex: 1; min-width: 0; }
 .rs .g4 { gap: 4px; }
 .rs .g8 { gap: 8px; }

@@ -92,7 +92,6 @@ async function confirm() {
 .rs .ask-line { font-size: 15px; line-height: 1.4; }
 .rs .ask { margin: 0; font-size: 17px; font-weight: 700; }
 .rs .main { flex: 2; }
-.rs .wrap { flex-wrap: wrap; }
 .rs .facts { flex: 1 1 190px; gap: 4px; }
 .rs .segk button { padding: 0 6px; }
 </style>

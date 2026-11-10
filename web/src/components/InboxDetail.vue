@@ -211,7 +211,6 @@ async function send() {
 
 <style scoped>
 .rs .pad { padding: 12px 14px; }
-.rs .wrap { flex-wrap: wrap; }
 .rs .ib-body { overflow-y: auto; }
 .rs .ib-head { display: flex; align-items: flex-start; gap: 14px; }
 .rs .ib-title { font-size: 19px; font-weight: 700; line-height: 1.25; }

@@ -79,6 +79,5 @@ function pick(f: Format) {
 <style scoped>
 .rs .menu-at { position: relative; }
 .rs .start { align-self: flex-start; }
-.rs .wrap { flex-wrap: wrap; }
 .rs .about { flex: 1 1 150px; }
 </style>

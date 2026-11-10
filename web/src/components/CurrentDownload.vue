@@ -50,7 +50,6 @@ const progress = computed(() => percent(d.value && { tracks_done: d.value.tracks
 .rs .disc { padding: 8px 0 8px 8px; }
 .rs .facts { flex: 1 1 340px; justify-content: center; }
 .rs .big { font-size: 20px; }
-.rs .wrap { flex-wrap: wrap; }
 .rs .readout { display: flex; align-items: baseline; gap: 10px; }
 .rs .time { margin-left: auto; }
 </style>

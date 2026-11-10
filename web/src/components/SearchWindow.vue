@@ -178,7 +178,6 @@ const limited = computed(() => search.failed.find((r) => r.rateLimited))
 
 <style scoped>
 .rs .top { padding: 12px; }
-.rs .wrap { flex-wrap: wrap; }
 .rs .slash { display: block; padding: 0 8px; font-size: 15px; }
 .rs .key.icon.tall { width: 50px; height: 50px; }
 .rs .fill { flex: 1; min-height: 0; }

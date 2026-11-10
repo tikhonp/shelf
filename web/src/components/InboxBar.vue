@@ -80,7 +80,6 @@ const summary = computed(() => {
 .rs .ib-bar .ib-bar-in { display: contents; }
 .rs .ib-bar .lbl-f { min-width: 200px; }
 .rs .ib-out { flex-basis: 100%; }
-.rs .wrap { flex-wrap: wrap; }
 .rs .ib-slot .ib-bar-in { flex-wrap: wrap; }
 .rs .ib-slot .ib-sum { flex: 1 1 0; min-width: 0; color: var(--text-2); }
 .rs .ib-slot .lbl-f { flex-basis: 100%; }

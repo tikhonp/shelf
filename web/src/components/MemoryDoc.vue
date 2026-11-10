@@ -102,7 +102,6 @@ const remove = () => run(() => memory.remove(props.doc), () => (asking.value = f
 .rs .mem { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-bottom: 1px solid var(--line); }
 .rs .mem.deleted { opacity: .8; }
 .rs .mem h3 { font-size: 16px; font-weight: 600; }
-.rs .wrap { flex-wrap: wrap; }
 .rs .body { white-space: pre-wrap; overflow-wrap: anywhere; }
 .rs .ev { display: flex; flex-direction: column; gap: 2px; margin: 0; padding-left: 18px; }
 .rs .ask { align-items: center; flex-wrap: wrap; }
