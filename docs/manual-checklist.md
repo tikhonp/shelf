@@ -34,7 +34,7 @@ End-to-end checks that only the real deployment can answer: real accounts, the r
 
 ## Last run
 
-Every check passed in production.
+Every check passed in production, apart from the redesign's checks, which haven't run yet.
 
 - Checks 1 to 12: 2026-11-04 on `be76a2d`, through the API, over SSH and on the owner's phone and tablet. The owner accepted check 9 after one bot download and check 12 without waiting for the backup.
 - Check 13: 2026-11-04 on `0bcd479`. The index matched Navidrome's 11,461 songs and 1,008 albums, and no file changed after the marker.
@@ -89,3 +89,18 @@ Undo requests sent within a second of each other on one album answer 202, and on
 - Without a session, request `/api/library/x/../../agent/v1/runs`, `/api/agent/v1/../../library/albums/1/save` and `/api/agent/v1/%2e%2e/%2e%2e/library/albums/1/save` through the public address. None may reach an ordinary API handler.
 
 Automated tests cover proposal isolation, selected tag/artwork writes against real fixtures, concurrent acceptance, replay, rollback, changed previews, confirmations, memory versions and tombstones, learned feedback retention, auth isolation and CLI persistence. The checklist above covers the live external-agent and gateway setup, which local tests don't deploy.
+
+## Sign-in and agent review redesign
+
+Run these after deploying the redesign, on the desktop and a real phone over HTTPS. Accounts are on as in [auth.md](auth.md) and agents as in [agents.md](agents.md). You need an account with a passkey, a test connection and a proposal with pending fields. Run check 10 only on a scratch instance, never in production.
+
+1. Sign out. Sign-in shows only its unit, with a dim MUSIC SHELF line and no title bar, menubar or dock. Enter a wrong password: the display turns red and reads WRONG USERNAME / OR PASSWORD. Sign in with the right password, and the app opens.
+2. Sign out and slide Passkey to ON. Cancel the browser prompt: the slide returns to OFF, and the display turns amber with PASSKEY CANCELED / USE THE PASSWORD. Slide again and sign in with the passkey. On the desktop, sign out and sign in with a passkey from the key switch.
+3. On an iPhone, open sign-in with the keyboard closed. The unit is centered. Focus Username, then Password: the unit moves up and Sign in stays visible above the keyboard.
+4. On Status, press the Account key switch with no staged edits: it turns to OFF and signs out. Sign in and stage two Library edits. Press the switch again: it stops halfway and asks "Sign out with 2 staged edits?". Keep editing returns it to ON and keeps the edits. Press it again and confirm Sign out: sign-in opens.
+5. Checks 5 to 7 need a proof older than five minutes, so wait that long after signing in or confirming before each one. On Status, press Rename beside a passkey, change Passkey name and press Save. The confirm asks `Rename <name>?`, and Cancel keeps the old name. Rename again, enter Password and press Rename: the new name appears.
+6. Fill New passkey name and press Add passkey: "Add a passkey?" opens under the form. Press Confirm with a passkey and register one. The new passkey appears.
+7. Press Remove beside that passkey: `Remove <name>?` opens beside it. The confirm's Remove key stays disabled with an empty Password. Enter the password and press Remove. Sign in again opens, and after sign-in the passkey is gone.
+8. On Status, fill Name under Connect and press Connect. The form locks and `Prompt for <name>` appears. Before copying anything, press Done: "Nothing copied yet, and Shelf shows it only once." appears with Close anyway. Press Copy prompt: it says "Prompt copied.", and Done now closes the prompt. Press the connection's Revoke jack: the plug stops halfway and asks first. Confirm Revoke: the plug comes out, the lamp goes dark and the display reads REVOKED JUST NOW.
+9. In the desktop Inbox, open a pending proposal. Drag the divider, then focus it and press the left and right arrows. Both move it, and a reload keeps the width. No help note shows at rest. Rest the pointer on Accept: its note opens after 350ms and closes when the pointer leaves. Type a comment in Reply. With Ask for changes off, Send reads Send comment, and with the rocker on it reads Ask for changes. On the phone, turn one field off: the decline key reads Decline 1 and follows the count. The ? cap opens the page's note above the review slot.
+10. On a scratch instance with `SHELF_AUTH_PROVIDER=simple` and no accounts, see NO ACCOUNTS YET / CREATE THE FIRST ONE. A short password turns the display red, and so does a Repeat password that differs. Enter matching passwords of eight characters or more and press Create account: the app opens signed in. On another scratch instance with no accounts and `SHELF_AUTH_SETUP_UI=false`, the unit shows NO ACCOUNTS / ADD ONE ON THE SERVER and `shelf manage users add <username>` instead of the form.

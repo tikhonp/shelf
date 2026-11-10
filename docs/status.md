@@ -7,7 +7,7 @@ shelf is finished and runs in production on blackberry. [vision.md](vision.md) s
 - **Home.** The Library tab is the home screen and the first tab. Each album shows its source, from the downloads' records, `shelf.txt` or its source folder, and the filter menu filters by source. [tags.md](tags.md#album-sources) describes it.
 - **Delete.** The Library tab deletes an album's release folder and has Navidrome forget its tracks, as [tags.md](tags.md#deleting) describes. `make contract` covers it.
 
-Every check in [manual-checklist.md](manual-checklist.md) passed in production, the last on 2026-11-10.
+Every check in [manual-checklist.md](manual-checklist.md) passed in production, the last on 2026-11-10. The redesign's checks wait for its deploy.
 
 ## Remotes
 
@@ -22,7 +22,7 @@ Production runs `main-0d8516f`, which the owner deployed on 2026-11-10. Optional
 
 shelf-wrapper builds from upstream's `ghcr.io/worldobservationlog/wrapper-lite` image pinned by digest. The index holds 11,461 tracks and 1,008 Navidrome album IDs, forming 1,013 albums because 5 Navidrome albums span two folders.
 
-The sign-in and agent review redesign is built and live. [The design plan](plans/signin-and-agent-review-design.md) records its decisions. [A second pass](plans/signin-and-agent-review-second-pass.md) is being built. All of it is on main and not deployed yet: the shared styles, the new sign-in, the first-account screen, Account on Status, Agents on Status and the Inbox.
+The [sign-in and agent review redesign](plans/signin-and-agent-review-design.md) and its [second pass](plans/signin-and-agent-review-second-pass.md) are built on main and not deployed. Production still runs `main-0d8516f`.
 
 ## Operational notes
 

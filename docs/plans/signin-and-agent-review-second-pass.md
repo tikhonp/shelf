@@ -1,6 +1,6 @@
 # Sign-in and agent review, second pass
 
-Status: designed on 2026-11-10. By the end of that day the app had all of it. The owner reviewed the screens of the [first redesign](signin-and-agent-review-design.md) over 15 rounds of notes, then Fable 5.2 reviewed them, and the owner accepted its fixes. The static exports are in [ui/design/screens](../ui/design/screens), and [ui/design/README.md](../ui/design/README.md) lists them. The review board is a private artifact, https://claude.ai/artifact/3QghuteHwNFLqehu4RNE3d.
+Status: built on main on 2026-11-10, not deployed. Production still runs `main-0d8516f`. The owner reviewed the screens of the [first redesign](signin-and-agent-review-design.md) over 15 rounds of notes, then Fable 5.2 reviewed them, and the owner accepted its fixes. The static exports are in [ui/design/screens](../ui/design/screens), and [ui/design/README.md](../ui/design/README.md) lists them. The review board is a private artifact, https://claude.ai/artifact/3QghuteHwNFLqehu4RNE3d.
 
 The Library screens were not reviewed. The work must not change the Library tab, apart from the Memory key in the Inbox title bars and the plate rule under [Shared styles](#shared-styles).
 
@@ -108,10 +108,10 @@ These are bugs in the running app and questions to settle before building.
 5. **The phone's decline key says only "Decline"** (`InboxBar.vue:67`), which reads as declining everything beside "Accept 2". Fixed on 2026-11-10.
 6. **Send does two things under one label** (`InboxDetail.vue:186`). It posts a comment or asks for changes, after the rocker. Fixed on 2026-11-10.
 7. **"I stored it" drops a secret that shows only once**, and doesn't ask when the user copied nothing (`AgentsPanel.vue:73`). Connect and Copy prompt are both amber while the prompt shows. Fixed on 2026-11-10.
-8. **The sign-in title bar repeats the Sign in key** on the phone (`AccountDesk.vue:111`), and no sign-in screen names Music Shelf.
+8. **The sign-in title bar repeats the Sign in key** on the phone (`AccountDesk.vue:111`), and no sign-in screen names Music Shelf. Fixed on 2026-11-10.
 9. **Render the help slot and confirm rows with `v-if`, not `hidden`.** `.win` and `.key` set `display`, which beats the `hidden` attribute, so a hidden slot still shows. The screens needed `.rs [hidden] { display: none !important; }` for this.
 10. **Removing the Setup prompt section** leaves no way in the UI to see the prompt again for an existing connection. The CLI still prints it with `SHELF_PUBLIC_URL` set. A connection that lost its prompt is revoked and connected again. Done on 2026-11-10.
-11. **The phone sign-in moves from the top to the center** with this design. The first redesign put it at the top for the keyboard. The new layout has to move it up while the keyboard is open, and S4 draws that state.
+11. **The phone sign-in moves from the top to the center** with this design. The first redesign put it at the top for the keyboard. The new layout has to move it up while the keyboard is open, and S4 draws that state. Fixed on 2026-11-10.
 12. **`docs/ui/design/README.md` said the redesign wasn't built**, after it was. This export fixes it.
 
 The app already does some of what the review asked of the screens: whole Inbox rows are links, the confidence display has an `aria-label`, Decline the rest hides while every field is on, and the phone row separates the rocker from the field.

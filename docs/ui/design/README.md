@@ -88,7 +88,7 @@ The two CSS files are the canvas stylesheet `project/retro.css`, cut in two. Eac
 
 ### Account sign-in and agent review
 
-These screens come from a second canvas, https://claude.ai/artifact/LRhUtun1bSeK87kTh6Q7To, from 2026-11-09, and the app has built them. On 2026-11-10 the owner reviewed the sign-in, Status and Inbox screens again, and the exports below are that second pass, which the app doesn't have yet. [The first plan](../../plans/signin-and-agent-review-design.md) gives the decisions and the behavior. [The second pass](../../plans/signin-and-agent-review-second-pass.md) lists what changes and the bugs found.
+These screens come from a second canvas, https://claude.ai/artifact/LRhUtun1bSeK87kTh6Q7To, from 2026-11-09, and the app has built them. On 2026-11-10 the owner reviewed the sign-in, Status and Inbox screens again, and the exports below are that second pass, now built on main and not deployed. [The first plan](../../plans/signin-and-agent-review-design.md) gives the decisions and the behavior. [The second pass](../../plans/signin-and-agent-review-second-pass.md) lists what changes and the bugs found.
 
 | Screen | Shows | Route |
 | --- | --- | --- |
@@ -282,8 +282,8 @@ Help never shows on a screen at rest, and the design adds no helper text beside 
 
 ## Account access
 
-With simple authentication, sign-in follows `MS-desk-account-signin`, `MS-phone-account-signin` and `MS-account-signin-states`: only the unit, a display that names the app, one Sign in key and the Passkey slide, with the key switch on the desktop. The words on the display are Shelf's own, never the server's sentence. The app checks access before mounting the shell. Meanwhile the unit shows CHECKING ACCESS, and a failed check shows NO ANSWER and a Try again key. An expired session opens a modal dialog titled "Sign in again" over the dimmed, inert app and preserves staged edits. The same account resumes without resending actions, and another account reloads the page. The first-account screen isn't built, and a server without accounts still shows the CLI command.
+With simple authentication, sign-in follows `MS-desk-account-signin`, `MS-phone-account-signin` and `MS-account-signin-states`: only the unit, a display that names the app, one Sign in key and the Passkey slide, with the key switch on the desktop. The words on the display are Shelf's own, never the server's sentence. The app checks access before mounting the shell. Meanwhile the unit shows CHECKING ACCESS, and a failed check shows NO ANSWER and a Try again key. An expired session opens a modal dialog titled "Sign in again" over the dimmed, inert app and preserves staged edits. The same account resumes without resending actions, and another account reloads the page. A server without accounts shows the first-account form. With `SHELF_AUTH_SETUP_UI=false`, it shows `shelf manage users add` instead.
 
-The first redesign was [planned here](../../plans/signin-and-agent-review-design.md). [The second pass](../../plans/signin-and-agent-review-second-pass.md) changes it, and only its sign-in is built so far.
+The first redesign was [planned here](../../plans/signin-and-agent-review-design.md). [The second pass](../../plans/signin-and-agent-review-second-pass.md) is also built on main. Neither is deployed yet.
 
 Status has three rack units below Density: Account, with a display of the username and the passkey count and the sign-out key switch at 120px; Passkeys, with a row per passkey and Rename and Remove keys; and Password, with its three fields in one row and its note on Change password. Each key is as wide as its label, and on the phone the keys are 46px tall. A passkey change that needs fresh proof opens a confirm note under that passkey. None mode has no account controls. Existing download and library history rows show their author beside the current secondary text. No activity page is added. [auth.md](../../auth.md) describes the flows and labels.
