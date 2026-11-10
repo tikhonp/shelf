@@ -48,9 +48,16 @@ function leave() {
 async function load() { keys.value = (await accountCall<{ passkeys: Passkey[] }>('/passkeys', undefined, 'GET')).passkeys }
 onMounted(() => { if (auth.provider === 'simple') void run(load) })
 watch(() => auth.account?.id, (id) => { if (id) void run(load) })
+// passkeyError puts the browser's passkey failures in Shelf's words. InvalidStateError means
+// the authenticator already holds a passkey for this account.
+function passkeyError(e: unknown): string {
+  if (e instanceof DOMException && e.name === 'NotAllowedError') return 'Passkey prompt was canceled.'
+  if (e instanceof DOMException && e.name === 'InvalidStateError') return 'This device already has a passkey for this account. Add one from another device.'
+  return errorText(e)
+}
 async function run(fn: () => Promise<void>, at: typeof part.value = 'passkeys') {
   error.value = ''; notice.value = ''; busy.value = true; part.value = at
-  try { await fn() } catch (e) { error.value = e instanceof DOMException && e.name === 'NotAllowedError' ? 'Passkey prompt was canceled.' : errorText(e) }
+  try { await fn() } catch (e) { error.value = passkeyError(e) }
   finally { busy.value = false }
 }
 async function attempt(ask: Omit<NonNullable<typeof pending.value>, 'action'>, action: () => Promise<void>) {

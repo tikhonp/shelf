@@ -83,6 +83,23 @@ test('passkey removal asks for proof and retries once', async () => {
   w.unmount()
 })
 
+test('a device that already holds the passkey gets Shelf words, not the browser sentence', async () => {
+  vi.stubGlobal('isSecureContext', true)
+  vi.stubGlobal('PublicKeyCredential', class {})
+  Object.defineProperty(navigator, 'credentials', { configurable: true, value: { create: () => Promise.reject(new DOMException('The user attempted to register an authenticator that contains one of the credentials already registered with the relying party.', 'InvalidStateError')) } })
+  stubApi({ '/api/auth/passkeys': { passkeys: [] }, '/api/auth/passkeys/begin': { publicKey: { challenge: 'AAAA', user: { id: 'AAAA', name: 'alice', displayName: 'alice' }, excludeCredentials: [] } } })
+  const auth = useAuth()
+  auth.provider = 'simple'; auth.account = { id: 1, username: 'Alice' }
+  const w = mount(AccountSettings)
+  await flushPromises()
+  await w.get('.pk-add input').setValue('Laptop')
+  await w.get('.pk-add').trigger('submit')
+  await flushPromises()
+  expect(w.get('[role="alert"]').text()).toBe('This device already has a passkey for this account. Add one from another device.')
+  w.unmount()
+  vi.unstubAllGlobals()
+})
+
 test('the passkey confirm offers a passkey where the browser has them, and Cancel closes it', async () => {
   vi.stubGlobal('isSecureContext', true)
   vi.stubGlobal('PublicKeyCredential', class {})
