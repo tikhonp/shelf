@@ -87,9 +87,9 @@ These go into the app's stylesheets. Only the first touches pages outside this w
 
 These are bugs in the running app and questions to settle before building.
 
-1. **Sign out drops staged edits without asking.** `logout` in `web/src/stores/auth.ts` reloads the page, and the edits `editor.kept` counts are lost. The design asks first.
+1. **Sign out drops staged edits without asking.** `logout` in `web/src/stores/auth.ts` reloads the page, and the edits `editor.kept` counts are lost. The design asks first. Fixed on 2026-11-10. Until the key switch replaces it, Sign out asks with Keep editing and Sign out.
 2. **Creating the first account from the UI is open to anyone.** On a fresh install, whoever reaches the page first gets the account. Production has accounts, so only a new install is open to this. A one-time setup code the server prints in its log would close it. The owner hasn't chosen yet.
-3. **Helper text shows at rest.** "Accept writes 3 fields to 6 files. History can undo it." (`InboxBar.vue:30`), "No agent can accept, save or delete." (`AgentsPanel.vue:110`) and "Then you sign in again with the new one." (`AccountSettings.vue:102`). Each becomes a note.
+3. **Helper text shows at rest.** "Accept writes 3 fields to 6 files. History can undo it." (`InboxBar.vue:30`), "No agent can accept, save or delete." (`AgentsPanel.vue:110`) and "Then you sign in again with the new one." (`AccountSettings.vue:116`). Each becomes a note.
 4. **The small key switch's legends are unreadable.** `AccountDesk.vue:138` draws it 96px wide, and OFF and ON come out under 8px. The design draws it at 120px.
 5. **The phone's decline key says only "Decline"** (`InboxBar.vue:67`), which reads as declining everything beside "Accept 2".
 6. **Send does two things under one label** (`InboxDetail.vue:186`). It posts a comment or asks for changes, after the rocker.

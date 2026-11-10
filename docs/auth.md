@@ -33,6 +33,8 @@ Before the app opens, sign-in is a rack unit on a switched-off console. The menu
 
 Status has three account units: Account, to sign out; Passkeys, to add, rename or remove named passkeys; and Password. Password changes require the current password. Passkey changes require proof from the last five minutes, and a fresh login counts as proof. When the server refuses a passkey change for an old proof, a note opens in place that names the change, such as "Remove iPhone?". After the user confirms their password or signs in with a passkey there, Shelf sends the change again, once.
 
+When the Library holds staged edits, Sign out asks first, such as "Sign out with 3 staged edits?", with Keep editing and Sign out.
+
 A passkey has a name, creation time, and last-use time. Adding and renaming a passkey keep the session. Password changes and passkey removal end all sessions, including the current one, and show the "Sign in again" dialog.
 
 An expired session closes event streams and stops playback. The "Sign in again" dialog makes the mounted app inert and keeps staged edits in memory. Its display reads SESSION ENDED and the number of staged edits kept, and the username stays filled in, with a "Not <username>?" link to type another. Signing back in as the same account reconnects events and refreshes shared data while preserving staged edits, without resending any action. Signing in as a different account or signing out reloads the page. Passwords and session tokens never go in browser storage.

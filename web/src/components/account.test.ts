@@ -6,6 +6,7 @@ import App from '../App.vue'
 import AccountSettings from './AccountSettings.vue'
 import { createAppRouter } from '../router'
 import { useAuth } from '../stores/auth'
+import { useEditor } from '../stores/editor'
 import { FakeEventSource, Reply, list, stubApi } from '../testing/api'
 
 beforeEach(() => {
@@ -93,5 +94,38 @@ test('a failed password change shows its error in the Password unit', async () =
   expect(alert.text()).toBe('Wrong current password')
   expect(alert.classes()).toContain('bad-text')
   expect(w.find('[aria-label="Passkeys"] [role="alert"]').exists()).toBe(false)
+  w.unmount()
+})
+
+test.each([0, 1, 3])('sign out protects %i staged edits', async (count) => {
+  const calls = stubApi({ '/api/auth/passkeys': { passkeys: [] }, '/api/auth/logout': {} })
+  const auth = useAuth()
+  auth.provider = 'simple'; auth.account = { id: 1, username: 'Alice' }
+  const editor = useEditor()
+  editor.held = Object.fromEntries(Array.from({ length: count }, (_, i) => [i + 1, { stage: {}, cover: { upload: 'cover' } }]))
+  const w = mount(AccountSettings)
+  await flushPromises()
+  const account = w.get('[aria-label="Account"]')
+  const logoutCalls = () => calls.filter((c) => c.url === '/api/auth/logout')
+  await account.get('button').trigger('click')
+  await flushPromises()
+  if (count === 0) {
+    expect(logoutCalls()).toHaveLength(1)
+    expect(account.find('.confirm-note').exists()).toBe(false)
+  } else {
+    expect(logoutCalls()).toHaveLength(0)
+    expect(account.get('.confirm-note strong').text()).toBe(`Sign out with ${count} staged ${count === 1 ? 'edit' : 'edits'}?`)
+    await account.get('.confirm-note button').trigger('click')
+    expect(account.find('.confirm-note').exists()).toBe(false)
+    expect(logoutCalls()).toHaveLength(0)
+    expect(editor.kept).toBe(count)
+    await account.get('button').trigger('click')
+    const confirm = account.get('.confirm-note')
+    expect(confirm.findAll('button').map((b) => b.text())).toEqual(['Keep editing', 'Sign out'])
+    await confirm.findAll('button')[1]!.trigger('click')
+    await flushPromises()
+    expect(logoutCalls()).toHaveLength(1)
+    expect(logoutCalls()[0]!.init?.method).toBe('POST')
+  }
   w.unmount()
 })

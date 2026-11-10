@@ -3,9 +3,12 @@ import { onMounted, ref, watch } from 'vue'
 import { ApiError, errorText } from '../api/client'
 import { addPasskey, passkeyLogin, supportsPasskeys } from '../lib/passkeys'
 import { accountCall, useAuth, type Passkey } from '../stores/auth'
+import { useEditor } from '../stores/editor'
 import PartCard from './PartCard.vue'
 
 const auth = useAuth()
+const editor = useEditor()
+const confirmLogout = ref(false)
 const keys = ref<Passkey[]>([])
 const current = ref('')
 const password = ref('')
@@ -19,6 +22,10 @@ const busy = ref(false)
 const part = ref<'account' | 'passkeys' | 'password'>('passkeys')
 const pending = ref<{ question: string; label: string; action: () => Promise<void> } | null>(null)
 const passkeys = supportsPasskeys()
+function signOut() {
+  if (editor.kept > 0) confirmLogout.value = true
+  else void run(auth.logout, 'account')
+}
 async function load() { keys.value = (await accountCall<{ passkeys: Passkey[] }>('/passkeys', undefined, 'GET')).passkeys }
 onMounted(() => { if (auth.provider === 'simple') void run(load) })
 watch(() => auth.account?.id, (id) => { if (id) void run(load) })
@@ -59,7 +66,14 @@ async function rename(id: string, name: string) { await accountCall(`/passkeys/$
 <template>
   <template v-if="auth.provider === 'simple'">
     <PartCard name="Account" lamp="ok" :lines="[`SIGNED IN AS ${auth.account?.username?.toUpperCase() ?? ''}`, `${keys.length} ${keys.length === 1 ? 'PASSKEY' : 'PASSKEYS'}`]">
-      <template #keys><button class="key" type="button" :disabled="busy" @click="run(auth.logout, 'account')">Sign out of Shelf</button></template>
+      <template #keys><button class="key" type="button" :disabled="busy" @click="signOut">Sign out of Shelf</button></template>
+      <div v-if="confirmLogout" class="note confirm-note">
+        <strong>Sign out with {{ editor.kept }} staged {{ editor.kept === 1 ? 'edit' : 'edits' }}?</strong>
+        <div class="action-row">
+          <button class="key" type="button" :disabled="busy" @click="confirmLogout = false">Keep editing</button>
+          <button class="key" type="button" :disabled="busy" @click="run(auth.logout, 'account')">Sign out</button>
+        </div>
+      </div>
       <p v-if="error && part === 'account'" class="bad-text" role="alert">{{ error }}</p>
     </PartCard>
     <PartCard name="Passkeys" :lines="[]">
