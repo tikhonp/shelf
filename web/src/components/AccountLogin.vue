@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onScopeDispose, ref } from 'vue'
 import { display, failed, type SignState } from '../lib/account'
 import { passkeyLogin, supportsPasskeys } from '../lib/passkeys'
 import { useAuth } from '../stores/auth'
 import { useEditor } from '../stores/editor'
 import { useTheme } from '../stores/theme'
+import PasskeySlide from './PasskeySlide.vue'
 
 // Sign in again, over the inert app, when a session ends inside it. The same account resumes; another reloads the page.
 const auth = useAuth()
@@ -22,6 +23,9 @@ const passwordEl = ref<HTMLInputElement>()
 const passkeys = supportsPasskeys()
 const busy = computed(() => state.value === 'busy' || state.value === 'waiting')
 const shown = computed(() => display(state.value, { name: username.value, kept: editor.kept }))
+// abort cancels the passkey request the slide started.
+let abort: AbortController | null = null
+onScopeDispose(() => abort?.abort())
 
 onMounted(() => {
   dialog.value?.showModal()
@@ -36,29 +40,36 @@ function notMe() {
 async function signIn(passkey = false) {
   if (busy.value) return
   state.value = passkey ? 'waiting' : 'busy'
+  if (passkey) abort = new AbortController()
   try {
-    if (passkey) await passkeyLogin()
+    if (passkey) await passkeyLogin(true, abort!.signal)
     else await auth.login(username.value, password.value)
   } catch (e) {
     state.value = failed(e)
     if (!passkey && state.value === 'wrong') void nextTick(() => passwordEl.value?.focus())
-  } finally { password.value = '' }
+  } finally { password.value = ''; abort = null }
+}
+// slide runs for the Passkey slide. OFF to ON asks for a passkey, and ON to OFF cancels the request.
+function slide() {
+  if (state.value === 'waiting') abort?.abort()
+  else void signIn(true)
 }
 </script>
 
 <template>
   <dialog ref="dialog" class="account-dialog rs" :class="{ day: theme.day }" aria-labelledby="account-login-title" @cancel.prevent>
     <section class="win">
-      <div class="tb"><h1 id="account-login-title"><span class="led" :class="shown.lamp"></span>Sign in again</h1><span class="stripes"></span></div>
+      <div class="tb"><h1 id="account-login-title">Sign in again</h1><span class="stripes"></span></div>
       <form class="account-body" @submit.prevent="signIn()">
-        <div class="lcd account-lcd" role="status"><div v-for="(l, i) in shown.lines" :key="i" class="lcd-l">{{ l }}</div></div>
-        <p v-if="known" class="t2 sm account-p">Sign in as {{ known }} to go on where you stopped. Another account reloads the page.</p>
-        <label class="lbl-f">Username<input ref="usernameEl" v-model="username" class="input" name="username" autocomplete="username webauthn" autocapitalize="none" spellcheck="false" required maxlength="32" :readonly="!other || busy" /></label>
-        <button v-if="!other" class="link sm account-not" type="button" @click="notMe">Not {{ known }}?</button>
+        <div :key="shown.tone === 'err' ? 'alert' : 'status'" class="lcd account-lcd" :class="shown.tone" :role="shown.tone === 'err' ? 'alert' : 'status'"><div v-for="(l, i) in shown.lines" :key="i" class="lcd-l">{{ l }}</div></div>
+        <div class="account-user">
+          <label class="lbl-f">Username<input ref="usernameEl" v-model="username" class="input" name="username" autocomplete="username webauthn" autocapitalize="none" spellcheck="false" required maxlength="32" :readonly="!other || busy" /></label>
+          <button v-if="!other" class="link sm account-not" type="button" @click="notMe">Not {{ known }}?</button>
+        </div>
         <label class="lbl-f">Password<input ref="passwordEl" v-model="password" class="input" name="password" type="password" autocomplete="current-password" required :readonly="busy" /></label>
-        <div class="account-keys">
-          <button v-if="passkeys" class="key" type="button" :class="{ pressed: state === 'waiting' }" :disabled="busy" @click="signIn(true)">Use a passkey</button>
-          <button class="key sun" type="submit" :class="{ pressed: state === 'busy' }" :disabled="busy">Sign in</button>
+        <button class="key sun block" type="submit" :class="{ pressed: state === 'busy' }" :disabled="busy">Sign in</button>
+        <div v-if="passkeys" class="account-pk">
+          <PasskeySlide row :on="state === 'waiting'" :disabled="state === 'busy'" @toggle="slide" />
         </div>
       </form>
     </section>
@@ -72,11 +83,12 @@ async function signIn(passkey = false) {
 .rs .account-dialog .tb h1, .account-dialog.rs .tb h1 { display: flex; align-items: center; gap: 8px; }
 .account-dialog.rs .account-body { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
 .account-dialog.rs .account-lcd { flex: none; min-height: 58px; justify-content: center; }
-.account-dialog.rs .account-p { margin: 0; }
-.account-dialog.rs .account-not { align-self: flex-start; margin-top: -6px; }
+.account-dialog.rs .account-user { display: flex; flex-direction: column; gap: 6px; }
+.account-dialog.rs .account-not { align-self: flex-start; }
 .account-dialog.rs .lbl-f .input { text-transform: none; letter-spacing: normal; font-family: var(--font); font-weight: 400; }
-.account-dialog.rs .account-keys { display: flex; gap: 10px; }
-.account-dialog.rs .account-keys .key { flex: 1; }
+.account-dialog.rs .account-pk { border-top: 1px solid var(--line); }
+/* The slide's row is a switch, not a list row, so it takes no hover background. */
+.account-dialog.rs .account-pk .slide.row:hover { background: transparent; }
 /* On the phone the window sits at the top, so the keyboard never covers its keys. */
 @media (max-width: 719px) {
   .account-dialog.rs { margin: 12px auto auto; }

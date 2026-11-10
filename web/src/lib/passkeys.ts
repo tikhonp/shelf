@@ -30,12 +30,13 @@ export async function addPasskey(name: string) {
   await accountCall(`/passkeys/finish?name=${encodeURIComponent(name)}`, serialize(credential))
 }
 // passkeyLogin applies the answer at once unless apply is false, as login does.
-export async function passkeyLogin(apply = true): Promise<AuthStatus> {
+// Aborting the signal cancels the browser's request, which then fails with an AbortError.
+export async function passkeyLogin(apply = true, signal?: AbortSignal): Promise<AuthStatus> {
   const data = await accountCall<{ publicKey: PublicKeyCredentialRequestOptions }>('/passkey/begin')
   const pk = data.publicKey
   pk.challenge = decode(pk.challenge as unknown as string)
   pk.allowCredentials = pk.allowCredentials?.map((c) => ({ ...c, id: decode(c.id as unknown as string) }))
-  const credential = await navigator.credentials.get({ publicKey: pk }) as PublicKeyCredential | null
+  const credential = await navigator.credentials.get({ publicKey: pk, signal }) as PublicKeyCredential | null
   if (!credential) throw new Error('Passkey sign-in was canceled')
   const v = await accountCall<AuthStatus>('/passkey/finish', serialize(credential))
   if (apply) useAuth().signedIn(v)

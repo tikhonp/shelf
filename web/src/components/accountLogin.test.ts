@@ -24,10 +24,12 @@ async function mountApp(day = false, path = '/search') {
 const signedOut = { provider: 'simple', account: null, setup_needed: false }
 const alice = { provider: 'simple', account: { id: 1, username: 'alice' }, setup_needed: false }
 const appRoutes = { '/api/downloads': list([]), '/api/sources': [], '/api/library/scan': { enabled: false }, '/api/telegram': { enabled: false }, '/api/search': { items: [], total: 0 } }
-const lcd = (w: Awaited<ReturnType<typeof mountApp>>) => w.find('[role="status"]').findAll('.lcd-l').map((l) => l.text())
+// lcd reads the display under its MUSIC SHELF line, whether it is a status or an alert.
+const lcd = (w: Awaited<ReturnType<typeof mountApp>>) => w.find('.lcd').findAll('.lcd-l:not(.dim)').map((l) => l.text())
+const slide = (w: Awaited<ReturnType<typeof mountApp>>) => w.find('.slide[role="switch"]')
 
 // passkeyBrowser makes the browser offer passkeys, and get answers as given.
-function passkeyBrowser(get: () => Promise<unknown>) {
+function passkeyBrowser(get: (o?: { signal?: AbortSignal }) => Promise<unknown>) {
   vi.stubGlobal('isSecureContext', true)
   vi.stubGlobal('PublicKeyCredential', class {})
   vi.stubGlobal('AuthenticatorAttestationResponse', class {})
@@ -44,25 +46,25 @@ async function tryPassword(w: Awaited<ReturnType<typeof mountApp>>, user = 'alic
   await flushPromises()
 }
 
-test('the console is switched off: tabs disabled, dark lamps, no clock', async () => {
+test('sign-in shows only its unit: no menubar or tabs, a dim MUSIC SHELF line, and a heading for screen readers', async () => {
   stubApi({ '/api/auth': signedOut })
   const w = await mountApp()
-  const tabs = w.findAll('.acct-tabs .mb-item')
-  expect(tabs.map((t) => t.text())).toEqual(['Library', 'Search', 'Downloads', 'Status'])
-  expect(tabs.every((t) => t.attributes('aria-disabled') === 'true')).toBe(true)
-  expect(w.findAll('.acct-bar .leds .led.off')).toHaveLength(3)
-  expect(w.find('.acct-clock').text()).toBe('--:--')
+  expect(w.find('.menubar').exists()).toBe(false)
+  expect(w.find('.dock').exists()).toBe(false)
+  expect(w.find('.plate').exists()).toBe(false)
+  expect(w.find('h1.sr').text()).toBe('Sign in to Music Shelf')
+  expect(w.find('.lcd-l.dim').text()).toBe('MUSIC SHELF')
   expect(w.findAll('.acct-blank')).toHaveLength(2)
   expect(lcd(w)).toEqual(['SIGNED OUT', 'PASSWORD'])
+  expect(w.findAll('form button').map((b) => b.text())).toEqual(['Sign in'])
   w.unmount()
 })
 
-test('the switched-off menubar shows the Inbox tab when the Inbox was on last time', async () => {
-  localStorage.setItem('shelf.inbox', '1')
+test('a browser without passkeys shows no slide and no key switch', async () => {
   stubApi({ '/api/auth': signedOut })
   const w = await mountApp()
-  expect(w.findAll('.acct-tabs .mb-item').map((t) => t.text())).toContain('Inbox')
-  localStorage.removeItem('shelf.inbox')
+  expect(slide(w).exists()).toBe(false)
+  expect(w.find('.keysw').exists()).toBe(false)
   w.unmount()
 })
 
@@ -71,7 +73,8 @@ test('a 401 shows Shelf words on the display, empties the password and focuses i
   const w = await mountApp()
   await tryPassword(w)
   expect(lcd(w)).toEqual(['WRONG USERNAME', 'OR PASSWORD'])
-  expect(w.find('#acct-h .led').classes()).toContain('bad')
+  expect(w.find('.lcd').attributes('role')).toBe('alert')
+  expect(w.find('.lcd').classes()).toContain('err')
   expect(w.text()).not.toContain('Incorrect credentials')
   expect((w.find('input[name="password"]').element as HTMLInputElement).value).toBe('')
   expect(document.activeElement).toBe(w.find('input[name="password"]').element)
@@ -83,6 +86,7 @@ test('a 429 says to try again later, with no wait time', async () => {
   const w = await mountApp()
   await tryPassword(w)
   expect(lcd(w)).toEqual(['TOO MANY TRIES', 'TRY AGAIN LATER'])
+  expect(w.find('.lcd').classes()).toContain('err')
   w.unmount()
 })
 
@@ -96,7 +100,8 @@ test('while the password is checked, the display names the user and Sign in is p
   expect(key.text()).toBe('Sign in')
   expect(key.classes()).toContain('pressed')
   expect(key.attributes('disabled')).toBeDefined()
-  expect(w.find('#acct-h .led').classes()).toEqual(expect.arrayContaining(['warn', 'blink']))
+  expect(w.find('.lcd').attributes('role')).toBe('status')
+  expect(w.find('.lcd').classes()).not.toContain('err')
   release(); await flushPromises()
   w.unmount()
 })
@@ -105,7 +110,7 @@ test('the sign-in unit follows the Day theme', async () => {
   stubApi({ '/api/auth': signedOut })
   const w = await mountApp(true)
   expect(w.find('.acct-desk').classes()).toContain('day')
-  expect(w.find('.acct-desk').text()).toContain('Music Shelf')
+  expect(w.find('.acct-desk').text()).toContain('MUSIC SHELF')
   w.unmount()
 })
 
@@ -132,19 +137,19 @@ test('with no accounts, the unit shows the command and a Reload key and no field
   w.unmount()
 })
 
-test('after sign-in the lamps light 260 ms apart, the tab lights, then the app mounts', async () => {
+test('after sign-in the lamps in the unit light 260 ms apart and the clock starts, then the app mounts', async () => {
   vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'] })
   stubApi({ '/api/auth/login': alice, '/api/auth': signedOut, ...appRoutes })
   const w = await mountApp(false, '/search')
   await tryPassword(w)
   expect(lcd(w)).toEqual(['HELLO, ALICE', 'OPENING SEARCH'])
-  expect(w.find('.acct-tabs .mb-item.on').text()).toBe('Search')
-  expect(w.find('.acct-clock').text()).not.toBe('--:--')
-  expect(w.findAll('.acct-bar .leds .led.ok')).toHaveLength(0)
+  expect(w.find('form').exists()).toBe(false)
+  expect(w.find('.acct-lamps .vfd').text()).toMatch(/^\d\d:\d\d$/)
+  expect(w.findAll('.acct-lamps .led.ok')).toHaveLength(0)
   await vi.advanceTimersByTimeAsync(260)
-  expect(w.findAll('.acct-bar .leds .led.ok')).toHaveLength(1)
+  expect(w.findAll('.acct-lamps .led.ok')).toHaveLength(1)
   await vi.advanceTimersByTimeAsync(520)
-  expect(w.findAll('.acct-bar .leds .led.ok')).toHaveLength(3)
+  expect(w.findAll('.acct-lamps .led.ok')).toHaveLength(3)
   expect(useAuth().mounted).toBe(false)
   await vi.advanceTimersByTimeAsync(260); await flushPromises()
   expect(useAuth().mounted).toBe(true)
@@ -161,15 +166,73 @@ test('with reduced motion, the app mounts at once', async () => {
   w.unmount()
 })
 
-test('a canceled passkey turns the key back to OFF and asks for the password', async () => {
+test('a canceled passkey springs the slide back to OFF and turns the display amber', async () => {
   passkeyBrowser(() => Promise.reject(new DOMException('canceled', 'NotAllowedError')))
   stubApi({ '/api/auth/passkey/begin': { publicKey: { challenge: 'AAAA' } }, '/api/auth': signedOut })
   const w = await mountApp()
   expect(lcd(w)).toEqual(['SIGNED OUT', 'PASSWORD OR PASSKEY'])
-  await w.findAll('button').find((b) => b.text() === 'Sign in with a passkey')!.trigger('click')
+  expect(slide(w).attributes('aria-label')).toBe('Sign in with a passkey')
+  expect(w.findAll('form button').map((b) => b.text())).toEqual(['Sign in'])
+  await slide(w).trigger('click')
   await flushPromises()
   expect(lcd(w)).toEqual(['PASSKEY CANCELED', 'USE THE PASSWORD'])
+  expect(w.find('.lcd').classes()).toContain('warn')
+  expect(w.find('.lcd').attributes('role')).toBe('status')
+  expect(slide(w).attributes('aria-checked')).toBe('false')
   expect(w.find('.keysw-bow').classes()).not.toContain('on')
+  w.unmount()
+})
+
+test('the slide stays at ON while the passkey is asked for, and sliding back cancels the request', async () => {
+  let signal: AbortSignal | undefined
+  passkeyBrowser((o?: { signal?: AbortSignal }) => new Promise((_, reject) => {
+    signal = o?.signal
+    signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')))
+  }))
+  stubApi({ '/api/auth/passkey/begin': { publicKey: { challenge: 'AAAA' } }, '/api/auth': signedOut })
+  const w = await mountApp()
+  await slide(w).trigger('click')
+  await flushPromises()
+  expect(lcd(w)).toEqual(['WAITING FOR', 'YOUR PASSKEY'])
+  expect(slide(w).attributes('aria-checked')).toBe('true')
+  expect(w.find('.keysw-bow').classes()).not.toContain('on')
+  expect(w.find('button[type="submit"]').attributes('disabled')).toBeDefined()
+  await slide(w).trigger('click')
+  await flushPromises()
+  expect(signal?.aborted).toBe(true)
+  expect(lcd(w)).toEqual(['PASSKEY CANCELED', 'USE THE PASSWORD'])
+  expect(slide(w).attributes('aria-checked')).toBe('false')
+  w.unmount()
+})
+
+test('a 24px drag flips the slide, and a shorter one does not', async () => {
+  const get = vi.fn(() => Promise.reject(new DOMException('canceled', 'NotAllowedError')))
+  passkeyBrowser(get)
+  stubApi({ '/api/auth/passkey/begin': { publicKey: { challenge: 'AAAA' } }, '/api/auth': signedOut })
+  const w = await mountApp()
+  // jsdom has no PointerEvent, so the test sends plain events that carry clientX.
+  const pointer = (type: string, clientX = 0) => slide(w).element.dispatchEvent(Object.assign(new Event(type), { clientX }))
+  pointer('pointerdown', 100); pointer('pointermove', 120); pointer('pointerup')
+  await flushPromises()
+  expect(get).not.toHaveBeenCalled()
+  pointer('pointerdown', 100); pointer('pointermove', 125)
+  // The click that ends the drag doesn't flip it back.
+  await slide(w).trigger('click')
+  await flushPromises()
+  expect(get).toHaveBeenCalledTimes(1)
+  w.unmount()
+})
+
+test('pressing the key switch asks for a passkey, as the slide does', async () => {
+  const get = vi.fn(() => Promise.reject(new DOMException('canceled', 'NotAllowedError')))
+  passkeyBrowser(get)
+  stubApi({ '/api/auth/passkey/begin': { publicKey: { challenge: 'AAAA' } }, '/api/auth': signedOut })
+  const w = await mountApp()
+  expect(w.find('.keysw').attributes('width')).toBe('150')
+  await w.find('.keysw[data-press]').trigger('click')
+  await flushPromises()
+  expect(get).toHaveBeenCalledTimes(1)
+  expect(lcd(w)).toEqual(['PASSKEY CANCELED', 'USE THE PASSWORD'])
   w.unmount()
 })
 
@@ -178,10 +241,12 @@ test('a passkey sign-in turns the key to ON', async () => {
   passkeyBrowser(() => Promise.resolve(Object.assign(Object.create(null), { id: 'k', rawId: new ArrayBuffer(1), type: 'public-key', response: { clientDataJSON: new ArrayBuffer(1), authenticatorData: new ArrayBuffer(1), signature: new ArrayBuffer(1), userHandle: null }, getClientExtensionResults: () => ({}) })))
   stubApi({ '/api/auth/passkey/begin': { publicKey: { challenge: 'AAAA' } }, '/api/auth/passkey/finish': alice, '/api/auth': signedOut, ...appRoutes })
   const w = await mountApp()
-  await w.findAll('button').find((b) => b.text() === 'Sign in with a passkey')!.trigger('click')
+  await slide(w).trigger('click')
   await flushPromises()
   expect(lcd(w)).toEqual(['HELLO, ALICE', 'OPENING SEARCH'])
   expect(w.find('.keysw-bow').classes()).toContain('on')
+  expect(slide(w).attributes('aria-checked')).toBe('true')
+  expect(slide(w).attributes('aria-disabled')).toBe('true')
   w.unmount()
 })
 
@@ -196,20 +261,66 @@ test('a session that ends inside the app shows the edits it kept and the same us
   useAuth().expired(); await flushPromises()
   const dialog = w.find('dialog')
   expect(dialog.find('h1').text()).toBe('Sign in again')
+  expect(dialog.find('.lcd').classes()).toContain('warn')
   expect(dialog.find('[role="status"]').text()).toContain('SESSION ENDED')
   expect(dialog.find('[role="status"]').text()).toContain('2 EDITS KEPT')
   const user = dialog.find('input[name="username"]')
   expect((user.element as HTMLInputElement).value).toBe('alice')
   expect(user.attributes('readonly')).toBeDefined()
-  expect(dialog.text()).toContain('Sign in as alice to go on where you stopped.')
-  const keys = dialog.findAll('.account-keys button').map((b) => b.text())
-  expect(keys.at(-1)).toBe('Sign in')
+  expect(dialog.find('p').exists()).toBe(false)
+  expect(dialog.findAll('.key').map((b) => b.text())).toEqual(['Sign in'])
   await dialog.findAll('button').find((b) => b.text() === 'Not alice?')!.trigger('click')
   expect((user.element as HTMLInputElement).value).toBe('')
   expect(user.attributes('readonly')).toBeUndefined()
   await user.setValue('bob')
   await dialog.find('input[name="password"]').setValue('wrong')
   await dialog.find('form').trigger('submit'); await flushPromises()
-  expect(dialog.find('[role="status"]').text()).toContain('WRONG USERNAME')
+  expect(dialog.find('[role="alert"]').text()).toContain('WRONG USERNAME')
+  w.unmount()
+})
+
+// phoneWith gives the phone layout and a visual viewport the keyboard covers by the given height.
+function phoneWith(covered: number) {
+  vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('max-width'), addEventListener() {}, removeEventListener() {} }))
+  vi.stubGlobal('innerHeight', 844)
+  vi.stubGlobal('visualViewport', { height: 844 - covered, offsetTop: 0, addEventListener() {}, removeEventListener() {} })
+}
+
+test('the phone centers the unit, with the slide in its own row under the form and no key switch', async () => {
+  phoneWith(0)
+  passkeyBrowser(() => Promise.reject(new DOMException('canceled', 'NotAllowedError')))
+  stubApi({ '/api/auth': signedOut })
+  const w = await mountApp()
+  const stack = w.find('.acct-stack')
+  expect(stack.attributes('data-keyboard')).toBeUndefined()
+  expect(stack.attributes('style')).toContain('bottom: 10px')
+  expect(w.find('.tb').exists()).toBe(false)
+  expect(w.find('.keysw').exists()).toBe(false)
+  expect(w.find('.acct-pk .slide.row').exists()).toBe(true)
+  w.unmount()
+})
+
+test('while the keyboard is open the phone unit moves to the top, above the keys', async () => {
+  phoneWith(300)
+  stubApi({ '/api/auth': signedOut })
+  const w = await mountApp()
+  const stack = w.find('.acct-stack')
+  expect(stack.attributes('data-keyboard')).toBe('true')
+  expect(stack.attributes('style')).toContain('bottom: 310px')
+  w.unmount()
+})
+
+test('Sign in again has a Passkey slide under Sign in, and a canceled passkey turns its display amber', async () => {
+  passkeyBrowser(() => Promise.reject(new DOMException('canceled', 'NotAllowedError')))
+  stubApi({ '/api/auth': alice, '/api/auth/passkey/begin': { publicKey: { challenge: 'AAAA' } }, ...appRoutes })
+  const w = await mountApp()
+  useAuth().expired(); await flushPromises()
+  const dialog = w.find('dialog')
+  const sw = dialog.find('.account-pk .slide.row')
+  expect(sw.attributes('aria-checked')).toBe('false')
+  await sw.trigger('click'); await flushPromises()
+  expect(dialog.find('.lcd').text()).toContain('PASSKEY CANCELED')
+  expect(dialog.find('.lcd').classes()).toContain('warn')
+  expect(sw.attributes('aria-checked')).toBe('false')
   w.unmount()
 })

@@ -22,8 +22,7 @@ async function mountApp() {
 test('logged-out startup makes no protected requests or event streams', async () => {
   const calls = stubApi({ '/api/auth': { provider: 'simple', account: null, setup_needed: false } })
   const w = await mountApp()
-  expect(w.find('#acct-h').text()).toBe('Sign in')
-  expect(w.text()).toContain('to Music Shelf')
+  expect(w.find('#acct-h').text()).toBe('Sign in to Music Shelf')
   expect(w.find('.menubar a').exists()).toBe(false)
   expect(calls.map((c) => c.url)).toEqual(['/api/auth'])
   expect(w.find('input[name="username"]').attributes('autocomplete')).toBe('username webauthn')

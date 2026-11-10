@@ -27,6 +27,8 @@ The screens have small review-only scripts in `slide-demo.js`, `tips.js` and inl
 
 `AccountDesk.vue`, `AccountLogin.vue`, `KeySwitch.vue`, `web/src/lib/account.ts`.
 
+Built on 2026-11-10, apart from [the first account](#the-first-account). The slide is `PasskeySlide.vue`. The desktop key switch is 150px, as `MS-desk-account-signin` draws it. 120px is the size in the narrow units of the states board and on Status, and below 150px the legends grow so OFF and ON stay readable.
+
 - Sign-in shows only its unit. The desktop has no menubar and the phone has no brand row, title bar or dock. The power-up lights three lamps inside the unit, then the app opens with its menubar.
 - The unit has no plate, because the display repeats it. The display's first line is a dim MUSIC SHELF (`.lcd-l.dim`), then the state. The unit keeps a heading for screen readers.
 - Sign in is the only key. A horizontal Passkey slide (`slide.css`) replaces the "Sign in with a passkey" key. Sliding it to ON, by a press or a 24px drag, asks for a passkey. It springs back to OFF when the passkey is canceled or fails, and stays at ON after a passkey sign-in.
