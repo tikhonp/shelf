@@ -26,6 +26,8 @@ The [sign-in and agent review redesign](plans/signin-and-agent-review-design.md)
 
 An agent's 401 for a malformed token says whether the prefix is missing, a character is not allowed, or the length is wrong, and it gives the length for the whole token. The old message compared the 43 characters after the prefix with the whole token's length.
 
+An agent connection can get a new secret on Status or with `shelf manage agents secret <id>`, and Connect hides its permission rockers until Choose. Neither is deployed.
+
 ## Operational notes
 
 - Source modules log in and start goroutines in `Run`, never `Init`, and register with `Switch` when settings are missing.

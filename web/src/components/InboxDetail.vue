@@ -222,6 +222,8 @@ async function send() {
 .rs .ib-tapes { display: flex; flex-wrap: wrap; gap: 6px 10px; }
 .rs .sug.tape { cursor: default; }
 .rs a.sug { text-decoration: none; }
+/* An agent may name several sources in one, so the source wraps instead of widening the page. */
+.rs .ib-tapes .sug-s { flex: 0 1 auto; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
 .rs .ib-moved { border-bottom: 1px solid var(--line); }
 .rs .ib-lcds { display: flex; flex-wrap: wrap; gap: 10px; }
 .rs .ib-lcds .lcd { flex: 1 1 110px; flex-direction: row; align-items: baseline; gap: 8px; padding: 8px 12px; }

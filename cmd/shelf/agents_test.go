@@ -29,13 +29,19 @@ func TestAgentCommandsPersistAndRevokeWhileDisabled(t *testing.T) {
 	if code := run("manage", "agents", "list"); code != 0 || !strings.Contains(out.String(), "Local agent") || strings.Contains(out.String(), "shelf_agent_") {
 		t.Fatalf("list %d: %s", code, &out)
 	}
+	if code := run("manage", "agents", "secret", "1"); code != 0 || !strings.Contains(out.String(), "The old secret no longer works.\nConnection 1: Local agent\nSHELF_AGENT_TOKEN=shelf_agent_") {
+		t.Fatalf("secret %d: %s", code, &out)
+	}
 	if code := run("manage", "agents", "revoke", "1"); code != 0 {
 		t.Fatalf("revoke %d: %s", code, &out)
+	}
+	if code := run("manage", "agents", "secret", "1"); code != 1 || strings.Contains(out.String(), "shelf_agent_") {
+		t.Fatalf("secret for a revoked connection %d: %s", code, &out)
 	}
 	if code := run("manage", "agents", "add", "Wrong", "--ops", "library.apply"); code != 1 || strings.Contains(out.String(), "shelf_agent_") {
 		t.Fatalf("invalid scope %d: %s", code, &out)
 	}
-	for _, args := range [][]string{{"manage", "agents", "add"}, {"manage", "agents", "revoke", "0"}, {"manage", "agents", "list", "extra"}} {
+	for _, args := range [][]string{{"manage", "agents", "add"}, {"manage", "agents", "revoke", "0"}, {"manage", "agents", "list", "extra"}, {"manage", "agents", "secret"}, {"manage", "agents", "secret", "x"}} {
 		if code := run(args...); code != 2 {
 			t.Fatalf("invalid command %v returned %d", args, code)
 		}

@@ -4,14 +4,17 @@ import { listOf, type Connection, type Setup } from '../api/agents'
 import { errorText, get, post } from '../api/client'
 import { useInbox } from './inbox'
 
+// Created is a one-time secret with its prompt. renewed marks a new secret for a connection that already existed.
+export interface Created { connection: Connection; token: string; prompt: string; renewed: boolean }
+
 // Agent connections and the operations a new one can have, for the Agents units on Status.
 export const useAgents = defineStore('agents', () => {
   const connections = ref<Connection[]>([])
   const setup = ref<Setup | null>(null)
   const error = ref('')
   const busy = ref(false)
-  // created holds the one-time secret of the connection just made, and the prompt that holds it. Both live only in this page's memory.
-  const created = ref<{ connection: Connection; token: string; prompt: string } | null>(null)
+  // created holds the one-time secret of the connection just made or just given a new secret, and the prompt that holds it. Both live only in this page's memory.
+  const created = ref<Created | null>(null)
 
   let createSeq = 0
 
@@ -38,9 +41,30 @@ export const useAgents = defineStore('agents', () => {
     error.value = ''
     try {
       const answer = await post<{ connection: Connection; token: string; prompt: string }>('/api/inbox/connections', { name, operations })
-      if (seq === createSeq) created.value = answer
+      if (seq === createSeq) created.value = { ...answer, renewed: false }
       await load()
       void inbox.detect()
+      return true
+    } catch (err) {
+      error.value = errorText(err)
+      return false
+    } finally {
+      busy.value = false
+    }
+  }
+
+  async function renew(id: number): Promise<boolean> {
+    if (!canCreate.value) {
+      error.value = `Get a new secret with shelf manage agents secret ${id}.`
+      return false
+    }
+    const seq = ++createSeq
+    busy.value = true
+    error.value = ''
+    try {
+      const answer = await post<{ connection: Connection; token: string; prompt: string }>(`/api/inbox/connections/${id}/secret`)
+      if (seq === createSeq) created.value = { ...answer, renewed: true }
+      await load()
       return true
     } catch (err) {
       error.value = errorText(err)
@@ -72,5 +96,5 @@ export const useAgents = defineStore('agents', () => {
     created.value = null
   }
 
-  return { connections, setup, error, busy, created, canCreate, load, create, revoke, forget }
+  return { connections, setup, error, busy, created, canCreate, load, create, renew, revoke, forget }
 })

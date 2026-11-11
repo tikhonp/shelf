@@ -48,6 +48,7 @@ func (m *Module) inboxRoutes(g *echo.Group) {
 	g.GET("/connections", m.h(m.listConnections))
 	g.POST("/connections", m.h(m.addConnection))
 	g.POST("/connections/:id/revoke", m.h(m.revokeConnection))
+	g.POST("/connections/:id/secret", m.h(m.newSecret))
 	g.GET("/setup", m.h(m.setup))
 	g.GET("/memory", m.h(m.getMemory))
 	g.POST("/memory", m.h(func(c *echo.Context) error { return m.userMemory(c, "create") }))
@@ -106,6 +107,29 @@ func (m *Module) addConnection(c *echo.Context) error {
 		return e
 	}
 	return c.JSON(201, map[string]any{"connection": conn, "token": token, "prompt": prompt(m.serverOrigin(c)+"/api/agent/v1", m.reviewBase(c), token)})
+}
+
+// Like addConnection, newSecret needs Shelf sign-in. Without it, tokens
+// come only from the shell.
+func (m *Module) newSecret(c *echo.Context) error {
+	if m.accounts == nil || !m.accounts.AuthenticationEnabled() {
+		return fail(403, "forbidden_operation", "use shelf manage agents secret <id> without Shelf sign-in")
+	}
+	id, e := idParam(c, "id")
+	if e != nil {
+		return e
+	}
+	conn, token, e := m.NewSecret(c.Request().Context(), id)
+	if errors.Is(e, ErrConnectionNotFound) {
+		return notFound("connection")
+	}
+	if errors.Is(e, ErrAlreadyRevoked) {
+		return conflict("revoked", "this connection was revoked")
+	}
+	if e != nil {
+		return e
+	}
+	return c.JSON(200, map[string]any{"connection": conn, "token": token, "prompt": prompt(m.serverOrigin(c)+"/api/agent/v1", m.reviewBase(c), token)})
 }
 func (m *Module) revokeConnection(c *echo.Context) error {
 	id, e := idParam(c, "id")

@@ -2,12 +2,12 @@
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { Connection } from '../api/agents'
-import { copyText } from '../lib/copy'
 import { useNow } from '../lib/clock'
 import { ago, plural, shortDay } from '../lib/format'
 import { usePhone } from '../lib/viewport'
 import { useAgents } from '../stores/agents'
 import { useInbox } from '../stores/inbox'
+import AgentSecret from './AgentSecret.vue'
 import LibTip from './LibTip.vue'
 import PartCard from './PartCard.vue'
 import PatchJack from './PatchJack.vue'
@@ -27,13 +27,10 @@ const phone = usePhone()
 
 const name = ref('')
 const ops = ref<string[]>([])
-const asking = ref<number | null>(null)
-// copied is whether the user copied the new prompt or secret, so Done can ask before the secret goes.
-const copied = ref(false)
-const copyNote = ref('')
-const closing = ref(false)
-const tokenEl = ref<HTMLElement | null>(null)
-const promptEl = ref<HTMLElement | null>(null)
+// asking is the connection whose Revoke or New secret waits for a second press.
+const asking = ref<{ id: number; what: 'revoke' | 'renew' } | null>(null)
+// choosing shows the permission rockers. Every operation is on unless the user opens them.
+const choosing = ref(false)
 
 const allOps = () => agents.setup?.operations.map((o) => o.name) ?? []
 onMounted(() => { if (inbox.enabled) void agents.load() })
@@ -46,7 +43,14 @@ const active = computed(() => agents.connections.filter((c) => !c.revoked_at))
 // Active connections come first. One list keeps a unit's element when it is revoked, so its plug slides out.
 const units = computed(() => [...active.value, ...agents.connections.filter((c) => c.revoked_at)])
 const pending = computed(() => agents.connections.reduce((n, c) => n + (c.proposals ?? 0), 0))
-const locked = computed(() => !!agents.created)
+// Only a new connection's prompt locks Connect. A new secret shows in its own connection's unit.
+const fresh = computed(() => (agents.created && !agents.created.renewed ? agents.created : null))
+const renewed = (c: Connection) => (agents.created?.renewed && agents.created.connection.id === c.id ? agents.created : null)
+const locked = computed(() => !!fresh.value)
+const allowed = computed(() => {
+  const n = allOps().length
+  return ops.value.length === n ? 'Everything' : ops.value.length === 0 ? 'Nothing' : `${ops.value.length} of ${n}`
+})
 
 const up = (s: string) => s.toUpperCase()
 function facts(c: Connection): string[] {
@@ -60,39 +64,23 @@ function note(c: Connection): string {
   if (c.revoked_at) return c.revoked_by ? `Revoked by ${c.revoked_by}` : reasonWord(c.revoke_reason)
   return phone.value ? `Added by ${c.created_by}` : `Added by ${c.created_by} on ${shortDay(c.created_at)}`
 }
-const jack = (c: Connection) => (c.revoked_at ? 'out' : asking.value === c.id ? 'asking' : 'in')
+const asks = (c: Connection, what: 'revoke' | 'renew') => asking.value?.id === c.id && asking.value.what === what
+const jack = (c: Connection) => (c.revoked_at ? 'out' : asks(c, 'revoke') ? 'asking' : 'in')
 
 async function create() {
-  copied.value = false
-  copyNote.value = ''
-  closing.value = false
   await agents.create(name.value.trim(), ops.value)
 }
 async function revoke(id: number) {
   if (await agents.revoke(id)) asking.value = null
 }
-async function copy(what: 'token' | 'prompt') {
-  const text = what === 'token' ? agents.created?.token : agents.created?.prompt
-  if (!text) return
-  const ok = await copyText(text, what === 'token' ? tokenEl.value : promptEl.value)
-  copied.value = true
-  closing.value = false
-  copyNote.value = ok ? (what === 'token' ? 'Secret copied.' : 'Prompt copied.') : 'Copy it from the selected text.'
-}
-function done() {
-  if (!copied.value) {
-    closing.value = true
-    return
-  }
-  close()
+async function renew(id: number) {
+  if (await agents.renew(id)) asking.value = null
 }
 function close() {
   agents.forget()
   name.value = ''
   ops.value = allOps()
-  copied.value = false
-  copyNote.value = ''
-  closing.value = false
+  choosing.value = false
 }
 function toggleOp(n: string) {
   if (locked.value) return
@@ -117,14 +105,21 @@ function toggleOp(n: string) {
         <div v-if="!c.revoked_at" class="stks" aria-label="Allowed"><span v-for="op in c.operations" :key="op" class="stk">{{ operationWords[op]?.name ?? op }}</span></div>
         <div class="line g10 wrap" :data-jack="jack(c)">
           <span v-if="c.revoked_at" class="jackbtn idle" aria-hidden="true"><PatchJack /></span>
-          <button v-else type="button" class="jackbtn" :aria-label="`Revoke ${c.name}`" :aria-expanded="asking === c.id" @click="asking = c.id"><PatchJack /><span class="gear-name" aria-hidden="true">Revoke</span></button>
+          <button v-else type="button" class="jackbtn" :aria-label="`Revoke ${c.name}`" :aria-expanded="asks(c, 'revoke')" @click="asking = { id: c.id, what: 'revoke' }"><PatchJack /><span class="gear-name" aria-hidden="true">Revoke</span></button>
           <span v-if="c.revoked_at" class="sub">Unplugged. Its proposals stay in the Inbox.</span>
-          <template v-else-if="asking === c.id">
+          <template v-else-if="asks(c, 'revoke')">
             <span class="sub">Revoke {{ c.name }}? Its token stops working at once.</span>
             <button type="button" class="key sm" @click="asking = null">Cancel</button>
             <button type="button" class="key sm sun" :disabled="agents.busy" @click="revoke(c.id)">Revoke</button>
           </template>
+          <template v-else-if="asks(c, 'renew')">
+            <span class="sub">Give {{ c.name }} a new secret? The old one stops working at once.</span>
+            <button type="button" class="key sm" @click="asking = null">Cancel</button>
+            <button type="button" class="key sm sun" :disabled="agents.busy" @click="renew(c.id)">New secret</button>
+          </template>
+          <button v-else-if="agents.canCreate && !renewed(c)" type="button" class="key sm" @click="asking = { id: c.id, what: 'renew' }"><LibTip title="New secret" note="Shelf keeps only a hash of the secret, so it can't show the old one. A new secret keeps the connection's permissions, proposals and memory.">New secret</LibTip></button>
         </div>
+        <AgentSecret v-if="renewed(c)" :key="renewed(c)!.token" :created="renewed(c)!" @close="agents.forget()" />
       </div>
     </PartCard>
 
@@ -133,7 +128,11 @@ function toggleOp(n: string) {
         <label class="lbl-f">Name<input v-model="name" class="input" maxlength="64" placeholder="Claude at home" autocomplete="off" required :readonly="locked" :aria-readonly="locked" /></label>
         <fieldset v-if="agents.setup?.operations.length" class="ops">
           <legend class="lbl-f">Allowed</legend>
-          <div class="lib-bank op-grid">
+          <div class="line g10">
+            <span class="t2">{{ allowed }}</span>
+            <button type="button" class="key sm" :aria-expanded="choosing" aria-controls="ag-ops" @click="choosing = !choosing">{{ choosing ? 'Hide' : 'Choose' }}</button>
+          </div>
+          <div v-if="choosing" id="ag-ops" class="lib-bank op-grid">
             <button v-for="o in agents.setup.operations" :key="o.name" type="button" class="rocker" role="switch" :aria-checked="ops.includes(o.name)" :aria-disabled="locked ? 'true' : undefined" @click="toggleOp(o.name)">
               <span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name">{{ operationWords[o.name]?.name ?? o.name }}</span><span class="rk-state">{{ operationWords[o.name]?.summary ?? o.summary }}</span></span>
             </button>
@@ -141,24 +140,7 @@ function toggleOp(n: string) {
         </fieldset>
         <div><button type="submit" class="key" :class="{ sun: !locked, block: phone }" :disabled="agents.busy || locked || !name.trim()"><LibTip title="Connect" note="Makes a connection with the permissions that are on. No agent can accept, save or delete, whatever it is allowed.">Connect</LibTip></button></div>
 
-        <div v-if="agents.created" class="note secret" role="region" aria-label="New connection prompt">
-          <span class="bold">Prompt for {{ agents.created.connection.name }}</span>
-          <span class="sub">Shelf shows it once. The prompt holds the connection's secret, so paste it only into the agent. The secret reaches tags, lyrics, file names, history and authors.</span>
-          <pre ref="promptEl" class="mono prompt">{{ agents.created.prompt }}</pre>
-          <span class="sub">The secret alone, for SHELF_AGENT_TOKEN</span>
-          <code ref="tokenEl" class="mono tok">{{ agents.created.token }}</code>
-          <div class="line g10 wrap">
-            <button type="button" class="key sm sun" @click="copy('prompt')">Copy prompt</button>
-            <button type="button" class="key sm" @click="copy('token')">Copy secret</button>
-            <span v-if="copyNote" class="sub" role="status">{{ copyNote }}</span>
-            <span class="grow"></span>
-            <template v-if="closing">
-              <span class="sub" role="alert">Nothing copied yet, and Shelf shows it only once.</span>
-              <button type="button" class="key sm" @click="close">Close anyway</button>
-            </template>
-            <button v-else type="button" class="key sm" @click="done">Done</button>
-          </div>
-        </div>
+        <AgentSecret v-if="fresh" :key="fresh.token" :created="fresh" @close="close" />
       </form>
       <p v-else class="t2 sm ag-form">Without Shelf sign-in, connections come from the shell: <code class="mono">shelf manage agents add &lt;name&gt;</code>. Listing and revoking work here.</p>
     </PartCard>
@@ -179,9 +161,6 @@ function toggleOp(n: string) {
 .rs .ops legend { padding: 0 0 8px; }
 .rs .op-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
 .rs .op-grid .rk-name, .rs .op-grid .rk-state { white-space: normal; }
-.rs .secret { flex-direction: column; align-items: stretch; gap: 10px; border-color: var(--sun); }
-.rs .tok { display: block; padding: 8px 10px; overflow-wrap: anywhere; background: var(--field); border: 1px solid var(--ink); border-radius: 5px; color: var(--text); user-select: all; }
-.rs .prompt { max-height: 230px; margin: 0; padding: 10px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--field); border: 1px solid var(--ink); border-radius: 5px; color: var(--text); }
 .rs .smod .ag-gear { justify-content: space-between; gap: 10px; }
 .rs .smod .msgbtn, .rs .smod .jackbtn { min-height: 54px; }
 .rs .smod .fdbtn { min-height: 46px; }

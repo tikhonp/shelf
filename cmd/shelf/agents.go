@@ -20,7 +20,7 @@ type agentsCommand struct {
 
 func parseAgents(args []string) (agentsCommand, error) {
 	bad := func() (agentsCommand, error) {
-		return agentsCommand{}, errors.New("use manage agents add <name> [--ops op1,op2], list, or revoke <id>")
+		return agentsCommand{}, errors.New("use manage agents add <name> [--ops op1,op2], list, revoke <id>, or secret <id>")
 	}
 	if len(args) == 0 {
 		return bad()
@@ -31,7 +31,7 @@ func parseAgents(args []string) (agentsCommand, error) {
 		if len(args) != 1 {
 			return bad()
 		}
-	case "revoke":
+	case "revoke", "secret":
 		if len(args) != 2 {
 			return bad()
 		}
@@ -71,12 +71,14 @@ func (c cli) agents(ctx context.Context, app *platform.App, cmd agentsCommand) e
 		if e != nil {
 			return e
 		}
-		sayf(c.stdout, "Connection %d: %s\nSHELF_AGENT_TOKEN=%s\nStore this secret now. Shelf will not show it again.\n", conn.ID, conn.Name, token)
-		if text, ok := m.Prompt(token); ok {
-			sayf(c.stdout, "\nThis prompt holds the secret. Paste it only into the agent.\n\n%s\n", text)
-		} else {
-			sayf(c.stdout, "Set SHELF_PUBLIC_URL to get a prompt with the secret, or copy the setup prompt from Status and give the agent SHELF_AGENT_TOKEN.\n")
+		c.printSecret(m, conn, token)
+	case "secret":
+		conn, token, e := m.NewSecret(ctx, cmd.id)
+		if e != nil {
+			return e
 		}
+		sayf(c.stdout, "The old secret no longer works.\n")
+		c.printSecret(m, conn, token)
 	case "revoke":
 		if e := m.RevokeConnection(ctx, cmd.id); e != nil {
 			return e
@@ -102,4 +104,13 @@ func (c cli) agents(ctx context.Context, app *platform.App, cmd agentsCommand) e
 		return w.Flush()
 	}
 	return nil
+}
+
+func (c cli) printSecret(m *agents.Module, conn agents.Connection, token string) {
+	sayf(c.stdout, "Connection %d: %s\nSHELF_AGENT_TOKEN=%s\nStore this secret now. Shelf will not show it again.\n", conn.ID, conn.Name, token)
+	if text, ok := m.Prompt(token); ok {
+		sayf(c.stdout, "\nThis prompt holds the secret. Paste it only into the agent.\n\n%s\n", text)
+	} else {
+		sayf(c.stdout, "Set SHELF_PUBLIC_URL to get a prompt with the secret, or copy the setup prompt from Status and give the agent SHELF_AGENT_TOKEN.\n")
+	}
 }

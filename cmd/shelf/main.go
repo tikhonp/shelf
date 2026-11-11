@@ -144,6 +144,7 @@ const usage = `Usage:
   shelf manage agents add <name> [--ops op1,op2] create a scoped connection; token shown once
   shelf manage agents list                 list connections
   shelf manage agents revoke <id>          revoke a connection
+  shelf manage agents secret <id>          give a connection a new token; the old one stops working
   shelf manage users add <username>       create an account with a prompted password
   shelf manage users list                 list accounts
   shelf manage users delete <username>    remove an account and revoke its sessions

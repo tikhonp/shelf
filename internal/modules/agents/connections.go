@@ -300,6 +300,34 @@ func (m *Module) revoke(ctx context.Context, id int64, by, name, reason string) 
 	})
 }
 
+// NewSecret gives an active connection a new token and returns it, shown
+// this once. Shelf keeps only the hash, so an agent that lost its token gets
+// a new one. The old token stops working at once. The connection keeps its
+// name, permissions, runs, proposals and memory.
+func (m *Module) NewSecret(ctx context.Context, id int64) (Connection, string, error) {
+	token := newToken()
+	err := m.db.Write(ctx, func(tx *sqlx.Tx) error {
+		var revoked db.Time
+		err := tx.GetContext(ctx, &revoked, `SELECT revoked_at FROM agents_connections WHERE id = ?`, id)
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrConnectionNotFound
+		}
+		if err != nil {
+			return err
+		}
+		if !revoked.IsZero() {
+			return ErrAlreadyRevoked
+		}
+		_, err = tx.ExecContext(ctx, `UPDATE agents_connections SET token_hash = ? WHERE id = ?`, hashToken(token), id)
+		return err
+	})
+	if err != nil {
+		return Connection{}, "", err
+	}
+	c, err := m.connection(ctx, id)
+	return c, token, err
+}
+
 // limiter holds each connection's token bucket and when its last use was
 // stored.
 type limiter struct {

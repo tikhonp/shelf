@@ -517,6 +517,44 @@ func (l *testLibrary) SaveHistory(_ context.Context, after int64, _ int) (librar
 	return page, nil
 }
 
+type signedIn struct{}
+
+func (signedIn) AuthenticationEnabled() bool                 { return true }
+func (signedIn) Exists(context.Context, int64) (bool, error) { return true, nil }
+
+// A connection whose agent lost its token gets a new one and keeps its
+// proposals; the old token stops working.
+func TestNewSecretReplacesTheToken(t *testing.T) {
+	r := rig(t, true, nil)
+	id := create(t, r)
+	path := "/api/inbox/connections/1/secret"
+	want(t, r.call(t, "POST", path, nil, false), 403)
+	r.m.accounts = signedIn{}
+	old := r.token
+	res := r.call(t, "POST", path, nil, false)
+	want(t, res, 200)
+	var b struct {
+		Connection Connection `json:"connection"`
+		Token      string     `json:"token"`
+		Prompt     string     `json:"prompt"`
+	}
+	if e := json.Unmarshal(res.Body.Bytes(), &b); e != nil {
+		t.Fatal(e)
+	}
+	if b.Token == old || !tokenPattern.MatchString(b.Token) || !strings.Contains(b.Prompt, b.Token) || b.Connection.ID != 1 {
+		t.Fatalf("new secret: %+v", b)
+	}
+	want(t, r.call(t, "POST", "/api/agent/v1/runs", nil, true), 401)
+	r.token = b.Token
+	want(t, r.call(t, "POST", "/api/agent/v1/runs", map[string]any{"client": "test"}, true), 201)
+	want(t, r.call(t, "GET", fmt.Sprintf("/api/agent/v1/proposals/%d", id), nil, true), 200)
+	want(t, r.call(t, "POST", "/api/inbox/connections/99/secret", nil, false), 404)
+	if e := r.m.RevokeConnection(context.Background(), 1); e != nil {
+		t.Fatal(e)
+	}
+	want(t, r.call(t, "POST", path, nil, false), 409)
+}
+
 func TestConnectionListFacts(t *testing.T) {
 	r := rig(t, true, nil)
 	ctx := context.Background()

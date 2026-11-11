@@ -223,6 +223,8 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 | Proposal artwork uses validated bytes or existing offers, with cover-store pins. | Arbitrary agent URLs must not trigger server fetches, and pending reviews must outlive upload cleanup. |
 | The gateway has no agent rule. Shelf checks scoped tokens on the agent prefix, sessions everywhere else, and rejects ambiguous paths. | Production dropped gateway basic auth after the account cutover, so the planned exemption for the agent prefix was never applied. A gateway password would also open ordinary writes, so an agent never gets one. |
 | A new connection's setup prompt holds its token, and Shelf shows it once. | The owner wants one paste to start an agent. Shelf keeps only the hash, so the UI never shows the prompt again. The setup endpoint's copy names `SHELF_AGENT_TOKEN`. |
+| An agent that lost its token gets a new one for the same connection, and the old one stops working. | Agents forget their token. Storing it to show again would break the hash-only rule, and revoking and connecting again would split the agent's proposals across two connections. |
+| A new connection gets every permission, and its rockers stay closed until Choose. | The owner almost always grants everything and wants a short Connect form. |
 | `POST /runs` lists only the calling connection's outstanding work. | The prompt has an agent answer only its own proposals, and the lists stay short. |
 
 ## First account from the web UI

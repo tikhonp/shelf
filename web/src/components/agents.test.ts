@@ -100,7 +100,11 @@ test('a new prompt locks the form, and Done asks when nothing was copied', async
   expect(connect.find('button[type="submit"]').classes()).toContain('sun')
   expect(connect.text()).not.toContain('No agent can accept')
   await connect.find('input').setValue('Claude on the laptop')
+  expect(connect.find('.rocker').exists()).toBe(false)
+  expect(connect.find('.ops').text()).toContain('Everything')
+  await connect.findAll('button').find((b) => b.text() === 'Choose')!.trigger('click')
   await connect.findAll('.rocker')[1]!.trigger('click')
+  expect(connect.find('.ops').text()).toContain('1 of 2')
   await connect.find('form').trigger('submit')
   await flushPromises()
   const post = calls.find((c) => c.init?.method === 'POST')!
@@ -128,7 +132,8 @@ test('a new prompt locks the form, and Done asks when nothing was copied', async
   expect(w.text()).not.toContain('shelf_agent_SECRET')
   expect(w.find('input').attributes('readonly')).toBeUndefined()
   expect((w.find('input').element as HTMLInputElement).value).toBe('')
-  expect(w.findAll('.rocker').map((r) => r.attributes('aria-checked'))).toEqual(['true', 'true'])
+  expect(w.find('.rocker').exists()).toBe(false)
+  expect(w.find('.ops').text()).toContain('Everything')
   w.unmount()
 })
 
@@ -148,5 +153,51 @@ test('without Shelf sign-in Connect names the CLI command', async () => {
   const { w } = await mountPanel({ '/api/inbox': { ...info, accounts: 'none', can_create_connections: false }, '/api/inbox/connections': [] })
   expect(unit(w, 'Connect').text()).toContain('shelf manage agents add <name>')
   expect(unit(w, 'Connect').find('form').exists()).toBe(false)
+  w.unmount()
+})
+
+test('with the rockers closed, Connect allows every operation', async () => {
+  const created = { connection: conn(7), token: 'shelf_agent_SECRET', prompt: 'PROMPT' }
+  const { w, calls } = await mountPanel({ '/api/inbox/connections': (_u: string, init?: RequestInit) => (init?.method === 'POST' ? created : []) })
+  await w.find('input').setValue('Agent 7')
+  await w.find('form').trigger('submit')
+  await flushPromises()
+  const post = calls.find((c) => c.init?.method === 'POST')!
+  expect(JSON.parse(post.init!.body as string)).toEqual({ name: 'Agent 7', operations: ['library.read', 'covers.upload'] })
+  w.unmount()
+})
+
+test('New secret asks, then shows the prompt in its unit and leaves Connect open', async () => {
+  const renewed = { connection: conn(1, { name: 'Claude at home' }), token: 'shelf_agent_NEW', prompt: 'PROMPT shelf_agent_NEW' }
+  const { w, calls } = await mountPanel({
+    '/api/inbox/connections/1/secret': renewed,
+    '/api/inbox/connections': [conn(1, { name: 'Claude at home' }), conn(2, { name: 'Old laptop', revoked_at: at(hour) })],
+  })
+  const home = () => unit(w, 'Claude at home')
+  const button = (text: string) => home().findAll('button').find((b) => b.text() === text)
+  expect(unit(w, 'Old laptop').findAll('button').some((b) => b.text() === 'New secret')).toBe(false)
+  await button('New secret')!.trigger('click')
+  expect(home().text()).toContain('Give Claude at home a new secret? The old one stops working at once.')
+  await button('Cancel')!.trigger('click')
+  expect(calls.some((c) => c.url.endsWith('/secret'))).toBe(false)
+  await button('New secret')!.trigger('click')
+  await home().findAll('button.key.sun').find((b) => b.text() === 'New secret')!.trigger('click')
+  await flushPromises()
+  expect(calls.find((c) => c.url.endsWith('/secret'))!.init?.method).toBe('POST')
+  expect(home().text()).toContain('shelf_agent_NEW')
+  expect(home().text()).toContain('The old secret no longer works.')
+  expect(button('New secret')).toBeUndefined()
+  expect(unit(w, 'Connect').text()).not.toContain('shelf_agent_NEW')
+  expect(unit(w, 'Connect').find('input').attributes('readonly')).toBeUndefined()
+  await button('Done')!.trigger('click')
+  await button('Close anyway')!.trigger('click')
+  expect(w.text()).not.toContain('shelf_agent_NEW')
+  expect(button('New secret')).toBeDefined()
+  w.unmount()
+})
+
+test('without Shelf sign-in no unit offers a new secret', async () => {
+  const { w } = await mountPanel({ '/api/inbox': { ...info, accounts: 'none', can_create_connections: false }, '/api/inbox/connections': [conn(1)] })
+  expect(w.findAll('button').some((b) => b.text() === 'New secret')).toBe(false)
   w.unmount()
 })

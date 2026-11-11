@@ -10,7 +10,9 @@ Set `SHELF_AGENT_ENABLED=true`. The default is `false`. This switch is independe
 
 The module's migrations run even when disabled, so proposals and memory survive switching it off and CLI revocation remains available. Disabled means no agent or inbox endpoints, navigation, or background outcome processing. Already accepted library jobs continue through their existing lifecycle.
 
-With Shelf sign-in enabled, open Status, then Agents, to create a named connection. Choose its permissions. Shelf then shows the setup prompt with the connection's secret in it, once. Paste that prompt into the agent to start it. The secret alone is shown too, for an agent that reads `SHELF_AGENT_TOKEN` from its environment. While the prompt shows, the Connect form is locked, and Done closes the prompt. When neither the prompt nor the secret was copied, Done asks first, and Close anyway closes it. Shelf stores only the secret's hash, so no page shows the prompt again. A connection that lost its prompt is revoked and connected again. The browser holds a newly created secret only until Done or until the user leaves Status.
+With Shelf sign-in enabled, open Status, then Agents, to create a named connection. It gets every permission. Choose under Allowed opens the rockers to switch some off. Shelf then shows the setup prompt with the connection's secret in it, once. Paste that prompt into the agent to start it. The secret alone is shown too, for an agent that reads `SHELF_AGENT_TOKEN` from its environment. While the prompt shows, the Connect form is locked, and Done closes the prompt. When neither the prompt nor the secret was copied, Done asks first, and Close anyway closes it. Shelf stores only the secret's hash, so no page shows the prompt again.
+
+An agent that lost its secret gets a new one. New secret on the connection's unit asks first, then replaces the secret and shows the new prompt and secret in that unit, once, with the same Done. The old secret stops working at once. The connection keeps its name, permissions, runs, proposals and memory. The browser holds a new secret only until Done or until the user leaves Status.
 
 Each connection has its own unit on Status with its permissions, its last run, its proposals with fields still pending and its active rules. Revoke is the connection's patch cable. Pressing it asks first, and Revoke pulls the plug out. A revoked connection keeps a dim unit that names who revoked it, and its proposals stay in the Inbox.
 
@@ -20,9 +22,10 @@ Without Shelf sign-in, create connections from the CLI:
 shelf manage agents add <name>
 shelf manage agents list
 shelf manage agents revoke <id>
+shelf manage agents secret <id>
 ```
 
-`add` can restrict permissions with `--ops op1,op2`. It prints the token once, and with `SHELF_PUBLIC_URL` set, the setup prompt that holds it. Commands require an already migrated database, as account commands do. Both authentication modes allow listing and revocation in the UI. Deleting a connection's creating account revokes that connection on its next request. Password resets do not revoke library connections; revoke them separately when needed.
+`add` can restrict permissions with `--ops op1,op2`. It prints the token once, and with `SHELF_PUBLIC_URL` set, the setup prompt that holds it. `secret` gives a connection a new token and prints it the same way. New secret in the UI needs Shelf sign-in, as Connect does. Commands require an already migrated database, as account commands do. Both authentication modes allow listing and revocation in the UI. Deleting a connection's creating account revokes that connection on its next request. Password resets do not revoke library connections; revoke them separately when needed.
 
 ## Agent access
 
