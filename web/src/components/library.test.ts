@@ -264,6 +264,20 @@ test('an undo that renames an album artist asks first, and Undo anyway sends the
   w.unmount()
 })
 
+test('a Save still writing shows the running pill', async () => {
+  const writing: LibraryChange = {
+    id: 9, kind: 'save', target: null, album_id: 7, folder: 'rock/x', title: 'Blue', artist: 'Joni', state: 'writing', reason: '', error: '',
+    undone: false, tags: 2, cover: false, conflicts: [], job_id: 1, created_at: '2026-11-04T18:00:00Z', finished_at: null,
+  }
+  const { w } = await at('/library', { '/api/library/history': { changes: [writing], next: null } })
+  await button(w, 'History').trigger('click')
+  await flushPromises()
+  const pill = w.find('.g-lh:not(.thead) .pill')
+  expect(pill.text()).toBe('Saving')
+  expect(pill.classes()).toContain('run')
+  w.unmount()
+})
+
 test.each([
   ['conflict', 'FILES CHANGED', 'Reload album'],
   ['locked', 'LOCKED', ''],

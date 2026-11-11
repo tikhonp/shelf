@@ -34,7 +34,7 @@ const stateWord = (c: LibraryChange) => {
   if (c.kind === 'delete') return c.state === 'done' ? 'Deleted' : 'Deleting'
   return c.state === 'done' ? 'Saved' : 'Saving'
 }
-const stateClass = (c: LibraryChange) => (c.undone ? 'canceled' : c.state === 'done' ? 'done' : c.state === 'partial' ? 'partial' : c.state === 'failed' ? 'failed' : 'running')
+const stateClass = (c: LibraryChange) => (c.undone ? 'canceled' : c.state === 'done' ? 'done' : c.state === 'partial' ? 'partial' : c.state === 'failed' ? 'failed' : 'run')
 const reversible = (c: LibraryChange) => c.kind !== 'delete' && (c.state === 'done' || c.state === 'partial')
 
 async function clear() {
