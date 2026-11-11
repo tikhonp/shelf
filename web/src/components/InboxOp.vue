@@ -137,6 +137,12 @@ const editing = computed(() => !props.phone || open.value)
   .rs .ib-op-val { grid-column: 1 / -1; grid-row: 2; }
 }
 .rs .ib-op.phone .ib-op-sw { display: flex; align-items: center; gap: 10px; }
+/* On the phone a long tag key or a pill moves under the label instead of squeezing it to one letter per line. */
+.rs .ib-op.phone .ib-op-row { display: flex; flex-wrap: wrap; }
+.rs .ib-op.phone .ib-op-sw { flex: 1 1 200px; }
+.rs .ib-op.phone .ib-op-side { order: 1; min-width: 0; max-width: 100%; justify-content: flex-start; }
+.rs .ib-op.phone .ib-op-side .mono { overflow-wrap: anywhere; }
+.rs .ib-op.phone .ib-op-val { order: 2; flex: 1 1 100%; }
 .rs .ib-paddle { flex: none; min-height: 44px; }
 .rs .ib-label { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; min-height: 44px; padding: 0; border: 0; background: none; color: var(--text); text-align: left; cursor: pointer; }
 /* The state can quote a whole value, such as a MusicBrainz ID, so it wraps instead of widening the page. */

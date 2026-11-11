@@ -66,7 +66,7 @@ const toggleLayer = (l: MemoryLayer) => (resetLayers.value = resetLayers.value.i
         <h1 id="mem-h">Memory</h1>
         <span class="stripes"></span>
         <a class="wbtn txt" href="/api/inbox/memory/export" download>Export</a>
-        <button type="button" class="wbtn txt" @click="resetting = !resetting">Reset memory</button>
+        <button type="button" class="wbtn txt" @click="resetting = !resetting">{{ phone ? 'Reset' : 'Reset memory' }}</button>
       </div>
       <div class="vscroll">
         <div class="col g10 pad bar">
@@ -74,7 +74,7 @@ const toggleLayer = (l: MemoryLayer) => (resetLayers.value = resetLayers.value.i
             <button v-for="l in layers" :key="l.id" type="button" role="radio" :aria-checked="memory.layer === l.id" @click="memory.show(l.id)">{{ l.label }}</button>
           </div>
           <p class="t2 sm">{{ layers.find((l) => l.id === memory.layer)?.about }} Memory changes no tags or files, and no rule lets an agent skip review.</p>
-          <div class="segk" role="radiogroup" aria-label="Status">
+          <div class="segk" :class="{ block: phone }" role="radiogroup" aria-label="Status">
             <button v-for="s in statuses" :key="s.id" type="button" role="radio" :aria-checked="memory.status === s.id" @click="memory.show(memory.layer, s.id)">{{ s.label }}</button>
           </div>
           <div class="line g8 wrap">
@@ -114,5 +114,6 @@ const toggleLayer = (l: MemoryLayer) => (resetLayers.value = resetLayers.value.i
 .rs .pad { padding: 12px 14px; }
 .rs .bar { border-bottom: 1px solid var(--ink); }
 .rs .ask { margin: 12px 14px; align-items: flex-end; flex-wrap: wrap; }
+@media (max-width: 719px) { .rs .segk.block button { min-width: 0; padding: 0 6px; letter-spacing: .03em; } }
 .rs .page > .mem-win { flex: 1; max-width: 1000px; }
 </style>
