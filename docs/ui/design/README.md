@@ -201,7 +201,7 @@ Quality labels look like masking tape. The words always name the quality, and th
 - The red knob picks the result type and the blue knob picks the format. Pressing a knob turns it to the next position. The labels next to a knob, each with a lamp, are the real radio buttons. A knob has no printed marks around it. Pointer angles are -75, -40, 40 and 75deg for the type, 45, 75, 105 and 135deg for a Qobuz format, and 45, 90 and 135deg for an Apple Music format.
 - The Sources switch names what is searched, such as "All sources" or "Qobuz only", and has one lamp per source. It opens one rocker switch per source. On the phone the switch is a small cap in the corner of the Search title bar.
 - On the desktop, an album, a playlist or Download all shows the blue knob with the list of formats. An album also shows the frequency range of the chosen format on a small display. On the phone the caret next to the Download button opens the format menu.
-- A rocker is on when its top is pressed in. Its paddle shows I on the top half and O on the bottom half, and the current state's mark is the dark one. On also lights the paddle peach. While an album's tracks disagree, Compilation's paddle sits level and both marks are faint.
+- A rocker is on when its top is pressed in. Its paddle shows I on the top half and O on the bottom half, and the current state's mark is the dark one. On also lights the paddle peach. While an album's tracks disagree, Compilation's paddle sits level and both marks are faint. A flip fades the light and the marks over 160 ms. With reduced motion the flip is instant.
 - Search and code fields are plain recessed inputs. Displays only show information and never take input.
 
 ## Lists
