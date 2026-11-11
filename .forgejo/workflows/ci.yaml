@@ -81,10 +81,10 @@ jobs:
         run: make web-check
 
   # The image job builds only a commit whose checks passed. A push to main
-  # tags :<sha>, :main and :latest, and blackberry follows :latest. A v* tag
-  # publishes only :<tag>, so a release never moves :latest. The automatic
-  # token can't write packages, so REGISTRY_TOKEN is an access token with
-  # write:package.
+  # tags :<sha>, :main and :latest and deploys nothing. A v* tag publishes
+  # only :<tag>, which the deploy job then rolls out, so a release never moves
+  # :latest. The automatic token can't write packages, so REGISTRY_TOKEN is an
+  # access token with write:package.
   image:
     needs: [test, lint, web]
     if: github.event_name == 'push'
@@ -150,3 +150,76 @@ jobs:
             BUILD_DATE=${{ steps.version.outputs.date }}
             VCS_REF=${{ github.sha }}
           tags: ${{ steps.version.outputs.wrapper_tags }}
+
+  # A v* tag deploys: this job sets SHELF_V in sh-blackberry's .env to the tag
+  # both images were just pushed with, and doco-cd on blackberry rolls out
+  # shelf and shelf-wrapper together. The deploy key can write to sh-blackberry
+  # only. One group across all refs, so two releases never race on
+  # sh-blackberry's main.
+  deploy:
+    needs: image
+    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-sh-blackberry
+      cancel-in-progress: false
+    env:
+      TAG: ${{ github.ref_name }}
+      # Forgejo's SSH server offers only RSA. The line is the one in
+      # sh-blackberry's secrets/ssh-known-hosts,
+      # SHA256:5n/Ph26Qc012olLLvBxKbw4uU9NHNg1vQg1y3GRfKrs.
+      KNOWN_HOST: code.tikhonnnnn.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCizD0HDM5CEw+zIDa4mXD0LWRPAo4fCvSp5fkFom23CpApxAF59Cwt57X5dY5MjGp8YctOvdVmx/XbGhoVhflzN1Tbo4nQdA2Ubfwvvas5lTFuRaumK41Votq0WB3rH7W2Ei86A6p34jBABDA8mYFojbqP3VT6XxXCpJjwtukA5wQiM/WnhrrrfxV4PqZ/qZPhMKGWikzJpRtAWWterLSFUnczJqLhX7x/HnpuqY/rv3BJ/BhY8e8XwVaPO8dAABT6IumuzRSt6J8CCknX4twpYaFntQ+m9Df7GmTOsp86esiQO5aY68MkdWAlcgPTbpZPX10KSo3/G2zTFODb6PzTQTBAGeOcxFI391w6POQNN9dpYz8q+Lrzaa4P/VyldvRDkStdM+MoOSFzYpPTQj+7YwwKXLUJm+NwM0zW54VTZrrW8wOZnoAKdiZhDYpP60KUclFfeocrL5QnuynNuqqYoq5OK6MBT04aEyk1ymRwlP7uixRjSgBS2f1QwZiOpBlYQYqRRdhCrYY8CN4wRBzL/R3LMIQjwSvX8Dd+vixHo++qhiPxJmjy+GkL8EOhPO+zTnZ1HQZikPtIpYqjTGaKdyROAyJ+V9z9y2T7l7zThV4H/TEqBaUqVY2jS4Ik4G1UDXL2EHvYd37roF+N0SRF6VxgWGvHfyWZ7mD1rxExNQ==
+    steps:
+      - name: Bump SHELF_V in sh-blackberry
+        env:
+          DEPLOY_KEY: ${{ secrets.SH_BLACKBERRY_DEPLOY_KEY }}
+        run: |
+          set -eu
+          # The tag goes into sed and a commit message, so after the v it may
+          # hold only letters, digits, dots, underscores and hyphens.
+          if ! printf '%s' "$TAG" | grep -Eqx 'v[0-9A-Za-z._-]+'; then
+            echo "::error::unexpected tag ${TAG}"
+            exit 1
+          fi
+
+          # The trap removes the key even when a later command fails.
+          SSH_DIR=$(mktemp -d)
+          trap 'rm -rf "$SSH_DIR"' EXIT
+          umask 077
+          printf '%s\n' "$DEPLOY_KEY" > "$SSH_DIR/key"
+          chmod 600 "$SSH_DIR/key"
+          printf '%s\n' "$KNOWN_HOST" > "$SSH_DIR/known_hosts"
+          umask 022
+          export GIT_SSH_COMMAND="ssh -i $SSH_DIR/key -o IdentitiesOnly=yes -o UserKnownHostsFile=$SSH_DIR/known_hosts -o StrictHostKeyChecking=yes"
+
+          git clone --depth 1 --branch main \
+            ssh://git@code.tikhonnnnn.com/tikhon/sh-blackberry.git "$SSH_DIR/repo"
+          cd "$SSH_DIR/repo"
+
+          sed -i -E "s/^SHELF_V=.*/SHELF_V=${TAG}/" .env
+          if ! grep -qx "SHELF_V=${TAG}" .env; then
+            echo "::error::.env has no SHELF_V line"
+            exit 1
+          fi
+          if git diff --quiet; then
+            echo "SHELF_V is already ${TAG}"
+            exit 0
+          fi
+
+          git -c user.name="shelf CI" -c user.email="ci@code.tikhonnnnn.com" \
+            commit -q -m "Deploy shelf ${TAG}" -- .env
+
+          # Push once. After a rejection, rebase onto the new main and retry up
+          # to three times.
+          for retry in 0 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            if [ "$retry" = 3 ]; then
+              break
+            fi
+            git -c user.name="shelf CI" -c user.email="ci@code.tikhonnnnn.com" \
+              pull --rebase origin main
+          done
+          echo "::error::push to sh-blackberry main failed"
+          exit 1

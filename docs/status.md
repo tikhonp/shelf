@@ -13,12 +13,12 @@ Every check in [manual-checklist.md](manual-checklist.md) passed in production, 
 
 | Repo | Origin | Notes |
 | --- | --- | --- |
-| shelf | `ssh://git@code.tikhonnnnn.com/tikhon/shelf.git` | Forgejo. CI's image job pushes with the Actions secret `REGISTRY_TOKEN`, which has `write:package`. |
+| shelf | `ssh://git@code.tikhonnnnn.com/tikhon/shelf.git` | Forgejo. CI's image job pushes with the Actions secret `REGISTRY_TOKEN`, which has `write:package`. Its deploy job writes to sh-blackberry with the deploy key in `SH_BLACKBERRY_DEPLOY_KEY`. |
 | qobuz-dl-go | `git@github.com:tikhonp/qobuz-dl-go.git` | GitHub only, public. CI runs on GitHub Actions. |
 
 ## Production
 
-Production runs `main-ca6116d`, which the owner deployed on 2026-11-11. Optional [library agents](agents.md) are off by default and on in production. Production signs in with Shelf accounts. [auth.md](auth.md) describes setup.
+Production runs `v1.0.0`, which doco-cd deployed on 2026-11-11. Optional [library agents](agents.md) are off by default and on in production. Production signs in with Shelf accounts. [auth.md](auth.md) describes setup.
 
 shelf-wrapper builds from upstream's `ghcr.io/worldobservationlog/wrapper-lite` image pinned by digest. The index holds 11,461 tracks and 1,008 Navidrome album IDs, forming 1,013 albums because 5 Navidrome albums span two folders.
 
@@ -32,9 +32,11 @@ On a phone, a proposal no longer scrolls sideways when a field's state quotes a 
 
 On a phone, Memory's title bar says Reset instead of Reset memory and its status keys fill one row, so neither runs off the screen. A proposal field puts a wide tag key or a Changed since proposed pill under its label. Before, they squeezed the label to one letter per line. The Inbox state labels keep their full width, so Withdrawn no longer runs under the knob. A proposal's Ask for changes switch is at the left of the reply form, and Send comment has its own row under it.
 
-A rocker switch, such as Compilation, now has I and O on its paddle and lights peach when on, so on and off no longer look alike. A flip fades from one state to the other over 160 ms. This is on main and not deployed.
+A rocker switch, such as Compilation, now has I and O on its paddle and lights peach when on, so on and off no longer look alike. A flip fades from one state to the other over 160 ms.
 
-The 2026-11-11 dependency update brings qobuz-dl-go v0.1.1 and `golang.org/x/crypto` v0.59.0. qobuz-dl-go requires `modernc.org/libc` v1.81.0, so shelf has it too. `npm update` moved Vite to 8.3.8 and refreshed the lockfile, and `make contract` runs on alpine 3.24. Go 1.27.4, the base images, golangci-lint, govulncheck, air, goose, amdl, the wrapper-lite digest and the CI actions were already the latest. This is on main and not deployed.
+The 2026-11-11 dependency update brings qobuz-dl-go v0.1.1 and `golang.org/x/crypto` v0.59.0. qobuz-dl-go requires `modernc.org/libc` v1.81.0, so shelf has it too. `npm update` moved Vite to 8.3.8 and refreshed the lockfile, and `make contract` runs on alpine 3.24. Go 1.27.4, the base images, golangci-lint, govulncheck, air, goose, amdl, the wrapper-lite digest and the CI actions were already the latest.
+
+A pushed `v*` tag now deploys through sh-blackberry and doco-cd, as [deployment.md](deployment.md#deploys) describes.
 
 ## Operational notes
 

@@ -9,7 +9,7 @@ shelf runs on blackberry from `shelf.yaml` in `~/projects/sh-blackberry`. The sh
 | `code.tikhonnnnn.com/tikhon/shelf` | `Dockerfile`, target `prod`: `alpine:3.24` with `ca-certificates`, `chromaprint` for `fpcalc`, `ffmpeg`, `tzdata`, amdl copied from `ghcr.io/zhaarey/apple-music-downloader:0.1.4`, and the shelf binary | `10001:10001` |
 | `code.tikhonnnnn.com/tikhon/shelf-wrapper` | `Dockerfile`, target `wrapper`: the pinned `ghcr.io/worldobservationlog/wrapper-lite` image plus tini and `shelf-wrapper`, amd64 only | root, privileged |
 
-Forgejo CI builds both on every push to `main`, tags them with the SHA, `main` and `latest`, and sets the version to `main-<sha7>`. A pushed `v*` git tag, such as `v1.0.0`, builds both as `:v1.0.0`, sets the version to `v1.0.0`, and leaves `latest` alone. To release:
+Forgejo CI builds both on every push to `main`, tags them with the SHA, `main` and `latest`, and sets the version to `main-<sha7>`. A pushed `v*` git tag, such as `v1.0.0`, builds both as `:v1.0.0`, sets the version to `v1.0.0`, leaves `latest` alone, and deploys it, as [Deploys](#deploys) describes. To release:
 
 ```sh
 git tag v1.0.0 && git push origin v1.0.0
@@ -25,11 +25,22 @@ git tag v1.0.0 && git push origin v1.0.0
 | `shelf-wrapper` | wrapper-lite under the supervisor | Privileged. Its own data folder, `${SWINGMUSIC_DATA}/shelf-wrapper`, and its own `--device-info` in `SHELF_WRAPPER_LITE_ARGS`. The Status page signs it in. |
 | `ssht-shelf` | the tunnel | Port 10013 to `shelf:8080`, with the pinned host key and the healthcheck every `ssht-*` has. |
 
-Neither `shelf` nor `shelf-wrapper` has the `dev.dozzle.update` label. They share the control API's types, so update both together:
+Both images use the tag in `SHELF_V` from sh-blackberry's `.env`. They share the control API's types, so they always move together, and neither has the `dev.dozzle.update` label.
 
-```sh
-docker compose pull shelf shelf-wrapper && docker compose up -d shelf shelf-wrapper
-```
+## Deploys
+
+A pushed `v*` tag deploys. After both images are in the registry, CI's `deploy` job clones sh-blackberry's `main`, sets `SHELF_V` to the tag, and pushes the commit `Deploy shelf v1.0.0`. doco-cd on blackberry watches that branch. It pulls both images, recreates `shelf` and `shelf-wrapper`, and waits for shelf's healthcheck. A push to `main` builds images and deploys nothing.
+
+The job runs one at a time across releases. A tag that `SHELF_V` already holds commits nothing. When sh-blackberry's `main` moved during the job, it rebases and retries the push up to 3 times. It checks Forgejo's RSA host key strictly, and the `known_hosts` line is in the workflow.
+
+To roll back, revert the bump commit in sh-blackberry, or push a new tag.
+
+The job signs in with a deploy key that can write to sh-blackberry and nothing else. To set it up once:
+
+1. `ssh-keygen -t ed25519 -N '' -C shelf-ci -f shelf-ci-deploy-key`
+2. In `tikhon/sh-blackberry`, Settings → Deploy keys: add `shelf-ci-deploy-key.pub` with write access.
+3. In `tikhon/shelf`, Settings → Actions → Secrets: add `SH_BLACKBERRY_DEPLOY_KEY` with the contents of `shelf-ci-deploy-key`.
+4. Delete both key files.
 
 sh-secrets holds `blackberry/shelf.env`:
 
