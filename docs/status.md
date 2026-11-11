@@ -30,7 +30,7 @@ An agent connection can get a new secret on Status or with `shelf manage agents 
 
 On a phone, a proposal no longer scrolls sideways when a field's state quotes a long value or an evidence source is long. Inbox rows have the Library's phone sizes and no longer overlap. On an album with a proposal, the stuck scope LCD no longer has the Proposed header behind it, and rows no longer show through the gap above it. An agent's unit on Status has no empty space under Revoke.
 
-On a phone, Memory's title bar says Reset instead of Reset memory and its status keys fill one row, so neither runs off the screen. A proposal field puts a wide tag key or a Changed since proposed pill under its label. Before, they squeezed the label to one letter per line. The Inbox state labels keep their full width, so Withdrawn no longer runs under the knob. Not deployed.
+On a phone, Memory's title bar says Reset instead of Reset memory and its status keys fill one row, so neither runs off the screen. A proposal field puts a wide tag key or a Changed since proposed pill under its label. Before, they squeezed the label to one letter per line. The Inbox state labels keep their full width, so Withdrawn no longer runs under the knob. A proposal's Ask for changes switch is at the left of the reply form, and Send comment has its own row under it. Not deployed.
 
 ## Operational notes
 

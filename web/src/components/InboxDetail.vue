@@ -190,11 +190,11 @@ async function send() {
         <form class="col g8 pad" aria-label="Reply" @submit.prevent="send">
           <label class="lbl-f">Reply<textarea v-model="reply" class="ib-text" rows="3" maxlength="4000"></textarea></label>
           <div class="line g12 wrap">
-            <span class="grow"></span>
-            <button v-if="hasPending" type="button" class="rocker" role="switch" :aria-checked="asking" @click="asking = !asking">
+            <span v-if="!phone" class="grow"></span>
+            <button v-if="hasPending" type="button" class="rocker" :class="{ flat: phone }" role="switch" :aria-checked="asking" @click="asking = !asking">
               <span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name"><LibTip title="Ask for changes" :note="tip(inboxNotes.ask)">Ask for changes</LibTip></span></span>
             </button>
-            <button type="submit" class="key sm" :disabled="inbox.busy || !reply.trim()">{{ hasPending && asking ? 'Ask for changes' : 'Send comment' }}</button>
+            <button type="submit" class="key sm" :class="{ 'ib-send-row': phone }" :disabled="inbox.busy || !reply.trim()">{{ hasPending && asking ? 'Ask for changes' : 'Send comment' }}</button>
           </div>
         </form>
       </section>
@@ -238,4 +238,6 @@ async function send() {
 .rs .ib-bank { position: relative; }
 .rs .ib-bank.cabled { padding-left: 36px; }
 .rs .ib-bank.cabled.narrow { padding-left: 26px; }
+/* On the phone Send comment takes its own row, because Ask for changes is too long to sit beside the switch. */
+.rs .key.ib-send-row { flex: 1 1 100%; }
 </style>
