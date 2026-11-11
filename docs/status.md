@@ -32,6 +32,8 @@ On a phone, a proposal no longer scrolls sideways when a field's state quotes a 
 
 On a phone, Memory's title bar says Reset instead of Reset memory and its status keys fill one row, so neither runs off the screen. A proposal field puts a wide tag key or a Changed since proposed pill under its label. Before, they squeezed the label to one letter per line. The Inbox state labels keep their full width, so Withdrawn no longer runs under the knob. A proposal's Ask for changes switch is at the left of the reply form, and Send comment has its own row under it.
 
+A rocker switch, such as Compilation, now has I and O on its paddle and lights peach when on, so on and off no longer look alike. This is on main and not deployed.
+
 ## Operational notes
 
 - Source modules log in and start goroutines in `Run`, never `Init`, and register with `Switch` when settings are missing.

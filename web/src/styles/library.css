@@ -141,10 +141,12 @@
 /* A title-bar rocker for one on or off choice, smaller than the source rockers */
 .rs .rocker.mini { flex: none; gap: 7px; min-height: 28px; padding: 0 5px; }
 .rs .rocker.mini .rk-case { width: 15px; height: 26px; padding: 2px; border-radius: 3px; }
+.rs .rocker.mini .rk-paddle { --mk: 6px; }
 .rs .rocker.mini .rk-name, .rs .rocker[aria-checked="false"].mini .rk-name { font-size: 12px; color: var(--title-text); }
 .rs .rocker.mini:hover { background: rgba(255, 255, 255, .08); }
 .rs .rocker.flat { gap: 10px; min-height: 36px; padding: 0 6px 0 0; }
 .rs .rocker.flat .rk-case { width: 18px; height: 30px; padding: 2px; }
+.rs .rocker.flat .rk-paddle { --mk: 7px; }
 
 /* Save bar: shown only while something is staged */
 .rs .lib-save { flex: none; display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--win-2); border-top: 1px solid var(--ink); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08); }

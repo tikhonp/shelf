@@ -56,7 +56,7 @@ const on = computed(() => view.value.values[0] === '1')
     <label class="lf-l" :for="id"><span v-if="view.staged" class="led stg" role="img" aria-label="Staged"></span><LibTip :title="f.label" :note="fieldNote(f.field)" :open="editor.noteOn === target">{{ f.label }}</LibTip></label>
     <div class="lf-c">
       <div v-if="f.flag" class="lf-flag">
-        <button :id="id" type="button" class="rocker flat" role="switch" :aria-checked="on" :disabled="readOnly" @click="editor.edit(target, on ? [] : ['1'])">
+        <button :id="id" type="button" class="rocker flat" :class="{ mixed: view.mixed }" role="switch" :aria-checked="on" :disabled="readOnly" @click="editor.edit(target, on ? [] : ['1'])">
           <span class="rk" aria-hidden="true"><span class="rk-case"><span class="rk-paddle"></span></span></span><span class="t2">{{ view.mixed ? 'Mixed' : on ? 'On' : 'Off' }}</span>
         </button>
       </div>

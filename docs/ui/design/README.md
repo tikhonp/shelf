@@ -199,8 +199,9 @@ Quality labels look like masking tape. The words always name the quality, and th
 
 - Push buttons (`.key`) are 40px high, 32px in the small size and 54px in the large one. On the phone the default is 46px. Legends are capitals.
 - The red knob picks the result type and the blue knob picks the format. Pressing a knob turns it to the next position. The labels next to a knob, each with a lamp, are the real radio buttons. A knob has no printed marks around it. Pointer angles are -75, -40, 40 and 75deg for the type, 45, 75, 105 and 135deg for a Qobuz format, and 45, 90 and 135deg for an Apple Music format.
-- The Sources switch names what is searched, such as "All sources" or "Qobuz only", and has one lamp per source. It opens one rocker switch per source, and a rocker is on when its top is pressed in. On the phone the switch is a small cap in the corner of the Search title bar.
+- The Sources switch names what is searched, such as "All sources" or "Qobuz only", and has one lamp per source. It opens one rocker switch per source. On the phone the switch is a small cap in the corner of the Search title bar.
 - On the desktop, an album, a playlist or Download all shows the blue knob with the list of formats. An album also shows the frequency range of the chosen format on a small display. On the phone the caret next to the Download button opens the format menu.
+- A rocker is on when its top is pressed in. Its paddle shows I on the top half and O on the bottom half, and the current state's mark is the dark one. On also lights the paddle peach. While an album's tracks disagree, Compilation's paddle sits level and both marks are faint.
 - Search and code fields are plain recessed inputs. Displays only show information and never take input.
 
 ## Lists
@@ -266,6 +267,7 @@ Help never shows on a screen at rest, and the design adds no helper text beside 
 - Status has no Rate limits module, and the Qobuz card has no last request time, because the API has neither.
 - A running track says Downloading, without a percentage, because the API has no per-track progress.
 - Between 720 and about 950 pixels the results and the history drop columns, and the menubar wraps.
+- The screens' rockers have no I and O marks and no peach light when on.
 - A tag struck through for deletion uses `.lib-in.struck`, not the canvas's `.gone`, which `components.css` already uses to hide things.
 - The rotary labels, the rocker and the menu moved from one component's scoped style into `parts.css`, because the Library uses them too.
 - Below 1100 pixels each stacked panel stops at the window's height and scrolls by itself, so the Save bar stays in view.

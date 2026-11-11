@@ -161,6 +161,23 @@ test('an opened album shows fields, a tag of one track locked, and Mixed for dif
   w.unmount()
 })
 
+test('the Compilation switch shows Mixed with a level paddle, and pressing it stages On', async () => {
+  const flagged = (id: number, on: boolean) => {
+    const t = track(id)
+    return { ...t, standard: [...t.standard, { key: 'COMPILATION', fields: ['compilation'], values: on ? ['1'] : [] }] }
+  }
+  const { w } = await at('/library/7', { '/api/library/albums/7': detail({ tracks: [flagged(1, true), flagged(2, false)] }) })
+  const sw = w.find('#lf-compilation')
+  expect(sw.attributes('aria-checked')).toBe('false')
+  expect(sw.classes()).toContain('mixed')
+  expect(sw.text()).toBe('Mixed')
+  await sw.trigger('click')
+  expect(w.find('#lf-compilation').attributes('aria-checked')).toBe('true')
+  expect(w.find('#lf-compilation').classes()).not.toContain('mixed')
+  expect(w.find('#lf-compilation').text()).toBe('On')
+  w.unmount()
+})
+
 test('selecting a track narrows the edit and unlocks its tags', async () => {
   const { w } = await at('/library/7')
   await w.findAll('.g-lt .lib-open')[2]!.trigger('click')
