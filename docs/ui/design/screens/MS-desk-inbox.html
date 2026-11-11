@@ -13,6 +13,10 @@
 <style>
 body{margin:0}
 a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
+/* A hidden copy of the longer label keeps the key's width, so the rocker beside it doesn't move when the label changes. */
+.rs .key.ib-send { display: inline-grid; place-items: center; }
+.rs .key.ib-send > span, .rs .key.ib-send::after { grid-area: 1 / 1; }
+.rs .key.ib-send::after { content: attr(data-wide); visibility: hidden; }
 </style>
 </head>
 <body>
@@ -192,7 +196,7 @@ a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
 <div style="display: flex; align-items: center; gap: 16px">
 <span style="flex: 1"></span>
 <button type="button" class="rocker" role="switch" aria-checked="false" id="ask"><span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name has-tip" data-tip-h="Ask for changes" data-tip="On, the key asks the agent for a new revision. Off, it posts a comment. Neither writes files."><span class="tip-t">Ask for changes</span></span></span></button>
-<button type="button" class="key" id="send">Send comment</button>
+<button type="button" class="key ib-send" id="send" data-wide="Ask for changes"><span>Send comment</span></button>
 </div>
 </div>
 </div>
@@ -228,7 +232,7 @@ a{color:var(--sun-text)}a:hover{color:var(--sun-hi)}
   ask.addEventListener("click", () => {
     const on = ask.getAttribute("aria-checked") !== "true";
     ask.setAttribute("aria-checked", String(on));
-    send.textContent = on ? "Ask for changes" : "Send comment";
+    send.firstElementChild.textContent = on ? "Ask for changes" : "Send comment";
   });
 })();
 </script>

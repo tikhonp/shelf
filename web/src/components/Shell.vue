@@ -39,6 +39,8 @@ const tabs = computed<{ to: string; label: string; icon: IconName }[]>(() => [
 ])
 // On the phone the Inbox opens from the Library, so the Library tab stays lit there.
 const isOn = (to: string) => route.path.startsWith(to) || (to === '/library' && phone.value && route.path.startsWith('/inbox'))
+// Memory is one long page, so only the Inbox's list and proposal fit the window.
+const fits = computed(() => isOn('/library') || route.name === 'inbox' || route.name === 'proposal')
 
 // lampFor is what a tab's amber lamp says, or nothing when the tab has no lamp.
 function lampFor(to: string): string {
@@ -76,7 +78,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="rs desk" :class="{ day: theme.day, console: !phone, compact: !phone && settings.density === 'compact', 'shell-phone': phone, 'shell-desk': !phone, 'shell-fit': !phone && isOn('/library') }">
+  <div class="rs desk" :class="{ day: theme.day, console: !phone, compact: !phone && settings.density === 'compact', 'shell-phone': phone, 'shell-desk': !phone, 'shell-fit': !phone && fits }">
     <header v-if="!phone" class="menubar">
       <RouterLink class="brand" to="/"><span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>Music Shelf</RouterLink>
       <nav class="tabs" aria-label="Main">
@@ -115,6 +117,6 @@ onMounted(() => {
 @media (max-width: 999px) {
   .rs .checked, .rs .now { display: none; }
 }
-/* Library's panels scroll by themselves, so the page fits the window. */
+/* The Library's and the Inbox's panels scroll by themselves, so the page fits the window. */
 .rs.shell-fit { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
 </style>

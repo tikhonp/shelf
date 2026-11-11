@@ -194,7 +194,7 @@ async function send() {
             <button v-if="hasPending" type="button" class="rocker" :class="{ flat: phone }" role="switch" :aria-checked="asking" @click="asking = !asking">
               <span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name"><LibTip title="Ask for changes" :note="tip(inboxNotes.ask)">Ask for changes</LibTip></span></span>
             </button>
-            <button type="submit" class="key sm" :class="{ 'ib-send-row': phone }" :disabled="inbox.busy || !reply.trim()">{{ hasPending && asking ? 'Ask for changes' : 'Send comment' }}</button>
+            <button type="submit" class="key sm ib-send" :class="{ 'ib-send-row': phone }" data-wide="Ask for changes" :disabled="inbox.busy || !reply.trim()"><span>{{ hasPending && asking ? 'Ask for changes' : 'Send comment' }}</span></button>
           </div>
         </form>
       </section>
@@ -238,6 +238,10 @@ async function send() {
 .rs .ib-bank { position: relative; }
 .rs .ib-bank.cabled { padding-left: 36px; }
 .rs .ib-bank.cabled.narrow { padding-left: 26px; }
+/* A hidden copy of the longer label keeps the key's width, so the rocker beside it doesn't move when the label changes. */
+.rs .key.ib-send { display: inline-grid; place-items: center; }
+.rs .key.ib-send > span, .rs .key.ib-send::after { grid-area: 1 / 1; }
+.rs .key.ib-send::after { content: attr(data-wide); visibility: hidden; }
 /* On the phone Send comment takes its own row, because Ask for changes is too long to sit beside the switch. */
 .rs .key.ib-send-row { flex: 1 1 100%; }
 </style>

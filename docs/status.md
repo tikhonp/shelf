@@ -32,6 +32,8 @@ On a phone, a proposal no longer scrolls sideways when a field's state quotes a 
 
 On a phone, Memory's title bar says Reset instead of Reset memory and its status keys fill one row, so neither runs off the screen. A proposal field puts a wide tag key or a Changed since proposed pill under its label. Before, they squeezed the label to one letter per line. The Inbox state labels keep their full width, so Withdrawn no longer runs under the knob. A proposal's Ask for changes switch is at the left of the reply form, and Send comment has its own row under it.
 
+On the desktop, the Inbox now fits the window like the Library. The list and the proposal scroll inside their windows, so the menubar stays at the top and the divider's grip stays in the middle of the window. Before, the whole page scrolled. The Send key keeps one width, so the Ask for changes switch no longer moves left when you turn it on.
+
 A rocker switch, such as Compilation, now has I and O on its paddle and lights peach when on, so on and off no longer look alike. A flip fades from one state to the other over 160 ms.
 
 The 2026-11-11 dependency update brings qobuz-dl-go v0.1.1 and `golang.org/x/crypto` v0.59.0. qobuz-dl-go requires `modernc.org/libc` v1.81.0, so shelf has it too. `npm update` moved Vite to 8.3.8 and refreshed the lockfile, and `make contract` runs on alpine 3.24. Go 1.27.4, the base images, golangci-lint, govulncheck, air, goose, amdl, the wrapper-lite digest and the CI actions were already the latest.

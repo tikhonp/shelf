@@ -117,6 +117,8 @@ test('one reply box: Send comments, or requests changes with the rocker on', asy
   await flushPromises()
   expect(w.findAll('textarea.ib-text')).toHaveLength(1)
   expect(w.find('button[type="submit"]').text()).toBe('Send comment')
+  // The key keeps the longer label's width, so the rocker beside it doesn't move.
+  expect(w.find('button[type="submit"]').attributes('data-wide')).toBe('Ask for changes')
   await w.find('textarea.ib-text').setValue('Use the 1974 date')
   await w.find('form[aria-label="Reply"]').trigger('submit')
   await flushPromises()
@@ -210,6 +212,24 @@ test('on the phone the dock keeps four tabs and the Library title bar opens the 
   expect(cap.attributes('href')).toBe('/inbox')
   expect(cap.text()).toContain('2 to review')
   expect(w.find('.dock a').text()).toContain('2 proposals to review')
+  w.unmount()
+})
+
+test('on the desktop the Inbox fits the window like the Library, and Memory scrolls as one page', async () => {
+  vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener() {}, removeEventListener() {} }))
+  stubApi({
+    '/api/downloads': list([]), '/api/sources': [source('qobuz', 'Qobuz')], '/api/library/scan': { enabled: false }, '/api/telegram': { enabled: false },
+    '/api/inbox/proposals': { proposals: [], next: null }, '/api/inbox/memory': { body: '', updated_at: null },
+    '/api/inbox': { pending: 0, changes_requested: 0, connections: 1, accounts: 'none', can_create_connections: false }, '/api/agents': { connections: [] },
+  })
+  const pinia = createPinia(); setActivePinia(pinia)
+  const router = createAppRouter(createMemoryHistory()); await router.push('/inbox')
+  const w = mount(App, { global: { plugins: [pinia, router] } })
+  await flushPromises()
+  expect(w.find('.rs').classes()).toContain('shell-fit')
+  await router.push('/inbox/memory')
+  await flushPromises()
+  expect(w.find('.rs').classes()).not.toContain('shell-fit')
   w.unmount()
 })
 
@@ -346,6 +366,8 @@ test('the desktop proposal divider resizes, clamps and remembers the list width'
   await flushPromises()
   const split = w.find('.lib-split')
   expect(split.attributes('aria-label')).toContain('proposal list')
+  // As in the Library, both windows are direct children of the row and scroll by themselves, so the divider is as tall as the page.
+  expect(w.findAll('main.lib-main > .win').map((e) => e.classes()).map((c) => c.includes('ib-list') || c.includes('ib-main'))).toEqual([true, true])
   const width = () => (w.find('.ib-page').element as HTMLElement).style.getPropertyValue('--list-w')
   expect(width()).toBe('420px')
   await split.trigger('keydown', { key: 'ArrowRight' })

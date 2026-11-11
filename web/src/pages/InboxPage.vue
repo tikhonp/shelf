@@ -89,24 +89,15 @@ onBeforeUnmount(() => (help.note = null))
     <InboxBar v-if="id" phone />
     <InboxList v-else />
   </div>
-  <div v-else v-vars="widths" class="page ib-page">
-    <div class="ib-list col"><InboxList :selected="id" /></div>
+  <main v-else v-vars="widths" class="lib-main ib-page">
+    <InboxList class="ib-list" :class="{ wide: !id }" :selected="id" />
     <LibSplit v-if="id" label="proposal list" @move="moveList" />
-    <div v-if="id" class="ib-main col"><InboxDetail @close="close" /></div>
-  </div>
+    <InboxDetail v-if="id" class="ib-main" @close="close" />
+  </main>
 </template>
 
 <style scoped>
-.rs .ib-list { flex: 1 1 380px; min-width: 0; }
-.rs .ib-main { flex: 999 1 600px; min-width: 0; }
-@media (max-width: 1099px) {
-  .rs .ib-page .ib-list, .rs .ib-page .ib-main { flex: 1 1 100%; }
-}
-@media (min-width: 1100px) {
-  .rs .ib-page { flex-wrap: nowrap; gap: 0; }
-  .rs .ib-page .lib-split { align-self: stretch; }
-  .rs .ib-page:has(.ib-main) .ib-list { flex: 0 0 var(--list-w); }
-  .rs .ib-page .ib-main { flex: 1 1 0; position: sticky; top: 12px; max-height: calc(100dvh - 90px); }
-  .rs .ib-page .ib-main > .win { max-height: 100%; }
-}
+/* As in the Library, each window scrolls by itself, so the menubar and the divider stay put. */
+.rs .ib-list { flex: 0 0 var(--list-w); }
+.rs .ib-list.wide, .rs .ib-main { flex: 1 1 0; }
 </style>
