@@ -201,6 +201,7 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 | shelf, shelf-wrapper and `ssht-shelf` live in sh-blackberry's `shelf.yaml`, apart from `music.yaml`. | shelf could be checked while the old tools still worked. They were removed once it passed the checklist. |
 | shelf-wrapper has its own data folder and `--device-info`. | wrapper-lite derives the device ID from the Apple ID, and `apple-music-wrapper` used the same account. |
 | Neither `shelf` nor `shelf-wrapper` updates nightly. Both are pulled together by hand. | They share the control API's types. |
+| A `v*` git tag publishes both images as `:<tag>` and never moves `latest`. | Releases get stable names to deploy and roll back to, while `main` builds as before. proxier's CI does the same. |
 | shelf's data lives in `${SWINGMUSIC_DATA}/shelf` and `${SWINGMUSIC_DATA}/shelf-wrapper`, and the swingmusic backup copies all of it. A restore starts from a daily copy. | The owner's choice, like the other music services. One task that copies everything is easier to keep right. |
 | `qobuz/` and `apple-music/` belong to 10001:10001, and the genre folders too after one chown that keeps their modes. Downloads write only into the two source folders. | The tag editor writes in the whole library. A write keeps each file's group, and shelf can give a file only one of its own groups: the first real Save failed on group 1000. Nothing in the genre folders relies on group-write without world-write, so the chown takes no access from the login user or Picard. |
 

@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
 
 jobs:
@@ -80,9 +81,10 @@ jobs:
         run: make web-check
 
   # The image job builds only a commit whose checks passed. A push to main
-  # tags :<sha>, :main and :latest, and blackberry follows :latest. The
-  # automatic token can't write packages, so REGISTRY_TOKEN is an access
-  # token with write:package.
+  # tags :<sha>, :main and :latest, and blackberry follows :latest. A v* tag
+  # publishes only :<tag>, so a release never moves :latest. The automatic
+  # token can't write packages, so REGISTRY_TOKEN is an access token with
+  # write:package.
   image:
     needs: [test, lint, web]
     if: github.event_name == 'push'
@@ -107,10 +109,19 @@ jobs:
         id: version
         run: |
           IMAGE="${REGISTRY}/${{ github.repository }}"
-          echo "tags=${IMAGE}:${{ github.sha }},${IMAGE}:${{ github.ref_name }},${IMAGE}:latest" >> "$GITHUB_OUTPUT"
           WRAPPER="${IMAGE}-wrapper"
-          echo "wrapper_tags=${WRAPPER}:${{ github.sha }},${WRAPPER}:${{ github.ref_name }},${WRAPPER}:latest" >> "$GITHUB_OUTPUT"
-          echo "version=${{ github.ref_name }}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          REF="${{ github.ref_name }}"
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "tags=${IMAGE}:${REF}" >> "$GITHUB_OUTPUT"
+            echo "wrapper_tags=${WRAPPER}:${REF}" >> "$GITHUB_OUTPUT"
+            echo "version=${REF}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tags=${IMAGE}:${GITHUB_SHA},${IMAGE}:${REF},${IMAGE}:latest" >> "$GITHUB_OUTPUT"
+            echo "wrapper_tags=${WRAPPER}:${GITHUB_SHA},${WRAPPER}:${REF},${WRAPPER}:latest" >> "$GITHUB_OUTPUT"
+            echo "version=${REF}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+          # A tag push may carry no head_commit, so the date comes from git.
+          echo "date=$(git log -1 --format=%cI)" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v7
@@ -121,7 +132,7 @@ jobs:
           platforms: linux/amd64
           build-args: |
             APP_VERSION=${{ steps.version.outputs.version }}
-            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            BUILD_DATE=${{ steps.version.outputs.date }}
             VCS_REF=${{ github.sha }}
           tags: ${{ steps.version.outputs.tags }}
 
@@ -136,6 +147,6 @@ jobs:
           platforms: linux/amd64
           build-args: |
             APP_VERSION=${{ steps.version.outputs.version }}
-            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            BUILD_DATE=${{ steps.version.outputs.date }}
             VCS_REF=${{ github.sha }}
           tags: ${{ steps.version.outputs.wrapper_tags }}

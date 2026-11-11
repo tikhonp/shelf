@@ -9,7 +9,11 @@ shelf runs on blackberry from `shelf.yaml` in `~/projects/sh-blackberry`. The sh
 | `code.tikhonnnnn.com/tikhon/shelf` | `Dockerfile`, target `prod`: `alpine:3.24` with `ca-certificates`, `chromaprint` for `fpcalc`, `ffmpeg`, `tzdata`, amdl copied from `ghcr.io/zhaarey/apple-music-downloader:0.1.4`, and the shelf binary | `10001:10001` |
 | `code.tikhonnnnn.com/tikhon/shelf-wrapper` | `Dockerfile`, target `wrapper`: the pinned `ghcr.io/worldobservationlog/wrapper-lite` image plus tini and `shelf-wrapper`, amd64 only | root, privileged |
 
-Forgejo CI builds both on every push to `main` and tags them with the SHA, `main` and `latest`.
+Forgejo CI builds both on every push to `main`, tags them with the SHA, `main` and `latest`, and sets the version to `main-<sha7>`. A pushed `v*` git tag, such as `v1.0.0`, builds both as `:v1.0.0`, sets the version to `v1.0.0`, and leaves `latest` alone. To release:
+
+```sh
+git tag v1.0.0 && git push origin v1.0.0
+```
 
 ## sh-blackberry
 
