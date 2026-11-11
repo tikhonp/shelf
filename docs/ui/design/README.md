@@ -106,6 +106,18 @@ These screens come from a second canvas, https://claude.ai/artifact/LRhUtun1bSeK
 
 The second-pass screens also load `slide.css`, `gear.css` and `tips.css`, and two small scripts, `slide-demo.js` and `tips.js`, that make the slide, the key switch and the notes respond.
 
+### Album History
+
+These screens come from a third canvas, https://claude.ai/artifact/QQxnFV1qCfFVoKjvqnULqw, from 2026-11-12. The app hasn't built them yet. [The plan](../../plans/album-history.md) gives the decisions, the API and the steps.
+
+| Screen | Shows | Route |
+| --- | --- | --- |
+| `MS-desk-library-history-cap` | The Editor with the History cap | `/library/:id` |
+| `MS-desk-library-album-history`, `-compact`, `-day` | Album History with one Save open, in Compact rows and in Day | `/library/:id` |
+| `MS-phone-library-history-cap` | The phone album page with the History cap | `/library/:id` |
+| `MS-phone-library-history`, `-open`, `-run` | The album's History, a Save open, and a run open | `/library/:id` |
+| `MS-library-history-states` | Eight album History states at phone width | `/library/:id` |
+
 ## Direction
 
 The look is a recording studio built around a British mixing console: blue-grey modules, ivory push buttons, red and blue knobs, lamps, small displays and a little wood. The look is only visual. UI text uses the glossary words in `CLAUDE.md` and never names the studio, so there is no "tape machine", "rack", "lathe" or "master" on screen.
