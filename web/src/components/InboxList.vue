@@ -103,7 +103,7 @@ const pill = (p: ProposalSummary) => inbox.filters.state === 'all' || (p.state =
 .rs .pad { padding: 14px; }
 .rs .ib-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--ink); }
 .rs .ib-rows { flex: 1; min-height: 0; margin: 0; padding: 0; list-style: none; overflow-y: auto; }
-/* A row never shrinks below its three lines; the phone row has the Library's sizes. */
+/* A row never shrinks below its three lines. On the phone it has the Library's sizes. */
 .rs .ib-row { flex: none; grid-template-columns: 46px minmax(0, 1fr) auto; }
 .rs .ib-row.ph { grid-template-columns: 62px minmax(0, 1fr) auto; min-height: 88px; padding: 10px 12px; }
 .rs .ib-row.ph .two { gap: 3px; }

@@ -139,5 +139,6 @@ const editing = computed(() => !props.phone || open.value)
 .rs .ib-op.phone .ib-op-sw { display: flex; align-items: center; gap: 10px; }
 .rs .ib-paddle { flex: none; min-height: 44px; }
 .rs .ib-label { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; min-height: 44px; padding: 0; border: 0; background: none; color: var(--text); text-align: left; cursor: pointer; }
-.rs .ib-label .rk-state { overflow-wrap: anywhere; }
+/* The state can quote a whole value, such as a MusicBrainz ID, so it wraps instead of widening the page. */
+.rs .ib-label .rk-state { white-space: normal; overflow-wrap: anywhere; }
 </style>

@@ -233,7 +233,9 @@
 @media (prefers-reduced-motion: reduce) { .rs .sug:active { transform: none; } }
 
 @media (max-width: 719px) {
+  /* The panel-coloured shadow fills the gap above the stuck LCD, so rows don't show through it. */
   .rs .lcd.lib-scope { position: sticky; top: 8px; z-index: 3; margin: 0 12px 10px; }
+  .rs .vscroll > .lcd.lib-scope { box-shadow: inset 1px 2px 6px rgba(0, 0, 0, .85), 0 -12px 0 12px var(--win); }
   .rs .lf-add { min-height: 44px; font-size: 13px; }
   .rs .lf-in .lf-rev { top: 1px; right: 1px; width: 44px; height: 44px; }
   .rs .sug { min-height: 44px; padding: 6px 12px; font-size: 14px; }

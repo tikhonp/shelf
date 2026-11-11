@@ -28,6 +28,8 @@ An agent's 401 for a malformed token says whether the prefix is missing, a chara
 
 An agent connection can get a new secret on Status or with `shelf manage agents secret <id>`, and Connect hides its permission rockers until Choose. Neither is deployed.
 
+On a phone, a proposal no longer scrolls sideways when a field's state quotes a long value or an evidence source is long. Inbox rows have the Library's phone sizes and no longer overlap. On an album with a proposal, the stuck scope LCD no longer has the Proposed header behind it, and rows no longer show through the gap above it. An agent's unit on Status has no empty space under Revoke. Not deployed.
+
 ## Operational notes
 
 - Source modules log in and start goroutines in `Run`, never `Init`, and register with `Switch` when settings are missing.

@@ -6,7 +6,7 @@
 .rs .ib-text { width: 100%; min-height: 72px; padding: 8px 10px; background: var(--field); border: 1px solid var(--ink); border-radius: 5px; box-shadow: inset 1px 2px 3px rgba(0, 0, 0, .4); font: inherit; font-size: 14px; color: var(--text); resize: vertical; text-transform: none; letter-spacing: normal; }
 .rs .ib-sel select { height: 32px; padding: 0 8px; background: var(--field); border: 1px solid var(--ink); border-radius: 5px; font: inherit; font-size: 13px; color: var(--text); }
 .rs .lbl-f .lib-in { text-transform: none; letter-spacing: normal; font-family: var(--font); font-weight: 400; padding-right: 10px; }
-/* A phone module on Status is a column, where the agent units' flex bases would become heights. */
+/* On the phone a Status module is a column, so the agent units' flex bases would become heights. */
 .rs .smod .ag-side, .rs .smod .ag-form { flex: none; }
 @media (max-width: 719px) {
   .rs .ib-check { min-height: 44px; align-items: center; }
