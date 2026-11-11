@@ -38,6 +38,8 @@ A rocker switch, such as Compilation, now has I and O on its paddle and lights p
 
 The 2026-11-11 dependency update brings qobuz-dl-go v0.1.1 and `golang.org/x/crypto` v0.59.0. qobuz-dl-go requires `modernc.org/libc` v1.81.0, so shelf has it too. `npm update` moved Vite to 8.3.8 and refreshed the lockfile, and `make contract` runs on alpine 3.24. Go 1.27.4, the base images, golangci-lint, govulncheck, air, goose, amdl, the wrapper-lite digest and the CI actions were already the latest.
 
+Status ends with a Shelf part that shows the version the running server was built with. It is on main and not deployed.
+
 A pushed `v*` tag now deploys through sh-blackberry and doco-cd, as [deployment.md](deployment.md#deploys) describes.
 
 ## Operational notes

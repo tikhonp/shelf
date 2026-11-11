@@ -5,6 +5,7 @@ import type { Source, WrapperState } from '../api/types'
 import Icon from '../components/Icon.vue'
 import AccountSettings from '../components/AccountSettings.vue'
 import AgentsPanel from '../components/AgentsPanel.vue'
+import BuildInfo from '../components/BuildInfo.vue'
 import DensityChoice from '../components/DensityChoice.vue'
 import NoticeChoice from '../components/NoticeChoice.vue'
 import NoticeSlot from '../components/NoticeSlot.vue'
@@ -145,13 +146,14 @@ const lines = (s: Source) => [s.enabled ? (s.health.ok ? 'WORKS' : (s.health.mes
         <AgentsPanel />
         <NoticeChoice />
         <AccountSettings />
-        <section class="smod last" aria-label="Theme">
+        <section class="smod" aria-label="Theme">
           <div class="smod-h"><h2>Theme</h2></div>
           <div class="segk block" role="radiogroup" aria-label="Theme">
             <button type="button" role="radio" :aria-checked="!theme.day" @click="theme.day = false">Night</button>
             <button type="button" role="radio" :aria-checked="theme.day" @click="theme.day = true">Day</button>
           </div>
         </section>
+        <BuildInfo last />
       </div>
     </section>
     <NoticeSlot />
@@ -193,6 +195,7 @@ const lines = (s: Source) => [s.enabled ? (s.health.ok ? 'WORKS' : (s.health.mes
     <NoticeChoice />
     <DensityChoice />
     <AccountSettings />
+    <BuildInfo />
     <SignIn v-if="signingIn" @close="closeSignIn" />
   </div>
 </template>

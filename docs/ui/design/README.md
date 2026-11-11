@@ -281,6 +281,7 @@ Help never shows on a screen at rest, and the design adds no helper text beside 
 - The cover dialog shows no size for the current cover, because the API has none.
 - On the phone the cover dialog is the desktop's dialog in a narrower window. The canvas has no phone board for it.
 - Status's Library part keeps the index's two lines and gives MusicBrainz a third, with its answer time when it answers. The note under it while MusicBrainz is down says "Suggestions from MusicBrainz" where the canvas says "Its suggestions".
+- The Shelf part is new and has no canvas board. It comes last on Status. Its display shows the version from `GET /api/version`, such as `VERSION V1.0.1` or `VERSION MAIN-3DFF85A`.
 - Delete is new, with no canvas board. It is a text cap in the Editor's title bar on the desktop and in the album's title bar on the phone. It opens the confirm dialog, or the phone's slot, with Delete as its key. The title is "Delete this album?", or "Delete these albums?" when other albums share the folder. While the delete runs, the Save bar's place shows DELETING and the file count. A refusal uses the Not saved panel, titled Not deleted. In History a delete reads "Deleted: Blue", has a Deleted pill and no Undo, and opens to the folder, the files and size, the other albums, the downloads and Navidrome.
 
 ## Account access
