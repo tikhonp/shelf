@@ -24,7 +24,7 @@ status=0
 docker run --rm --network "$name" -v "$name:/music" -v "$work:/t:ro" \
 	-v "$PWD/internal/modules/library:/src:ro" -w /src \
 	-e SHELF_CONTRACT_NAVIDROME="http://$name-nd:4533" -e SHELF_CONTRACT_MUSIC=/music \
-	alpine:3.22 sh -c 'apk add --no-cache -q ffmpeg && exec /t/library.test -test.run TestNavidromeContract -test.v -test.count=1' || status=$?
+	alpine:3.24 sh -c 'apk add --no-cache -q ffmpeg && exec /t/library.test -test.run TestNavidromeContract -test.v -test.count=1' || status=$?
 if [ "$status" -ne 0 ]; then
 	docker logs --tail 50 "$name-nd" 2>&1 | tail -50
 fi

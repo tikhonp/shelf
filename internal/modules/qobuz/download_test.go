@@ -92,7 +92,7 @@ func TestDownloadResult(t *testing.T) {
 			t.Errorf("%s is missing", f)
 		}
 	}
-	if res.Tool != "qobuz-dl-go v0.1.0 porting qobuz-dl 2.5.9" {
+	if res.Tool != "qobuz-dl-go v0.1.1 porting qobuz-dl 2.5.9" {
 		t.Errorf("tool %q", res.Tool)
 	}
 	if res.TrackNoun != "" {

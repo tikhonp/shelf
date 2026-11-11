@@ -32,7 +32,7 @@ Delivered: FLAC 24-bit 96 kHz
 Requested by: Telegram @name, user 123456
 Started: 2026-11-03T14:01:52+03:00
 Finished: 2026-11-03T14:05:11+03:00
-Tools: shelf v0.1.0, qobuz-dl-go v0.1.0 porting qobuz-dl 2.5.9
+Tools: shelf v0.1.0, qobuz-dl-go v0.1.1 porting qobuz-dl 2.5.9
 Tracks:
   1  01 - Shoreline.flac  track 11111111  ISRC XX0000000001  FLAC 24/96  done
   2  02 - Undertow.flac  track 11111112  ISRC XX0000000002  FLAC 24/96  done

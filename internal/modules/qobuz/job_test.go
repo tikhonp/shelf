@@ -105,7 +105,7 @@ func TestAlbumThroughTheJob(t *testing.T) {
 		"Source link: https://www.qobuz.com/fr-fr/album/begin-again-norah-jones/k43q1q3kx88fa\n",
 		"Title: Begin Again\n", "Artist: Norah Jones\n", "Label: Blue Note Records\n", "Release date: 2019-04-12\n",
 		"UPC: 0602577440397\n", "Requested format: Qobuz 27, FLAC up to 24-bit 192 kHz\n", "Delivered: FLAC 24-bit 96 kHz\n",
-		", qobuz-dl-go v0.1.0 porting qobuz-dl 2.5.9\n",
+		", qobuz-dl-go v0.1.1 porting qobuz-dl 2.5.9\n",
 		"  1  01 - My Heart Is Full.flac  track 58780541  ISRC USUM71807619  FLAC 24/96  done\n",
 	} {
 		if !strings.Contains(txt, want) {
