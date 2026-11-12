@@ -34,7 +34,7 @@ End-to-end checks that only the real deployment can answer: real accounts, the r
 
 ## Last run
 
-Every check passed in production, except the run row and the hover date in Album History check 1.
+Every check passed in production, except the run row in Album History check 1.
 
 - Checks 1 to 12: 2026-11-04 on `be76a2d`, through the API, over SSH and on the owner's phone and tablet. The owner accepted check 9 after one bot download and check 12 without waiting for the backup.
 - Check 13: 2026-11-04 on `0bcd479`. The index matched Navidrome's 11,461 songs and 1,008 albums, and no file changed after the marker.
@@ -45,7 +45,7 @@ Every check passed in production, except the run row and the hover date in Album
 - Check 16: 2026-11-04 on `0fb5a7f`, on the 20 smallest 16/44.1 albums with No RELEASEDATE and a MusicBrainz ID, with the backup on 2026-11-05. AcoustID found an anchor for *Cookin' With The Miles Davis Quintet*.
 - Check 17: 2026-11-05 on `a7359e1`, in production.
 - Check 18: 2026-11-05 on `d228255`, through the API and Playwright on the desktop and a phone viewport. The counts matched exactly: 759 Qobuz, 76 Apple Music, 183 without a source. Each of the 13 albums shelf downloaded links to its download and its page.
-- Album History checks 1 to 4: 2026-11-12 on `v1.0.4`, through Playwright on the desktop and a phone viewport, not a real phone, with a test account. Check 1 skipped the run's row, because production's History holds no run. Its hover date failed, because the row's button covered the time, and the fix is on main. In check 2 the Save finished before the first screenshot, so the screenshots missed Saving. Check 2 changed Darkside EP's LABEL, and the cleanup's Undo put back `Clown & Sunset`, which Navidrome shows too.
+- Album History checks 1 to 4: 2026-11-12 on `v1.0.4`, through Playwright on the desktop and a phone viewport, not a real phone, with a test account. Check 1 skipped the run's row, because production's History holds no run. Its hover date failed, because the row's button covered the time. A recheck on `v1.0.5` the same day passed. The hover showed the full date, and a click elsewhere in the row still opened the row. In check 2 the Save finished before the first screenshot, so the screenshots missed Saving. Check 2 changed Darkside EP's LABEL, and the cleanup's Undo put back `Clown & Sunset`, which Navidrome shows too.
 
 ## Optional accounts
 
