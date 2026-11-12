@@ -46,6 +46,8 @@ The 2026-11-11 dependency update brings qobuz-dl-go v0.1.1 and `golang.org/x/cry
 
 Status ends with a Shelf part that shows the version the running server was built with.
 
+On `main` but in no release yet, `shelf manage users add` and `set-password` take `--password-stdin`. A script can then make an account with `docker exec -i` and a password file, without `expect` driving a terminal. [auth.md](auth.md#account-commands) describes it.
+
 A pushed `v*` tag now deploys through sh-blackberry and doco-cd, as [deployment.md](deployment.md#deploys) describes.
 
 ## Operational notes

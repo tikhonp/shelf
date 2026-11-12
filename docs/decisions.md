@@ -242,3 +242,7 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 ## First account from the web UI
 
 UI setup is enabled by default while no accounts exist. The owner accepts that anyone who reaches a fresh install first can create its account. `SHELF_AUTH_SETUP_UI=false` leaves account creation to `shelf manage users add`. Account creation and its session share one write transaction so concurrent requests cannot both succeed.
+
+## Passwords from standard input
+
+`shelf manage users add` and `set-password` take `--password-stdin` and read one line from standard input. Before, they read a password only from a terminal, so a production check needed `expect` or `script` to make a temporary account. A second read of piped input would catch no typo, so the command reads it once. Input with a second line fails, because Shelf would otherwise store the second line as part of the password without a warning. A password still never goes in the arguments.

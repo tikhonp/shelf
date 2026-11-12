@@ -145,10 +145,11 @@ const usage = `Usage:
   shelf manage agents list                 list connections
   shelf manage agents revoke <id>          revoke a connection
   shelf manage agents secret <id>          give a connection a new token; the old one stops working
-  shelf manage users add <username>       create an account with a prompted password
+  shelf manage users add <username> [--password-stdin]
+                                          create an account with a prompted password, or one line of stdin
   shelf manage users list                 list accounts
   shelf manage users delete <username>    remove an account and revoke its sessions
-  shelf manage users set-password <username>
+  shelf manage users set-password <username> [--password-stdin]
                                           reset a password and revoke sessions
   shelf manage users reset-passkeys <username>
                                           remove passkeys and revoke sessions
@@ -163,13 +164,14 @@ func main() {
 func run(args []string, stdout, stderr io.Writer) int {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
-	return cli{lookup: os.LookupEnv, stdout: stdout, stderr: stderr, modules: modules}.run(ctx, args)
+	return cli{lookup: os.LookupEnv, stdin: os.Stdin, stdout: stdout, stderr: stderr, modules: modules}.run(ctx, args)
 }
 
 // cli is one run of the command line. Its environment, output and modules
 // are fields, so tests run every command in-process.
 type cli struct {
 	passwordReader func(string) (string, error)
+	stdin          io.Reader
 	lookup         func(string) (string, bool)
 	stdout         io.Writer
 	stderr         io.Writer
