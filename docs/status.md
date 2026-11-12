@@ -26,6 +26,8 @@ The [sign-in and agent review redesign](plans/signin-and-agent-review-design.md)
 
 [Album History](plans/album-history.md) is built on main and not deployed. A History cap on an album opens its Saves, deletes and runs, and the download that brought it, on the desktop and on the phone. On the phone the Inbox links an accepted change to its album's History. [tags.md](tags.md#the-editor) describes it.
 
+Two phone fixes on the album page are on main and not deployed. The `?` key now lines up with History and Delete. Before, it sat 2.5px lower. The panel-coloured mask above the stuck LCD now covers only the 8px gap above it. Before, it covered the bottom 14px of the issue row.
+
 An agent's 401 for a malformed token says whether the prefix is missing, a character is not allowed, or the length is wrong, and it gives the length for the whole token. The old message compared the 43 characters after the prefix with the whole token's length.
 
 An agent connection can get a new secret on Status or with `shelf manage agents secret <id>`, and Connect hides its permission rockers until Choose.

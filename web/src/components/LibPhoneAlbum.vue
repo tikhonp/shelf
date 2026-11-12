@@ -90,7 +90,7 @@ const flagOn = (f: MainField) => view(f).values[0] === '1'
 .rs .head .two { gap: 3px; }
 .rs h2 { font-size: 19px; font-weight: 700; line-height: 1.2; }
 .rs .by { font-size: 14px; }
-.rs .q { margin-top: 5px; }
+.rs .head .q { margin-top: 5px; }
 .rs .gap { margin-bottom: 10px; }
 .rs .still { cursor: default; }
 .rs .pf-open .two, .rs .pf-flag .two { gap: 2px; }
