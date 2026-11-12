@@ -18,11 +18,11 @@ Every check in [manual-checklist.md](manual-checklist.md) passed in production, 
 
 ## Production
 
-Production runs `v1.0.7`, which shelf CI deployed through doco-cd on 2026-11-12. Optional [library agents](agents.md) are off by default and on in production. Production signs in with Shelf accounts. [auth.md](auth.md) describes setup.
+Production runs `v1.0.8`, which shelf CI deployed through doco-cd on 2026-11-12. Optional [library agents](agents.md) are off by default and on in production. Production signs in with Shelf accounts. [auth.md](auth.md) describes setup.
 
 shelf-wrapper builds from upstream's `ghcr.io/worldobservationlog/wrapper-lite` image pinned by digest. The index holds 11,461 tracks and 1,008 Navidrome album IDs, forming 1,013 albums because 5 Navidrome albums span two folders.
 
-Since 2026-11-12, shelf-wrapper puts the wrapper in `error` when Apple no longer accepts its Apple ID session, with "Apple no longer accepts the wrapper's sign-in. Sign in again." That day the session had expired while Status said signed in, and every Apple Music download failed on `lite-server /key`. Signing in again fixed it. Production gets the check with the next release.
+Since 2026-11-12, shelf-wrapper puts the wrapper in `error` when Apple no longer accepts its Apple ID session, with "Apple no longer accepts the wrapper's sign-in. Sign in again." That day the session had expired while Status said signed in, and every Apple Music download failed on `lite-server /key`. Signing in again fixed it. v1.0.8 brought the check to production. It has not fired there yet.
 
 The [sign-in and agent review redesign](plans/signin-and-agent-review-design.md) and its [second pass](plans/signin-and-agent-review-second-pass.md) run in production.
 
