@@ -1,8 +1,8 @@
 # Album History
 
-Status: designed on 2026-11-12 and not built. The canvas is a private artifact, https://claude.ai/artifact/QQxnFV1qCfFVoKjvqnULqw. Its static exports are in [ui/design/screens](../ui/design/screens), and [ui/design/README.md](../ui/design/README.md) lists them.
+Status: built on main on 2026-11-12 in f1d607a, 3f6bf76 and 2b4616e, not deployed. Production still runs `v1.0.1`. [tags.md](../tags.md#the-editor) describes the result. The canvas is a private artifact, https://claude.ai/artifact/QQxnFV1qCfFVoKjvqnULqw. Its static exports are in [ui/design/screens](../ui/design/screens), and [ui/design/README.md](../ui/design/README.md) lists them.
 
-History today is one list for the whole library, and the phone has none. With an album open, the owner can't see who changed it, what changed, or when. Album History shows one album's changes, on the desktop and on the phone. The global History stays as it is.
+Before this plan, History was one list for the whole library, and the phone had none. With an album open, the owner couldn't see who changed it, what changed, or when. Album History shows one album's changes, on the desktop and on the phone. The global History stays as it is.
 
 ## Screens
 
@@ -38,9 +38,9 @@ The owner settled these on 2026-11-12.
 
 ## API
 
-`GET /api/library/history` has no album filter today.
+`GET /api/library/history` had no album filter before this plan.
 
-- Add `album=<id>` to `GET /api/library/history`. It returns the album's Saves and deletes, plus every run with a child change for that album. Today `saves()` reads only rows with `parent IS NULL`, so a run's album needs a join on its children. Paging with `before` and `limit` stays the same.
+- Add `album=<id>` to `GET /api/library/history`. It returns the album's Saves and deletes, plus every run with a child change for that album. `saves()` read only rows with `parent IS NULL`, so a run's album needed a join on its children. Paging with `before` and `limit` stays the same.
 - Add `album=<id>` to `GET /api/library/changes/:id`, so a run returns only that album's files.
 - Add `folder=<path>` to `GET /api/downloads` in the downloads module. It returns the downloads that wrote into that release folder, with source, format, author, time and ID. The UI joins the two answers, because a module never reads another module's tables.
 - Every row field the screens show is already in `LibraryChange`.

@@ -108,7 +108,7 @@ The second-pass screens also load `slide.css`, `gear.css` and `tips.css`, and tw
 
 ### Album History
 
-These screens come from a third canvas, https://claude.ai/artifact/QQxnFV1qCfFVoKjvqnULqw, from 2026-11-12. The app hasn't built them yet. [The plan](../../plans/album-history.md) gives the decisions, the API and the steps.
+These screens come from a third canvas, https://claude.ai/artifact/QQxnFV1qCfFVoKjvqnULqw, from 2026-11-12. The app built them the same day, on main and not deployed. [The plan](../../plans/album-history.md) gives the decisions, the API and the steps.
 
 | Screen | Shows | Route |
 | --- | --- | --- |
@@ -243,7 +243,7 @@ The canvas boards are `project/Lib-*.dc.html`, styled by `project/retro.css` and
 - An added custom field shows the same staged look as other edits. A deleted one stays in its row, struck through, until Save.
 - All fields is a small rocker in the Editor's title bar. On the phone, the same rocker pattern sets Compilation, and All fields doesn't exist.
 - The Save bar sits at the foot of the Editor on the desktop. On the phone it takes a slot above the tab bar, and so does the player. The desktop player sits at the foot of the track list. Both players appear only while a track plays.
-- Select and History are caps in the Library title bar, and the bulk run and History open beside the album list. The phone has neither, so on the phone the Inbox names an accepted change, such as "Change 84 is in History on a desktop", instead of linking to History.
+- Select and History are caps in the Library title bar, and the bulk run and History open beside the album list. The phone has neither. An album's own History opens on both, from a History cap in the Editor's title bar on the desktop and in the album's title bar on the phone. On the phone the Inbox links an accepted change to its album's History. When the index no longer has the album, the Inbox names the change without a link, as "Change 84 is in History on a desktop".
 - Dividers (`.lib-split`) resize the panels by dragging or with the left and right arrows. Below 1100px the panels stack and the dividers go.
 - The desktop Inbox uses the same row of panels (`.lib-main`), so it fits the window and each window scrolls by itself.
 - The filter menu shows how many albums each entry holds.
@@ -256,7 +256,7 @@ Help never shows on a screen at rest, and the design adds no helper text beside 
 - On the desktop, a note (`.tipbox`) opens 350ms after the pointer reaches a name, and closes when it leaves. Names with a note gain a dotted underline under the pointer. That covers field and tag names, the display that says which tracks an edit reaches, issue names, Standard and Extended, filter entries, suggestions, the Save bar's count, Undo and Redo, and the fixes of a bulk run. A field with nothing worth explaining has no note.
 - The `N` key shows the same note for the field the cursor is on. In the app, the note is also the field's `aria-describedby`.
 - The menubar's `?` opens the Help sheet at the Tagging guide, and the `?` key opens it at Keyboard.
-- The phone has no hover. A small `?` cap (`.wbtn.q`) sits in the title bar of the album and field pages and on each issue. It opens the note in a slot above the tab bar, and the slot links to the Tagging guide page. The album list stays as it is.
+- The phone has no hover. A small `?` cap (`.wbtn.q`) sits in the title bar of the album, field and History pages and on each issue. It opens the note in a slot above the tab bar, and the slot links to the Tagging guide page, except on History. The album list stays as it is.
 
 ## Accessibility
 
@@ -296,7 +296,7 @@ Help never shows on a screen at rest, and the design adds no helper text beside 
 - On the phone the cover dialog is the desktop's dialog in a narrower window. The canvas has no phone board for it.
 - Status's Library part keeps the index's two lines and gives MusicBrainz a third, with its answer time when it answers. The note under it while MusicBrainz is down says "Suggestions from MusicBrainz" where the canvas says "Its suggestions".
 - The Shelf part is new and has no canvas board. It comes last on Status. Its display shows the version from `GET /api/version`, such as `VERSION V1.0.1` or `VERSION MAIN-3DFF85A`.
-- Delete is new, with no canvas board. It is a text cap in the Editor's title bar on the desktop and in the album's title bar on the phone. It opens the confirm dialog, or the phone's slot, with Delete as its key. The title is "Delete this album?", or "Delete these albums?" when other albums share the folder. While the delete runs, the Save bar's place shows DELETING and the file count. A refusal uses the Not saved panel, titled Not deleted. In History a delete reads "Deleted: Blue", has a Deleted pill and no Undo, and opens to the folder, the files and size, the other albums, the downloads and Navidrome.
+- Delete is new, with no canvas board. It is a text cap in the Editor's title bar on the desktop and in the album's title bar on the phone. It opens the confirm dialog, or the phone's slot, with Delete as its key. The title is "Delete this album?", or "Delete these albums?" when other albums share the folder. While the delete runs, the Save bar's place shows DELETING and the file count. A refusal uses the Not saved panel, titled Not deleted. In History a delete reads "Deleted: Blue", has a Deleted pill and no Undo, and opens to the folder, the files and size, the other albums, the downloads and Navidrome. In an album's History it reads "Delete".
 
 ## Account access
 
