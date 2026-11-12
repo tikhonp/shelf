@@ -304,7 +304,11 @@ func (m *Module) history(c *echo.Context) error {
 		out.Next = &next
 	}
 	for _, r := range rows {
-		out.Changes = append(out.Changes, m.changeJSON(ctx, r))
+		j := m.changeJSON(ctx, r)
+		if err := m.scopeRunTags(ctx, &j, int64(album)); err != nil {
+			return err
+		}
+		out.Changes = append(out.Changes, j)
 	}
 	return c.JSON(http.StatusOK, out)
 }

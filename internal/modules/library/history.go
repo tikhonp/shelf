@@ -45,7 +45,8 @@ type changeJSON struct {
 	FinishedAt *string `json:"finished_at"`
 	// Files are in the detail only.
 	Files []changeFileJSON `json:"files,omitempty"`
-	// Run says this row is a bulk run, whose Tags count all its albums.
+	// Run says this row is a bulk run. Its Tags count every album in the
+	// run, or only the album that History or the detail asks for.
 	Run *runSummaryJSON `json:"run,omitempty"`
 	// Deleted says what a delete removed, and how Navidrome took it.
 	Deleted *storedDelete `json:"deleted,omitempty"`
@@ -152,6 +153,9 @@ func (m *Module) getChange(c *echo.Context) error {
 		return err
 	}
 	out := m.changeJSON(ctx, row)
+	if err := m.scopeRunTags(ctx, &out, int64(album)); err != nil {
+		return err
+	}
 	var files []changeFile
 	if out.Run != nil {
 		files, err = m.runFiles(ctx, id, int64(album))
@@ -171,6 +175,20 @@ func (m *Module) getChange(c *echo.Context) error {
 		out.Files = append(out.Files, fj)
 	}
 	return c.JSON(http.StatusOK, out)
+}
+
+// scopeRunTags makes a run's Tags count only the album's tags, the ones
+// its opened row lists.
+func (m *Module) scopeRunTags(ctx context.Context, c *changeJSON, album int64) error {
+	if c.Run == nil || album <= 0 {
+		return nil
+	}
+	n, err := m.store.runAlbumTags(ctx, c.ID, album)
+	if err != nil {
+		return err
+	}
+	c.Tags = n
+	return nil
 }
 
 // diffKeys lists the keys whose values differ, in key order.

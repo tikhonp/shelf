@@ -1000,13 +1000,7 @@ func (s store) runSummary(ctx context.Context, id int64) (*runSummaryJSON, error
 // whole run would be thousands of lines nobody reads. A positive album keeps
 // only the run's writes to that album, matched as belongsToAlbum matches them.
 func (m *Module) runFiles(ctx context.Context, id, album int64) ([]changeFile, error) {
-	q := `SELECT id FROM library_changes WHERE parent = ?`
-	args := []any{id}
-	if album > 0 {
-		q += ` AND (album_id = ? OR EXISTS (SELECT 1 FROM library_change_files f JOIN library_files lf ON lf.path = f.path
-			WHERE f.change_id = library_changes.id AND lf.album_id = ?))`
-		args = append(args, album, album)
-	}
+	q, args := runChildren(`SELECT id`, id, album)
 	var ids []int64
 	if err := m.store.db.R.SelectContext(ctx, &ids, q+` ORDER BY id`, args...); err != nil {
 		return nil, err
@@ -1023,6 +1017,28 @@ func (m *Module) runFiles(ctx context.Context, id, album int64) ([]changeFile, e
 		}
 	}
 	return out, nil
+}
+
+// runChildren selects a run's album writes. A positive album keeps only that
+// album's, found by the row's album or by the album its files are in now.
+func runChildren(cols string, id, album int64) (string, []any) {
+	q := cols + ` FROM library_changes WHERE parent = ?`
+	args := []any{id}
+	if album > 0 {
+		q += ` AND (album_id = ? OR EXISTS (SELECT 1 FROM library_change_files f JOIN library_files lf ON lf.path = f.path
+			WHERE f.change_id = library_changes.id AND lf.album_id = ?))`
+		args = append(args, album, album)
+	}
+	return q, args
+}
+
+// runAlbumTags counts the tags a run wrote to one album, so the album's
+// History counts the lines it lists.
+func (s store) runAlbumTags(ctx context.Context, id, album int64) (int, error) {
+	q, args := runChildren(`SELECT coalesce(sum(tags), 0)`, id, album)
+	var n int
+	err := s.db.R.GetContext(ctx, &n, q, args...)
+	return n, err
 }
 
 func isNoRows(err error) bool { return errors.Is(err, sql.ErrNoRows) }

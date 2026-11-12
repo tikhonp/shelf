@@ -101,6 +101,28 @@ func TestAlbumHistoryRun(t *testing.T) {
 		t.Fatalf("unknown: %d files", len(c.Files))
 	}
 
+	// An album's History counts only the tags it lists, and the whole
+	// library's counts them all.
+	all := r.change(run.ID).Tags
+	sum := 0
+	for _, id := range []int64{a, b} {
+		c := r.getChangeAlbum(run.ID, id)
+		keys := 0
+		for _, f := range c.Files {
+			keys += len(f.Keys)
+		}
+		if keys == 0 || c.Tags != keys {
+			t.Errorf("album %d: detail Tags %d, lines %d", id, c.Tags, keys)
+		}
+		if h := r.albumHistory(id, ""); h.Changes[0].Tags != keys {
+			t.Errorf("album %d: row Tags %d, lines %d", id, h.Changes[0].Tags, keys)
+		}
+		sum += keys
+	}
+	if all != sum {
+		t.Errorf("whole run Tags %d, albums %d", all, sum)
+	}
+
 	// With stale album IDs on the run's album writes, their files still find it.
 	if _, err := r.m.store.db.W.Exec(`UPDATE library_changes SET album_id = 424242 WHERE id = ? OR parent = ?`, run.ID, run.ID); err != nil {
 		t.Fatal(err)
