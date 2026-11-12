@@ -65,6 +65,7 @@ The decisions in force and why. When one changes, edit its row and the docs it t
 | shelf-wrapper starts from upstream's `ghcr.io/worldobservationlog/wrapper-lite` image, pinned by digest. | Upstream now publishes its `lite` branch to GHCR, so the temporary fork is no longer needed. The digest keeps builds reproducible. |
 | `login complete, exiting` decides whether a sign-in worked. | The launcher exits 0 however wrapper-lite ends. |
 | The wrapper has a `starting` state. | A new or restarted wrapper has no answer yet. |
+| A `credentialHandler:` line in service mode puts the wrapper in `error` until a sign-in or a restart. | On 2026-11-12 Apple stopped accepting the session while `/status` still listed the region. Status said signed in, and every download failed on `/key`. A failed `/key` alone doesn't prove it, because one song can fail for reasons of its own. |
 | The supervisor drops `request: GET /status` lines from its log and redacts the password and token heads. | The log reaches the Status page. |
 | The renderer parses the base amdl config as YAML nodes and writes the rendered file before a run. | Comments and key order stay, and Init must not write. |
 | A run that ends with `Error detected, exiting...` runs once more. Another failure fails the download. | amdl skips finished files, so the second run is cheap, and a song often passes on it. |

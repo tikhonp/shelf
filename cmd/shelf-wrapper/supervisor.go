@@ -117,6 +117,9 @@ type Supervisor struct {
 	// loginErr marks an error from a sign-in. It stays until a region
 	// shows up, unlike an error from a crash, which the next answer clears.
 	loginErr bool
+	// expired marks a session Apple stopped accepting while /status still
+	// lists its region. It stays until a sign-in or a restart.
+	expired bool
 	// pid is the running launcher's, for tests.
 	pid int
 
@@ -176,7 +179,7 @@ func (s *Supervisor) Login(req wrapperapi.LoginRequest) error {
 		return errQueued
 	}
 	s.setLocked(wrapperapi.SigningIn, "", "")
-	s.loginErr = false
+	s.loginErr, s.expired = false, false
 	return nil
 }
 
@@ -191,7 +194,7 @@ func (s *Supervisor) Restart() error {
 		return errQueued
 	}
 	s.setLocked(wrapperapi.Starting, "", "")
-	s.loginErr = false
+	s.loginErr, s.expired = false, false
 	return nil
 }
 
@@ -345,10 +348,15 @@ func (s *Supervisor) serviceArgs() []string {
 func (s *Supervisor) startService() (*proc, error) {
 	s.mu.Lock()
 	s.gen++
+	gen := s.gen
 	s.phase = phaseService
 	s.mu.Unlock()
 	s.note("starting wrapper-lite in service mode")
-	p, err := s.start("service", s.serviceArgs(), nil)
+	p, err := s.start("service", s.serviceArgs(), func(l string) {
+		if strings.HasPrefix(message(l), lineCredential) {
+			s.sessionRejected(gen)
+		}
+	})
 	select {
 	case s.wake <- struct{}{}:
 	default:
@@ -436,6 +444,10 @@ func (s *Supervisor) Run(ctx context.Context) error {
 // and the line it logs for each GET /status.
 const (
 	lineStatusRequest = "request: GET /status"
+	// wrapper-lite logs lineCredential when Apple asks for the password.
+	// Service mode has none to give, so there the line means the session is
+	// gone.
+	lineCredential    = "credentialHandler:"
 	lineAskCode       = "Enter your 2FA code"
 	lineGotCode       = "Code file detected"
 	lineComplete      = "login complete, exiting"
@@ -528,6 +540,25 @@ func (s *Supervisor) signIn(ctx context.Context, req wrapperapi.LoginRequest) {
 	s.loginFailed(failure)
 }
 
+// textExpired is the error of a session Apple stopped accepting.
+const textExpired = "Apple no longer accepts the wrapper's sign-in. Sign in again."
+
+// sessionRejected marks the session expired when run gen of service mode
+// asks for credentials. wrapper-lite then fails every /m3u8 and /key, yet its
+// /status still lists the region, so the poll alone would say running.
+func (s *Supervisor) sessionRejected(gen int) {
+	s.mu.Lock()
+	first := gen == s.gen && s.phase == phaseService && !s.st.Busy() && !s.expired
+	if first {
+		s.expired = true
+		s.setLocked(wrapperapi.Error, "", textExpired)
+	}
+	s.mu.Unlock()
+	if first {
+		s.note("Apple asked for the Apple ID password again; the session has expired")
+	}
+}
+
 func (s *Supervisor) loginFailed(msg string) {
 	s.note("sign-in failed: %s", msg)
 	s.mu.Lock()
@@ -581,6 +612,8 @@ func (s *Supervisor) observe(gen int, regions []string, err error) {
 		return
 	}
 	switch {
+	case s.expired:
+		s.setLocked(wrapperapi.Error, "", textExpired)
 	case len(regions) > 0:
 		s.setLocked(wrapperapi.Running, strings.ToLower(regions[0]), "")
 		s.loginErr = false

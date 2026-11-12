@@ -12,9 +12,12 @@
 #   FAKE_WAIT     tenths of a second to wait for the code, 600 by default
 #   FAKE_ECHO     when set, the arguments are printed, as wrapper-lite does
 #                 for an unknown flag
+#   FAKE_SESSION  "expired" makes service mode answer a request as wrapper-lite
+#                 does when Apple no longer accepts its session
 #
 # Service mode creates $FAKE_DATA/listening, and the tests' /status answers
-# only while it exists.
+# only while it exists. A test creates $FAKE_DATA/request to stand for a GET
+# /m3u8 from amdl.
 
 # Levels are padded to five letters, as lite/logger.h pads them.
 say() { printf '%s.000 [%-5s] %s\n' "$(date -u '+%Y-%m-%d %H:%M:%S')" "$1" "$2"; }
@@ -91,5 +94,13 @@ touch "$FAKE_DATA/listening"
 say INFO "wrapper-lite listening on 0.0.0.0:12340"
 say INFO "request: GET /status"
 while :; do
+  if [ -f "$FAKE_DATA/request" ]; then
+    rm -f "$FAKE_DATA/request"
+    say INFO "request: GET /m3u8?adamId=1818142979"
+    if [ "$FAKE_SESSION" = expired ]; then
+      say INFO "credentialHandler: {title: , message: , 2FA: false}"
+      say INFO "dialogHandler: {title: Check the account information you entered and try again., message: }"
+    fi
+  fi
   sleep 0.1
 done

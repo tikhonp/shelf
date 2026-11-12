@@ -516,6 +516,91 @@ func TestRestartStopsSignIn(t *testing.T) {
 	}
 }
 
+// request stands for amdl's GET /m3u8 and waits until service mode has
+// answered it.
+func (r *rig) request() {
+	r.t.Helper()
+	path := filepath.Join(r.data, "request")
+	if err := os.WriteFile(path, nil, 0o600); err != nil {
+		r.t.Fatal(err)
+	}
+	deadline := testwait.Deadline(10 * time.Second)
+	for {
+		if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+			return
+		}
+		if time.Now().After(deadline) {
+			r.t.Fatalf("service mode never took the request; log:\n%s", r.logText())
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+func TestSessionExpired(t *testing.T) {
+	r := newRig(t, "FAKE_SESSION=expired")
+	r.signedIn()
+	r.run()
+	r.waitState(wrapperapi.Running)
+	r.request()
+	st := r.waitState(wrapperapi.Error)
+	if st.Error != textExpired || st.Storefront != "" {
+		t.Fatalf("%+v", st)
+	}
+	if !strings.Contains(r.logText(), "the session has expired") {
+		t.Fatal(r.logText())
+	}
+	// /status still lists the region, and the error stays on show.
+	time.Sleep(200 * time.Millisecond)
+	if st := r.s.Status(); st.State != wrapperapi.Error || st.Error != textExpired {
+		t.Fatalf("%+v", st)
+	}
+	// A crash of service mode keeps it too.
+	r.s.mu.Lock()
+	r.s.setLocked(wrapperapi.Error, "", "wrapper-lite exited with code 1")
+	r.s.mu.Unlock()
+	r.waitFor("the expired error again", func(st wrapperapi.Status) bool { return st.Error == textExpired })
+
+	// A sign-in clears it.
+	r.login("me@example.com", "hunter22")
+	r.waitState(wrapperapi.AwaitingCode)
+	r.call(http.MethodPost, wrapperapi.PathCode, wrapperapi.CodeRequest{Code: "123456"})
+	r.waitState(wrapperapi.Running)
+	time.Sleep(200 * time.Millisecond)
+	if st := r.s.Status(); st.State != wrapperapi.Running {
+		t.Fatalf("%+v", st)
+	}
+}
+
+func TestSessionExpiredRestart(t *testing.T) {
+	r := newRig(t, "FAKE_SESSION=expired")
+	r.signedIn()
+	r.run()
+	r.waitState(wrapperapi.Running)
+	r.request()
+	r.waitState(wrapperapi.Error)
+	if code, body := r.call(http.MethodPost, wrapperapi.PathRestart, nil); code != http.StatusAccepted {
+		t.Fatalf("%d %s", code, body)
+	}
+	r.waitState(wrapperapi.Running)
+	// The next request that Apple refuses marks it again.
+	r.request()
+	if st := r.waitState(wrapperapi.Error); st.Error != textExpired {
+		t.Fatalf("%+v", st)
+	}
+}
+
+func TestSessionAccepted(t *testing.T) {
+	r := newRig(t)
+	r.signedIn()
+	r.run()
+	r.waitState(wrapperapi.Running)
+	r.request()
+	time.Sleep(200 * time.Millisecond)
+	if st := r.s.Status(); st.State != wrapperapi.Running {
+		t.Fatalf("%+v", st)
+	}
+}
+
 func TestControlNeedsToken(t *testing.T) {
 	r := newRig(t)
 	for _, auth := range []string{"", "Bearer wrong", "secret-token", "Bearer secret-token2"} {

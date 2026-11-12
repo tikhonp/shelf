@@ -119,6 +119,7 @@ The image starts from the `ghcr.io/worldobservationlog/wrapper-lite` image, pinn
 - Each run of wrapper-lite has its own process group. To stop it, the supervisor sends SIGINT to the launcher, the only signal it handles, and SIGKILL to the group after 10 seconds. Docker's SIGTERM starts that sequence, so compose needs no `stop_signal`.
 - When service mode exits by itself, the state becomes `error` with the exit code and the last line, and the supervisor starts it again after a wait that doubles from 1 second to 1 minute. A run that lasted a minute starts the next wait from 1 second.
 - It reads `GET /status` every second until a new run answers, then every 15 seconds. A poll that fails changes nothing, since a busy wrapper-lite can be slow to answer.
+- In service mode, wrapper-lite logs a `credentialHandler:` line when Apple no longer accepts its session and asks for the Apple ID password again. Service mode has no password to give. Every `/m3u8` then fails with 404, and every `/key` with 500 and `Invalid CKC error.`, yet `/status` still lists the region. On that line the supervisor sets `error` with "Apple no longer accepts the wrapper's sign-in. Sign in again." It can notice only during a download, because wrapper-lite asks for the password only when amdl requests a stream.
 - It keeps the last 1,000 lines of wrapper-lite's output and its own notes, and writes each to stdout as a JSON log line. The supervisor drops wrapper-lite's `request: GET /status` lines, which would fill the log. While a sign-in runs, the supervisor replaces its password with `[redacted]` in every line, and the supervisor's own note of the command shows `user:[redacted]`. wrapper-lite prints the first characters of its tokens when it loads its token cache, `token cache loaded (dev=<16 characters>... music=<16 characters>...)`, and again in its debug lines; the supervisor replaces each `dev=` and `music=` value with `[redacted]`.
 
 ### Control API
@@ -142,9 +143,9 @@ States:
 | `signed_out` | Service mode answers, but `/status` lists no region. |
 | `signing_in` | A sign-in run is going and hasn't asked for a code, or has its code. |
 | `awaiting_code` | wrapper-lite asked for the 2FA code. `code_deadline` is 60 seconds after the request. |
-| `error` | The last sign-in failed, or service mode exited by itself. `error` says why. |
+| `error` | The last sign-in failed, service mode exited by itself, or Apple no longer accepts the session. `error` says why. |
 
-`since` moves only when the state changes. An error from a crash clears when the next run answers. An error from a sign-in stays while `/status` lists no region, so the reason stays on show; a region, a new sign-in or a restart clears it.
+`since` moves only when the state changes. An error from a crash clears when the next run answers. An error from a sign-in stays while `/status` lists no region, so the reason stays on show; a region, a new sign-in or a restart clears it. An expired session's error stays even though `/status` lists the region, and through crashes of service mode; only a new sign-in or a restart clears it.
 
 ### Sign-in
 
