@@ -38,6 +38,38 @@ export function changeTags(c: LibraryChange): string {
   return String(c.tags)
 }
 
+// changeTagWords is the same for the phone, which has no Tags header: 33 tags, Cover, or 4 · Cover.
+export function changeTagWords(c: LibraryChange): string {
+  if (c.kind === 'delete') return ''
+  return c.cover ? changeTags(c) : count(c.tags, 'tag')
+}
+
+// keyWord is the key on a change that can go back: Undo, Redo, Undo run or Redo run.
+export const keyWord = (c: LibraryChange) => `${c.undone ? 'Redo' : 'Undo'}${c.run ? ' run' : ''}`
+
+// runNote says that a run's key works on every album in it.
+export function runNote(c: LibraryChange): string {
+  if (!c.run) return ''
+  const where = c.run.albums === 1 ? 'its album' : `all ${c.run.albums} albums`
+  return `${c.undone ? 'Redoes' : 'Undoes'} the run on ${where}.`
+}
+
+// undoSlot says whether an open change fills the phone's slot above the tab
+// bar. A Save or a run that wrote puts its key there, and one still writing
+// shows Saving.
+export const undoSlot = (c: LibraryChange) => c.kind !== 'delete' && c.state !== 'failed'
+
+// slotWords is the display in that slot. The tracks come from the opened
+// change's files, so they show once its lines have loaded.
+export function slotWords(c: LibraryChange, files: ChangeFile[] = []): string {
+  const tracks = files.filter((f) => f.kind === 'audio').length
+  if (c.state === 'queued' || c.state === 'writing') return (tracks > 0 ? `Saving ${count(tracks, 'file')}` : 'Saving').toUpperCase()
+  if (c.run) return `Run on ${count(c.run.albums, 'album')}`.toUpperCase()
+  if (c.tags === 0) return c.cover ? 'COVER' : count(0, 'tag').toUpperCase()
+  if (c.cover) return `${count(c.tags, 'tag')} and cover`.toUpperCase()
+  return (tracks > 0 ? `${count(c.tags, 'tag')} on ${count(tracks, 'track')}` : count(c.tags, 'tag')).toUpperCase()
+}
+
 export interface HistoryLine {
   track: string
   key: string

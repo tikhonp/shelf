@@ -21,6 +21,8 @@ export const useHistory = defineStore('history', () => {
   const running = ref<Record<number, number>>({})
   const conflicts = ref<Record<number, ChangeConflict[]>>({})
   const album = ref<number | null>(null)
+  // busy is a Save whose undo or redo is still to run.
+  const busy = (c: LibraryChange) => Object.values(running.value).includes(c.id)
 
   const albumParam = () => (album.value === null ? '' : `album=${album.value}`)
   const url = (path: string, ...params: string[]) => {
@@ -116,5 +118,5 @@ export const useHistory = defineStore('history', () => {
     details.value = {}
   }
 
-  return { changes, next, loading, error, details, running, conflicts, album, load, more, open, reverse, applyChange, clear }
+  return { changes, next, loading, error, details, running, conflicts, album, busy, load, more, open, reverse, applyChange, clear }
 })

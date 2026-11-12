@@ -1,3 +1,7 @@
+import type { LibraryChange } from '../api/types'
+import { longDate } from './format'
+import { runNote } from './history'
+
 // A note says what a name means to Navidrome. Names with nothing worth saying have none.
 const fields: Record<string, string> = {
   title: 'The name of this track. It belongs to one track, so select a track to change it.',
@@ -66,5 +70,16 @@ export function reviewNote(confidence: number | null | undefined, cabled: boolea
     cabled ? 'The red cable joins fields that switch on and off together.' : '',
     'Press a field to edit its value.',
     confidence != null ? `${confidence}% is the agent's own confidence.` : '',
+  ].filter(Boolean).join(' ')
+}
+
+// historyNote is the phone's note for an album's History, which has no hover
+// notes. It says what the keys do and gives the open change's full date.
+export function historyNote(open?: LibraryChange): string {
+  return [
+    'Each row is a change to this album, newest first. Open one to see its tags before and after, and its key above the tab bar.',
+    'Undo puts the tags back and Redo writes them again. A field changed since then stays as it is.',
+    open?.run ? runNote(open) : '',
+    open ? `This change started ${longDate(open.created_at)}.` : '',
   ].filter(Boolean).join(' ')
 }

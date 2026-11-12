@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import { get } from '../api/client'
-import type { Download, DownloadList, LibraryChange } from '../api/types'
+import { useAlbumHistory } from '../lib/albumHistory'
 import { useNow } from '../lib/clock'
 import { ago, count, longDate, resultWord } from '../lib/format'
-import { changeTags, changeTitle, reversible, stateClass, stateWord } from '../lib/history'
+import { changeTags, changeTitle, keyWord, reversible, runNote, stateClass, stateWord } from '../lib/history'
 import { useEditor } from '../stores/editor'
 import { useHistory } from '../stores/history'
 import { useSources } from '../stores/sources'
@@ -21,47 +19,7 @@ const history = useHistory()
 const editor = useEditor()
 const sources = useSources()
 const now = useNow()
-const openId = ref<number | null>(null)
-const downloads = ref<Download[]>([])
-
-onMounted(() => void history.load(props.albumId))
-watch(
-  () => props.albumId,
-  (id) => {
-    openId.value = null
-    void history.load(id)
-  },
-)
-
-// The downloads that wrote into the album's folder come last. Without any,
-// or when the call fails, History leaves that part out.
-watch(
-  () => editor.album?.folder,
-  async (folder) => {
-    downloads.value = []
-    if (!folder) return
-    try {
-      const page = await get<DownloadList>(`/api/downloads?folder=${encodeURIComponent(folder)}`)
-      if (editor.album?.folder === folder) downloads.value = page.downloads
-    } catch {
-      downloads.value = []
-    }
-  },
-  { immediate: true },
-)
-
-function toggle(c: LibraryChange) {
-  openId.value = openId.value === c.id ? null : c.id
-  if (openId.value !== null && !history.details[c.id]) void history.open(c.id)
-}
-const busy = (c: LibraryChange) => Object.values(history.running).includes(c.id)
-const keyWord = (c: LibraryChange) => `${c.undone ? 'Redo' : 'Undo'}${c.run ? ' run' : ''}`
-const runNote = (c: LibraryChange) => {
-  if (!c.run) return ''
-  const where = c.run.albums === 1 ? 'its album' : `all ${c.run.albums} albums`
-  return `${c.undone ? 'Redoes' : 'Undoes'} the run on ${where}.`
-}
-const downloadedAt = (d: Download) => d.finished_at ?? d.created_at
+const { openId, downloads, toggle, downloadedAt } = useAlbumHistory(() => props.albumId)
 </script>
 
 <template>
@@ -93,7 +51,7 @@ const downloadedAt = (d: Download) => d.finished_at ?? d.created_at
             </button>
             <span role="cell" class="num sm r">{{ changeTags(c) }}</span>
             <span role="cell"><span class="pill" :class="stateClass(c)">{{ stateWord(c) }}</span></span>
-            <button v-if="reversible(c)" type="button" class="key sm r" :disabled="busy(c)" @click="history.reverse(c)"><LibTip :note="runNote(c)">{{ keyWord(c) }}</LibTip></button>
+            <button v-if="reversible(c)" type="button" class="key sm r" :disabled="history.busy(c)" @click="history.reverse(c)"><LibTip :note="runNote(c)">{{ keyWord(c) }}</LibTip></button>
             <span v-else role="cell"></span>
           </div>
           <LibChangeNotes :c="c" />

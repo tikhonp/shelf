@@ -43,6 +43,7 @@ const flagOn = (f: MainField) => view(f).values[0] === '1'
       <button type="button" class="wbtn" aria-label="Back to the list" @click="router.push({ name: 'library' })"><Icon name="back" /></button>
       <h1 id="la-t">Album</h1>
       <span class="stripes"></span>
+      <button v-if="editor.album" type="button" class="wbtn txt" @click="router.push({ query: { view: 'history' } })">History</button>
       <button v-if="editor.album" type="button" class="wbtn txt" :disabled="!!editor.saving || !!editor.deleting" @click="editor.remove()">Delete</button>
       <button type="button" class="wbtn q" aria-label="Note on this page" :aria-pressed="!!help.note" @click="help.note = help.note ? null : { title: 'Album', text: scopeNote }">?</button>
     </div>

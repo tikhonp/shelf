@@ -13,12 +13,15 @@ import LibHistory from '../components/LibHistory.vue'
 import LibList from '../components/LibList.vue'
 import LibPhoneAlbum from '../components/LibPhoneAlbum.vue'
 import LibPhoneField from '../components/LibPhoneField.vue'
+import LibPhoneHistory from '../components/LibPhoneHistory.vue'
 import LibPhoneIssues from '../components/LibPhoneIssues.vue'
 import LibPlayer from '../components/LibPlayer.vue'
 import LibRun from '../components/LibRun.vue'
 import LibSaveBar from '../components/LibSaveBar.vue'
 import LibSplit from '../components/LibSplit.vue'
 import LibTracks from '../components/LibTracks.vue'
+import LibUndoBar from '../components/LibUndoBar.vue'
+import { undoSlot } from '../lib/history'
 import { libraryAction } from '../lib/libraryKeys'
 import { fieldView, isGuide, mainFields, offersFor } from '../lib/tags'
 import { usePhone } from '../lib/viewport'
@@ -26,6 +29,7 @@ import { vVars } from '../lib/vars'
 import { useBulk } from '../stores/bulk'
 import { useEditor } from '../stores/editor'
 import { useHelp } from '../stores/help'
+import { useHistory } from '../stores/history'
 import { useInbox } from '../stores/inbox'
 import { usePlayer } from '../stores/player'
 
@@ -37,6 +41,7 @@ const editor = useEditor()
 const player = usePlayer()
 const help = useHelp()
 const bulk = useBulk()
+const history = useHistory()
 const list = ref<InstanceType<typeof LibList>>()
 const editorPanel = ref<InstanceType<typeof LibEditor>>()
 const playerPanel = ref<InstanceType<typeof LibPlayer>>()
@@ -47,6 +52,13 @@ const issues = computed(() => route.query.view === 'issues')
 const guide = computed(() => route.query.view === 'guide')
 // ?view=history puts the album's History in place of the Editor and the Tracks window.
 const albumHistory = computed(() => !!id.value && route.query.view === 'history')
+// On the phone the change open in the album's History puts its key in the slot above the tab bar.
+const historyOpenId = ref<number | null>(null)
+watch(albumHistory, (on) => { if (!on) historyOpenId.value = null })
+const undoChange = computed(() => {
+  const c = albumHistory.value ? history.changes.find((x) => x.id === historyOpenId.value) : undefined
+  return c && undoSlot(c) ? c : undefined
+})
 const coverOpen = ref(false)
 // An outcome in the Inbox links here with ?history=1 to open History.
 const historyOpen = ref(route.query.history === '1')
@@ -229,6 +241,7 @@ watch(
       </div>
       <div class="vscroll"><LibGuide /></div>
     </section>
+    <LibPhoneHistory v-else-if="id && albumHistory" v-model:open="historyOpenId" :album-id="id" />
     <LibPhoneField v-else-if="field" :field="field" />
     <LibPhoneIssues v-else-if="issues" @cover="coverOpen = true" />
     <LibPhoneAlbum v-else @cover="coverOpen = true" />
@@ -237,11 +250,12 @@ watch(
       <div class="lib-note">
         <span class="tip-head"><span class="grow bold">{{ help.note.title }}</span><button type="button" class="wbtn" aria-label="Close the note" @click="help.note = null"><Icon name="close" /></button></span>
         <p class="t2">{{ help.note.text }}</p>
-        <button type="button" class="link start" @click="router.push({ query: { view: 'guide' } }); help.note = null">Tagging guide</button>
+        <button v-if="!albumHistory" type="button" class="link start" @click="router.push({ query: { view: 'guide' } }); help.note = null">Tagging guide</button>
       </div>
     </div>
     <LibAsk v-if="editor.asks" />
-    <div v-else-if="id && saveSlot" class="win slot tall"><LibSaveBar /></div>
+    <div v-else-if="undoChange" class="win slot tall"><LibUndoBar :c="undoChange" /></div>
+    <div v-else-if="id && saveSlot && !albumHistory" class="win slot tall"><LibSaveBar /></div>
   </div>
   <main v-else v-vars="widths" class="lib-main">
     <LibList ref="list" class="list" :class="{ wide: !id && !historyOpen && !bulk.panel }" :current="id">

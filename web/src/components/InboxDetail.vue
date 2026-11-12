@@ -173,6 +173,7 @@ async function send() {
             <template v-if="a.outcome.files">{{ a.outcome.written ?? 0 }} of {{ count(a.outcome.files, 'file') }} written. </template>
             <template v-if="a.outcome.error">{{ a.outcome.error }} </template>
             <span v-if="a.outcome.expired">Change {{ a.change_id }} left the history.</span>
+            <RouterLink v-else-if="phone && albumId" :to="{ path: `/library/${albumId}`, query: { view: 'history' } }">Change {{ a.change_id }} in History</RouterLink>
             <span v-else-if="phone">Change {{ a.change_id }} is in History on a desktop.</span>
             <RouterLink v-else :to="{ path: '/library', query: { history: '1' } }">Change {{ a.change_id }} in History</RouterLink>
           </p>

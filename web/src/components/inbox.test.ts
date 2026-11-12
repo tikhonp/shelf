@@ -340,12 +340,22 @@ test('after Accept the bar shows the outcome, the files and the change in Histor
   expect(out.text()).toContain('Change 31 in History')
 })
 
-test('on the phone, which has no History, the change is named without a link', async () => {
+test('on the phone the change links to its album\'s History', async () => {
   const d = detail()
   d.acceptances = [{ id: 9, revision: 1, ops: ['originaldate', 'releasedate'], change_id: 31, author: 'alice', created_at: '2026-11-09T10:00:00Z', outcome: { state: 'done', files: 6, written: 6 } } as never]
   const w = await openDetail({ '/api/inbox/proposals/4': d }, true)
+  const link = w.findAll('a').find((a) => a.text() === 'Change 31 in History')!
+  expect(link.attributes('href')).toBe('/library/7?view=history')
+  expect(w.text()).not.toContain('on a desktop')
+})
+
+test('on the phone a change whose album left the index is named without a link', async () => {
+  const d = detail()
+  d.album = { ...d.album, current_id: 0 }
+  d.acceptances = [{ id: 9, revision: 1, ops: ['originaldate', 'releasedate'], change_id: 31, author: 'alice', created_at: '2026-11-09T10:00:00Z', outcome: { state: 'done', files: 6, written: 6 } } as never]
+  const w = await openDetail({ '/api/inbox/proposals/4': d }, true)
   expect(w.text()).toContain('Change 31 is in History on a desktop.')
-  expect(w.findAll('a').some((a) => (a.attributes('href') ?? '').includes('history=1'))).toBe(false)
+  expect(w.findAll('a').some((a) => (a.attributes('href') ?? '').includes('history'))).toBe(false)
 })
 
 

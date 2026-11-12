@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import type { ChangeFile, LibraryChange } from '../api/types'
-import { changeTags, changeTitle, deletedLines, historyLines, reversible, stateClass, stateWord } from './history'
+import { changeTags, changeTagWords, changeTitle, deletedLines, historyLines, keyWord, reversible, runNote, slotWords, stateClass, stateWord, undoSlot } from './history'
 
 const file = (path: string, keys: ChangeFile['keys'], over: Partial<ChangeFile> = {}): ChangeFile => ({ track_id: 1, path, kind: 'audio', written: true, revision: 'r', keys, cover_before: '', cover_after: '', ...over })
 const k = (key: string, before: string[], after: string[]) => ({ key, before, after })
@@ -58,4 +58,27 @@ test('an album\'s History names the kind of change and counts tags and the cover
   expect(changeTitle(ch({ run: { fixes: ['replaygain'], albums: 2, files: 4, skipped: 0, failed: 0 } }))).toBe('Run: ReplayGain')
   expect(changeTitle(ch({ kind: 'delete' }))).toBe('Delete')
   expect([ch(), ch({ tags: 0, cover: true }), ch({ tags: 4, cover: true }), ch({ kind: 'delete' })].map(changeTags)).toEqual(['3', 'Cover', '4 · Cover', ''])
+})
+
+const run = (albums: number) => ({ fixes: ['replaygain'], albums, files: 4, skipped: 0, failed: 0 })
+
+test('the phone\'s History names the tags in words, as it has no Tags header', () => {
+  expect([ch(), ch({ tags: 1 }), ch({ tags: 0, cover: true }), ch({ tags: 4, cover: true }), ch({ kind: 'delete' })].map(changeTagWords)).toEqual(['3 tags', '1 tag', 'Cover', '4 · Cover', ''])
+})
+
+test('a change\'s key and its note say Undo or Redo, and run for a run', () => {
+  expect([ch(), ch({ undone: true }), ch({ run: run(20) }), ch({ run: run(20), undone: true })].map(keyWord)).toEqual(['Undo', 'Redo', 'Undo run', 'Redo run'])
+  expect([ch(), ch({ run: run(20) }), ch({ run: run(1), undone: true })].map(runNote)).toEqual(['', 'Undoes the run on all 20 albums.', 'Redoes the run on its album.'])
+})
+
+test('the phone\'s slot holds a Save or a run, never a delete or a failed Save, and counts what it wrote', () => {
+  expect([ch(), ch({ state: 'partial' }), ch({ state: 'writing' }), ch({ undone: true }), ch({ kind: 'delete' }), ch({ state: 'failed' })].map(undoSlot)).toEqual([true, true, true, true, false, false])
+  const files = [1, 2].map((n) => ({ track_id: n, path: `a/${n}.flac`, kind: 'audio', written: true, revision: 'r', keys: [], cover_before: '', cover_after: '' })) as ChangeFile[]
+  expect(slotWords(ch())).toBe('3 TAGS')
+  expect(slotWords(ch(), files)).toBe('3 TAGS ON 2 TRACKS')
+  expect(slotWords(ch({ tags: 12, cover: true }), files)).toBe('12 TAGS AND COVER')
+  expect(slotWords(ch({ tags: 0, cover: true }))).toBe('COVER')
+  expect(slotWords(ch({ run: run(20), tags: 44 }), files)).toBe('RUN ON 20 ALBUMS')
+  expect(slotWords(ch({ state: 'queued' }))).toBe('SAVING')
+  expect(slotWords(ch({ state: 'writing' }), files)).toBe('SAVING 2 FILES')
 })

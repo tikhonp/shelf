@@ -606,3 +606,172 @@ test('the global History keeps listing the whole library after an album\'s', asy
   expect(w.find('.g-lh:not(.thead) .ttl').text()).toBe('Blue')
   w.unmount()
 })
+
+const phoneAt = (path: string, over: Record<string, unknown> = {}) => {
+  vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
+  return at(path, over)
+}
+const saveFiles = [1, 2].map((n) => ({ track_id: n, path: `rock/x/${n}.flac`, kind: 'audio', written: true, revision: 'r', cover_before: '', cover_after: '', keys: [{ key: 'GENRE', before: ['Rock'], after: ['Folk'] }] }))
+const phoneRun = change(18, { run: { fixes: ['replaygain'], albums: 20, files: 240, skipped: 0, failed: 0 }, tags: 44 })
+const phoneChanges = [change(9), change(8, { undone: true }), phoneRun, change(6, { kind: 'delete', tags: 0, deleted: { files: 2, bytes: 10, albums: [], forgot: 0, navidrome: 'off', navidrome_tracks: 0 } })]
+const phoneRoutes = (over: Record<string, unknown> = {}) => ({
+  '/api/library/history': { changes: phoneChanges, next: null },
+  '/api/library/changes/9/undo': { ...change(30), kind: 'undo', target: 9, state: 'queued' },
+  '/api/library/changes/8/redo': { ...change(31), kind: 'redo', target: 8, state: 'queued' },
+  '/api/library/changes/18/undo': { ...phoneRun, id: 32, kind: 'undo', target: 18, state: 'queued' },
+  '/api/library/changes/9': { ...change(9), files: saveFiles },
+  '/api/library/changes/8': { ...change(8, { undone: true }), files: saveFiles },
+  '/api/library/changes/18': { ...phoneRun, files: [saveFiles[0]] },
+  '/api/library/changes/6': phoneChanges[3],
+  '/api/downloads': folderDownloads([albumDownload]),
+  ...over,
+})
+const phoneRow = (w: Awaited<ReturnType<typeof at>>['w'], title: string, i = 0) => w.findAll('[aria-labelledby=lh-t] button.ah-prow').filter((r) => r.find('.ttl').text() === title)[i]!
+const undoSlot = (w: Awaited<ReturnType<typeof at>>['w']) => w.findAll('.stack > .win.slot').find((s) => s.find('.lib-save').exists())
+
+test('on the phone the History cap sits before Delete and opens the album\'s History, and the back button returns', async () => {
+  const { w, router, calls } = await phoneAt('/library/7', phoneRoutes())
+  const caps = w.find('[aria-labelledby=la-t] .tb').findAll('button').map((b) => b.text() || b.attributes('aria-label'))
+  expect(caps).toEqual(['Back to the list', 'History', 'Delete', '?'])
+  await w.find('[aria-labelledby=la-t] .tb').findAll('button').find((b) => b.text() === 'History')!.trigger('click')
+  await flushPromises()
+  expect(router.currentRoute.value.fullPath).toBe('/library/7?view=history')
+  expect(w.find('[aria-labelledby=la-t]').exists()).toBe(false)
+  const page = w.find('[aria-labelledby=lh-t]')
+  expect(page.find('h1').text()).toBe('History')
+  expect(page.find('.lib-h').text()).toContain('Blue')
+  expect(page.find('.lib-h').text()).toContain('Joni')
+  expect(calls.some((c) => c.url === '/api/library/history?album=7')).toBe(true)
+  await page.find('button[aria-label="Back to the album"]').trigger('click')
+  await flushPromises()
+  expect(router.currentRoute.value.fullPath).toBe('/library/7')
+  expect(w.find('[aria-labelledby=la-t]').exists()).toBe(true)
+  w.unmount()
+})
+
+test('on the phone History rows name the change, its author and time, its pill and its tags, and carry no keys', async () => {
+  const changes = [change(9), change(19, { tags: 0, cover: true, author: 'CLI' }), change(17, { tags: 4, cover: true, state: 'partial', author: undefined }), phoneRun, phoneChanges[3]!]
+  const { w } = await phoneAt('/library/7?view=history', phoneRoutes({ '/api/library/history': { changes, next: null } }))
+  const rows = w.findAll('[aria-labelledby=lh-t] button.ah-prow')
+  expect(rows.map((r) => r.find('.ttl').text())).toEqual(['Save', 'Save: cover', 'Save', 'Run: ReplayGain', 'Delete'])
+  expect(rows.map((r) => r.find('.by').text())).toEqual(['By Tikhon', 'By CLI', 'By Unknown', 'By Tikhon', 'By Tikhon'])
+  expect(rows[0]!.find('.sub').text()).toMatch(/^By Tikhon · \d+ days? ago$/)
+  expect(rows.map((r) => r.find('.pill').text())).toEqual(['Saved', 'Saved', 'Partial', 'Saved', 'Deleted'])
+  expect(rows.map((r) => r.find('.lib-q .sub').text())).toEqual(['2 tags', 'Cover', '4 · Cover', '44 tags', ''])
+  expect(w.find('[aria-labelledby=lh-t] .key:not(.block)').exists()).toBe(false)
+  expect(w.find('[aria-labelledby=lh-t] .g-ah').exists()).toBe(false)
+  expect(undoSlot(w)).toBeUndefined()
+  w.unmount()
+})
+
+test('on the phone an opened Save stacks Before over After, and its Undo sits in the slot above the tab bar', async () => {
+  const { w, calls } = await phoneAt('/library/7?view=history', phoneRoutes())
+  await phoneRow(w, 'Save').trigger('click')
+  await flushPromises()
+  expect(phoneRow(w, 'Save').attributes('aria-expanded')).toBe('true')
+  const lines = w.findAll('[aria-labelledby=lh-t] .ah-pline')
+  expect(lines.map((l) => l.findAll('span').map((s) => s.text()))).toEqual([['GENRE · All tracks', 'Before', 'Rock', 'After', 'Folk']])
+  expect(w.find('[aria-labelledby=lh-t] .g-ba').exists()).toBe(false)
+  const slot = undoSlot(w)!
+  expect(slot.find('[role=group]').attributes('aria-label')).toBe('Undo this Save')
+  expect(slot.find('.lcd').text()).toBe('2 TAGS ON 2 TRACKS')
+  expect(slot.findAll('button').map((b) => b.text())).toEqual(['Undo'])
+  await slot.find('button').trigger('click')
+  await flushPromises()
+  expect(calls.some((c) => c.url === '/api/library/changes/9/undo' && c.init?.method === 'POST')).toBe(true)
+  // Closing the change empties the slot.
+  await phoneRow(w, 'Save').trigger('click')
+  await flushPromises()
+  expect(undoSlot(w)).toBeUndefined()
+  w.unmount()
+})
+
+test('on the phone an undone Save offers Redo in the slot', async () => {
+  const { w, calls } = await phoneAt('/library/7?view=history', phoneRoutes())
+  await phoneRow(w, 'Save', 1).trigger('click')
+  await flushPromises()
+  const slot = undoSlot(w)!
+  expect(slot.find('[role=group]').attributes('aria-label')).toBe('Redo this Save')
+  await button(w, 'Redo').trigger('click')
+  await flushPromises()
+  expect(calls.some((c) => c.url === '/api/library/changes/8/redo' && c.init?.method === 'POST')).toBe(true)
+  w.unmount()
+})
+
+test('on the phone an opened run lists only this album\'s lines, with Undo run in the slot', async () => {
+  const { w, calls } = await phoneAt('/library/7?view=history', phoneRoutes())
+  await phoneRow(w, 'Run: ReplayGain').trigger('click')
+  await flushPromises()
+  expect(calls.some((c) => c.url === '/api/library/changes/18?album=7')).toBe(true)
+  const panel = w.find('[aria-labelledby=lh-t] .lib-ba')
+  expect(panel.find('.ah-note').text()).toBe('Run on 20 albums, undone together. The lines below are this album\'s.')
+  expect(panel.findAll('.ah-pline').map((l) => l.find('.mono').text())).toEqual(['GENRE · 1.flac'])
+  const slot = undoSlot(w)!
+  expect(slot.find('.lcd').text()).toBe('RUN ON 20 ALBUMS')
+  expect(slot.find('[role=group]').attributes('aria-label')).toBe('Undo the run')
+  await button(w, 'Undo run').trigger('click')
+  await flushPromises()
+  expect(calls.some((c) => c.url === '/api/library/changes/18/undo' && c.init?.method === 'POST')).toBe(true)
+  w.unmount()
+})
+
+test('on the phone an opened delete shows what it removed and leaves the slot empty', async () => {
+  const { w } = await phoneAt('/library/7?view=history', phoneRoutes())
+  await phoneRow(w, 'Delete').trigger('click')
+  await flushPromises()
+  expect(w.find('[aria-labelledby=lh-t] .g-del').text()).toContain('rock/x')
+  expect(undoSlot(w)).toBeUndefined()
+  expect(button(w, 'Undo')).toBeUndefined()
+  w.unmount()
+})
+
+test('on the phone a Save still writing shows Saving in the slot, with no key', async () => {
+  const { w } = await phoneAt('/library/7?view=history', phoneRoutes({ '/api/library/history': { changes: [change(9, { state: 'writing', finished_at: null })], next: null } }))
+  await phoneRow(w, 'Save').trigger('click')
+  await flushPromises()
+  const slot = undoSlot(w)!
+  expect(slot.find('[role=status]').text()).toBe('SAVING 2 FILES')
+  expect(slot.find('button').exists()).toBe(false)
+  w.unmount()
+})
+
+test('on the phone the download that brought the album comes last, and the row opens it', async () => {
+  const { w } = await phoneAt('/library/7?view=history', phoneRoutes())
+  const page = w.find('[aria-labelledby=lh-t] .vscroll')
+  const heads = page.findAll('.lib-h').map((h) => h.text())
+  expect(heads.at(-1)).toBe('Download')
+  const last = page.findAll('.ah-prow').at(-1)!
+  expect(last.element.tagName).toBe('A')
+  expect(last.attributes('href')).toBe('/downloads/418')
+  expect(last.find('.ttl').text()).toBe('Downloaded from Qobuz')
+  expect(last.find('.sub').text()).toMatch(/^By Telegram @tikhon · \d+ days? ago$/)
+  expect(last.find('.pill').text()).toBe('Done')
+  expect(last.find('.lib-q .sub').text()).toBe('Max')
+  w.unmount()
+})
+
+test('on the phone History with no saves shows NO SAVES and the download', async () => {
+  const { w } = await phoneAt('/library/7?view=history', phoneRoutes({ '/api/library/history': { changes: [], next: null } }))
+  const page = w.find('[aria-labelledby=lh-t]')
+  expect(page.text()).toContain('NO SAVES')
+  expect(page.find('a.ah-prow').attributes('href')).toBe('/downloads/418')
+  w.unmount()
+})
+
+test('on the phone the ? cap explains History and gives the open change\'s full date, with no Tagging guide link', async () => {
+  const created = new Date(2026, 10, 11, 12, 31)
+  const { w } = await phoneAt('/library/7?view=history', phoneRoutes({ '/api/library/history': { changes: [change(9, { created_at: created.toISOString() })], next: null } }))
+  await w.find('[aria-labelledby=lh-t] .wbtn.q').trigger('click')
+  await flushPromises()
+  const note = w.find('.stack > .win.slot[role=note]')
+  expect(note.text()).toContain('Undo puts the tags back')
+  expect(note.text()).not.toContain('This change started')
+  expect(button(w, 'Tagging guide')).toBeUndefined()
+  await phoneRow(w, 'Save').trigger('click')
+  await flushPromises()
+  expect(w.find('.stack > .win.slot[role=note]').text()).toContain('This change started Wednesday 11 November 2026, 12:31.')
+  await w.find('[aria-labelledby=lh-t] button[aria-label="Back to the album"]').trigger('click')
+  await flushPromises()
+  expect(w.find('.stack > .win.slot[role=note]').exists()).toBe(false)
+  w.unmount()
+})
