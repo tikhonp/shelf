@@ -8,7 +8,7 @@ The [authentication design](plans/simple-auth.md) records the agreed plan and re
 
 The [sign-in and agent review redesign](plans/signin-and-agent-review-design.md) describes new screens for account sign-in, Account and Agents on Status, and proposal review. It also lists the bugs the screens had before it. The redesign was built on 2026-11-10. [The second pass](plans/signin-and-agent-review-second-pass.md) from the same day is built too and lists the bugs its review found. Both run in production.
 
-[Album History](plans/album-history.md) shows one album's changes on the desktop and the phone. It was designed and built on 2026-11-12. It is on main and not deployed. The plan lists the screens, the decisions, the API and the steps.
+[Album History](plans/album-history.md) shows one album's changes on the desktop and the phone. It was designed and built on 2026-11-12 and runs in production. The plan lists the screens, the decisions, the API and the steps.
 
 | Doc | What it holds |
 | --- | --- |
