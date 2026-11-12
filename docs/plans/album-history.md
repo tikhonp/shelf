@@ -1,6 +1,6 @@
 # Album History
 
-Status: built on main on 2026-11-12 in f1d607a, 3f6bf76 and 2b4616e, not deployed. Production runs `v1.0.3`. [tags.md](../tags.md#the-editor) describes the result. The canvas is a private artifact, https://claude.ai/artifact/QQxnFV1qCfFVoKjvqnULqw. Its static exports are in [ui/design/screens](../ui/design/screens), and [ui/design/README.md](../ui/design/README.md) lists them.
+Status: built on main on 2026-11-12 in f1d607a, 3f6bf76 and 2b4616e, and running in production since `v1.0.4`. [tags.md](../tags.md#the-editor) describes the result. The canvas is a private artifact, https://claude.ai/artifact/QQxnFV1qCfFVoKjvqnULqw. Its static exports are in [ui/design/screens](../ui/design/screens), and [ui/design/README.md](../ui/design/README.md) lists them.
 
 Before this plan, History was one list for the whole library, and the phone had none. With an album open, the owner couldn't see who changed it, what changed, or when. Album History shows one album's changes, on the desktop and on the phone. The global History stays as it is.
 
