@@ -34,7 +34,7 @@ End-to-end checks that only the real deployment can answer: real accounts, the r
 
 ## Last run
 
-Every check passed in production, except the run row in Album History check 1.
+Every check passed in production.
 
 - Checks 1 to 12: 2026-11-04 on `be76a2d`, through the API, over SSH and on the owner's phone and tablet. The owner accepted check 9 after one bot download and check 12 without waiting for the backup.
 - Check 13: 2026-11-04 on `0bcd479`. The index matched Navidrome's 11,461 songs and 1,008 albums, and no file changed after the marker.
@@ -45,7 +45,7 @@ Every check passed in production, except the run row in Album History check 1.
 - Check 16: 2026-11-04 on `0fb5a7f`, on the 20 smallest 16/44.1 albums with No RELEASEDATE and a MusicBrainz ID, with the backup on 2026-11-05. AcoustID found an anchor for *Cookin' With The Miles Davis Quintet*.
 - Check 17: 2026-11-05 on `a7359e1`, in production.
 - Check 18: 2026-11-05 on `d228255`, through the API and Playwright on the desktop and a phone viewport. The counts matched exactly: 759 Qobuz, 76 Apple Music, 183 without a source. Each of the 13 albums shelf downloaded links to its download and its page.
-- Album History checks 1 to 4: 2026-11-12 on `v1.0.4`, through Playwright on the desktop and a phone viewport, not a real phone, with a test account. Check 1 skipped the run's row, because production's History holds no run. Its hover date failed, because the row's button covered the time. A recheck on `v1.0.5` the same day passed. The hover showed the full date, and a click elsewhere in the row still opened the row. In check 2 the Save finished before the first screenshot, so the screenshots missed Saving. Check 2 changed Darkside EP's LABEL, and the cleanup's Undo put back `Clown & Sunset`, which Navidrome shows too.
+- Album History checks 1 to 4: 2026-11-12 on `v1.0.4`, through Playwright on the desktop and a phone viewport, not a real phone, with a test account. Check 1 skipped the run's row, because production's History holds no run. Its hover date failed, because the row's button covered the time. A recheck on `v1.0.5` the same day passed. The hover showed the full date, and a click elsewhere in the row still opened the row. In check 2 the Save finished before the first screenshot, so the screenshots missed Saving. Check 2 changed Darkside EP's LABEL, and the cleanup's Undo put back `Clown & Sunset`, which Navidrome shows too. The run's row passed later that day on `v1.0.5`, through Playwright with a test account. A ReplayGain run on *A Passion Play* and *4 Times Sound Razing* wrote 6 files, and the row on *A Passion Play* listed only its 2 files, on the desktop and a phone viewport. Undo run then removed the tags from both albums.
 
 ## Optional accounts
 
@@ -110,9 +110,9 @@ Run these after deploying the redesign, on the desktop and a real phone over HTT
 
 ## Album History
 
-Run these after deploying [Album History](plans/album-history.md), on the desktop and a real phone. Check 1's run steps need an album with a run in its History. Someone cleared production's History before 2026-11-10, and it has held no run since, so those steps wait for the next run. Never press Undo run in production, because it undoes every album in the run. Checks 2 and 3 write to Darkside EP, and check 4 needs the Inbox's accepted proposal for it. Undo check 2's Save at the end.
+Run these after deploying [Album History](plans/album-history.md), on the desktop and a real phone. Check 1's run steps need an album with a run in its History. When History holds none, start a ReplayGain run on two small albums without ReplayGain, and undo it at the end. Never press Undo run on any other run, because it undoes every album in the run. Checks 2 and 3 write to Darkside EP, and check 4 needs the Inbox's accepted proposal for it. Undo check 2's Save at the end.
 
-1. On the desktop, open one of check 16's albums and press the History cap in the Editor's title bar. The cap stays lit, the address ends in `?view=history`, and History takes the place of the Editor and the Tracks window. The run's row says "Run on 20 albums, undone together" and has an Undo run key. Open the row, and it lists only this album's files. Rest the pointer on a time, and the full date shows. Press Esc, and the Editor comes back.
+1. On the desktop, open an album with a run and press the History cap in the Editor's title bar. The cap stays lit, the address ends in `?view=history`, and History takes the place of the Editor and the Tracks window. The run's row says "Run on N albums, undone together", where N is the number of albums in the run, and has an Undo run key. Open the row, and it lists only this album's files. Rest the pointer on a time, and the full date shows. Press Esc, and the Editor comes back.
 2. On the desktop, Save one tag on Darkside EP and press the History cap. The new row shows Saving, then Saved without a reload. Press Undo. The row turns Undone, the Editor shows the old value, and Navidrome's Raw Tags view shows it too. Press Redo. If a download wrote the album, it comes last under Download, and Open opens that download.
 3. On the phone, open Darkside EP. History is before Delete in the title bar. The History page has a back button and rows without keys. Open the Save from check 2. Each line shows Before over After, and Undo is in the slot above the tab bar. Press it, and the slot's key turns to Redo. Press Redo. The `?` note gives the change's full date. If the album has a download row, tap it, and the download opens.
 4. On the phone, open the Inbox and the accepted proposal for Darkside EP. Its change links to the album's History, and the link opens the History page.

@@ -7,7 +7,7 @@ shelf is finished and runs in production on blackberry. [vision.md](vision.md) s
 - **Home.** The Library tab is the home screen and the first tab. Each album shows its source, from the downloads' records, `shelf.txt` or its source folder, and the filter menu filters by source. [tags.md](tags.md#album-sources) describes it.
 - **Delete.** The Library tab deletes an album's release folder and has Navidrome forget its tracks, as [tags.md](tags.md#deleting) describes. `make contract` covers it.
 
-Every check in [manual-checklist.md](manual-checklist.md) passed in production, except the run row in Album History check 1, as its Last run says.
+Every check in [manual-checklist.md](manual-checklist.md) passed in production, as its Last run says.
 
 ## Remotes
 
