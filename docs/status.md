@@ -7,7 +7,7 @@ shelf is finished and runs in production on blackberry. [vision.md](vision.md) s
 - **Home.** The Library tab is the home screen and the first tab. Each album shows its source, from the downloads' records, `shelf.txt` or its source folder, and the filter menu filters by source. [tags.md](tags.md#album-sources) describes it.
 - **Delete.** The Library tab deletes an album's release folder and has Navidrome forget its tracks, as [tags.md](tags.md#deleting) describes. `make contract` covers it.
 
-Every check in [manual-checklist.md](manual-checklist.md) passed in production, the last on 2026-11-10.
+Every check in [manual-checklist.md](manual-checklist.md) passed in production, except the run row and the hover date in Album History check 1, as its Last run says.
 
 ## Remotes
 
@@ -18,17 +18,17 @@ Every check in [manual-checklist.md](manual-checklist.md) passed in production, 
 
 ## Production
 
-Production runs `v1.0.3`, which shelf CI deployed through doco-cd on 2026-11-11. Optional [library agents](agents.md) are off by default and on in production. Production signs in with Shelf accounts. [auth.md](auth.md) describes setup.
+Production runs `v1.0.4`, which shelf CI deployed through doco-cd on 2026-11-12. Optional [library agents](agents.md) are off by default and on in production. Production signs in with Shelf accounts. [auth.md](auth.md) describes setup.
 
 shelf-wrapper builds from upstream's `ghcr.io/worldobservationlog/wrapper-lite` image pinned by digest. The index holds 11,461 tracks and 1,008 Navidrome album IDs, forming 1,013 albums because 5 Navidrome albums span two folders.
 
 The [sign-in and agent review redesign](plans/signin-and-agent-review-design.md) and its [second pass](plans/signin-and-agent-review-second-pass.md) run in production.
 
-[Album History](plans/album-history.md) is built on main and not deployed. A History cap on an album opens its Saves, deletes and runs, and the download that brought it, on the desktop and on the phone. On the desktop, a Save's row counts the tracks it wrote. On the phone the Inbox links an accepted change to its album's History. [tags.md](tags.md#the-editor) describes it.
+[Album History](plans/album-history.md) runs in production. A History cap on an album opens its Saves, deletes and runs, and the download that brought it, on the desktop and on the phone. On the desktop, a Save's row counts the tracks it wrote. On the phone the Inbox links an accepted change to its album's History. [tags.md](tags.md#the-editor) describes it. On the desktop, the hover note with a change's full date now opens. Before, the row's button covered the time, so the pointer never reached it. That fix is on main and not deployed.
 
-Tags disagree no longer flags a year beside a full date in that year, such as Picard's `ORIGINALYEAR=1997` beside `ORIGINALDATE=1997-07-01`. It is on main and not deployed. On 2026-11-12 the check flagged 660 of the 1,020 albums in production, every one for this reason. They clear on the first walk after the deploy, because the index reads every file again. The Fix now changes only the tracks whose keys disagree.
+Tags disagree no longer flags a year beside a full date in that year, such as Picard's `ORIGINALYEAR=1997` beside `ORIGINALDATE=1997-07-01`. Before `v1.0.4` the check flagged 660 of the 1,020 albums in production, every one for this reason. The first walk after the deploy read all 11,514 files again, and now no album has the issue. The Fix changes only the tracks whose keys disagree.
 
-Two phone fixes on the album page are on main and not deployed. The `?` key now lines up with History and Delete. Before, it sat 2.5px lower. The panel-coloured mask above the stuck LCD now covers only the 8px gap above it. Before, it covered the bottom 14px of the issue row.
+`v1.0.4` has two phone fixes on the album page. The `?` key now lines up with History and Delete. Before, it sat 2.5px lower. The panel-coloured mask above the stuck LCD now covers only the 8px gap above it. Before, it covered the bottom 14px of the issue row.
 
 An agent's 401 for a malformed token says whether the prefix is missing, a character is not allowed, or the length is wrong, and it gives the length for the whole token. The old message compared the 43 characters after the prefix with the whole token's length.
 

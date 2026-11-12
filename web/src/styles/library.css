@@ -30,6 +30,8 @@
 .rs .lib-open:focus-visible::after { outline: 3px solid var(--focus); outline-offset: -3px; }
 .rs .row:has(> .lib-open) { position: relative; }
 .rs .row > .key, .rs .row > .lib-ck { position: relative; z-index: 1; }
+/* A hover note in a cell, such as a History time, sits above the stretched button, or the pointer never reaches it */
+.rs .row > [role="cell"] > .has-tip { position: relative; z-index: 1; }
 
 /* Album list. Below 640px of panel width the year moves into the second line, and the source and the track count under the quality. */
 .rs .lib-list { container-type: inline-size; flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; border-top: 1px solid var(--ink); }
