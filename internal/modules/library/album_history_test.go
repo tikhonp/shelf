@@ -45,8 +45,8 @@ func TestAlbumHistory(t *testing.T) {
 	if h := r.albumHistory(b, ""); len(h.Changes) != 0 {
 		t.Fatalf("B: %+v", h)
 	}
-	if h := r.albumHistory(a, ""); h.Changes[0].Author != "Unknown" {
-		t.Errorf("author %q", h.Changes[0].Author)
+	if h := r.albumHistory(a, ""); h.Changes[0].Author != "Unknown" || h.Changes[0].Tracks != 2 {
+		t.Errorf("author %q, tracks %d", h.Changes[0].Author, h.Changes[0].Tracks)
 	}
 
 	for _, bad := range []string{"0", "x", "-1"} {
@@ -84,6 +84,9 @@ func TestAlbumHistoryRun(t *testing.T) {
 		if got := changeIDs(r.albumHistory(id, "").Changes); !slices.Equal(got, []int64{run.ID}) {
 			t.Fatalf("album %d: %v", id, got)
 		}
+	}
+	if h := r.albumHistory(a, ""); h.Changes[0].Tracks != 0 {
+		t.Errorf("a run's row has %d tracks", h.Changes[0].Tracks)
 	}
 	if c := r.change(run.ID); len(c.Files) != 3 {
 		t.Fatalf("without album: %d files", len(c.Files))
@@ -146,7 +149,7 @@ func TestAlbumHistoryShowsUndoneSaveWithConflicts(t *testing.T) {
 		t.Fatal(err)
 	}
 	u := r.reversed(KindUndo, s.ID)
-	if len(u.Conflicts) != 1 {
+	if len(u.Conflicts) != 1 || u.Tracks != 1 {
 		t.Fatalf("undo %+v", u)
 	}
 	h := r.albumHistory(id, "")
@@ -183,6 +186,9 @@ func TestAlbumHistoryShowsADelete(t *testing.T) {
 	r.drain()
 	if got := changeIDs(r.albumHistory(a, "").Changes); !slices.Equal(got, []int64{c.ID}) {
 		t.Fatalf("A: %v", got)
+	}
+	if h := r.albumHistory(a, ""); h.Changes[0].Tracks != 0 {
+		t.Errorf("a delete has %d tracks", h.Changes[0].Tracks)
 	}
 	if h := r.albumHistory(b, ""); len(h.Changes) != 0 {
 		t.Fatalf("B: %+v", h)

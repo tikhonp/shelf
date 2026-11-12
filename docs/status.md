@@ -24,7 +24,7 @@ shelf-wrapper builds from upstream's `ghcr.io/worldobservationlog/wrapper-lite` 
 
 The [sign-in and agent review redesign](plans/signin-and-agent-review-design.md) and its [second pass](plans/signin-and-agent-review-second-pass.md) run in production.
 
-[Album History](plans/album-history.md) is built on main and not deployed. A History cap on an album opens its Saves, deletes and runs, and the download that brought it, on the desktop and on the phone. On the phone the Inbox links an accepted change to its album's History. [tags.md](tags.md#the-editor) describes it.
+[Album History](plans/album-history.md) is built on main and not deployed. A History cap on an album opens its Saves, deletes and runs, and the download that brought it, on the desktop and on the phone. On the desktop, a Save's row counts the tracks it wrote. On the phone the Inbox links an accepted change to its album's History. [tags.md](tags.md#the-editor) describes it.
 
 Two phone fixes on the album page are on main and not deployed. The `?` key now lines up with History and Delete. Before, it sat 2.5px lower. The panel-coloured mask above the stuck LCD now covers only the 8px gap above it. Before, it covered the bottom 14px of the issue row.
 

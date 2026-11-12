@@ -242,7 +242,7 @@ test('a confirm opens as a dialog and Save anyway sends it', async () => {
 test('an undo that renames an album artist asks first, and Undo anyway sends the confirm', async () => {
   const saved: LibraryChange = {
     id: 9, kind: 'save', target: null, album_id: 7, folder: 'rock/x', title: 'Blue', artist: 'Joni', state: 'done', reason: '', error: '',
-    undone: false, tags: 2, cover: false, conflicts: [], job_id: 1, created_at: '2026-11-04T18:00:00Z', finished_at: '2026-11-04T18:00:01Z',
+    undone: false, tags: 2, cover: false, tracks: 11, conflicts: [], job_id: 1, created_at: '2026-11-04T18:00:00Z', finished_at: '2026-11-04T18:00:01Z',
   }
   let n = 0
   const { w, calls } = await at('/library', {
@@ -267,7 +267,7 @@ test('an undo that renames an album artist asks first, and Undo anyway sends the
 test('a Save still writing shows the running pill', async () => {
   const writing: LibraryChange = {
     id: 9, kind: 'save', target: null, album_id: 7, folder: 'rock/x', title: 'Blue', artist: 'Joni', state: 'writing', reason: '', error: '',
-    undone: false, tags: 2, cover: false, conflicts: [], job_id: 1, created_at: '2026-11-04T18:00:00Z', finished_at: null,
+    undone: false, tags: 2, cover: false, tracks: 2, conflicts: [], job_id: 1, created_at: '2026-11-04T18:00:00Z', finished_at: null,
   }
   const { w } = await at('/library', { '/api/library/history': { changes: [writing], next: null } })
   await button(w, 'History').trigger('click')
@@ -458,7 +458,7 @@ test('Delete asks in a dialog, shows the delete running, and goes back to the li
 
 const change = (id: number, over: Partial<LibraryChange> = {}): LibraryChange => ({
   id, kind: 'save', target: null, album_id: 7, folder: 'rock/x', title: 'Blue', artist: 'Joni', state: 'done', reason: '', error: '',
-  undone: false, tags: 2, cover: false, conflicts: [], job_id: 1, created_at: '2026-11-04T18:00:00Z', finished_at: '2026-11-04T18:00:01Z', author: 'Tikhon', ...over,
+  undone: false, tags: 2, cover: false, tracks: 11, conflicts: [], job_id: 1, created_at: '2026-11-04T18:00:00Z', finished_at: '2026-11-04T18:00:01Z', author: 'Tikhon', ...over,
 })
 const albumDownload = download(418, { status: 'done', folder: 'rock/x', author: 'Telegram @tikhon', format: 'qobuz:max', finished_at: '2026-10-12T10:00:00Z' })
 // folderDownloads answers the downloads store with nothing and the album's folder with downloads.
@@ -490,21 +490,21 @@ test('the History cap opens the album\'s History, and the lit cap or Esc brings 
   w.unmount()
 })
 
-test('album History names each change, its author, its tags and its state', async () => {
+test('album History names each change, its author, its tracks, its tags and its state', async () => {
   const changes = [
     change(20, { state: 'queued', finished_at: null }),
-    change(19, { tags: 0, cover: true, author: 'CLI' }),
-    change(18, { run: { fixes: ['replaygain'], albums: 20, files: 240, skipped: 0, failed: 0 }, tags: 44 }),
-    change(17, { tags: 4, cover: true, state: 'partial', author: undefined }),
+    change(19, { tags: 0, cover: true, tracks: 0, author: 'CLI' }),
+    change(18, { run: { fixes: ['replaygain'], albums: 20, files: 240, skipped: 0, failed: 0 }, tags: 44, tracks: 0 }),
+    change(17, { tags: 4, cover: true, tracks: 1, state: 'partial', author: undefined }),
     change(16, { undone: true, author: 'Anonymous' }),
-    change(15, { kind: 'delete', state: 'done', tags: 0 }),
+    change(15, { kind: 'delete', state: 'done', tags: 0, tracks: 0 }),
   ]
   const { w } = await at('/library/7?view=history', { '/api/library/history': { changes, next: null }, '/api/downloads': folderDownloads([]) })
   const rows = w.findAll('.g-ah:not(.thead)')
   const cells = (i: number) => rows[i]!.findAll('[role=cell]').map((c) => c.text())
   expect(rows.map((r) => r.find('.ttl').text())).toEqual(['Save', 'Save: cover', 'Run: ReplayGain', 'Save', 'Save', 'Delete'])
   expect(rows.map((r) => r.find('.by').text())).toEqual(['By Tikhon', 'By CLI', 'By Tikhon', 'By Unknown', 'By Anonymous', 'By Tikhon'])
-  expect(rows[2]!.find('.sub').text()).toBe('By Tikhon · Run on 20 albums, undone together')
+  expect(rows.map((r) => r.find('.sub').text())).toEqual(['By Tikhon · 11 tracks', 'By CLI', 'By Tikhon · Run on 20 albums, undone together', 'By Unknown · 1 track', 'By Anonymous · 11 tracks', 'By Tikhon'])
   expect(rows.map((r) => r.find('.pill').text())).toEqual(['Saving', 'Saved', 'Saved', 'Partial', 'Undone', 'Deleted'])
   expect(cells(1)[1]).toBe('Cover')
   expect(cells(3)[1]).toBe('4 · Cover')

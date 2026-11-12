@@ -16,7 +16,7 @@ const album = (id = 7, tracks = [track(1), track(2)]): LibraryAlbumDetail => ({
 })
 const noSuggestions = { anchor: null, album: [], tracks: [], covers: [], notes: [], unavailable: [] }
 const change = (over: Partial<LibraryChange> = {}): LibraryChange => ({
-  id: 1, kind: 'save', target: null, album_id: 7, folder: 'a', title: 'X', artist: 'A', state: 'queued', reason: '', error: '', undone: false, tags: 2, cover: false, conflicts: [], job_id: 1,
+  id: 1, kind: 'save', target: null, album_id: 7, folder: 'a', title: 'X', artist: 'A', state: 'queued', reason: '', error: '', undone: false, tags: 2, cover: false, tracks: 2, conflicts: [], job_id: 1,
   created_at: '', finished_at: null, ...over,
 })
 const routes = (over: Record<string, unknown> = {}) => ({

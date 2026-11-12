@@ -428,6 +428,8 @@ export interface LibraryChange {
   undone: boolean
   tags: number
   cover: boolean
+  // tracks counts the audio files the change writes. It is 0 on a delete and on a run's own row.
+  tracks: number
   conflicts: ChangeConflict[]
   job_id: number | null
   created_at: string

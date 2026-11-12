@@ -34,7 +34,10 @@ type changeJSON struct {
 	Undone  bool   `json:"undone"`
 	Tags    int    `json:"tags"`
 	// Cover says the change writes a cover, which Tags doesn't count.
-	Cover     bool           `json:"cover"`
+	Cover bool `json:"cover"`
+	// Tracks counts the audio files a Save, undo or redo writes. It is 0
+	// for a delete and for a run's own row.
+	Tracks    int            `json:"tracks"`
 	Conflicts []conflictJSON `json:"conflicts"`
 	JobID     *int64         `json:"job_id"`
 	CreatedAt string         `json:"created_at"`
@@ -109,6 +112,7 @@ func (m *Module) changeJSON(ctx context.Context, c changeRow) changeJSON {
 	var sc storedChange
 	if json.Unmarshal([]byte(c.Request), &sc) == nil {
 		j.Cover = sc.changesCover()
+		j.Tracks = len(sc.Files)
 		if len(sc.Files) > 0 {
 			if id, err := m.store.albumOf(ctx, sc.Files[0].Path); err == nil && id != 0 {
 				j.AlbumID = id

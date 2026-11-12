@@ -47,7 +47,7 @@ const { openId, downloads, toggle, downloadedAt } = useAlbumHistory(() => props.
             <span role="cell" class="t2 num sm"><LibTip :note="longDate(c.created_at)">{{ ago(c.created_at, now) }}</LibTip></span>
             <button type="button" class="lib-open two" :aria-expanded="openId === c.id" @click="toggle(c)">
               <span class="ttl"><span class="ell">{{ changeTitle(c) }}</span></span>
-              <span class="sub ell"><span class="by">By {{ c.author || 'Unknown' }}</span><template v-if="c.run"> · Run on {{ count(c.run.albums, 'album') }}, undone together</template></span>
+              <span class="sub ell"><span class="by">By {{ c.author || 'Unknown' }}</span><template v-if="c.run"> · Run on {{ count(c.run.albums, 'album') }}, undone together</template><template v-else-if="c.tracks > 0"> · {{ count(c.tracks, 'track') }}</template></span>
             </button>
             <span role="cell" class="num sm r">{{ changeTags(c) }}</span>
             <span role="cell"><span class="pill" :class="stateClass(c)">{{ stateWord(c) }}</span></span>
