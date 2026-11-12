@@ -127,7 +127,7 @@ A run applies chosen fixes, or ReplayGain, to many albums as one undo step. Only
 
 | Fix | What a run does |
 | --- | --- |
-| `tags_disagree` | Writes the first key's value to every key that feeds the field. |
+| `tags_disagree` | On each track whose keys disagree, writes the first key's value to every key that feeds the field. |
 | `values_differ` | Gives every track the value most tracks hold. A tie leaves the field alone. |
 | `no_releasedate` | The same rule as the editor's Fix. A file with no date changes nothing. |
 | `various_artists` | Sets the compilation flag on every track. |
@@ -239,7 +239,7 @@ The Library tab holds staged edits in the browser, per album, so opening another
 | --- | --- |
 | `no_releasedate` | Per file: a key that already feeds the release date gives `RELEASEDATE` its value. Otherwise `RELEASEDATE` copies `DATE`, and `DATE` takes `ORIGINALDATE` when there is one. A file with no date stages nothing. |
 | `values_differ` | Each field's best suggestion, else the value most tracks hold. |
-| `tags_disagree` | Each field's best suggestion, else the value the file's first key holds, written as a field so every key that feeds it agrees. |
+| `tags_disagree` | Each field's best suggestion, else the value the file's first key holds, written as a field so every key that feeds it agrees. A track whose keys agree stages nothing. |
 | `various_artists` | The compilation flag on every track. |
 | `missing_tag`, `two_releases`, `artist_split` | Each field's best suggestion. |
 | `reissue_year`, `split_album` | No Fix. No rule can tell which the owner wants. |
@@ -305,7 +305,7 @@ Each check is a kind that the filter menu offers. Guide kinds are style only and
 | `missing_tag` | A track has no title, artist, album or track number, so Navidrome shows a placeholder or the file name. |
 | `split_album` | Two albums of one release folder share an album name. Navidrome shows them apart. |
 | `values_differ` | Its tracks hold different values, or a value and none, of a field the album should share: album artist, album artists, album version, compilation, release date, original date, disc total, label, catalogue number, barcode, release type, country and status, and the MusicBrainz album artist ID. |
-| `tags_disagree` | Two keys of one track feed one field with different values, such as `ALBUMARTIST` and a stale `ALBUM ARTIST`. |
+| `tags_disagree` | Two keys of one track feed one field with different values, such as `ALBUMARTIST` and a stale `ALBUM ARTIST`. In a date field, a year or a year and month agrees with a longer date that starts with it, such as `ORIGINALYEAR=1997` beside `ORIGINALDATE=1997-07-01`. |
 | `reissue_year` | Navidrome shows a year later than the original date's. |
 | `no_releasedate` | A track has no `RELEASEDATE` key. |
 | `various_artists` | The album artist is Various Artists and a track lacks the compilation flag. |
@@ -366,7 +366,8 @@ The test's container installs Alpine's ffmpeg, the one production has, because a
 | Album IDs, album artists, dates and years as a real Navidrome 0.64.2 computed them | `TestGoldenNavidrome` |
 | Aliases merged, splits, a bad UUID dropped, `3/9` track numbers, a bad day keeping the year | `TestViewMergesAliasesAndSplits` |
 | The owner's split exceptions and separators, an ignored tag, genre separators, a folder album spec, cover priority | `TestRulesFollowNavidromeSettings` |
-| Disagreeing aliases; lyrics in two languages are no disagreement; M4A's `DATE` against `RELEASEDATE` | `TestDisagreements` |
+| Disagreeing aliases; lyrics in two languages are no disagreement; M4A's `DATE` against `RELEASEDATE`; a year or a year and month agrees with a longer date that starts with it; a year beside another year's date, two dates of one year, and a year beside two dates that differ disagree, in any key order | `TestDisagreements` |
+| A run's Fix leaves a track whose keys agree alone | `TestRunFixLeavesAgreeingTracksAlone` |
 | Navidrome's settings read with an admin login; a user who isn't an admin; a wrong password kept out of the error | `TestConfigReadsTheTagSettings`, `TestConfigRefusals` |
 | Each file check, the legacy date rule that is no reissue, and a split that matches its IDs | `TestFileChecks`, `TestFactsOfAWellTaggedFile` |
 | Disc folders merging; discs that disagree splitting; two releases in a folder; a playlist folder that is no split | `TestGroupMergesDiscFolders`, `TestGroupFindsSplits` |
@@ -432,7 +433,7 @@ The test's container installs Alpine's ffmpeg, the one production has, because a
 | The keys Navidrome reads | `TestKeysNavidromeReads` |
 | A request the client left is logged as info, and a canceled context with the client still there as an error | `TestAClientThatLeftIsNoError` in `httpx` |
 | Mixed values, a staged edit and what it was, a track that holds the value, retyping the old value, Revert, multi-value adds, fills, the Save body, a cover's tracks | `web/src/lib/tags.test.ts` |
-| Each Fix: the date pair, a key that feeds the release date, `DATE` alone, a file with no date, differing values, disagreeing tags, the flag, and the issues with no Fix | `web/src/lib/tags.test.ts` |
+| Each Fix: the date pair, a key that feeds the release date, `DATE` alone, a file with no date, differing values, disagreeing tags and the tracks it leaves alone, the flag, and the issues with no Fix | `web/src/lib/tags.test.ts` |
 | All fields: each key once, a row and a main field on one tag, a second key's own row, where a new key goes | `web/src/lib/tags.test.ts` |
 | A Save's confirm and Cancel, each refusal keeping the stage, a reload taking new revisions, a finished and a failed write, Save cover alone, following a new album ID, staged edits across albums, a reconnect | `web/src/stores/editor.store.test.ts` |
 | The list, its lamp, no match, a search in the address, the first index, a locked tag, a selected track, Revert, a suggestion, a note, a silent service, Fix, each refusal's state, an undo's confirm, custom fields, a deleted tag, keys, keys behind a dialog, a pasted release, a failed anchor, the long editor, the transcode retry, Open in Library | `web/src/components/library.test.ts` |

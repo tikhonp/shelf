@@ -101,6 +101,28 @@ func TestRunFixesBuildOnEachOther(t *testing.T) {
 	}
 }
 
+func TestRunFixLeavesAgreeingTracksAlone(t *testing.T) {
+	r := newRig(t)
+	// The first track disagrees for real. The second holds the year Picard
+	// writes beside the full date, which agrees.
+	p := r.album("Hejira",
+		map[string][]string{"ORIGINALDATE": {"1997-07-01"}, "ORIGINALYEAR": {"2004"}},
+		map[string][]string{"ORIGINALDATE": {"1997-07-01"}, "ORIGINALYEAR": {"1997"}})
+	r.walk()
+	r.startJobs()
+	run := r.startRun(every(string(TagsDisagree)))
+	r.drain()
+	if got := r.run(run.ID); got.State != StateDone {
+		t.Fatalf("%+v", got)
+	}
+	if tags := tagsOf(t, p[0]); !slices.Equal(tags["ORIGINALYEAR"], []string{"1997-07-01"}) {
+		t.Fatalf("the disagreeing track: %v", tags)
+	}
+	if tags := tagsOf(t, p[1]); !slices.Equal(tags["ORIGINALYEAR"], []string{"1997"}) || !slices.Equal(tags["ORIGINALDATE"], []string{"1997-07-01"}) {
+		t.Fatalf("the agreeing track: %v", tags)
+	}
+}
+
 func TestSpread(t *testing.T) {
 	if got := spread([]int{1, 2}, 4); !slices.Equal(got, []int{1, 2}) {
 		t.Fatal(got)

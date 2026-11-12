@@ -239,10 +239,10 @@ function stageReleaseDate(stage: Stage, tracks: LibraryTrack[]): Stage {
 }
 
 function rewrite(stage: Stage, tracks: LibraryTrack[], target: Target): Stage {
-  const next = { ...stage }
+  let next = stage
   for (const t of tracks) {
     const v = fileValues(t, target)
-    if (v.length > 0) next[t.id] = { ...next[t.id], [target]: { values: v } }
+    if (v.length > 0) next = { ...next, [t.id]: { ...next[t.id], [target]: { values: v } } }
   }
   return next
 }
@@ -268,11 +268,13 @@ export function fix(issue: LibraryIssue, tracks: LibraryTrack[], s: Suggestions 
       break
     case 'tags_disagree':
       // A field edit writes every key that feeds the field, so even the value a
-      // file's first key holds brings the others in line.
+      // file's first key holds brings the others in line. A track whose keys
+      // agree stays as it is.
       for (const f of issue.fields ?? []) {
+        const own = tracks.filter((t) => t.issues.some((i) => i.kind === 'tags_disagree' && i.fields?.includes(f)))
         const b = best(f)
-        if (b) next = accept(next, tracks, tracks, b, false)
-        else next = rewrite(next, tracks, f)
+        if (b) next = accept(next, own, own, b, false)
+        else next = rewrite(next, own, f)
       }
       break
     case 'missing_tag':

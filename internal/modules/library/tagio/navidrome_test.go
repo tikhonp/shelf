@@ -200,4 +200,27 @@ func TestDisagreements(t *testing.T) {
 	if got := r.Disagreements(m); !slices.Equal(got, []string{"releasedate"}) {
 		t.Errorf("M4A: %q", got)
 	}
+	cases := []struct {
+		name  string
+		tags  map[string][]string
+		field bool
+	}{
+		{"year beside a full date", map[string][]string{"ORIGINALDATE": {"1997-07-01"}, "ORIGINALYEAR": {"1997"}}, false},
+		{"year beside a date of another year", map[string][]string{"ORIGINALYEAR": {"1997"}, "ORIGINALDATE": {"2004-05-01"}}, true},
+		{"two dates in one year", map[string][]string{"ORIGINALDATE": {"1997-07-01"}, "TDOR": {"1997-09-01"}}, true},
+		{"month beside a date in it", map[string][]string{"ORIGINALDATE": {"1997-07-01"}, "TDOR": {"1997-07"}}, false},
+		{"month beside a date in another month", map[string][]string{"ORIGINALDATE": {"1997-09-01"}, "TDOR": {"1997-07"}}, true},
+		{"year, month and date agree", map[string][]string{"ORIGINALDATE": {"1997-07-01"}, "TDOR": {"1997-07"}, "ORIGINALYEAR": {"1997"}}, false},
+		{"year agrees with two dates that don't", map[string][]string{"ORIGINALDATE": {"1997-07-01"}, "ORIGINALYEAR": {"1997"}, "TDOR": {"1997-09-01"}}, true},
+		{"a value that is not a date", map[string][]string{"ORIGINALDATE": {"1997-07-01"}, "ORIGINALYEAR": {"199"}}, true},
+	}
+	for _, c := range cases {
+		// Keys come from a map, so repeat to cover its random order.
+		for range 20 {
+			got := r.Disagreements(File{Format: FormatOf("a.flac"), Tags: c.tags})
+			if has := slices.Contains(got, "originaldate"); has != c.field {
+				t.Fatalf("%s: %q", c.name, got)
+			}
+		}
+	}
 }

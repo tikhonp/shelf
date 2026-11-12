@@ -564,7 +564,9 @@ func (r *Rules) EmbeddedCovers() bool { return r.embedded }
 // Disagreements lists the fields that two keys of f feed with different
 // values, such as a stale ALBUM ARTIST beside ALBUMARTIST. Navidrome takes
 // the first alias of a single value and merges the aliases of a
-// multi-value tag, so either way one of them shows wrong.
+// multi-value tag, so either way one of them shows wrong. In a date field, a
+// year agrees with a full date in that year, such as Picard's
+// ORIGINALYEAR=1997 beside ORIGINALDATE=1997-07-01.
 func (r *Rules) Disagreements(f File) []string {
 	feeds := map[string][]string{}
 	for k := range f.Tags {
@@ -585,13 +587,38 @@ func (r *Rules) Disagreements(f File) []string {
 	}
 	var out []string
 	for field, keys := range feeds {
-		for _, k := range keys[1:] {
-			if !slices.Equal(f.Tags[k], f.Tags[keys[0]]) {
-				out = append(out, field)
-				break
+		isDate := r.fields[field].typ == "date"
+		// Agreement between dates is not transitive, so compare every pair. Then the
+		// random order of the map's keys can't change the result.
+	pairs:
+		for i, a := range keys {
+			for _, b := range keys[i+1:] {
+				if !valuesAgree(f.Tags[a], f.Tags[b], isDate) {
+					out = append(out, field)
+					break pairs
+				}
 			}
 		}
 	}
 	slices.Sort(out)
 	return out
+}
+
+func valuesAgree(a, b []string, date bool) bool {
+	if !date {
+		return slices.Equal(a, b)
+	}
+	return slices.EqualFunc(a, b, datesAgree)
+}
+
+// datesAgree reports whether two dates are equal or the shorter one is a year
+// or a year and month that starts the longer one.
+func datesAgree(a, b string) bool {
+	if a == b {
+		return true
+	}
+	if len(a) > len(b) {
+		a, b = b, a
+	}
+	return parseDate(a) == a && parseDate(b) == b && strings.HasPrefix(b, a+"-")
 }

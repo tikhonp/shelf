@@ -13,7 +13,7 @@ import (
 
 // factsVersion changes whenever facts or the checks change, so the index
 // reads every file again under the new code.
-const factsVersion = 1
+const factsVersion = 2
 
 // facts is what the index keeps of one audio file: enough to group it into
 // an album, list the album and run the checks without opening the file.

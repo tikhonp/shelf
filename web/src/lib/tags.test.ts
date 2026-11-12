@@ -117,7 +117,19 @@ test('Various Artists sets the flag, and issues with no rule or no suggestion ha
 
 test('a Fix for disagreeing tags rewrites the field even when the file holds the value', () => {
   const ts = [track(1, { albumartist: ['A'] })]
+  ts[0]!.issues = [{ kind: 'tags_disagree', fields: ['albumartist'] }]
   expect(fix({ kind: 'tags_disagree', fields: ['albumartist'] }, ts, null, {})![1]!.albumartist).toEqual({ values: ['A'] })
+})
+
+test('a Fix for disagreeing tags leaves a track whose keys agree alone', () => {
+  const ts = [track(1, { albumartist: ['A'] }), track(2, { albumartist: ['B'] })]
+  ts[0]!.issues = [{ kind: 'tags_disagree', fields: ['albumartist'] }]
+  const issue = { kind: 'tags_disagree', fields: ['albumartist'] }
+  const s = fix(issue, ts, null, {})!
+  expect(Object.keys(s)).toEqual(['1'])
+  const sug = answer([{ field: 'albumartist', source: 'Qobuz', sources: ['Qobuz'], confidence: 90, values: ['C'] }])
+  expect(Object.keys(fix(issue, ts, sug, {})!)).toEqual(['1'])
+  expect(fix(issue, [ts[1]!], null, {})).toBeNull()
 })
 
 test('a Fix that stages a raw key shows on the field it feeds, and Revert takes it back', () => {

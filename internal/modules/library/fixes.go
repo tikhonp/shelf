@@ -160,9 +160,15 @@ func fixEdits(fix string, issues []Issue, tfs []tagio.File, files []*file, gains
 		}
 	case TagsDisagree:
 		// A field edit writes every key that feeds the field, so even the value
-		// the first key holds brings the others in line.
+		// the first key holds brings the others in line. A track whose keys
+		// agree, such as ORIGINALYEAR beside ORIGINALDATE, stays as it is.
+		// files[i] is the file tfs[i] was read from, and its own issues say
+		// whether its keys disagree.
 		for _, f := range fields {
 			for i, tf := range tfs {
+				if !disagrees(files[i], f) {
+					continue
+				}
 				if v := fieldValues(tf, f); len(v) > 0 {
 					out[i] = append(out[i], tagio.Edit{Field: f, Values: v})
 				}
@@ -170,6 +176,14 @@ func fixEdits(fix string, issues []Issue, tfs []tagio.File, files []*file, gains
 		}
 	}
 	return out
+}
+
+// disagrees reports whether the file's own check found two keys of the field
+// with different values.
+func disagrees(f *file, field string) bool {
+	return slices.ContainsFunc(f.Facts.Issues, func(is Issue) bool {
+		return is.Kind == TagsDisagree && slices.Contains(is.Fields, field)
+	})
 }
 
 func gainEdits(g *albumGains, path string) []tagio.Edit {
