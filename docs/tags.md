@@ -251,6 +251,7 @@ The Library tab holds staged edits in the browser, per album, so opening another
 - **A release in the album ID field.** A MusicBrainz ID or link typed into `MUSICBRAINZ_ALBUMID` asks for the suggestions again with `?anchor=`. A release that fails to match shows its `reason`.
 - **Playback.** The player asks for the file as it is. When the browser refuses it, the player asks again with `?transcode=1`, and shelf streams it through ffmpeg as MP3. That stream has no length, so the position can't move. A second failure says the browser can't play the file.
 - **A search in the address.** `/library?q=<text>` opens the list with that text in its search field, as `/search?q=` does on Search.
+- **Album History.** On the desktop, the History cap in the Editor's title bar opens `/library/<id>?view=history`, the album's History in place of the Editor and the Tracks window. Pressing the lit cap or Esc brings the Editor back. Each row names the change as "Save", "Save: cover" or the run's title. It shows the author, and the time as "2 hours ago" with the full date in a hover note. A run's key says Undo run and works on the whole run, and an opened run lists only this album's files. The downloads that wrote into the album's folder come last, under a Download header. Without any, or when the downloads call fails, History leaves that part out. The global History at `?history=1` lists the whole library as before.
 
 ## Navidrome's view
 
@@ -435,6 +436,8 @@ The test's container installs Alpine's ffmpeg, the one production has, because a
 | All fields: each key once, a row and a main field on one tag, a second key's own row, where a new key goes | `web/src/lib/tags.test.ts` |
 | A Save's confirm and Cancel, each refusal keeping the stage, a reload taking new revisions, a finished and a failed write, Save cover alone, following a new album ID, staged edits across albums, a reconnect | `web/src/stores/editor.store.test.ts` |
 | The list, its lamp, no match, a search in the address, the first index, a locked tag, a selected track, Revert, a suggestion, a note, a silent service, Fix, each refusal's state, an undo's confirm, custom fields, a deleted tag, keys, keys behind a dialog, a pasted release, a failed anchor, the long editor, the transcode retry, Open in Library | `web/src/components/library.test.ts` |
+| Album History: the cap and back to the Editor, the titles, authors, Tags and pills, the date note, Undo run and a run's own files, the download row, no download, a failed downloads call, no Saves, Load more, the global History after it | `web/src/components/library.test.ts` |
+| A change's pill words, a queued change as Saving, the album row titles and the Tags column | `web/src/lib/history.test.ts` |
 | The files' release: release fields with one value and the anchor, catalogs that agree, track ID fills, held values left out, covers, the `.lrc` note, stored answers | `TestSuggestionsFromTheFilesRelease` |
 | Anchors by barcode, ISRC and search, with a compilation and a live album; a staged link; a files ID that fails the threshold or names no release; a bad anchor | `TestAnchorWays` |
 | A classical album searched without its artist, read with works, with composers | `TestClassicalSuggestsComposers` |

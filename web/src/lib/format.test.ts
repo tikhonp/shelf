@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { ago, clock, count, duration, elapsed, finishedAt, originWord, releaseDate, resultWord, size, took } from './format'
+import { ago, clock, count, duration, elapsed, finishedAt, longDate, originWord, releaseDate, resultWord, size, took } from './format'
 
 test('durations', () => {
   expect(duration(252)).toBe('4:12')
@@ -46,6 +46,12 @@ test('the history shows the clock today and the date before', () => {
   expect(finishedAt(new Date(2026, 10, 4, 14, 32).toISOString(), now)).toBe(clock(new Date(2026, 10, 4, 14, 32)))
   expect(finishedAt(new Date(2026, 10, 2, 14, 32).toISOString(), now)).toBe('2 Nov')
   expect(finishedAt(null, now)).toBe('—')
+})
+
+test('a long date names the weekday and the local time', () => {
+  expect(longDate(new Date(2026, 10, 11, 12, 31).toISOString())).toBe('Wednesday 11 November 2026, 12:31')
+  expect(longDate(new Date(2026, 0, 4, 9, 5).toISOString())).toBe('Sunday 4 January 2026, 09:05')
+  expect(longDate('not a time')).toBe('')
 })
 
 test('a release date stays on its day', () => {

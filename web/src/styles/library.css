@@ -200,6 +200,9 @@
 
 /* History */
 .rs .g-lh { grid-template-columns: 78px minmax(0, 1fr) 96px 150px 96px; }
+/* An album's History. The When column fits "2 hours ago", and the author starts the second line in bold. */
+.rs .g-ah { grid-template-columns: 104px minmax(0, 1fr) 84px 150px 104px; }
+.rs .row .sub .by { color: var(--text); font-weight: 600; }
 .rs .g-ba { grid-template-columns: minmax(0, 150px) minmax(0, 170px) minmax(0, 1fr) minmax(0, 1fr); min-height: 34px; padding: 4px 14px; font-size: 13px; }
 .rs .lib-ba { background: var(--win-2); border-bottom: 1px solid var(--ink); box-shadow: inset 0 2px 4px rgba(0, 0, 0, .25); }
 .rs .lib-ba .row:hover { background: transparent; }

@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import type { ChangeFile, LibraryChange } from '../api/types'
-import { deletedLines, historyLines } from './history'
+import { changeTags, changeTitle, deletedLines, historyLines, reversible, stateClass, stateWord } from './history'
 
 const file = (path: string, keys: ChangeFile['keys'], over: Partial<ChangeFile> = {}): ChangeFile => ({ track_id: 1, path, kind: 'audio', written: true, revision: 'r', keys, cover_before: '', cover_after: '', ...over })
 const k = (key: string, before: string[], after: string[]) => ({ key, before, after })
@@ -40,4 +40,22 @@ test('a delete says what it removed and how Navidrome took it', () => {
   const quiet = { folder: 'qobuz/Blue', deleted: { files: 1, bytes: 2000, albums: [], forgot: 0, navidrome: 'none', navidrome_tracks: 0 } } as unknown as LibraryChange
   expect(deletedLines(quiet).map((l) => l.label)).toEqual(['Folder', 'Files', 'Navidrome'])
   expect(deletedLines({ folder: 'x' } as LibraryChange)).toEqual([])
+})
+
+const ch = (over: Partial<LibraryChange> = {}) => ({ kind: 'save', state: 'done', undone: false, tags: 3, cover: false, ...over }) as LibraryChange
+
+test('a change says its state in the app\'s words, and a queued one says Saving', () => {
+  expect([ch(), ch({ state: 'queued' }), ch({ state: 'writing' }), ch({ state: 'partial' }), ch({ state: 'failed' }), ch({ undone: true })].map(stateWord)).toEqual(['Saved', 'Saving', 'Saving', 'Partial', 'Failed', 'Undone'])
+  expect([ch({ kind: 'delete' }), ch({ kind: 'delete', state: 'queued' })].map(stateWord)).toEqual(['Deleted', 'Deleting'])
+  expect([ch(), ch({ state: 'queued' }), ch({ undone: true })].map(stateClass)).toEqual(['done', 'run', 'canceled'])
+  expect([ch(), ch({ state: 'partial' }), ch({ state: 'failed' }), ch({ kind: 'delete' })].map(reversible)).toEqual([true, true, false, false])
+})
+
+test('an album\'s History names the kind of change and counts tags and the cover', () => {
+  expect(changeTitle(ch())).toBe('Save')
+  expect(changeTitle(ch({ tags: 0, cover: true }))).toBe('Save: cover')
+  expect(changeTitle(ch({ tags: 2, cover: true }))).toBe('Save')
+  expect(changeTitle(ch({ run: { fixes: ['replaygain'], albums: 2, files: 4, skipped: 0, failed: 0 } }))).toBe('Run: ReplayGain')
+  expect(changeTitle(ch({ kind: 'delete' }))).toBe('Delete')
+  expect([ch(), ch({ tags: 0, cover: true }), ch({ tags: 4, cover: true }), ch({ kind: 'delete' })].map(changeTags)).toEqual(['3', 'Cover', '4 · Cover', ''])
 })

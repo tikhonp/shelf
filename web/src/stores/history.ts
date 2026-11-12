@@ -9,7 +9,8 @@ interface Page {
   next: number | null
 }
 
-// The timeline of Saves, with undo and redo in any order.
+// The timeline of Saves, with undo and redo in any order. It lists the whole
+// library, or one album's changes while album is set.
 export const useHistory = defineStore('history', () => {
   const changes = ref<LibraryChange[]>([])
   const next = ref<number | null>(null)
@@ -19,30 +20,52 @@ export const useHistory = defineStore('history', () => {
   // running maps an undo or redo to the Save it works on.
   const running = ref<Record<number, number>>({})
   const conflicts = ref<Record<number, ChangeConflict[]>>({})
+  const album = ref<number | null>(null)
 
-  async function load() {
+  const albumParam = () => (album.value === null ? '' : `album=${album.value}`)
+  const url = (path: string, ...params: string[]) => {
+    const q = [...params, albumParam()].filter(Boolean).join('&')
+    return q ? `${path}?${q}` : path
+  }
+
+  // load reads the first page. A new scope drops the old rows and details at
+  // once. A run opened from an album lists only that album's files, so its
+  // details differ by scope.
+  async function load(scope?: number | null) {
+    if (scope !== undefined && scope !== album.value) {
+      album.value = scope
+      changes.value = []
+      next.value = null
+      details.value = {}
+    }
+    const asked = album.value
     loading.value = true
     error.value = ''
     try {
-      const page = await get<Page>('/api/library/history')
+      const page = await get<Page>(url('/api/library/history'))
+      if (asked !== album.value) return
       changes.value = page.changes
       next.value = page.next
     } catch (err) {
-      error.value = errorText(err)
+      if (asked === album.value) error.value = errorText(err)
     } finally {
-      loading.value = false
+      if (asked === album.value) loading.value = false
     }
   }
 
   async function more() {
     if (next.value === null) return
-    const page = await get<Page>(`/api/library/history?before=${next.value}`)
+    const asked = album.value
+    const page = await get<Page>(url('/api/library/history', `before=${next.value}`))
+    if (asked !== album.value) return
     changes.value = [...changes.value, ...page.changes]
     next.value = page.next
   }
 
   async function open(id: number) {
-    details.value = { ...details.value, [id]: await get<LibraryChange>(`/api/library/changes/${id}`) }
+    const asked = album.value
+    const c = await get<LibraryChange>(url(`/api/library/changes/${id}`))
+    if (asked === album.value) details.value = { ...details.value, [id]: c }
   }
 
   // reverse asks first, as a Save does, when putting tracks back would split
@@ -72,9 +95,10 @@ export const useHistory = defineStore('history', () => {
   function applyChange(c: LibraryChange) {
     const save = running.value[c.id]
     if (c.state === 'queued' || c.state === 'writing') return
-    // A run nobody here started ends in the list too, and so does a delete.
+    // The list also reloads when a run nobody here started ends, when a delete
+    // ends, and when a Save it shows as writing ends.
     if (save === undefined) {
-      if (c.run || c.kind === 'delete') void load()
+      if (c.run || c.kind === 'delete' || changes.value.some((x) => x.id === c.id)) void load()
       return
     }
     const { [c.id]: _, ...rest } = running.value
@@ -92,5 +116,5 @@ export const useHistory = defineStore('history', () => {
     details.value = {}
   }
 
-  return { changes, next, loading, error, details, running, conflicts, load, more, open, reverse, applyChange, clear }
+  return { changes, next, loading, error, details, running, conflicts, album, load, more, open, reverse, applyChange, clear }
 })

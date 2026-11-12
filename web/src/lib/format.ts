@@ -79,6 +79,15 @@ export function releaseDate(date?: string): string {
   return `${Number(m[3])} ${longMonths[Number(m[2]) - 1]} ${m[1]}`
 }
 
+const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+// longDate is a moment in full, local time: "Wednesday 11 November 2026, 12:31".
+export function longDate(time: string): string {
+  const d = new Date(time)
+  if (Number.isNaN(d.getTime())) return ''
+  return `${weekdays[d.getDay()]} ${d.getDate()} ${longMonths[d.getMonth()]} ${d.getFullYear()}, ${clock(d)}`
+}
+
 const results: Record<DownloadStatus, string> = {
   queued: 'Queued',
   running: 'Downloading',

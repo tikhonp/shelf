@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
+import LibAlbumHistory from '../components/LibAlbumHistory.vue'
 import LibAsk from '../components/LibAsk.vue'
 import LibBulk from '../components/LibBulk.vue'
 import LibCoverDialog from '../components/LibCoverDialog.vue'
@@ -44,6 +45,8 @@ const id = computed(() => (route.params.id ? Number(route.params.id) : undefined
 const field = computed(() => (typeof route.query.field === 'string' ? route.query.field : ''))
 const issues = computed(() => route.query.view === 'issues')
 const guide = computed(() => route.query.view === 'guide')
+// ?view=history puts the album's History in place of the Editor and the Tracks window.
+const albumHistory = computed(() => !!id.value && route.query.view === 'history')
 const coverOpen = ref(false)
 // An outcome in the Inbox links here with ?history=1 to open History.
 const historyOpen = ref(route.query.history === '1')
@@ -106,6 +109,7 @@ function leave() {
   else if (document.activeElement instanceof HTMLElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur()
   else if (bulk.panel) bulk.panel = false
   else if (historyOpen.value) historyOpen.value = false
+  else if (albumHistory.value) void router.push({ query: {} })
   else if (id.value) void router.push({ name: 'library' })
 }
 
@@ -163,11 +167,11 @@ onBeforeUnmount(() => {
   editor.close()
 })
 
-// The Save can give the album a new ID, and the address follows it.
+// The Save can give the album a new ID, and the address follows it in the same view.
 watch(
   () => editor.album?.id,
   (now) => {
-    if (now && id.value && now !== id.value) void router.replace({ name: 'album', params: { id: now } })
+    if (now && id.value && now !== id.value) void router.replace({ name: 'album', params: { id: now }, query: route.query })
   },
 )
 
@@ -255,9 +259,13 @@ watch(
       <LibSplit label="album list" @move="moveList" />
       <LibHistory class="editor" @close="historyOpen = false" />
     </template>
+    <template v-else-if="id && albumHistory">
+      <LibSplit label="album list" @move="moveList" />
+      <LibAlbumHistory class="editor" :album-id="id" @close="router.push({ name: 'library' })" @editor="router.push({ query: {} })" />
+    </template>
     <template v-else-if="id">
       <LibSplit label="album list" @move="moveList" />
-      <LibEditor ref="editorPanel" class="editor" @close="router.push({ name: 'library' })" @cover="coverOpen = true" />
+      <LibEditor ref="editorPanel" class="editor" @close="router.push({ name: 'library' })" @cover="coverOpen = true" @history="router.push({ query: { view: 'history' } })" />
       <LibSplit label="track list" @move="moveTracks" />
       <section class="win tracks" aria-labelledby="ld-t">
         <div class="tb"><h2 id="ld-t">Tracks</h2><span class="stripes"></span></div>

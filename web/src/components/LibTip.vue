@@ -4,7 +4,7 @@ import { vVars } from '../lib/vars'
 
 // A note that opens under the pointer after 350ms. It sits on the page's root,
 // because the panels clip what overflows them.
-const props = defineProps<{ title: string; note: string; open?: boolean }>()
+const props = defineProps<{ title?: string; note: string; open?: boolean }>()
 const hover = ref(false)
 const at = ref({ '--x': '0px', '--y': '0px' })
 const root = ref<HTMLElement>()
@@ -35,5 +35,5 @@ onBeforeUnmount(() => clearTimeout(timer))
 
 <template>
   <span ref="root" :class="{ 'has-tip': note }" :aria-describedby="shown ? id : undefined" @pointerenter="enter" @pointerleave="leave"><span class="tip-t"><slot /></span></span>
-  <Teleport v-if="shown" to=".rs"><span :id="id" v-vars="at" class="tipbox at" role="tooltip"><span class="tip-h">{{ title }}</span><span>{{ note }}</span></span></Teleport>
+  <Teleport v-if="shown" to=".rs"><span :id="id" v-vars="at" class="tipbox at" role="tooltip"><span v-if="title" class="tip-h">{{ title }}</span><span>{{ note }}</span></span></Teleport>
 </template>

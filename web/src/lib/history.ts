@@ -1,5 +1,42 @@
 import type { ChangeFile, LibraryChange } from '../api/types'
+import { runTitle } from './bulk'
 import { count, size } from './format'
+
+// stateWord is a change's pill. A queued change says Saving, as one that writes does.
+export function stateWord(c: LibraryChange): string {
+  if (c.undone) return 'Undone'
+  if (c.state === 'partial') return 'Partial'
+  if (c.state === 'failed') return 'Failed'
+  if (c.kind === 'delete') return c.state === 'done' ? 'Deleted' : 'Deleting'
+  return c.state === 'done' ? 'Saved' : 'Saving'
+}
+
+export function stateClass(c: LibraryChange): string {
+  if (c.undone) return 'canceled'
+  if (c.state === 'done') return 'done'
+  if (c.state === 'partial') return 'partial'
+  if (c.state === 'failed') return 'failed'
+  return 'run'
+}
+
+// reversible is a Save that wrote. A delete has no undo.
+export const reversible = (c: LibraryChange) => c.kind !== 'delete' && (c.state === 'done' || c.state === 'partial')
+
+// changeTitle names the kind of change, for an album's History, where the
+// album's name is already in the title bar.
+export function changeTitle(c: LibraryChange): string {
+  if (c.run) return runTitle(c.run.fixes)
+  if (c.kind === 'delete') return 'Delete'
+  return c.tags === 0 && c.cover ? 'Save: cover' : 'Save'
+}
+
+// changeTags is the Tags column of an album's History: 4, Cover, or 4 · Cover.
+export function changeTags(c: LibraryChange): string {
+  if (c.kind === 'delete') return ''
+  if (c.tags > 0 && c.cover) return `${c.tags} · Cover`
+  if (c.cover) return 'Cover'
+  return String(c.tags)
+}
 
 export interface HistoryLine {
   track: string

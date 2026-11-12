@@ -455,3 +455,154 @@ test('Delete asks in a dialog, shows the delete running, and goes back to the li
   expect(router.currentRoute.value.name).toBe('library')
   w.unmount()
 })
+
+const change = (id: number, over: Partial<LibraryChange> = {}): LibraryChange => ({
+  id, kind: 'save', target: null, album_id: 7, folder: 'rock/x', title: 'Blue', artist: 'Joni', state: 'done', reason: '', error: '',
+  undone: false, tags: 2, cover: false, conflicts: [], job_id: 1, created_at: '2026-11-04T18:00:00Z', finished_at: '2026-11-04T18:00:01Z', author: 'Tikhon', ...over,
+})
+const albumDownload = download(418, { status: 'done', folder: 'rock/x', author: 'Telegram @tikhon', format: 'qobuz:max', finished_at: '2026-10-12T10:00:00Z' })
+// folderDownloads answers the downloads store with nothing and the album's folder with downloads.
+const folderDownloads = (ds: ReturnType<typeof download>[]) => (url: string) => (url.includes('folder=') ? list(ds) : list([]))
+
+test('the History cap opens the album\'s History, and the lit cap or Esc brings the Editor back', async () => {
+  const { w, router, calls } = await at('/library/7', { '/api/library/history': { changes: [change(9)], next: null }, '/api/downloads': folderDownloads([]) })
+  const caps = w.find('[aria-labelledby=ld-e] .tb').findAll('button').map((b) => b.text())
+  expect(caps.indexOf('History')).toBe(caps.indexOf('All fields') + 1)
+  expect(caps.indexOf('Delete')).toBe(caps.indexOf('History') + 1)
+  await w.find('[aria-labelledby=ld-e] .tb').findAll('button').find((b) => b.text() === 'History')!.trigger('click')
+  await flushPromises()
+  expect(router.currentRoute.value.fullPath).toBe('/library/7?view=history')
+  const win = w.find('[aria-labelledby=ld-ah]')
+  expect(win.find('.tb').text()).toContain('Blue')
+  expect(w.find('[aria-labelledby=ld-e]').exists()).toBe(false)
+  expect(w.find('[aria-labelledby=ld-t]').exists()).toBe(false)
+  expect(calls.some((c) => c.url === '/api/library/history?album=7')).toBe(true)
+  const lit = win.find('.tb button[aria-pressed=true]')
+  expect(lit.text()).toBe('History')
+  await lit.trigger('click')
+  await flushPromises()
+  expect(router.currentRoute.value.fullPath).toBe('/library/7')
+  expect(w.find('[aria-labelledby=ld-e]').exists()).toBe(true)
+  await router.push('/library/7?view=history')
+  await flushPromises()
+  await key('Escape')
+  expect(router.currentRoute.value.fullPath).toBe('/library/7')
+  w.unmount()
+})
+
+test('album History names each change, its author, its tags and its state', async () => {
+  const changes = [
+    change(20, { state: 'queued', finished_at: null }),
+    change(19, { tags: 0, cover: true, author: 'CLI' }),
+    change(18, { run: { fixes: ['replaygain'], albums: 20, files: 240, skipped: 0, failed: 0 }, tags: 44 }),
+    change(17, { tags: 4, cover: true, state: 'partial', author: undefined }),
+    change(16, { undone: true, author: 'Anonymous' }),
+    change(15, { kind: 'delete', state: 'done', tags: 0 }),
+  ]
+  const { w } = await at('/library/7?view=history', { '/api/library/history': { changes, next: null }, '/api/downloads': folderDownloads([]) })
+  const rows = w.findAll('.g-ah:not(.thead)')
+  const cells = (i: number) => rows[i]!.findAll('[role=cell]').map((c) => c.text())
+  expect(rows.map((r) => r.find('.ttl').text())).toEqual(['Save', 'Save: cover', 'Run: ReplayGain', 'Save', 'Save', 'Delete'])
+  expect(rows.map((r) => r.find('.by').text())).toEqual(['By Tikhon', 'By CLI', 'By Tikhon', 'By Unknown', 'By Anonymous', 'By Tikhon'])
+  expect(rows[2]!.find('.sub').text()).toBe('By Tikhon · Run on 20 albums, undone together')
+  expect(rows.map((r) => r.find('.pill').text())).toEqual(['Saving', 'Saved', 'Saved', 'Partial', 'Undone', 'Deleted'])
+  expect(cells(1)[1]).toBe('Cover')
+  expect(cells(3)[1]).toBe('4 · Cover')
+  expect(cells(5)[1]).toBe('')
+  expect(rows.map((r) => r.find('button.key').exists() ? r.find('button.key').text() : '')).toEqual(['', 'Undo', 'Undo run', 'Undo', 'Redo', ''])
+  w.unmount()
+})
+
+test('Undo run undoes the whole run, and a run opened here lists only this album\'s files', async () => {
+  const run = change(18, { run: { fixes: ['replaygain'], albums: 20, files: 240, skipped: 0, failed: 0 }, tags: 44 })
+  const file = { track_id: 1, path: 'rock/x/1.flac', kind: 'audio', written: true, revision: 'r', cover_before: '', cover_after: '', keys: [{ key: 'REPLAYGAIN_TRACK_GAIN', before: [], after: ['-7.1 dB'] }] }
+  const { w, calls } = await at('/library/7?view=history', {
+    '/api/library/history': { changes: [run], next: null },
+    '/api/library/changes/18/undo': { ...run, id: 30, kind: 'undo', target: 18, state: 'queued' },
+    '/api/library/changes/18': { ...run, files: [file] },
+    '/api/downloads': folderDownloads([]),
+  })
+  await w.find('.g-ah:not(.thead) .lib-open').trigger('click')
+  await flushPromises()
+  expect(calls.some((c) => c.url === '/api/library/changes/18?album=7')).toBe(true)
+  const line = w.find('.lib-ba .g-ba:not(.thead)')
+  expect(line.text()).toContain('1.flac')
+  expect(line.text()).not.toContain('x/1.flac')
+  await button(w, 'Undo run').trigger('click')
+  await flushPromises()
+  expect(calls.some((c) => c.url === '/api/library/changes/18/undo' && c.init?.method === 'POST')).toBe(true)
+  w.unmount()
+})
+
+test('the time is relative, and a hover note gives the full date', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  try {
+    const created = new Date(2026, 10, 11, 12, 31)
+    const { w } = await at('/library/7?view=history', { '/api/library/history': { changes: [change(9, { created_at: created.toISOString() })], next: null }, '/api/downloads': folderDownloads([]) })
+    const when = w.find('.g-ah:not(.thead) .has-tip')
+    expect(when.text()).toMatch(/ago|just now/)
+    await when.trigger('pointerenter', { pointerType: 'mouse' })
+    await vi.advanceTimersByTimeAsync(400)
+    expect(document.querySelector('.tipbox')?.textContent).toBe('Wednesday 11 November 2026, 12:31')
+    await when.trigger('pointerleave', { pointerType: 'mouse' })
+    expect(document.querySelector('.tipbox')).toBeNull()
+    w.unmount()
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+test('the download that brought the album comes last in its History, with an Open link', async () => {
+  const { w, calls } = await at('/library/7?view=history', { '/api/library/history': { changes: [change(9)], next: null }, '/api/downloads': folderDownloads([albumDownload]) })
+  expect(calls.some((c) => c.url === '/api/downloads?folder=rock%2Fx')).toBe(true)
+  const part = w.find('[aria-label=Download]')
+  expect(part.find('.lib-h').text()).toBe('Download')
+  const r = part.find('.g-ah')
+  expect(r.find('.ttl').text()).toBe('Downloaded from Qobuz')
+  expect(r.find('.sub').text()).toBe('By Telegram @tikhon · Max')
+  expect(r.find('.pill').text()).toBe('Done')
+  expect(r.find('a[href="/downloads/418"]').text()).toBe('Open')
+  w.unmount()
+})
+
+test('album History with no saves shows NO SAVES, and no Download part without a download', async () => {
+  const { w } = await at('/library/7?view=history', { '/api/library/history': { changes: [], next: null }, '/api/downloads': folderDownloads([]) })
+  expect(w.find('[aria-labelledby=ld-ah]').text()).toContain('NO SAVES')
+  expect(w.find('[aria-label=Download]').exists()).toBe(false)
+  w.unmount()
+})
+
+test('a failed downloads call leaves the Download part out and the History as it is', async () => {
+  const { w } = await at('/library/7?view=history', {
+    '/api/library/history': { changes: [change(9)], next: null },
+    '/api/downloads': (url: string) => (url.includes('folder=') ? new Reply(500, { error: 'down' }) : list([])),
+  })
+  expect(w.find('[aria-label=Download]').exists()).toBe(false)
+  expect(w.findAll('.g-ah:not(.thead)').length).toBe(1)
+  expect(w.find('[aria-labelledby=ld-ah] [role=alert]').exists()).toBe(false)
+  w.unmount()
+})
+
+test('Load more reads the album\'s next page', async () => {
+  const { w, calls } = await at('/library/7?view=history', {
+    '/api/library/history': (url: string) => (url.includes('before=') ? { changes: [change(5)], next: null } : { changes: [change(9)], next: 9 }),
+    '/api/downloads': folderDownloads([albumDownload]),
+  })
+  await button(w, 'Load more').trigger('click')
+  await flushPromises()
+  expect(calls.some((c) => c.url === '/api/library/history?before=9&album=7')).toBe(true)
+  expect(w.findAll('[aria-labelledby=ld-ah] [role=table]')[0]!.findAll('.g-ah:not(.thead)').length).toBe(2)
+  expect(button(w, 'Load more')).toBeUndefined()
+  w.unmount()
+})
+
+test('the global History keeps listing the whole library after an album\'s', async () => {
+  const { w, router, calls } = await at('/library/7?view=history', { '/api/library/history': { changes: [change(9)], next: null }, '/api/downloads': folderDownloads([]) })
+  await router.push('/library')
+  await flushPromises()
+  await button(w, 'History').trigger('click')
+  await flushPromises()
+  expect(calls.some((c) => c.url === '/api/library/history')).toBe(true)
+  expect(w.find('.g-lh:not(.thead) .ttl').text()).toBe('Blue')
+  w.unmount()
+})
