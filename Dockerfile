@@ -17,7 +17,7 @@ FROM golang:${GO_VERSION}-alpine AS base
 # in go.mod.
 FROM base AS dev
 RUN go install github.com/air-verse/air@v1.67.4 && \
-    go install github.com/pressly/goose/v3/cmd/goose@v3.30.0
+    go install github.com/pressly/goose/v3/cmd/goose@v3.30.1
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download && go mod verify

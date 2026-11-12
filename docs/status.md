@@ -50,6 +50,8 @@ Since `v1.0.6`, a run's row in an album's History counts only that album's tags.
 
 Since `v1.0.6`, `shelf manage users add` and `set-password` take `--password-stdin`. A script can then make an account with `docker exec -i` and a password file, without `expect` driving a terminal. [auth.md](auth.md#account-commands) describes it.
 
+Since 2026-11-12, shelf uses goose v3.30.1 and `github.com/mfridman/interpolate` v0.2.0. interpolate had stayed on v0.0.2, because v0.2.0 renamed its API and goose v3.30.0 did not build with it.
+
 A pushed `v*` tag now deploys through sh-blackberry and doco-cd, as [deployment.md](deployment.md#deploys) describes.
 
 ## Operational notes
@@ -62,6 +64,6 @@ A pushed `v*` tag now deploys through sh-blackberry and doco-cd, as [deployment.
 
 ## Dependency constraints
 
-`github.com/mfridman/interpolate` stays on v0.0.2 because goose v3.30.0 does not build with v0.2.0, which renamed its API.
+TypeScript stays on 6.0.3 because vue-tsc 3.3.14 cannot start with TypeScript 7, which no longer exports `lib/tsc`. vue-tsc will not get TypeScript 7 support. Vue Language Tools v4, in [draft PR #6170](https://github.com/vuejs/language-tools/pull/6170), replaces it with `@vue/content-mapper` and `tsc --runExternalCode`, and needs TypeScript 7.1. Move when TypeScript 7.1 and `@vue/content-mapper` 4 are both stable. Moving means putting `vueCompilerOptions` under `contentMappers[].options` in the tsconfig, and declaring global components in `GlobalComponents`, because v4 always reports unknown ones.
 
-TypeScript stays on 6.0.3 because vue-tsc 3.3.14 cannot start with TypeScript 7, which no longer exports `lib/tsc`. Keep the `overrides` in [web/package.json](../web/package.json) for glob 14.0.4 or later under js-beautify and minimatch 11.0.5 or later under editorconfig until js-beautify depends on fixed versions, then drop them.
+Keep the `overrides` in [web/package.json](../web/package.json) for glob 14.0.4 or later under js-beautify and minimatch 11.0.5 or later under editorconfig until js-beautify depends on fixed versions, then drop them.
