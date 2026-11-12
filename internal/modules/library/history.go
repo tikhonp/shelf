@@ -135,6 +135,10 @@ func (m *Module) getChange(c *echo.Context) error {
 	if err != nil {
 		return err
 	}
+	album, err := intParam(c, "album", 0, 1, 1<<62)
+	if err != nil {
+		return err
+	}
 	ctx := c.Request().Context()
 	row, err := m.store.change(ctx, m.store.db.R, id)
 	if errors.Is(err, errNotFound) {
@@ -146,7 +150,7 @@ func (m *Module) getChange(c *echo.Context) error {
 	out := m.changeJSON(ctx, row)
 	var files []changeFile
 	if out.Run != nil {
-		files, err = m.runFiles(ctx, id)
+		files, err = m.runFiles(ctx, id, int64(album))
 	} else {
 		files, err = m.store.changeFiles(ctx, id)
 	}

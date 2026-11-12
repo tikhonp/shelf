@@ -93,7 +93,7 @@ A cover edit is part of a Save: `"cover": {"upload"}` puts an uploaded image in 
 
 ## History
 
-The history lists the saves and deletes newest first, `GET /api/library/history?before=&limit=`, each with its `undone` and `cover` flags. A delete has no undo or redo. `POST /api/library/changes/{id}/undo` and `/redo` work on a save, in any order, as often as the owner likes.
+The history lists the saves and deletes newest first, `GET /api/library/history?before=&limit=&album=`, each with its `undone` and `cover` flags. With `album`, it lists one album's saves and deletes: the ones recorded for the album, the runs that wrote to it, and any change whose files the index now puts in it. On a run, `GET /api/library/changes/{id}?album=` lists only that album's files. A delete has no undo or redo. `POST /api/library/changes/{id}/undo` and `/redo` work on a save, in any order, as often as the owner likes.
 
 - **What goes back.** shelf reads each file the save replaced. A key the save changed goes back to its old value only while it holds the value the save wrote. A redo works the other way. A key that already holds the value it would go back to is left as it is. Any other value is a conflict, which stays and is listed on the undo or redo as `{"path", "key"}`.
 - **Release IDs.** The MusicBrainz album, release group, album artist, release track and disc IDs go back together or not at all. A conflict on one of them, in any file, leaves all of them in every file and lists them as conflicts, so a file never ends with IDs from two releases.
@@ -405,6 +405,12 @@ The test's container installs Alpine's ffmpeg, the one production has, because a
 | A conflict on one release ID keeps every release ID in every file | `TestUndoKeepsReleaseIDsTogether` |
 | An undo that merges tracks back asks first | `TestUndoAsksBeforeNavidromeMovesAStar` |
 | History pages, retention, a second undo while one waits, Clear history keeping a save whose undo waits | `TestHistory` |
+| An album's history: no changes and an unknown album answer an empty list, a Save shows for its album only, an unknown author, `album=0` and `album=x` answer 400, `album` on a plain change changes nothing | `TestAlbumHistory` |
+| A run shows in each album's history, its detail lists only that album's files, and its files find it when its album IDs are stale | `TestAlbumHistoryRun` |
+| An album's history pages with `before` and `limit`, and the last page has `next` null | `TestAlbumHistoryPages` |
+| An undone Save with conflicts stays in the album's history as undone | `TestAlbumHistoryShowsUndoneSaveWithConflicts` |
+| The files of a Save with a stale album ID still put it in the album's history | `TestAlbumHistoryFollowsFilesToTheirAlbum` |
+| A delete shows in its album's history | `TestAlbumHistoryShowsADelete` |
 | Uploads taken and refused; covers by ID; the embedded copy scaled to 1000 in its format, and kept when small | `TestCoverUploads` |
 | A cover replaces the front cover only where there is one, writes `cover.jpg` and removes `cover.png`; undo and redo; every track; Delete | `TestSaveCover` |
 | A replaced cover keeps its description, such as "Cover"; the undo leaves the tags and pictures hashing as before; an undo of a Delete brings the description back | `TestSaveCoverKeepsDescription` |

@@ -406,11 +406,17 @@ func (s *Service) Get(ctx context.Context, id int64) (Detail, error) {
 	return det, nil
 }
 
-// List returns top-level downloads, newest first. An artist's or label's
-// albums are in its Detail.
+// List returns top-level downloads, newest first, or with a Folder every
+// download of that folder. An artist's or label's albums are in its Detail.
 func (s *Service) List(ctx context.Context, f Filter) ([]Download, error) {
-	where := []string{"parent_id IS NULL"}
+	var where []string
 	var args []any
+	if f.Folder != "" {
+		where = append(where, "folder = ?")
+		args = append(args, f.Folder)
+	} else {
+		where = append(where, "parent_id IS NULL")
+	}
 	if len(f.Statuses) > 0 {
 		in := make([]string, len(f.Statuses))
 		for i, st := range f.Statuses {

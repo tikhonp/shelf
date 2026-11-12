@@ -183,6 +183,7 @@ func (m *Module) list(c *echo.Context) error {
 		}
 	}
 	f.Source = c.QueryParam("source")
+	f.Folder = c.QueryParam("folder")
 	if v := c.QueryParam("before"); v != "" {
 		n, err := strconv.ParseInt(v, 10, 64)
 		if err != nil || n < 0 {

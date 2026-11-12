@@ -288,8 +288,12 @@ func (m *Module) history(c *echo.Context) error {
 	if err != nil {
 		return err
 	}
+	album, err := intParam(c, "album", 0, 1, 1<<62)
+	if err != nil {
+		return err
+	}
 	ctx := c.Request().Context()
-	rows, err := m.store.saves(ctx, int64(before), limit+1)
+	rows, err := m.store.saves(ctx, int64(before), limit+1, int64(album))
 	if err != nil {
 		return err
 	}
@@ -315,9 +319,27 @@ func (m *Module) clearHistory(c *echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]int64{"deleted": n})
 }
 
-func (s store) saves(ctx context.Context, before int64, limit int) ([]changeRow, error) {
+// belongsToAlbum keeps the top-level changes of the album in its four
+// arguments: the row's own album, a run's album writes, and the files of
+// either, by the album the index puts each file in now, because a stored
+// album_id can be an old row ID. Each EXISTS stays on one key of
+// library_change_files, so SQLite reads only that change's files.
+const belongsToAlbum = `(library_changes.album_id = ?
+	OR EXISTS (SELECT 1 FROM library_changes k WHERE k.parent = library_changes.id AND k.album_id = ?)
+	OR EXISTS (SELECT 1 FROM library_change_files f JOIN library_files lf ON lf.path = f.path
+		WHERE f.change_id = library_changes.id AND lf.album_id = ?)
+	OR EXISTS (SELECT 1 FROM library_changes k JOIN library_change_files f ON f.change_id = k.id JOIN library_files lf ON lf.path = f.path
+		WHERE k.parent = library_changes.id AND lf.album_id = ?))`
+
+// saves lists the saves and deletes, newest first. A positive album keeps
+// the ones that belong to it.
+func (s store) saves(ctx context.Context, before int64, limit int, album int64) ([]changeRow, error) {
 	q := `SELECT ` + changeCols + ` FROM library_changes WHERE kind IN ('save', 'delete') AND parent IS NULL`
 	args := []any{}
+	if album > 0 {
+		q += ` AND ` + belongsToAlbum
+		args = append(args, album, album, album, album)
+	}
 	if before > 0 {
 		q += ` AND id < ?`
 		args = append(args, before)

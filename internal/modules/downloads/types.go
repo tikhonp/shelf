@@ -114,6 +114,9 @@ type Detail struct {
 type Filter struct {
 	Statuses []Status
 	Source   string
+	// Folder keeps the downloads of one release folder, relative to the music
+	// root. It takes in an artist's or label's albums, which hold the folders.
+	Folder string
 	// Before is an ID cursor: downloads older than this one.
 	Before int64
 	Limit  int

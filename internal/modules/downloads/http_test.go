@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -196,6 +197,52 @@ func TestListPagesAndFilters(t *testing.T) {
 	}
 	if rec := r.do(http.MethodGet, "/api/downloads/x", nil); rec.Code != http.StatusNotFound {
 		t.Fatalf("%d", rec.Code)
+	}
+}
+
+func TestListFiltersByFolder(t *testing.T) {
+	r := newRig(t)
+	top := r.queue(QueueRequest{Ref: album("album-1")})
+	parent := r.queue(QueueRequest{Ref: artist("artist-1")})
+	other := r.queue(QueueRequest{Ref: album("album-2")})
+	child := r.queue(QueueRequest{Ref: album("album-3")})
+	set := func(id int64, folder string, parentID *int64) {
+		t.Helper()
+		if _, err := r.svc.db.W.ExecContext(bg, `UPDATE downloads SET folder = ?, parent_id = ? WHERE id = ?`, folder, parentID, id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	set(top.ID, "qobuz/Blue", nil)
+	set(child.ID, "qobuz/Hejira", &parent.ID)
+	set(other.ID, "qobuz/Mingus", nil)
+	ids := func(query string) []int64 {
+		t.Helper()
+		var page listJSON
+		rec := r.do(http.MethodGet, "/api/downloads"+query, nil)
+		if err := json.Unmarshal(rec.Body.Bytes(), &page); err != nil || rec.Code != http.StatusOK || page.Downloads == nil || page.Next != nil {
+			t.Fatalf("%s: %d %s", query, rec.Code, rec.Body)
+		}
+		var out []int64
+		for _, d := range page.Downloads {
+			out = append(out, d.ID)
+		}
+		return out
+	}
+	if got := ids("?folder=qobuz/Blue"); !slices.Equal(got, []int64{top.ID}) {
+		t.Errorf("top-level: %v", got)
+	}
+	if got := ids("?folder=qobuz/Hejira"); !slices.Equal(got, []int64{child.ID}) {
+		t.Errorf("child of an artist: %v", got)
+	}
+	if got := ids("?folder=qobuz/Blue&status=failed"); len(got) != 0 {
+		t.Errorf("status still applies: %v", got)
+	}
+	if got := ids("?folder=qobuz/Nothing"); len(got) != 0 {
+		t.Errorf("no download: %v", got)
+	}
+	// An empty folder is no filter, so the child stays out of the list.
+	if got := ids("?folder="); slices.Contains(got, child.ID) || len(got) != 3 {
+		t.Errorf("empty folder: %v", got)
 	}
 }
 

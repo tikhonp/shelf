@@ -997,10 +997,18 @@ func (s store) runSummary(ctx context.Context, id int64) (*runSummaryJSON, error
 }
 
 // runFiles lists the first files a run wrote, for its row in the history. A
-// whole run would be thousands of lines nobody reads.
-func (m *Module) runFiles(ctx context.Context, id int64) ([]changeFile, error) {
+// whole run would be thousands of lines nobody reads. A positive album keeps
+// only the run's writes to that album, matched as belongsToAlbum matches them.
+func (m *Module) runFiles(ctx context.Context, id, album int64) ([]changeFile, error) {
+	q := `SELECT id FROM library_changes WHERE parent = ?`
+	args := []any{id}
+	if album > 0 {
+		q += ` AND (album_id = ? OR EXISTS (SELECT 1 FROM library_change_files f JOIN library_files lf ON lf.path = f.path
+			WHERE f.change_id = library_changes.id AND lf.album_id = ?))`
+		args = append(args, album, album)
+	}
 	var ids []int64
-	if err := m.store.db.R.SelectContext(ctx, &ids, `SELECT id FROM library_changes WHERE parent = ? ORDER BY id`, id); err != nil {
+	if err := m.store.db.R.SelectContext(ctx, &ids, q+` ORDER BY id`, args...); err != nil {
 		return nil, err
 	}
 	var out []changeFile
