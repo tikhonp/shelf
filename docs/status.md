@@ -24,6 +24,8 @@ shelf-wrapper builds from upstream's `ghcr.io/worldobservationlog/wrapper-lite` 
 
 The [sign-in and agent review redesign](plans/signin-and-agent-review-design.md) and its [second pass](plans/signin-and-agent-review-second-pass.md) run in production.
 
+[Album History](plans/album-history.md) is designed and not built. Its screens are in `docs/ui/design/screens`.
+
 An agent's 401 for a malformed token says whether the prefix is missing, a character is not allowed, or the length is wrong, and it gives the length for the whole token. The old message compared the 43 characters after the prefix with the whole token's length.
 
 An agent connection can get a new secret on Status or with `shelf manage agents secret <id>`, and Connect hides its permission rockers until Choose.
