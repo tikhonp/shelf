@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Album History, phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/a5b7ace143a059430476cecc9e3c7696">
+<link rel="stylesheet" href="/_blob/177c73572a90ee2da845c66f786ac60a">
+<link rel="stylesheet" href="/_blob/0a3be8b5c4d79406385685d0b28f318f">
+<link rel="stylesheet" href="/_blob/a3ca87d992872d3590faebd39364c3d8">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+.rs .ah-prow{grid-template-columns:minmax(0,1fr) auto;width:100%;margin:0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;color:inherit;font:inherit;text-align:left;text-decoration:none;cursor:pointer}
+.rs .ah-prow .lib-q{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.rs .row .sub .by{color:var(--text);font-weight:600}
+.rs .ah-pline{display:grid;grid-template-columns:52px minmax(0,1fr);gap:2px 8px;padding:8px 14px;border-bottom:1px solid var(--line);font-size:14px}
+.rs .ah-pline .mono{grid-column:1 / -1;font-size:12.5px;overflow-wrap:anywhere}
+.rs .ah-pline span{overflow-wrap:anywhere}
+.rs .ah-note{padding:8px 14px;border-bottom:1px solid var(--line)}
+</style>
+</helmet>
+<div class="rs ph desk {{mode}}" style="position: relative; width: 390px; height: 844px; overflow: hidden">
+<div class="stack">
+
+<sc-if value="{{isAlbum}}" hint-placeholder-val="{{ true }}">
+<section class="win" aria-labelledby="la-t">
+<div class="tb">
+<button type="button" class="wbtn" aria-label="Back to the list"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+<h1 id="la-t">Album</h1>
+<span class="stripes"></span>
+<button type="button" class="wbtn txt" onClick="{{toHistory}}">History</button>
+<button type="button" class="wbtn txt">Delete</button>
+<button type="button" class="wbtn q" aria-label="Note on this page" aria-pressed="false">?</button>
+</div>
+<div class="vscroll">
+<div style="display: flex; align-items: center; gap: 14px; padding: 14px 12px">
+<span class="cv a-tide lib-art" style="width: 88px; height: 88px"></span>
+<div class="two" style="gap: 3px">
+<h2 style="font-size: 19px; font-weight: 700; line-height: 1.2">Low Tide Hymns</h2>
+<span class="sub" style="font-size: 14px">Northern Static</span>
+<span style="margin-top: 5px"><span class="stk hi">Hi-Res 24/96</span></span>
+</div>
+</div>
+<button type="button" class="lib-irow" style="margin-bottom: 10px"><span class="led iss"></span><span>2 issues</span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></button>
+<div class="lcd lib-scope"><span class="lcd-l">ALL 11 TRACKS</span><span class="lcd-l num">48:12</span></div>
+<div class="pf"><div class="pf-open" style="cursor: default"><span class="two" style="gap: 2px"><span class="pf-l">Title</span><span class="pf-v none">Mixed</span></span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1.5"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></div></div>
+<div class="pf"><button type="button" class="pf-open" aria-label="Edit Artist, now Northern Static"><span class="two" style="gap: 2px"><span class="pf-l">Artist</span><span class="pf-v">Northern Static</span></span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></button></div>
+<div class="pf"><button type="button" class="pf-open" aria-label="Edit Album, now Low Tide Hymns"><span class="two" style="gap: 2px"><span class="pf-l">Album</span><span class="pf-v">Low Tide Hymns</span></span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></button></div>
+<div class="pf"><button type="button" class="pf-open" aria-label="Edit Album Artist, now Northern Static"><span class="two" style="gap: 2px"><span class="pf-l">Album Artist</span><span class="pf-v">Northern Static</span></span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></button></div>
+<div class="pf"><button type="button" class="pf-open" aria-label="Edit Release date, now 2019-03-22"><span class="two" style="gap: 2px"><span class="pf-l">Release date</span><span class="pf-v">2019-03-22</span></span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></button></div>
+<div class="pf"><button type="button" class="pf-open" aria-label="Edit Genre, now Post-Rock"><span class="two" style="gap: 2px"><span class="pf-l">Genre</span><span class="pf-v">Post-Rock</span></span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></button></div>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{isHistory}}" hint-placeholder-val="{{ false }}">
+<section class="win" aria-labelledby="lh-t">
+<div class="tb">
+<button type="button" class="wbtn" aria-label="Back to the album" onClick="{{toAlbum}}"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+<h1 id="lh-t">History</h1>
+<span class="stripes"></span>
+<button type="button" class="wbtn q" aria-label="Note on this page" aria-pressed="false">?</button>
+</div>
+<div class="vscroll">
+<div class="lib-h" style="position: static; border-top: 0"><span class="ell">Low Tide Hymns</span><span class="low">Northern Static</span></div>
+<sc-for list="{{rows}}" as="row" hint-placeholder-count="6">
+<sc-if value="{{row.isDownload}}" hint-placeholder-val="{{ false }}">
+<div class="lib-h" style="position: static"><span>Download</span></div>
+<a class="row ah-prow" href="#">
+<span class="two"><span class="ttl"><span class="ell">{{row.title}}</span></span><span class="sub ell"><span class="by">{{row.author}}</span> · {{row.when}}</span></span>
+<span class="lib-q"><span class="pill {{row.pill}}">{{row.state}}</span><span class="sub num">{{row.rest}}</span></span>
+</a>
+</sc-if>
+<sc-if value="{{row.isChange}}" hint-placeholder-val="{{ true }}">
+<button type="button" class="row ah-prow {{row.cur}}" aria-expanded="{{row.expanded}}" onClick="{{row.toggle}}">
+<span class="two"><span class="ttl"><span class="ell">{{row.title}}</span></span><span class="sub ell"><span class="by">{{row.author}}</span> · {{row.when}}</span></span>
+<span class="lib-q"><span class="pill {{row.pill}}">{{row.state}}</span><span class="sub num">{{row.tags}}</span></span>
+</button>
+</sc-if>
+<sc-if value="{{row.isOpen}}" hint-placeholder-val="{{ false }}">
+<div class="lib-ba">
+<sc-if value="{{row.hasOrigin}}" hint-placeholder-val="{{ false }}">
+<p class="ah-note t2 sm">From a reviewed proposal: <a href="#">proposal {{row.origin}}</a></p>
+</sc-if>
+<sc-if value="{{row.isRun}}" hint-placeholder-val="{{ false }}">
+<p class="ah-note t2 sm">{{row.rest}}. The lines below are this album's.</p>
+</sc-if>
+<sc-for list="{{row.lines}}" as="l" hint-placeholder-count="3">
+<div class="ah-pline"><span class="mono">{{l.key}} · {{l.track}}</span><span class="t2">Before</span><span>{{l.before}}</span><span class="t2">After</span><span style="font-weight: 600">{{l.after}}</span></div>
+</sc-for>
+</div>
+</sc-if>
+</sc-for>
+</div>
+</section>
+<sc-if value="{{hasSlot}}" hint-placeholder-val="{{ false }}">
+<div class="win slot" role="group" aria-label="{{slotLabel}}">
+<div class="lib-save">
+<div class="lcd"><span class="lcd-l">{{slotLcd}}</span></div>
+<button type="button" class="key">{{slotKey}}</button>
+</div>
+</div>
+</sc-if>
+</sc-if>
+
+</div>
+<nav class="dock" aria-label="Main">
+<a href="#"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m20 20-4.5-4.5"></path></svg>Search</a>
+<a href="#"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"></rect><circle cx="9" cy="12" r="2"></circle><circle cx="15" cy="12" r="2"></circle><path d="M7 18l1.5-3h7L17 18"></path></svg>Downloads</a>
+<a href="#" class="on" aria-current="page"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18"></path><path d="M5 20V6h4v14"></path><path d="M9 20V9h4v11"></path><path d="m15 20 2-14 4 .6-2 13.4"></path></svg>Library</a>
+<a href="#"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17a8 8 0 1 1 16 0"></path><path d="M12 17l4-5"></path></svg>Status</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["album","history","open","run"],"default":"album"},"theme":{"editor":"enum","options":["night","day"],"default":"night"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { screen: null, open: undefined };
+  }
+  renderVals() {
+    const start = this.props.screen ?? 'album';
+    const screen = this.state.screen ?? (start === 'album' ? 'album' : 'history');
+    const startOpen = start === 'open' ? 1 : start === 'run' ? 3 : null;
+    const open = this.state.open !== undefined ? this.state.open : startOpen;
+    const theme = this.props.theme ?? 'night';
+    const data = [
+      { id: 1, when: '2 hours ago', title: 'Save', author: 'By Tikhon', tags: '33 tags', pill: 'done', state: 'Saved', key: 'Undo', lcd: '33 TAGS ON 11 TRACKS',
+        lines: [
+          { track: 'All tracks', key: 'RELEASEDATE', before: 'Empty', after: '2019-03-22' },
+          { track: 'All tracks', key: 'ALBUMARTIST', before: 'northern static', after: 'Northern Static' },
+          { track: 'All tracks', key: 'GENRE', before: 'Mixed', after: 'Post-Rock' }
+        ] },
+      { id: 2, when: '5 hours ago', title: 'Save', author: 'By Tikhon', tags: '22 tags', pill: 'done', state: 'Saved', key: 'Undo', lcd: '22 TAGS ON 11 TRACKS', origin: '12',
+        lines: [
+          { track: 'All tracks', key: 'MUSICBRAINZ_ALBUMID', before: 'Empty', after: '6c1f3a2e-8b0d-4f6e-9a31-2d7c5e8b4f10' },
+          { track: 'All tracks', key: 'MUSICBRAINZ_RELEASEGROUPID', before: 'Empty', after: 'b52e7d90-1c4a-4e3b-8f62-0a9d3c7e1b55' }
+        ] },
+      { id: 3, when: '1 day ago', title: 'Run: ReplayGain', author: 'By Tikhon', rest: 'Run on 20 albums, undone together', tags: '44 tags', pill: 'done', state: 'Saved', key: 'Undo run', lcd: 'RUN ON 20 ALBUMS', run: true,
+        lines: [
+          { track: 'All tracks', key: 'REPLAYGAIN_ALBUM_GAIN', before: 'Empty', after: '-7.12 dB' },
+          { track: 'All tracks', key: 'REPLAYGAIN_ALBUM_PEAK', before: 'Empty', after: '0.988' },
+          { track: '01.flac', key: 'REPLAYGAIN_TRACK_GAIN', before: 'Empty', after: '-6.40 dB' }
+        ] },
+      { id: 4, when: '3 days ago', title: 'Save', author: 'By CLI', tags: '11 tags', pill: 'canceled', state: 'Undone', key: 'Redo', lcd: '11 TAGS ON 11 TRACKS',
+        lines: [ { track: 'All tracks', key: 'ALBUMARTISTSORT', before: 'Empty', after: 'Northern Static' } ] },
+      { id: 5, when: '6 days ago', title: 'Save', author: 'By Tikhon', tags: '4 · Cover', pill: 'partial', state: 'Partial', key: 'Undo', lcd: '4 TAGS AND COVER',
+        lines: [
+          { track: '01.flac', key: 'TITLE', before: 'harbour wall', after: 'Harbour Wall' },
+          { track: 'All tracks', key: 'Cover', before: 'Empty', after: 'Changed' }
+        ] },
+      { id: 6, download: true, when: '30 days ago', title: 'Downloaded from Qobuz', author: 'By Telegram @tikhon', rest: 'Qobuz 27', pill: 'done', state: 'Done' }
+    ];
+    const rows = data.map((r) => ({
+      ...r,
+      isDownload: !!r.download,
+      isChange: !r.download,
+      isRun: !!r.run,
+      hasOrigin: !!r.origin,
+      isOpen: !r.download && open === r.id,
+      expanded: open === r.id ? 'true' : 'false',
+      cur: open === r.id ? 'cur' : '',
+      toggle: () => this.setState({ screen: 'history', open: open === r.id ? null : r.id })
+    }));
+    const openRow = data.find((r) => r.id === open && !r.download);
+    return {
+      mode: theme === 'day' ? 'day' : '',
+      isAlbum: screen === 'album',
+      isHistory: screen === 'history',
+      toHistory: () => this.setState({ screen: 'history', open: null }),
+      toAlbum: () => this.setState({ screen: 'album', open: null }),
+      rows,
+      hasSlot: !!openRow,
+      slotLabel: openRow ? (openRow.run ? 'Undo the run' : openRow.key === 'Redo' ? 'Redo this Save' : 'Undo this Save') : '',
+      slotLcd: openRow ? openRow.lcd : '',
+      slotKey: openRow ? openRow.key : ''
+    };
+  }
+}
+</script>
+</body>
+</html>

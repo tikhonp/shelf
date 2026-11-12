@@ -45,6 +45,32 @@ The owner settled these on 2026-11-12.
 - Add `folder=<path>` to `GET /api/downloads` in the downloads module. It returns the downloads that wrote into that release folder, with source, format, author, time and ID. The UI joins the two answers, because a module never reads another module's tables.
 - Every row field the screens show is already in `LibraryChange`.
 
+## Start here
+
+A new session reads CLAUDE.md, this plan, and the screens it builds, then these files for each step.
+
+1. API
+   - `internal/modules/library/http.go`. `GET /library/history` goes to `m.history`.
+   - `internal/modules/library/undo.go`. `saves()` is the query that the album filter changes.
+   - `internal/modules/library/runs_test.go` and `undo_test.go`, for how runs and undo are tested.
+   - `internal/modules/downloads/http.go`. `GET /downloads` goes to `m.list`. Also read `downloads.go` and `http_test.go`.
+   - `docs/architecture.md`, where the API table lists `/api/library/history`, `/api/library/changes/{id}` and `/api/downloads`.
+   - `docs/tags.md#history`, for the undo rules.
+2. Desktop
+   - `web/src/components/LibEditor.vue` and `LibHistory.vue`. The global History in `LibHistory.vue` already has the pills, the run note, the proposal link and the conflicts text.
+   - `web/src/components/library.test.ts`.
+   - Screens: `MS-desk-library-history-cap`, `MS-desk-library-album-history` and its `-compact` and `-day` versions, and the global `MS-desk-library-history` for comparison.
+3. Phone
+   - `web/src/components/LibPhoneAlbum.vue`, whose title bar gets the History cap.
+   - `web/src/pages/LibraryPage.vue`. The phone opens the Tagging guide with `?view=guide`, and History can open the same way. The `.win slot tall` box there holds `LibSaveBar` and will hold the Undo key.
+   - `web/src/components/InboxDetail.vue`, line 176, "Change … is in History on a desktop".
+   - `web/src/components/inbox.test.ts`.
+   - Screens: `MS-phone-library-history-cap`, `MS-phone-library-history`, `-open` and `-run`, and `MS-library-history-states`.
+4. Docs
+   - `docs/ui/design/README.md`, `docs/decisions.md`, `docs/status.md` and `docs/README.md`.
+
+Open a screen in a browser to see it. Add `?theme=day` to the address for Day. The screens are drawings, and the app's real data and words win where they differ. The boards they come from are in [ui/design/boards/album-history](../ui/design/boards/album-history), and the design README says how to export them again.
+
 ## Steps
 
 Each step is its own commit, with `make check`, `make lint`, `make web-check` and `docker build .` before it.

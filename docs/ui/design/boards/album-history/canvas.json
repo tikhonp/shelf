@@ -1,0 +1,35 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-11-11T21:10:00Z" },
+  "title": "Music Shelf: album History",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Lib-HistDesk.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 900, "title": "Desktop: album History, one Save open", "is_interactive": true },
+    "Lib-HistDeskEditor.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 900, "title": "Desktop: the Editor with the History cap", "is_interactive": true },
+    "Lib-HistDeskCompact.dc.html": { "x": 3040, "y": 0, "w": 1440, "h": 900, "title": "Desktop: album History, Compact rows", "is_interactive": true },
+    "Lib-HistDeskDay.dc.html": { "x": 4560, "y": 0, "w": 1440, "h": 900, "title": "Desktop: album History, Day", "is_interactive": true },
+    "Lib-HistPhone.dc.html": { "x": 0, "y": 1300, "w": 390, "h": 844, "title": "Phone: album, with the History cap", "is_interactive": true },
+    "Lib-HistPhoneList.dc.html": { "x": 470, "y": 1300, "w": 390, "h": 844, "title": "Phone: the album's History", "is_interactive": true },
+    "Lib-HistPhoneOpen.dc.html": { "x": 940, "y": 1300, "w": 390, "h": 844, "title": "Phone: one Save open, Undo in its slot", "is_interactive": true },
+    "Lib-HistPhoneRun.dc.html": { "x": 1410, "y": 1300, "w": 390, "h": 844, "title": "Phone: a run open, Undo run in its slot", "is_interactive": true },
+    "Lib-HistStates.dc.html": { "x": 0, "y": 2500, "w": 1440, "h": 1260, "title": "Album History states, Night" }
+  },
+  "order": [
+    "Lib-HistDesk.dc.html",
+    "Lib-HistDeskEditor.dc.html",
+    "Lib-HistDeskCompact.dc.html",
+    "Lib-HistDeskDay.dc.html",
+    "Lib-HistPhone.dc.html",
+    "Lib-HistPhoneList.dc.html",
+    "Lib-HistPhoneOpen.dc.html",
+    "Lib-HistPhoneRun.dc.html",
+    "Lib-HistStates.dc.html"
+  ],
+  "notes": {
+    "t-desk": { "x": 0, "y": -300, "text": "Desktop: album History", "kind": "title1", "maxW": 6000 },
+    "t-phone": { "x": 0, "y": 1000, "text": "Phone: album History", "kind": "title1", "maxW": 1800 },
+    "t-states": { "x": 0, "y": 2200, "text": "States", "kind": "title1", "maxW": 1440 }
+  },
+  "designSystems": []
+}

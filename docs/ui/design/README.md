@@ -118,6 +118,8 @@ These screens come from a third canvas, https://claude.ai/artifact/QQxnFV1qCfFVo
 | `MS-phone-library-history`, `-open`, `-run` | The album's History, a Save open, and a run open | `/library/:id` |
 | `MS-library-history-states` | Eight album History states at phone width | `/library/:id` |
 
+The canvas boards are copied into [boards/album-history](boards/album-history). To change a screen, edit its board, then run `NODE_PATH=web/node_modules node scripts/export-album-history.js docs/ui/design/boards/album-history docs/ui/design/screens` from the repo root. Copy the edited board back to the canvas so the two stay the same.
+
 ## Direction
 
 The look is a recording studio built around a British mixing console: blue-grey modules, ivory push buttons, red and blue knobs, lamps, small displays and a little wood. The look is only visual. UI text uses the glossary words in `CLAUDE.md` and never names the studio, so there is no "tape machine", "rack", "lathe" or "master" on screen.

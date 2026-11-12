@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Album History, desktop</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/a5b7ace143a059430476cecc9e3c7696">
+<link rel="stylesheet" href="/_blob/177c73572a90ee2da845c66f786ac60a">
+<link rel="stylesheet" href="/_blob/0a3be8b5c4d79406385685d0b28f318f">
+<link rel="stylesheet" href="/_blob/a3ca87d992872d3590faebd39364c3d8">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Condensed:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Pixelify+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+.rs .g-ah{grid-template-columns:104px minmax(0,1fr) 84px 150px 104px}
+.rs .row .sub .by{color:var(--text);font-weight:600}
+.rs .ah-note{padding:6px 14px;border-bottom:1px solid var(--line)}
+.rs .ah-tip{position:relative}
+.rs .ah-tip .tipbox{left:0;top:30px;width:260px}
+</style>
+</helmet>
+<div class="rs desk console {{mode}}" style="position: relative; width: 1440px; height: 900px; display: flex; flex-direction: column; overflow: hidden">
+<header class="menubar">
+<a class="brand" href="#"><span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>Music Shelf</a>
+<nav style="display: flex; gap: 6px" aria-label="Main">
+<a class="mb-item" href="#">Search</a>
+<a class="mb-item" href="#">Downloads</a>
+<a class="mb-item on" href="#" aria-current="page">Library</a>
+<a class="mb-item" href="#">Status</a>
+</nav>
+<div class="mb-right">
+<span class="leds" role="img" aria-label="Qobuz, Apple Music and Navidrome work"><span class="led ok" title="Qobuz works"></span><span class="led ok" title="Apple Music works"></span><span class="led ok" title="Navidrome answers"></span></span>
+<button type="button" class="key sm icon" aria-label="Help" title="Help">?</button>
+<button type="button" class="key sm icon" aria-label="Switch theme" title="Switch theme"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"></path><circle cx="12" cy="12" r="4"></circle></svg></button>
+<span class="vfd num">14:32</span>
+</div>
+</header>
+
+<div class="lib-main">
+
+<section class="win" style="flex: 0 0 372px" aria-labelledby="ld-a">
+<div class="tb">
+<h1 id="ld-a">Library</h1>
+<span class="stripes"></span>
+<button type="button" class="wbtn txt" aria-pressed="false">Select</button>
+<button type="button" class="wbtn txt" aria-pressed="false">History</button>
+</div>
+<div style="position: relative; display: flex; gap: 10px; padding: 12px 12px 0">
+<label class="field" style="flex: 1; min-width: 0">
+<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m20 20-4.5-4.5"></path></svg>
+<span class="sr">Search the library</span>
+<input type="search" value="" placeholder="Search">
+<kbd class="px t3" style="padding: 0 8px; font-size: 15px">/</kbd>
+</label>
+<button type="button" class="key srcbtn" style="height: 50px; max-width: 170px" aria-expanded="false" aria-haspopup="menu" aria-label="Filter: All albums"><span class="ell">All albums</span><svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+</div>
+<div class="rotary" role="radiogroup" aria-label="Sort by" style="margin-top: 12px; border-bottom: 0">
+<div class="rot-labels">
+<button type="button" role="radio" aria-checked="true"><span class="led"></span>Album</button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>Artist</button>
+<button type="button" class="knob grey" style="--s: 44px; --a: -75deg" aria-label="Change the sort, now Album" title="Press to turn"><i></i></button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>Year</button>
+<button type="button" role="radio" aria-checked="false"><span class="led"></span>Added</button>
+</div>
+</div>
+<div class="lib-list" role="grid" aria-label="Albums">
+<div class="lib-h" style="border-top: 0"><span class="num">1,099 albums</span></div>
+<div class="row thead g-lib" role="row">
+<span role="columnheader"><span class="sr">Cover</span></span>
+<span role="columnheader">Album</span>
+<span role="columnheader">Artist</span>
+<span role="columnheader">Year</span>
+<span role="columnheader" class="r">Tracks</span>
+<span role="columnheader">Quality</span>
+<span role="columnheader"><span class="sr">Issues</span></span>
+</div>
+<div class="row g-lib" role="row">
+<span class="cv a-radio"></span>
+<button type="button" class="lib-open two"><span class="ttl"><span class="ell">Coastal Radio</span><span class="ver"></span></span><span class="sub ell lib-n">Northern Static · 2014</span></button>
+<span class="sub ell lib-w">Northern Static</span><span class="t2 num sm lib-w">2014</span><span class="t2 num sm r lib-w">8</span>
+<span class="lib-q"><span class="stk lossy">MP3 320</span><span class="sub num lib-n">8 tracks</span></span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+<div class="row g-lib" role="row">
+<span class="cv a-orchard"></span>
+<button type="button" class="lib-open two"><span class="ttl"><span class="ell">Glass Orchard</span><span class="ver">Deluxe Edition</span></span><span class="sub ell lib-n">Vela Choir · 2025</span></button>
+<span class="sub ell lib-w">Vela Choir</span><span class="t2 num sm lib-w">2025</span><span class="t2 num sm r lib-w">12</span>
+<span class="lib-q"><span class="stk">Lossless</span><span class="sub num lib-n">12 tracks</span></span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+<div class="row g-lib" role="row">
+<span class="cv a-harbour"></span>
+<button type="button" class="lib-open two"><span class="ttl"><span class="ell">Harbour Lights</span><span class="ver"></span></span><span class="sub ell lib-n">Northern Static · 2016</span></button>
+<span class="sub ell lib-w">Northern Static</span><span class="t2 num sm lib-w">2016</span><span class="t2 num sm r lib-w">9</span>
+<span class="lib-q"><span class="stk">CD 16/44.1</span><span class="sub num lib-n">9 tracks</span></span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+<div class="row g-lib" role="row">
+<span class="cv a-halden"></span>
+<button type="button" class="lib-open two"><span class="ttl"><span class="ell">Live at Halden</span><span class="ver"></span></span><span class="sub ell lib-n">Northern Static · 2023</span></button>
+<span class="sub ell lib-w">Northern Static</span><span class="t2 num sm lib-w">2023</span><span class="t2 num sm r lib-w">14</span>
+<span class="lib-q"><span class="stk hi">Hi-Res 24/96</span><span class="sub num lib-n">14 tracks</span></span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+<div class="row g-lib cur" role="row">
+<span class="cv a-tide"></span>
+<button type="button" class="lib-open two"><span class="ttl"><span class="ell">Low Tide Hymns</span><span class="ver"></span></span><span class="sub ell lib-n">Northern Static · 2019</span></button>
+<span class="sub ell lib-w">Northern Static</span><span class="t2 num sm lib-w">2019</span><span class="t2 num sm r lib-w">11</span>
+<span class="lib-q"><span class="stk hi">Hi-Res 24/96</span><span class="sub num lib-n">11 tracks</span></span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+<div class="row g-lib" role="row">
+<span class="cv a-tide2"></span>
+<button type="button" class="lib-open two"><span class="ttl"><span class="ell">Low Tide Hymns</span><span class="ver">2024 Remaster</span></span><span class="sub ell lib-n">Northern Static · 2024</span></button>
+<span class="sub ell lib-w">Northern Static</span><span class="t2 num sm lib-w">2024</span><span class="t2 num sm r lib-w">11</span>
+<span class="lib-q"><span class="stk master">Hi-Res 24/192</span><span class="sub num lib-n">11 tracks</span></span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+<div class="row g-lib" role="row">
+<span class="cv a-ferry"></span>
+<button type="button" class="lib-open two"><span class="ttl"><span class="ell">Night Ferry</span><span class="ver"></span></span><span class="sub ell lib-n">Mira Holt · 2020</span></button>
+<span class="sub ell lib-w">Mira Holt</span><span class="t2 num sm lib-w">2020</span><span class="t2 num sm r lib-w">9</span>
+<span class="lib-q"><span class="stk hi">Hi-Res 24/96</span><span class="sub num lib-n">9 tracks</span></span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+<div class="row g-lib" role="row">
+<span class="cv a-lantern"></span>
+<button type="button" class="lib-open two"><span class="ttl"><span class="ell">Paper Lanterns</span><span class="ver"></span></span><span class="sub ell lib-n">The Quiet Arcade · 2023</span></button>
+<span class="sub ell lib-w">The Quiet Arcade</span><span class="t2 num sm lib-w">2023</span><span class="t2 num sm r lib-w">12</span>
+<span class="lib-q"><span class="stk">CD 16/44.1</span><span class="sub num lib-n">12 tracks</span></span>
+<span></span>
+</div>
+<div class="row g-lib" role="row">
+<span class="cv a-rooms"></span>
+<button type="button" class="lib-open two"><span class="ttl"><span class="ell">Quiet Rooms</span><span class="ver"></span></span><span class="sub ell lib-n">Mira Holt · 2022</span></button>
+<span class="sub ell lib-w">Mira Holt</span><span class="t2 num sm lib-w">2022</span><span class="t2 num sm r lib-w">10</span>
+<span class="lib-q"><span class="stk">Lossless</span><span class="sub num lib-n">10 tracks</span></span>
+<span class="led iss" role="img" aria-label="Has issues"></span>
+</div>
+<div class="row g-lib" role="row">
+<span class="cv a-signal"></span>
+<button type="button" class="lib-open two"><span class="ttl"><span class="ell">Signal Fires</span><span class="ver"></span></span><span class="sub ell lib-n">Northern Static · 2017</span></button>
+<span class="sub ell lib-w">Northern Static</span><span class="t2 num sm lib-w">2017</span><span class="t2 num sm r lib-w">5</span>
+<span class="lib-q"><span class="stk hi">Hi-Res 24/96</span><span class="sub num lib-n">5 tracks</span></span>
+<span></span>
+</div>
+</div>
+</section>
+
+<button type="button" class="lib-split" aria-label="Resize the album list. Left and right arrows change the width." title="Drag to resize"></button>
+
+<sc-if value="{{isHistory}}" hint-placeholder-val="{{ true }}">
+<section class="win" style="flex: 1 1 0" aria-labelledby="ld-h">
+<div class="tb">
+<h2 id="ld-h">History</h2>
+<span class="stripes"></span>
+<span class="on-tb">Low Tide Hymns</span>
+<button type="button" class="wbtn txt" aria-pressed="true" onClick="{{toggleView}}">History</button>
+<button type="button" class="wbtn" aria-label="Close the album"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div class="rows" role="table" aria-label="History of Low Tide Hymns" style="flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin">
+<div class="row thead g-ah" role="row">
+<span role="columnheader">When</span>
+<span role="columnheader">Change</span>
+<span role="columnheader" class="r">Tags</span>
+<span role="columnheader">State</span>
+<span role="columnheader"><span class="sr">Actions</span></span>
+</div>
+<sc-for list="{{rows}}" as="row" hint-placeholder-count="6">
+<sc-if value="{{row.isDownload}}" hint-placeholder-val="{{ false }}">
+<div class="lib-h" style="position: static"><span>Download</span></div>
+</sc-if>
+<div class="row g-ah {{row.cur}}" role="row">
+<span role="cell" class="t2 num sm ah-tip"><span class="has-tip"><span class="tip-t">{{row.when}}</span></span>
+<sc-if value="{{row.tip}}" hint-placeholder-val="{{ false }}"><span class="tipbox" role="tooltip"><span>{{row.exact}}</span></span></sc-if>
+</span>
+<sc-if value="{{row.isDownload}}" hint-placeholder-val="{{ false }}">
+<span role="cell" class="two"><span class="ttl"><span class="ell">{{row.title}}</span></span><span class="sub ell"><span class="by">{{row.author}}</span> · {{row.rest}}</span></span>
+</sc-if>
+<sc-if value="{{row.isChange}}" hint-placeholder-val="{{ true }}">
+<button type="button" class="lib-open two" aria-expanded="{{row.expanded}}" onClick="{{row.toggle}}"><span class="ttl"><span class="ell">{{row.title}}</span></span><span class="sub ell"><span class="by">{{row.author}}</span> · {{row.rest}}</span></button>
+</sc-if>
+<span role="cell" class="num sm r">{{row.tags}}</span>
+<span role="cell"><span class="pill {{row.pill}}">{{row.state}}</span></span>
+<sc-if value="{{row.hasKey}}" hint-placeholder-val="{{ true }}">
+<button type="button" class="key sm r has-tip" title="{{row.keyNote}}">{{row.key}}</button>
+</sc-if>
+<sc-if value="{{row.isDownload}}" hint-placeholder-val="{{ false }}">
+<a class="key sm r" href="#">Open</a>
+</sc-if>
+<sc-if value="{{row.noKey}}" hint-placeholder-val="{{ false }}"><span></span></sc-if>
+</div>
+<sc-if value="{{row.hasOrigin}}" hint-placeholder-val="{{ false }}">
+<p class="ah-note t2 sm">From a reviewed proposal: <a href="#">proposal {{row.origin}}</a></p>
+</sc-if>
+<sc-if value="{{row.isOpen}}" hint-placeholder-val="{{ false }}">
+<div class="lib-ba">
+<div class="row thead g-ba" style="position: static"><span>Track</span><span>Tag</span><span>Before</span><span>After</span></div>
+<sc-for list="{{row.lines}}" as="l" hint-placeholder-count="3">
+<div class="row g-ba"><span class="t2 ell">{{l.track}}</span><span class="mono ell" style="font-size: 12.5px">{{l.key}}</span><span class="t2 ell">{{l.before}}</span><span class="ell" style="font-weight: 600">{{l.after}}</span></div>
+</sc-for>
+</div>
+</sc-if>
+</sc-for>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{isEditor}}" hint-placeholder-val="{{ false }}">
+<section class="win" style="flex: 1 1 0" aria-labelledby="ld-e">
+<div class="tb">
+<h2 id="ld-e">Editor</h2>
+<span class="stripes"></span>
+<button type="button" class="rocker mini" role="switch" aria-checked="false"><span class="rk" aria-hidden="true"><span class="rk-case"><span class="rk-paddle"></span></span></span><span class="rk-name">All fields</span></button>
+<button type="button" class="wbtn txt" aria-pressed="false" onClick="{{toggleView}}">History</button>
+<button type="button" class="wbtn txt">Delete</button>
+<button type="button" class="wbtn" aria-label="Close the editor"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div class="lib-head">
+<button type="button" class="lib-cover" aria-label="Open the cover" title="Cover"><span class="cv a-tide"></span></button>
+<div class="two" style="flex: 1; gap: 3px">
+<h3 style="font-size: 19px; font-weight: 700; line-height: 1.2">Low Tide Hymns</h3>
+<span class="sub" style="font-size: 14px">Northern Static</span>
+<span style="margin-top: 5px"><span class="stk hi">Hi-Res 24/96</span></span>
+</div>
+</div>
+<div style="flex: none; padding: 10px 14px"><div class="lcd lib-scope has-tip"><span class="lcd-l ell tip-t">ALL 11 TRACKS</span></div></div>
+<div class="vscroll">
+<div class="lib-h"><span>2 issues</span></div>
+<div class="lib-iss">
+<span class="led iss" role="img" aria-label="Open issue"></span>
+<span class="two"><span class="ttl has-tip" style="align-self: flex-start"><span class="tip-t">Genre differs across tracks</span></span><span class="sub">8 tracks say Post-Rock, and 3 say Ambient.</span></span>
+<button type="button" class="key sm">Fix</button>
+</div>
+<div class="lib-iss">
+<span class="led iss" role="img" aria-label="Open issue"></span>
+<span class="two"><span class="ttl has-tip" style="align-self: flex-start"><span class="tip-t">Album Artist tags disagree</span></span><span class="sub">ALBUM ARTIST and ALBUMARTIST differ, so Navidrome would show two album artists.</span></span>
+<button type="button" class="key sm">Fix</button>
+</div>
+<div class="lib-fields">
+<div class="lf">
+<label class="lf-l has-tip" for="lf-artist"><span class="tip-t">Artist</span></label>
+<div class="lf-c"><span class="lf-in"><input id="lf-artist" class="lib-in" value="Northern Static" placeholder="Empty"></span></div>
+<div class="lf-s"></div>
+</div>
+<div class="lf">
+<label class="lf-l has-tip" for="lf-album"><span class="tip-t">Album</span></label>
+<div class="lf-c"><span class="lf-in"><input id="lf-album" class="lib-in" value="Low Tide Hymns" placeholder="Empty"></span></div>
+<div class="lf-s"></div>
+</div>
+<div class="lf">
+<label class="lf-l has-tip" for="lf-aa"><span class="tip-t">Album Artist</span></label>
+<div class="lf-c"><span class="lf-in"><input id="lf-aa" class="lib-in" value="Northern Static" placeholder="Empty"></span></div>
+<div class="lf-s"></div>
+</div>
+<div class="lf">
+<label class="lf-l has-tip" for="lf-date"><span class="tip-t">Release date</span></label>
+<div class="lf-c"><span class="lf-in"><input id="lf-date" class="lib-in" value="2019-03-22" placeholder="Empty"></span></div>
+<div class="lf-s"></div>
+</div>
+<div class="lf">
+<label class="lf-l has-tip" for="lf-genre"><span class="tip-t">Genre</span></label>
+<div class="lf-c"><span class="lf-in"><input id="lf-genre" class="lib-in" value="" placeholder="Mixed"></span></div>
+<div class="lf-s"></div>
+</div>
+</div>
+</div>
+</section>
+<button type="button" class="lib-split" aria-label="Resize the track list. Left and right arrows change the width." title="Drag to resize"></button>
+<section class="win" style="flex: 0 0 322px" aria-labelledby="ld-t">
+<div class="tb"><h2 id="ld-t">Tracks</h2><span class="stripes"></span><span class="on-tb">All Hi-Res 24/96</span></div>
+<div class="lib-tracks rows" role="grid" aria-label="Tracks">
+<div class="row g-lt all cur" role="row"><span></span><span></span><button type="button" class="lib-open ttl"><span class="ell">All 11 tracks</span></button><span class="t2 num sm r">48:12</span></div>
+<sc-for list="{{tracks}}" as="t" hint-placeholder-count="11">
+<div class="row g-lt" role="row"><span class="t2 num sm">{{t.n}}</span><span></span><button type="button" class="lib-open ttl"><span class="ell">{{t.title}}</span></button><span class="t2 num sm r">{{t.len}}</span></div>
+</sc-for>
+</div>
+</section>
+</sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"view":{"editor":"enum","options":["history","editor"],"default":"history"},"theme":{"editor":"enum","options":["night","day"],"default":"night"},"density":{"editor":"enum","options":["comfortable","compact"],"default":"comfortable"},"tip":{"editor":"boolean","default":true},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { view: null, open: undefined };
+  }
+  renderVals() {
+    const view = this.state.view ?? (this.props.view ?? 'history');
+    const open = this.state.open !== undefined ? this.state.open : (view === 'history' ? 1 : null);
+    const theme = this.props.theme ?? 'night';
+    const density = this.props.density ?? 'comfortable';
+    const tipOn = this.props.tip ?? true;
+    const mode = [theme === 'day' ? 'day' : '', density === 'compact' ? 'compact' : ''].join(' ');
+    const data = [
+      { id: 1, when: '2 hours ago', exact: 'Wednesday 11 November 2026, 12:31', title: 'Save', author: 'By Tikhon', rest: '11 tracks', tags: '33', pill: 'done', state: 'Saved', key: 'Undo',
+        lines: [
+          { track: 'All tracks', key: 'RELEASEDATE', before: 'Empty', after: '2019-03-22' },
+          { track: 'All tracks', key: 'ALBUMARTIST', before: 'northern static', after: 'Northern Static' },
+          { track: 'All tracks', key: 'GENRE', before: 'Mixed', after: 'Post-Rock' }
+        ] },
+      { id: 2, when: '5 hours ago', exact: 'Wednesday 11 November 2026, 09:04', title: 'Save', author: 'By Tikhon', rest: '11 tracks', tags: '22', pill: 'done', state: 'Saved', key: 'Undo', origin: '12',
+        lines: [
+          { track: 'All tracks', key: 'MUSICBRAINZ_ALBUMID', before: 'Empty', after: '6c1f3a2e-8b0d-4f6e-9a31-2d7c5e8b4f10' },
+          { track: 'All tracks', key: 'MUSICBRAINZ_RELEASEGROUPID', before: 'Empty', after: 'b52e7d90-1c4a-4e3b-8f62-0a9d3c7e1b55' }
+        ] },
+      { id: 3, when: '1 day ago', exact: 'Tuesday 10 November 2026, 22:17', title: 'Run: ReplayGain', author: 'By Tikhon', rest: 'Run on 20 albums, undone together', tags: '44', pill: 'done', state: 'Saved', key: 'Undo run', keyNote: 'Undoes the run on all 20 albums',
+        lines: [
+          { track: 'All tracks', key: 'REPLAYGAIN_ALBUM_GAIN', before: 'Empty', after: '-7.12 dB' },
+          { track: 'All tracks', key: 'REPLAYGAIN_ALBUM_PEAK', before: 'Empty', after: '0.988' },
+          { track: '01.flac', key: 'REPLAYGAIN_TRACK_GAIN', before: 'Empty', after: '-6.40 dB' },
+          { track: '02.flac', key: 'REPLAYGAIN_TRACK_GAIN', before: 'Empty', after: '-7.85 dB' }
+        ] },
+      { id: 4, when: '3 days ago', exact: 'Sunday 8 November 2026, 18:40', title: 'Save', author: 'By CLI', rest: '11 tracks', tags: '11', pill: 'canceled', state: 'Undone', key: 'Redo',
+        lines: [ { track: 'All tracks', key: 'ALBUMARTISTSORT', before: 'Empty', after: 'Northern Static' } ] },
+      { id: 5, when: '6 days ago', exact: 'Thursday 5 November 2026, 11:52', title: 'Save', author: 'By Tikhon', rest: '11 tracks', tags: '4 · Cover', pill: 'partial', state: 'Partial', key: 'Undo',
+        lines: [
+          { track: '01.flac', key: 'TITLE', before: 'harbour wall', after: 'Harbour Wall' },
+          { track: '04.flac', key: 'TITLE', before: 'saltmarsh (demo)', after: 'Saltmarsh' },
+          { track: 'All tracks', key: 'Cover', before: 'Empty', after: 'Changed' }
+        ] },
+      { id: 6, download: true, when: '30 days ago', exact: 'Monday 12 October 2026, 20:03', title: 'Downloaded from Qobuz', author: 'By Telegram @tikhon', rest: 'Qobuz 27', tags: '', pill: 'done', state: 'Done' }
+    ];
+    const rows = data.map((r) => ({
+      ...r,
+      isDownload: !!r.download,
+      isChange: !r.download,
+      hasKey: !r.download && !!r.key,
+      noKey: !r.download && !r.key,
+      keyNote: r.keyNote ?? '',
+      hasOrigin: !!r.origin,
+      tip: tipOn && r.id === 1,
+      isOpen: !r.download && open === r.id,
+      expanded: open === r.id ? 'true' : 'false',
+      cur: !r.download && open === r.id ? 'cur' : '',
+      toggle: () => this.setState({ open: open === r.id ? null : r.id })
+    }));
+    const tracks = [
+      ['01', 'Harbour Wall', '4:12'], ['02', 'Slow Water', '5:03'], ['03', 'Low Tide Hymn', '4:48'], ['04', 'Saltmarsh', '3:55'],
+      ['05', 'The Long Groyne', '6:10'], ['06', 'Lantern Hours', '4:21'], ['07', 'Shingle', '3:37'], ['08', 'Breakwater', '5:26'],
+      ['09', 'Second Tide', '4:02'], ['10', 'Estuary Light', '3:49'], ['11', 'Home by the Sea Wall', '3:09']
+    ].map(([n, title, len]) => ({ n, title, len }));
+    return {
+      mode,
+      isHistory: view === 'history',
+      isEditor: view === 'editor',
+      toggleView: () => this.setState({ view: view === 'history' ? 'editor' : 'history', open: view === 'history' ? null : 1 }),
+      rows,
+      tracks
+    };
+  }
+}
+</script>
+</body>
+</html>
