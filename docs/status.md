@@ -18,7 +18,7 @@ Every check in [manual-checklist.md](manual-checklist.md) passed in production, 
 
 ## Production
 
-Production runs `v1.0.5`, which shelf CI deployed through doco-cd on 2026-11-12. Optional [library agents](agents.md) are off by default and on in production. Production signs in with Shelf accounts. [auth.md](auth.md) describes setup.
+Production runs `v1.0.6`, which shelf CI deployed through doco-cd on 2026-11-12. Optional [library agents](agents.md) are off by default and on in production. Production signs in with Shelf accounts. [auth.md](auth.md) describes setup.
 
 shelf-wrapper builds from upstream's `ghcr.io/worldobservationlog/wrapper-lite` image pinned by digest. The index holds 11,461 tracks and 1,008 Navidrome album IDs, forming 1,013 albums because 5 Navidrome albums span two folders.
 
@@ -46,9 +46,9 @@ The 2026-11-11 dependency update brings qobuz-dl-go v0.1.1 and `golang.org/x/cry
 
 Status ends with a Shelf part that shows the version the running server was built with.
 
-On `main` but in no release yet, a run's row in an album's History counts only that album's tags. Before, it counted the whole run's, so *A Passion Play*'s 2 files showed 24 tags from a 2-album run.
+Since `v1.0.6`, a run's row in an album's History counts only that album's tags. Before, it counted the whole run's, so *A Passion Play*'s 2 files showed 24 tags from a 2-album run. Now they show 8.
 
-Also on `main` but in no release yet, `shelf manage users add` and `set-password` take `--password-stdin`. A script can then make an account with `docker exec -i` and a password file, without `expect` driving a terminal. [auth.md](auth.md#account-commands) describes it.
+Since `v1.0.6`, `shelf manage users add` and `set-password` take `--password-stdin`. A script can then make an account with `docker exec -i` and a password file, without `expect` driving a terminal. [auth.md](auth.md#account-commands) describes it.
 
 A pushed `v*` tag now deploys through sh-blackberry and doco-cd, as [deployment.md](deployment.md#deploys) describes.
 
