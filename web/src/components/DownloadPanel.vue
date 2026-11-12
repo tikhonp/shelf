@@ -194,6 +194,7 @@ function trackState(t: DownloadTrack): { led: string; text: string } {
 .rs .read .time { margin-top: 10px; font-size: 22px; }
 .rs .meta.wide { grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr); }
 .rs .path { word-break: break-all; }
+.rs .note > .led { margin-top: 4px; }
 .rs .trk { grid-template-columns: 22px minmax(0, 1fr) auto; min-height: 38px; padding: 4px 10px; row-gap: 2px; }
 .rs.compact .row.trk { min-height: 36px; padding-top: 2px; padding-bottom: 2px; }
 .rs .why { grid-column: 2 / -1; }
