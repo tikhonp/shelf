@@ -721,8 +721,26 @@ func TestOpsTheFilesAlreadyHold(t *testing.T) {
 	if !d.Live.Unchanged["genre"] || d.Live.Stale["genre"] || d.Live.Unchanged["mood"] || d.Live.Stale["mood"] {
 		t.Fatalf("live %+v", d.Live)
 	}
-	// An agent may keep an op the files came to hold since it proposed it.
-	res = revise(genre("Jazz"), mood)
+	// The Inbox keeps a held op on, so Accept decides it with the ops that write.
+	pv := preview(t, r, p.ID, []string{"genre", "mood"})
+	accept := map[string]any{"revision": 1, "ops": []string{"genre", "mood"}, "digest": pv.Digest, "confirm": []string{}, "request_id": "held-1"}
+	want(t, r.call(t, "POST", fmt.Sprintf("/api/inbox/proposals/%d/accept", p.ID), accept, false), 202)
+	var pending int
+	_ = r.app.DB.R.Get(&pending, `SELECT pending FROM agents_proposals WHERE id=?`, p.ID)
+	if pending != 0 {
+		t.Fatalf("%d fields still pending", pending)
+	}
+}
+
+// An agent may keep an op the files came to hold since it proposed it.
+func TestRevisionKeepsAnOpTheFilesCameToHold(t *testing.T) {
+	r := rig(t, true, nil)
+	id := create(t, r)
+	r.lib.mu.Lock()
+	r.lib.values[1]["genre"] = []string{"Art Rock"}
+	r.lib.mu.Unlock()
+	ops := []Op{{ID: "genre", Type: "tag", Field: "genre", Tracks: []OpTrack{{TrackID: 1, Values: []string{"Art Rock"}}}}, {ID: "mood", Type: "tag", Field: "mood", Tracks: []OpTrack{{TrackID: 1, Values: []string{"Sad"}}}}}
+	res := r.call(t, "POST", fmt.Sprintf("/api/agent/v1/proposals/%d/revisions", id), map[string]any{"run_id": r.run, "parent_revision": 1, "title": "Specific genre", "reason": "Match the user preference", "base": []BaseTrack{{TrackID: 1, Revision: "r1"}}, "ops": ops}, true)
 	if res.Code != 200 && res.Code != 201 {
 		t.Fatal(res.Body.String())
 	}

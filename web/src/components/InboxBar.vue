@@ -30,7 +30,7 @@ async function declineRest() {
 const summary = computed(() => {
   const w = inbox.writes
   if (w) return `${count(w.fields, 'field')} · ${count(w.files, 'file')}`
-  return inbox.selected.length === 0 ? 'Switch on the fields to accept.' : ''
+  return inbox.shown.length === 0 ? 'Switch on the fields to accept.' : ''
 })
 </script>
 
@@ -57,17 +57,17 @@ const summary = computed(() => {
           <RouterLink v-else-if="!accepted.outcome.expired" class="sm" :to="{ path: '/library', query: { history: '1' } }">Change {{ accepted.change_id }} in History</RouterLink>
         </div>
         <template v-if="canReview && declining">
-          <label class="lbl-f grow">Why decline {{ inbox.selected.length ? 'the rest' : 'every field' }}? Optional<input v-model="reason" class="lib-in" maxlength="4000" /></label>
+          <label class="lbl-f grow">Why decline {{ inbox.shown.length ? 'the rest' : 'every field' }}? Optional<input v-model="reason" class="lib-in" maxlength="4000" /></label>
           <div class="line g8">
             <button type="button" class="key" :class="{ sm: !phone }" @click="declining = false">Cancel</button>
             <button type="button" class="key sun" :class="{ sm: !phone }" :disabled="inbox.busy" @click="declineRest">Decline {{ count(inbox.rest.length, 'field') }}</button>
           </div>
         </template>
         <template v-else-if="canReview">
-          <span class="sm grow ib-sum">{{ summary }}<template v-if="inbox.selected.length && !inbox.confirmed"> Confirm each warning first.</template></span>
+          <span class="sm grow ib-sum">{{ summary }}<template v-if="inbox.shown.length && !inbox.confirmed"> Confirm each warning first.</template></span>
           <div class="line g8">
-            <button v-if="inbox.rest.length" type="button" class="key" :class="{ sm: !phone }" :disabled="inbox.busy" @click="declining = true"><template v-if="phone">Decline {{ inbox.rest.length }}</template><LibTip v-else :title="inbox.selected.length ? 'Decline the rest' : 'Decline all'" :note="inbox.selected.length ? inboxNotes.declineRest : inboxNotes.declineAll">{{ inbox.selected.length ? 'Decline the rest' : 'Decline all' }}</LibTip></button>
-            <button type="button" class="key sun" :class="{ sm: !phone }" :disabled="!inbox.canAccept" @click="inbox.accept()"><template v-if="phone">Accept {{ inbox.selected.length }}</template><LibTip v-else title="Accept" :note="inboxNotes.accept">Accept {{ count(inbox.selected.length, 'field') }}</LibTip></button>
+            <button v-if="inbox.rest.length" type="button" class="key" :class="{ sm: !phone }" :disabled="inbox.busy" @click="declining = true"><template v-if="phone">Decline {{ inbox.rest.length }}</template><LibTip v-else :title="inbox.shown.length ? 'Decline the rest' : 'Decline all'" :note="inbox.shown.length ? inboxNotes.declineRest : inboxNotes.declineAll">{{ inbox.shown.length ? 'Decline the rest' : 'Decline all' }}</LibTip></button>
+            <button type="button" class="key sun" :class="{ sm: !phone }" :disabled="!inbox.canAccept" @click="inbox.accept()"><template v-if="phone">Accept {{ inbox.shown.length }}</template><LibTip v-else title="Accept" :note="inboxNotes.accept">Accept {{ count(inbox.shown.length, 'field') }}</LibTip></button>
           </div>
         </template>
       </template>

@@ -454,13 +454,18 @@ test('on the phone no name carries a note, and the ? cap opens the page note abo
   w.unmount()
 })
 
-test('a field the files already hold says so and starts off, unless a field that writes needs it', async () => {
+test('fields the files already hold are hidden, stay on, and count nowhere', async () => {
   const d = detail()
-  d.live = { preview: sameOnSix(), op_stale: { releasedate: true }, op_unchanged: { albumartists: true, originaldate: true }, refusal: null }
+  d.live = { preview: sameOnSix(), op_stale: { releasedate: true }, op_unchanged: { albumartists: true }, refusal: null }
   const w = await openDetail({ '/api/inbox/proposals/4': d })
-  const pills = (id: string) => w.find(`.ib-op[data-op="${id}"]`).findAll('.pill').map((p) => p.text())
-  expect(pills('albumartists')).toEqual(['Already in the files'])
-  expect(pills('originaldate')).toEqual(['Already in the files'])
-  expect(pills('releasedate')).toEqual(['Changed since proposed'])
-  expect([...useInbox().selected].sort()).toEqual(['originaldate', 'releasedate'])
+  expect(w.findAll('.ib-op').map((e) => e.attributes('data-op'))).toEqual(['originaldate', 'releasedate'])
+  expect(w.find('.ib-op[data-op="releasedate"]').findAll('.pill').map((p) => p.text())).toEqual(['Changed since proposed'])
+  expect(w.find('.ib-held').text()).toBe('1 field the files already hold is hidden. Accept marks it accepted too.')
+  const inbox = useInbox()
+  expect([...inbox.selected].sort()).toEqual(['albumartists', 'originaldate', 'releasedate'])
+  expect(inbox.shown).toHaveLength(2)
+  expect(inbox.writes?.fields).toBe(2)
+  inbox.selectAll(false)
+  expect(inbox.selected).toEqual(['albumartists'])
+  expect([...inbox.rest].sort()).toEqual(['originaldate', 'releasedate'])
 })

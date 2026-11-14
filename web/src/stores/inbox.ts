@@ -77,6 +77,12 @@ export function retryable(d: ProposalDetail, op: OpDecision): boolean {
   return a?.outcome.state === 'failed' && (a.outcome.written ?? 0) === 0
 }
 
+// held is a pending field the files already hold. The Inbox hides it and counts it nowhere, but keeps it on, so Accept
+// marks it accepted with the fields that write and the proposal can close.
+export function held(d: ProposalDetail, opId: string): boolean {
+  return !!d.live?.op_unchanged?.[opId] && d.ops.some((o) => o.id === opId && o.decision === 'pending')
+}
+
 export function selectable(d: ProposalDetail, opId: string): boolean {
   if (d.state === 'withdrawn') return false
   const op = d.ops.find((o) => o.id === opId)
@@ -276,10 +282,7 @@ export const useInbox = defineStore('inbox', () => {
     const first = detail.value === null || detail.value.id !== d.id
     detail.value = d
     if (first) {
-      // A field the files already hold starts off, so Accept counts only fields that write, unless a field that writes needs it.
-      const pendingOps = d.ops.filter((o) => o.decision === 'pending' && d.state !== 'withdrawn' && d.current.ops.some((c) => c.id === o.id)).map((o) => o.id)
-      const writes = pendingOps.filter((o) => !d.live?.op_unchanged?.[o])
-      selected.value = pendingOps.filter((o) => writes.includes(o) || writes.some((w) => needs(d.current.ops, w).includes(o)))
+      selected.value = d.ops.filter((o) => o.decision === 'pending' && d.state !== 'withdrawn' && d.current.ops.some((c) => c.id === o.id)).map((o) => o.id)
       headSeen.value = d.head
     } else {
       selected.value = selected.value.filter((o) => selectable(d, o))
@@ -304,7 +307,7 @@ export const useInbox = defineStore('inbox', () => {
 
   async function refreshPreview(force = false) {
     const d = detail.value
-    if (!d || selected.value.length === 0) {
+    if (!d || selected.value.every((o) => held(d, o))) {
       ++previewSeq
       selection.value = null
       selectionKey.value = ''
@@ -372,7 +375,7 @@ export const useInbox = defineStore('inbox', () => {
   function selectAll(on: boolean) {
     const d = detail.value
     if (!d) return
-    selected.value = on ? d.ops.filter((o) => o.decision === 'pending' && selectable(d, o.id)).map((o) => o.id) : []
+    selected.value = d.ops.filter((o) => o.decision === 'pending' && selectable(d, o.id) && (on || held(d, o.id))).map((o) => o.id)
     cascade.value = null
     void refreshPreview()
   }
@@ -500,13 +503,18 @@ export const useInbox = defineStore('inbox', () => {
   }
 
   const current = computed(() => (detail.value ? keyOf(detail.value.head, selected.value) : ''))
+  // shown is the selected fields the reviewer sees, without the held ones.
+  const shown = computed(() => {
+    const d = detail.value
+    return d ? selected.value.filter((o) => !held(d, o)) : []
+  })
   const warnings = computed<Warning[]>(() => selection.value?.preview?.warnings ?? [])
   const confirmed = computed(() => warnings.value.every((w) => confirm.value.includes(w.kind)))
   const canAccept = computed(
     () =>
       !!detail.value &&
       detail.value.state !== 'withdrawn' &&
-      selected.value.length > 0 &&
+      shown.value.length > 0 &&
       !!selection.value?.preview &&
       !selection.value.refusal &&
       selectionKey.value === current.value &&
@@ -524,10 +532,10 @@ export const useInbox = defineStore('inbox', () => {
 
   // writes counts what Accept writes for the fields that are on: the fields, the files and the tag writes.
   const writes = computed(() => {
-    const p = selected.value.length > 0 ? selection.value?.preview : null
+    const p = shown.value.length > 0 ? selection.value?.preview : null
     if (!p) return null
     const files = p.files.filter((f) => f.keys.length > 0 || f.cover_before !== f.cover_after).length
-    return { fields: selected.value.length, files, tags: p.files.reduce((n, f) => n + f.keys.length, 0) }
+    return { fields: shown.value.length, files, tags: p.files.reduce((n, f) => n + f.keys.length, 0) }
   })
 
   async function accept(): Promise<boolean> {
@@ -634,13 +642,13 @@ export const useInbox = defineStore('inbox', () => {
   const rest = computed(() => {
     const d = detail.value
     if (!d || d.state === 'withdrawn') return []
-    return d.ops.filter((o) => o.decision === 'pending' && d.current.ops.some((c) => c.id === o.id) && !selected.value.includes(o.id)).map((o) => o.id)
+    return d.ops.filter((o) => o.decision === 'pending' && d.current.ops.some((c) => c.id === o.id) && !selected.value.includes(o.id) && !held(d, o.id)).map((o) => o.id)
   })
 
   function declineRest(reason: string) {
     const d = detail.value
     if (!d || rest.value.length === 0) return Promise.resolve(false)
-    const body = selected.value.length === 0 ? { revision: d.head, remaining: true, reason } : { revision: d.head, ops: sorted(rest.value), reason }
+    const body = shown.value.length === 0 ? { revision: d.head, remaining: true, reason } : { revision: d.head, ops: sorted(rest.value), reason }
     return act('decline', body, 'Declined. Nothing in the library changed.')
   }
 
@@ -693,7 +701,7 @@ export const useInbox = defineStore('inbox', () => {
     detailId, detail, detailLoading, detailError, selected, drafts, selection, previewing, confirm, cascade, error, notice, busy, headSeen, lastAccepted, writes,
     open, close, loadDetail, refreshPreview, toggle, selectAll, toggleConfirm,
     values, tracksOf, everyTrack, setValues, dropTrack, setEveryTrack, discard, revisionOps, dirty, saveValues, rebase,
-    warnings, confirmed, canAccept, pendingSelected, accept, decline, rest, declineRest, requestChanges, comment,
+    warnings, confirmed, canAccept, shown, pendingSelected, accept, decline, rest, declineRest, requestChanges, comment,
     byAlbum, loadAlbum, applyHub,
     headOp: (opId: string): Op | undefined => headOp(opId),
   }

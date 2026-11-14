@@ -8,7 +8,7 @@ import { eventLine, opName, outcomeClass, outcomeWord, stateClass, stateWord } f
 import { inboxNotes, reviewNote } from '../lib/notes'
 import { fieldLabel } from '../lib/tags'
 import { useHelp } from '../stores/help'
-import { ordered, useInbox } from '../stores/inbox'
+import { held, ordered, useInbox } from '../stores/inbox'
 import Cover from './Cover.vue'
 import Icon from './Icon.vue'
 import InboxBar from './InboxBar.vue'
@@ -34,7 +34,9 @@ const albumId = computed(() => d.value?.album.current_id ?? 0)
 const cover = computed(() => (albumId.value ? `/api/library/albums/${albumId.value}/cover` : ''))
 const head = computed(() => d.value?.revisions.find((r) => r.revision === d.value?.head))
 const hasPending = computed(() => (d.value?.summary.pending ?? 0) > 0 && d.value?.state !== 'withdrawn')
-const ops = computed(() => (d.value ? ordered(d.value.current.ops) : []))
+// A field the files already hold writes nothing, so the Inbox hides it.
+const ops = computed(() => (d.value ? ordered(d.value.current.ops).filter((o) => !held(d.value!, o.id)) : []))
+const hidden = computed(() => (d.value ? d.value.current.ops.filter((o) => held(d.value!, o.id)).length : 0))
 const name = (id: string) => opName(d.value?.current.ops ?? [], id)
 const superseded = computed(() => d.value?.ops.filter((o) => !d.value!.current.ops.some((c) => c.id === o.id)) ?? [])
 // pairs are the fields requires links, each drawn as one patch cable.
@@ -58,7 +60,7 @@ const diff = computed(() => {
   const v = d.value
   if (!v) return null
   const s = inbox.selection
-  if (inbox.selected.length > 0 && s?.preview) return { preview: s.preview, title: 'What Accept writes', confirm: true }
+  if (inbox.shown.length > 0 && s?.preview) return { preview: s.preview, title: 'What Accept writes', confirm: true }
   if (v.live?.preview && hasPending.value) return { preview: v.live.preview, title: 'All pending fields', note: 'Against the files now', confirm: false }
   return { preview: v.current.preview, title: 'As proposed', note: 'Recorded with the revision', confirm: false }
 })
@@ -71,7 +73,7 @@ function refusalText(r: Refusal): string {
   return r.error
 }
 const refusal = computed(() => {
-  const r = (inbox.selected.length > 0 ? inbox.selection?.refusal : d.value?.live?.refusal) ?? null
+  const r = (inbox.shown.length > 0 ? inbox.selection?.refusal : d.value?.live?.refusal) ?? null
   return r ? refusalText(r) : ''
 })
 const cascadeText = computed(() => {
@@ -148,6 +150,7 @@ async function send() {
           <LibTip v-if="pairs.length" title="Linked fields" :note="tip(cableNote)"><InboxCable :pairs="pairs" :bank="bank" :narrow="phone" /></LibTip>
           <InboxOp v-for="op in ops" :key="op.id" :op="op" :phone="phone" />
         </div>
+        <p v-if="hidden" class="t2 sm pad ib-held">{{ hidden === 1 ? '1 field the files already hold is hidden' : `${hidden} fields the files already hold are hidden` }}. Accept marks {{ hidden === 1 ? 'it' : 'them' }} accepted too.</p>
         <p v-if="cascadeText" class="t2 sm pad ib-moved" role="status">{{ cascadeText }}</p>
         <p v-if="superseded.length" class="t2 sm pad">Earlier fields no longer in this revision: {{ superseded.map((o) => name(o.id)).join(', ') }}.</p>
       </section>
