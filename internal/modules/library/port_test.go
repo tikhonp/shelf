@@ -234,7 +234,7 @@ func TestPortPlanRefusalsAndWarnings(t *testing.T) {
 	refusal("no tracks", libraryport.PlanRequest{}, ReasonRefused)
 	refusal("two albums", libraryport.PlanRequest{Files: []libraryport.PlanFile{genre(blueTracks[0], "X"), genre(courtTracks[0], "X")}}, "regrouped")
 	refusal("unknown track", libraryport.PlanRequest{Files: []libraryport.PlanFile{genre(9999, "X")}}, "regrouped")
-	refusal("nothing changes", libraryport.PlanRequest{Files: []libraryport.PlanFile{{TrackID: blueTracks[0], Edits: []libraryport.Edit{{Field: "album", Values: []string{"Blue"}}}}}}, ReasonRefused)
+	refusal("nothing changes", libraryport.PlanRequest{Files: []libraryport.PlanFile{{TrackID: blueTracks[0], Edits: []libraryport.Edit{{Field: "album", Values: []string{"Blue"}}}}}}, libraryport.ReasonUnchanged)
 	refusal("bad anchor", libraryport.PlanRequest{Files: []libraryport.PlanFile{{TrackID: blueTracks[0],
 		Edits: []libraryport.Edit{{Field: "genre", Values: []string{"X"}, Anchor: "nope"}}}}}, ReasonRefused)
 	// M4A keeps release and recording dates in one DATE, so two values

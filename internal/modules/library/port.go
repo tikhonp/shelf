@@ -561,6 +561,9 @@ func (p port) Plan(ctx context.Context, r libraryport.PlanRequest) (libraryport.
 		return libraryport.Plan{}, err
 	}
 	if st != nil {
+		if st.unchanged {
+			return stop(row.ID, libraryport.ReasonUnchanged, st.body.Error, 0)
+		}
 		return stop(row.ID, st.body.Reason, st.body.Error, st.body.Track)
 	}
 	preview, err := m.preview(ps, byID)

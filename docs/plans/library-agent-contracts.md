@@ -271,7 +271,7 @@ type Warning struct {
 }
 type Refusal struct {
 	Error   string `json:"error"`
-	Reason  string `json:"reason"` // refused | conflict | locked | busy | regrouped
+	Reason  string `json:"reason"` // refused | conflict | locked | busy | regrouped | unchanged
 	TrackID int64  `json:"track_id,omitempty"`
 }
 
@@ -328,6 +328,7 @@ type HistoryChange struct {
 
 - `save.go`: split `save` into `m.plan(ctx, row, files, saveBody) (planned, *refusal, []warning, error)` and the HTTP wrapper. The HTTP behavior and tests stay as they are. `Port.Plan` builds a `saveBody` with revisions read now, then calls the same function. `queueJob` gains a variant that takes `tx`.
 - Album resolution in `Plan`: `albumOf` for every track path; more than one album or an unknown file is a refusal with reason `regrouped`.
+- A `Plan` whose edits the files already hold is a refusal with reason `unchanged`. The editor's Save answers the same case with reason `refused`.
 - `covers.go`: `badCovers` is skipped by `Port.Album`. `PutCover` is `upload` without HTTP. `MaterializeOffer` is `remoteCover` without HTTP.
 - Migration `00010_agent_ports.sql`:
 
@@ -577,6 +578,7 @@ A proposal or agent revision carries `base`: `[{track_id, revision}]` for every 
 
 - A track not on the album, or a revision that differs: 409 `stale_base` with the current revisions. The agent rereads the album.
 - `Plan` of all ops must have no refusal: else 422 `refused` with the refusal. Warnings are fine and are shown to the reviewer.
+- Every op the agent sends new or changed must write something. Shelf plans each op with the ops it requires. When the files already hold its values, the library refuses with reason `unchanged`. Shelf then answers 422 `unchanged` with `ops`, the IDs of every such op. An agent revision may keep an op whose values someone wrote to the files after the proposal, and a reviewer's saved edit may match the files. Shelf refuses neither.
 - A cover op's image must exist in the cover store and pass the decode check. It is pinned as `agents:proposal:<id>` in the creating transaction.
 - Each op fingerprint is compared with pending and declined ops of other proposals. A match is 409 `duplicate` naming the proposal and op, unless `follow_up_of` names that proposal, the match is declined there, and `follow_up_reason` is set.
 - Each op's own preview is computed (`Plan` with only that op plus its `requires`) and its digest stored in `op_digests`. That is up to 31 `Plan` calls per creation; acceptable for one album.
@@ -690,7 +692,7 @@ A daily job `agents.retention` at 05:30 deletes proposals that are `reviewed` or
 
 ## Agent API (`/api/agent/v1`)
 
-Errors: `{"error": "message", "code": "slug", ...extra}`. Codes: `unauthorized`, `revoked`, `forbidden_operation`, `rate_limited`, `budget`, `busy`, `not_found`, `invalid`, `stale_base`, `stale_revision`, `decided_op`, `duplicate`, `refused`, `stale_memory`, `user_corrected`, `stale_learning`, `quota`. IDs are numbers; times are RFC 3339 UTC.
+Errors: `{"error": "message", "code": "slug", ...extra}`. Codes: `unauthorized`, `revoked`, `forbidden_operation`, `rate_limited`, `budget`, `busy`, `not_found`, `invalid`, `stale_base`, `stale_revision`, `decided_op`, `duplicate`, `refused`, `unchanged`, `stale_memory`, `user_corrected`, `stale_learning`, `quota`. IDs are numbers; times are RFC 3339 UTC.
 
 ### `GET /`
 
@@ -804,7 +806,7 @@ Ordinary auth. Author is `identity.From(ctx)`.
 
 - `GET /api/inbox` → `{pending, changes_requested, connections, accounts: "simple"|"none", can_create_connections}`. The UI shows Inbox only when this answers 200.
 - `GET /api/inbox/proposals?state=pending|reviewed|withdrawn|all&album=&kind=tag|cover&connection=&before=&limit=` → `{proposals: [summary], next}`, newest first, pending first when `state=all`. Summary: `{id, state, changes_requested, title, album: {...}, connection: {id, name}, kinds, fields, confidence, summary, updated_at, stale}`. `fields` lists each op of the head revision as `{id, type, field?, tag_key?, action?}`, without values.
-- `GET /api/inbox/proposals/:id` → detail as for agents, plus `live`: `{preview, op_stale: {op: bool}, refusal, before: {op: {track_id: [values]}}}` for all pending ops at the head. `op_stale` compares each op's current digest with `op_digests`. `before` holds the values each pending tag op's tracks have now. Shelf reads them from the key that feeds the op's field, or from its raw key, and the Inbox shows them in its "Was ..." line. A track the library can't read has no entry. The recorded preview stays available when the album is regrouped or gone.
+- `GET /api/inbox/proposals/:id` → detail as for agents, plus `live`: `{preview, op_stale: {op: bool}, op_unchanged: {op: bool}, refusal, before: {op: {track_id: [values]}}}` for all pending ops at the head. `op_unchanged` says the files already hold what the op and the ops it requires would write. Otherwise `op_stale` compares each op's current digest with `op_digests`. An op that changed nothing when proposed has no digest, and it is unchanged, not stale. `before` holds the values each pending tag op's tracks have now. Shelf reads them from the key that feeds the op's field, or from its raw key, and the Inbox shows them in its "Was ..." line. A track the library can't read has no entry. The recorded preview stays available when the album is regrouped or gone.
 - `POST /api/inbox/proposals/:id/preview` `{revision, ops}` → `{preview, refusal, missing}`.
 - `POST /api/inbox/proposals/:id/revisions` `{parent_revision, ops: [{id, tracks?: [{track_id, values}], every_track?}]}` → detail (user revision; only listed ops change).
 - `POST /api/inbox/proposals/:id/accept` `{revision, ops, digest, confirm, request_id}` → 202 `{acceptance, change}` (change is the library's `changeJSON`), or 409 `preview_changed` `{preview}`, 409 `confirm` `{confirm: [warning]}`, 409 `stale_revision`, 409 `decided_op`, 422 `refused`.
@@ -839,7 +841,7 @@ The prompt also covers one album per proposal, base revisions, separate artist v
 
 - Router: `/inbox`, `/inbox/:id(\d+)`, `/inbox/memory`. Shell nav gets Inbox, with a pending count, only when `GET /api/inbox` answers 200.
 - Inbox list: filters for state, album, kind and agent. Reviewed proposals stay reachable.
-- Detail: live diff by track and key (from `live.preview`), cover before/after from `/api/library/covers/:id`, the agent's reason, evidence and uncertainties, warnings, the event thread, op rockers with decisions, value editing per op (compact rows using `lib/tags.ts`), Accept, Decline the rest, and one Reply box that comments or requests changes. Selection changes call preview; Accept sends the shown digest and confirmations. A `preview_changed` answer replaces the diff and asks again. Ops marked stale say "Changed since proposed".
+- Detail: live diff by track and key (from `live.preview`), cover before/after from `/api/library/covers/:id`, the agent's reason, evidence and uncertainties, warnings, the event thread, op rockers with decisions, value editing per op (compact rows using `lib/tags.ts`), Accept, Decline the rest, and one Reply box that comments or requests changes. Selection changes call preview; Accept sends the shown digest and confirmations. A `preview_changed` answer replaces the diff and asks again. Ops marked stale say "Changed since proposed". Ops marked unchanged say "Already in the files" and start off, unless a field that starts on requires them.
 - Album page: a link "N proposals" from `GET /api/inbox/albums/:id/proposals`, only with the feature on.
 - History: an origin link to `/inbox/<p>`.
 - Status page: an Agents panel with connections, create (simple mode) with the one-time token and the prompt that holds it, revoke, and the setup prompt with a copy button. Memory page: layers, evidence, correct, delete, confirm proposed rules, export, reset.
@@ -864,7 +866,7 @@ The `libraryport` types and the agents JSON shapes above are frozen first. The a
 - Feature off: `/api/agent/v1/runs` and `/api/inbox` → 404; CLI revoke works; re-enabling keeps revoked tokens revoked.
 - Deleted creator account → 401 `revoked` and the stored reason.
 - Missing operation → 403. Budget and rate limit → 429.
-- Proposal creation: stale base, refused plan, duplicate, follow-up of a declined op, unknown image, cover pin present.
+- Proposal creation: stale base, refused plan, an op the files already hold, duplicate, follow-up of a declined op, unknown image, cover pin present.
 - Revision races: two revisions from the same parent → one 409. Agent changes a decided op → 409.
 - Accept: digest mismatch → 409 with preview; missing confirm → 409; same request twice → one change; two reviewers with overlapping ops → one change; failed unwritten write → retry allowed; partial write → retry refused.
 - Subset with `requires` broken → 422 naming both ops; an M4A date pair split → the library's refusal.

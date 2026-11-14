@@ -141,6 +141,7 @@ func (m *Module) detail(ctx context.Context, id int64, base string, live bool) (
 	out := map[string]any{"id": p.ID, "url": base + itoa(id), "state": p.state(), "changes_requested": !p.ChangesRequestedAt.IsZero(), "connection": map[string]any{"id": conn.ID, "name": conn.Name}, "run_id": p.RunID, "album": map[string]any{"id": p.AlbumID, "current_id": currentID, "folder": p.Folder, "title": p.Title, "artist": p.Artist}, "group": p.GroupKey, "follow_up_of": nullableInt(p.FollowUpOf.Int64, p.FollowUpOf.Valid), "head": p.Head, "revisions": revisions, "current": map[string]any{"title": r.Title, "reason": r.Reason, "uncertainties": r.Uncertainties, "confidence": conf, "evidence": r.evidence(), "base": r.base(), "ops": r.ops(), "preview": r.preview()}, "ops": ops, "summary": counts, "acceptances": acceptances, "events": es, "updated_at": stamp(p.UpdatedAt)}
 	if live {
 		stale := map[string]bool{}
+		noop := map[string]bool{}
 		var pv any
 		var refusal any
 		if lib == nil {
@@ -158,11 +159,14 @@ func (m *Module) detail(ctx context.Context, id int64, base string, live bool) (
 				pv = plan.Preview
 			}
 			for _, id := range pending {
-				digest, e := opDigest(ctx, lib, r.ops(), pending, id, r.base())
+				digest, same, e := opDigest(ctx, lib, r.ops(), pending, id, r.base())
 				if e != nil {
 					return nil, e
 				}
-				stale[id] = digest == "" || digest != r.digests()[id]
+				// An op the files already hold isn't stale, even when it was a
+				// no-op when proposed and so has no digest to compare.
+				noop[id] = same
+				stale[id] = !same && (digest == "" || digest != r.digests()[id])
 			}
 		}
 		// before is each pending tag field's values in the files now, for the
@@ -175,7 +179,7 @@ func (m *Module) detail(ctx context.Context, id int64, base string, live bool) (
 				m.log.Warn("agents: read the album for the values now", "album", currentID, "error", e)
 			}
 		}
-		out["live"] = map[string]any{"preview": pv, "refusal": refusal, "op_stale": stale, "before": before}
+		out["live"] = map[string]any{"preview": pv, "refusal": refusal, "op_stale": stale, "op_unchanged": noop, "before": before}
 	}
 	return out, nil
 }

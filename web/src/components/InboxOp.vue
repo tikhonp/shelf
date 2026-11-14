@@ -16,6 +16,7 @@ const pending = computed(() => decision.value?.decision === 'pending' && d.value
 const canPick = computed(() => selectable(d.value, props.op.id))
 const picked = computed(() => inbox.selected.includes(props.op.id))
 const stale = computed(() => !!d.value.live?.op_stale?.[props.op.id])
+const held = computed(() => !!d.value.live?.op_unchanged?.[props.op.id])
 const edited = computed(() => !!inbox.drafts[props.op.id])
 const label = computed(() => opLabel(props.op))
 const note = computed(() => (props.op.type === 'tag' && props.op.field ? fieldNote(props.op.field) : ''))
@@ -103,7 +104,8 @@ const editing = computed(() => !props.phone || open.value)
       <div class="ib-op-side">
         <span v-if="op.type === 'tag' && op.tag_key && !op.field" class="mono t2">{{ op.tag_key }}</span>
         <span v-if="edited" class="led stg" role="img" aria-label="Edited, not saved"></span>
-        <span v-if="stale" class="pill partial">Changed since proposed</span>
+        <span v-if="held && pending" class="pill queued">Already in the files</span>
+        <span v-else-if="stale" class="pill partial">Changed since proposed</span>
         <span v-if="decision && !pending" class="pill" :class="decisionClass(decision.decision)">{{ decisionWord(decision.decision) }}</span>
         <template v-if="tag && pending && editing">
           <button v-if="!perTrack && tracks.length > 1" type="button" class="key sm flat" @click="split = true"><LibTip title="Per track" :note="phone ? '' : inboxNotes.perTrack">Per track</LibTip></button>

@@ -40,6 +40,8 @@ On a phone, a proposal no longer scrolls sideways when a field's state quotes a 
 
 On a phone, Memory's title bar says Reset instead of Reset memory and its status keys fill one row, so neither runs off the screen. A proposal field puts a wide tag key or a Changed since proposed pill under its label. Before, they squeezed the label to one letter per line. The Inbox state labels keep their full width, so Withdrawn no longer runs under the knob. A proposal's Ask for changes switch is at the left of the reply form, and Send comment has its own row under it.
 
+A proposal field whose values the files already hold says "Already in the files" and starts off, so Accept counts only fields that write. Before, such a field said "Changed since proposed", because a field that writes nothing has no digest to compare. Santana's Caravanserai proposal had five of them among its 22 fields. Shelf now refuses an agent's new or changed field that writes nothing, with code `unchanged`.
+
 On the desktop, the Inbox now fits the window like the Library. The list and the proposal scroll inside their windows, so the menubar stays at the top and the divider's grip stays in the middle of the window. Before, the whole page scrolled. The Send key keeps one width, so the Ask for changes switch no longer moves left when you turn it on.
 
 A rocker switch, such as Compilation, now has I and O on its paddle and lights peach when on, so on and off no longer look alike. A flip fades from one state to the other over 160 ms.

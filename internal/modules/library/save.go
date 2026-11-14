@@ -183,11 +183,13 @@ func (ps plannedSave) changeRow() (changeRow, error) {
 }
 
 // saveStop is a Save the checks refused, with the answer the editor gets.
-// plain answers as an ordinary HTTP error, without a reason.
+// plain answers as an ordinary HTTP error, without a reason. unchanged
+// marks a Save the files already hold, which the port tells apart.
 type saveStop struct {
-	status int
-	body   refusal
-	plain  bool
+	status    int
+	body      refusal
+	plain     bool
+	unchanged bool
 }
 
 // planSave runs a Save's checks against the files as they are now, without
@@ -231,7 +233,7 @@ func (m *Module) planSave(ctx context.Context, row albumRow, files []*file, b sa
 		return m.stopFor(err, trackOf)
 	}
 	if len(planned.Files) == 0 && len(stored.Folder) == 0 {
-		return plannedSave{}, &saveStop{status: http.StatusUnprocessableEntity, body: refusal{Error: "nothing to change", Reason: ReasonRefused}}, nil
+		return plannedSave{}, &saveStop{status: http.StatusUnprocessableEntity, unchanged: true, body: refusal{Error: "nothing to change", Reason: ReasonRefused}}, nil
 	}
 	if anchor != "" {
 		if t := m.otherRelease(files, planned, anchor); t != 0 {

@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"slices"
 	"sort"
+	"strconv"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/jmoiron/sqlx"
@@ -88,8 +90,10 @@ type prepared struct {
 // prepare checks ops against album and plans them. pending are the op IDs
 // the revision leaves pending; only they are planned. With checkBase the
 // given base must match the current revision of every track the pending
-// ops touch, and of every track for a cover op.
-func (m *Module) prepare(ctx context.Context, lib libraryport.Port, album libraryport.Album, ops []Op, pending []string, base []BaseTrack, checkBase bool) (prepared, error) {
+// ops touch, and of every track for a cover op. fresh are the ops an agent
+// sent new or changed. Each must change the files, so an agent can't fill
+// the Inbox with values the files already hold.
+func (m *Module) prepare(ctx context.Context, lib libraryport.Port, album libraryport.Album, ops []Op, pending []string, base []BaseTrack, checkBase bool, fresh []string) (prepared, error) {
 	p := prepared{album: album, ops: ops, pending: pending, digests: map[string]string{}, fps: map[string]string{}}
 	tracks := map[int64]libraryport.Track{}
 	paths := map[int64]string{}
@@ -218,24 +222,49 @@ func (m *Module) prepare(ctx context.Context, lib libraryport.Port, album librar
 		return p, err
 	}
 	if plan.Refusal != nil {
+		// When the whole plan changes nothing, every op in it changes nothing.
+		if plan.Refusal.Reason == libraryport.ReasonUnchanged && len(fresh) > 0 {
+			return p, unchanged(fresh)
+		}
 		return p, refused(plan.Refusal)
 	}
 	p.preview = plan.Preview
 	p.images = append(p.images, previewImages(p.preview)...)
 
+	var same []string
 	for _, id := range pending {
-		d, err := opDigest(ctx, lib, ops, pending, id, p.base)
+		d, u, err := opDigest(ctx, lib, ops, pending, id, p.base)
 		if err != nil {
 			return p, err
 		}
+		if u && slices.Contains(fresh, id) {
+			same = append(same, id)
+		}
 		p.digests[id] = d
+	}
+	if len(same) > 0 {
+		return p, unchanged(same)
 	}
 	return p, nil
 }
 
+func unchanged(ops []string) *apiError {
+	return fail(http.StatusUnprocessableEntity, "unchanged",
+		fmt.Sprintf("the files already hold the values of %s; leave them out", quoted(ops)), "ops", ops)
+}
+
+func quoted(ids []string) string {
+	q := make([]string, len(ids))
+	for i, id := range ids {
+		q[i] = strconv.Quote(id)
+	}
+	return strings.Join(q, ", ")
+}
+
 // opDigest plans one op with the pending ops it requires. A refused op
-// alone has the digest "".
-func opDigest(ctx context.Context, lib libraryport.Port, ops []Op, pending []string, id string, base []BaseTrack) (string, error) {
+// alone has the digest "". same says the files already hold what the op
+// and the ops it requires would write.
+func opDigest(ctx context.Context, lib libraryport.Port, ops []Op, pending []string, id string, base []BaseTrack) (digest string, same bool, err error) {
 	set := []string{}
 	for _, r := range closure(ops, []string{id}) {
 		if slices.Contains(pending, r) {
@@ -243,10 +272,13 @@ func opDigest(ctx context.Context, lib libraryport.Port, ops []Op, pending []str
 		}
 	}
 	plan, err := lib.Plan(ctx, requestWithBase(pick(ops, set), nil, base))
-	if err != nil || plan.Refusal != nil {
-		return "", err
+	if err != nil {
+		return "", false, err
 	}
-	return plan.Preview.Digest, nil
+	if plan.Refusal != nil {
+		return "", plan.Refusal.Reason == libraryport.ReasonUnchanged, nil
+	}
+	return plan.Preview.Digest, false, nil
 }
 
 // currentAlbum is the album the proposal's files are on now. Files spread
@@ -425,7 +457,7 @@ func (m *Module) postProposal(c *echo.Context) error {
 	for i, o := range b.Ops {
 		ids[i] = o.ID
 	}
-	p, err := m.prepare(ctx, lib, album, b.Ops, ids, b.Base, true)
+	p, err := m.prepare(ctx, lib, album, b.Ops, ids, b.Base, true, ids)
 	if err != nil {
 		return err
 	}
@@ -581,7 +613,7 @@ func (m *Module) postRevision(c *echo.Context) error {
 	for i := range b.Base {
 		b.Base[i].Path = recordedPaths[b.Base[i].TrackID]
 	}
-	p, err := m.prepare(ctx, lib, album, b.Ops, pending, b.Base, true)
+	p, err := m.prepare(ctx, lib, album, b.Ops, pending, b.Base, true, append(append([]string{}, changed...), added...))
 	if err != nil {
 		return err
 	}
@@ -811,7 +843,7 @@ func (m *Module) postUserRevision(c *echo.Context) error {
 	if err != nil {
 		return err
 	}
-	p, err := m.prepare(ctx, lib, album, ops, pending, head.base(), false)
+	p, err := m.prepare(ctx, lib, album, ops, pending, head.base(), false, nil)
 	if err != nil {
 		return err
 	}

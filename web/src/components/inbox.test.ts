@@ -453,3 +453,14 @@ test('on the phone no name carries a note, and the ? cap opens the page note abo
   expect(w.find('[role="note"].slot').exists()).toBe(false)
   w.unmount()
 })
+
+test('a field the files already hold says so and starts off, unless a field that writes needs it', async () => {
+  const d = detail()
+  d.live = { preview: sameOnSix(), op_stale: { releasedate: true }, op_unchanged: { albumartists: true, originaldate: true }, refusal: null }
+  const w = await openDetail({ '/api/inbox/proposals/4': d })
+  const pills = (id: string) => w.find(`.ib-op[data-op="${id}"]`).findAll('.pill').map((p) => p.text())
+  expect(pills('albumartists')).toEqual(['Already in the files'])
+  expect(pills('originaldate')).toEqual(['Already in the files'])
+  expect(pills('releasedate')).toEqual(['Changed since proposed'])
+  expect([...useInbox().selected].sort()).toEqual(['originaldate', 'releasedate'])
+})

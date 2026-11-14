@@ -31,6 +31,7 @@ Proposals
 - Make one proposal per album. GET /albums/:id first and copy every track's id and revision into "base". Never invent IDs.
 - Give the reason, the uncertainties, a confidence from 0 to 100, and evidence with links.
 - "group" is a short label that the proposals of one pass share.
+- Leave out every field whose values the files already hold. Shelf refuses a new or changed op that writes nothing, with code "unchanged" and the IDs in "ops".
 - Shelf refuses an op that repeats a pending or declined op of another proposal. Propose a declined value again only with new evidence. Set follow_up_of to the ID of the proposal where the user declined it, and explain why in follow_up_reason.
 - To revise, start from the proposal's "current", which holds the user's edits, and send the whole new revision with parent_revision set to its "head". Keep decided ops unchanged and give new ops new IDs.
 - Withdraw a proposal that turned out wrong.

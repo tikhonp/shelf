@@ -276,7 +276,10 @@ export const useInbox = defineStore('inbox', () => {
     const first = detail.value === null || detail.value.id !== d.id
     detail.value = d
     if (first) {
-      selected.value = d.ops.filter((o) => o.decision === 'pending' && d.state !== 'withdrawn' && d.current.ops.some((c) => c.id === o.id)).map((o) => o.id)
+      // A field the files already hold starts off, so Accept counts only fields that write, unless a field that writes needs it.
+      const pendingOps = d.ops.filter((o) => o.decision === 'pending' && d.state !== 'withdrawn' && d.current.ops.some((c) => c.id === o.id)).map((o) => o.id)
+      const writes = pendingOps.filter((o) => !d.live?.op_unchanged?.[o])
+      selected.value = pendingOps.filter((o) => writes.includes(o) || writes.some((w) => needs(d.current.ops, w).includes(o)))
       headSeen.value = d.head
     } else {
       selected.value = selected.value.filter((o) => selectable(d, o))

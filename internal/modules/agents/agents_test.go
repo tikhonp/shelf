@@ -81,6 +81,10 @@ func (l *testLibrary) Plan(_ context.Context, r libraryport.PlanRequest) (librar
 		}
 		p.Preview.Files = append(p.Preview.Files, pf)
 	}
+	// The library refuses a plan the files already hold, and so does this one.
+	if r.Cover == nil && !slices.ContainsFunc(p.Preview.Files, func(f libraryport.PreviewFile) bool { return len(f.Keys) > 0 }) {
+		return libraryport.Plan{AlbumID: 1, Refusal: &libraryport.Refusal{Error: "nothing to change", Reason: libraryport.ReasonUnchanged}}, nil
+	}
 	raw := mustJSON(p.Preview)
 	h := sha256.Sum256([]byte(raw))
 	p.Preview.Digest = hex.EncodeToString(h[:])
@@ -655,5 +659,71 @@ func TestAgentAuthSaysWhatIsWrongWithTheHeader(t *testing.T) {
 		rec := httptest.NewRecorder()
 		r.handler.ServeHTTP(rec, req)
 		want(t, rec, 200)
+	}
+}
+
+// An op whose values the files already hold changes nothing. Shelf refuses
+// it from an agent, and the Inbox marks it unchanged, not stale.
+func TestOpsTheFilesAlreadyHold(t *testing.T) {
+	r := rig(t, true, nil)
+	base := []BaseTrack{{TrackID: 1, Revision: "r1"}}
+	genre := func(v string) Op {
+		return Op{ID: "genre", Type: "tag", Field: "genre", Tracks: []OpTrack{{TrackID: 1, Values: []string{v}}}}
+	}
+	mood := Op{ID: "mood", Type: "tag", Field: "mood", Tracks: []OpTrack{{TrackID: 1, Values: []string{"Happy"}}}}
+	body := func(ops ...Op) map[string]any {
+		return map[string]any{"run_id": r.run, "album_id": 1, "title": "Genre", "reason": "Because", "base": base, "ops": ops}
+	}
+	code := func(res *httptest.ResponseRecorder) (string, []string) {
+		var b struct {
+			Code string   `json:"code"`
+			Ops  []string `json:"ops"`
+		}
+		_ = json.Unmarshal(res.Body.Bytes(), &b)
+		return b.Code, b.Ops
+	}
+	for name, ops := range map[string][]Op{"one of two": {genre("Rock"), mood}, "all": {genre("Rock")}} {
+		res := r.call(t, "POST", "/api/agent/v1/proposals", body(ops...), true)
+		want(t, res, 422)
+		if c, ids := code(res); c != "unchanged" || !slices.Equal(ids, []string{"genre"}) {
+			t.Fatalf("%s: %s", name, res.Body.String())
+		}
+	}
+
+	res := r.call(t, "POST", "/api/agent/v1/proposals", body(genre("Jazz"), mood), true)
+	want(t, res, 201)
+	var p struct {
+		ID int64 `json:"id"`
+	}
+	_ = json.Unmarshal(res.Body.Bytes(), &p)
+	revise := func(ops ...Op) *httptest.ResponseRecorder {
+		return r.call(t, "POST", fmt.Sprintf("/api/agent/v1/proposals/%d/revisions", p.ID), map[string]any{"run_id": r.run, "parent_revision": 1, "title": "Genre", "reason": "Because", "base": base, "ops": ops}, true)
+	}
+	res = revise(genre("Rock"), mood)
+	want(t, res, 422)
+	if c, ids := code(res); c != "unchanged" || !slices.Equal(ids, []string{"genre"}) {
+		t.Fatal(res.Body.String())
+	}
+
+	// Someone writes Jazz after the proposal, so the files hold genre and not mood.
+	r.lib.mu.Lock()
+	r.lib.values[1]["genre"] = []string{"Jazz"}
+	r.lib.mu.Unlock()
+	res = r.call(t, "GET", fmt.Sprintf("/api/inbox/proposals/%d", p.ID), nil, false)
+	want(t, res, 200)
+	var d struct {
+		Live struct {
+			Stale     map[string]bool `json:"op_stale"`
+			Unchanged map[string]bool `json:"op_unchanged"`
+		} `json:"live"`
+	}
+	_ = json.Unmarshal(res.Body.Bytes(), &d)
+	if !d.Live.Unchanged["genre"] || d.Live.Stale["genre"] || d.Live.Unchanged["mood"] || d.Live.Stale["mood"] {
+		t.Fatalf("live %+v", d.Live)
+	}
+	// An agent may keep an op the files came to hold since it proposed it.
+	res = revise(genre("Jazz"), mood)
+	if res.Code != 200 && res.Code != 201 {
+		t.Fatal(res.Body.String())
 	}
 }

@@ -189,9 +189,12 @@ type Warning struct {
 }
 type Refusal struct {
 	Error   string `json:"error"`
-	Reason  string `json:"reason"` // refused | conflict | locked | busy | regrouped
+	Reason  string `json:"reason"` // refused | conflict | locked | busy | regrouped | unchanged
 	TrackID int64  `json:"track_id,omitempty"`
 }
+
+// ReasonUnchanged is the reason Plan gives when the files already hold its edits.
+const ReasonUnchanged = "unchanged"
 
 // Field is a Navidrome field an edit may name. Key is what a write adds
 // when a file holds none of the field's keys. Type is "", "date", "uuid" or
