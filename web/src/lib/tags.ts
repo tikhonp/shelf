@@ -20,7 +20,21 @@ export interface MainField {
   perTrack?: boolean
   multi?: boolean
   flag?: boolean
+  // choices are the values an input offers. It still takes any other.
+  choices?: string[]
 }
+
+// MusicBrainz's release types, primary then secondary, lower case as
+// MusicBrainz and Picard write them.
+export const releaseTypes = [
+  'album', 'single', 'ep', 'broadcast', 'other',
+  'compilation', 'soundtrack', 'spokenword', 'interview', 'audiobook', 'audio drama', 'live', 'remix', 'dj-mix', 'mixtape/street', 'demo', 'field recording',
+]
+
+const typeNames: Record<string, string> = { ep: 'EP', spokenword: 'Spoken word', 'dj-mix': 'DJ-mix', 'mixtape/street': 'Mixtape/Street', none: 'No release type' }
+
+// releaseTypeName is how the filter menu names a release type the index counts.
+export const releaseTypeName = (t: string) => typeNames[t] ?? (releaseTypes.includes(t) ? t.charAt(0).toUpperCase() + t.slice(1) : t)
 
 export const mainFields: MainField[] = [
   { field: 'title', label: 'Title', perTrack: true },
@@ -36,6 +50,7 @@ export const mainFields: MainField[] = [
   { field: 'originaldate', label: 'Original date' },
   { field: 'recordingdate', label: 'Recording date' },
   { field: 'compilation', label: 'Compilation', flag: true },
+  { field: 'releasetype', label: 'Release type', multi: true, choices: releaseTypes },
 ]
 
 const same = (a: string[], b: string[]) => a.length === b.length && a.every((v, i) => v === b[i])
@@ -132,13 +147,14 @@ export function addValue(stage: Stage, tracks: LibraryTrack[], target: Target, v
   return next
 }
 
-// Suggestions for these fields are whole credits, such as MusicBrainz's, so a
-// one-value suggestion replaces the list instead of joining it.
-const wholeLists = new Set(['artists', 'albumartists'])
+// Suggestions for these fields are whole credits or a release group's whole
+// type, such as MusicBrainz's, so a one-value suggestion replaces the list
+// instead of joining it.
+const wholeLists = new Set(['artists', 'albumartists', 'releasetype'])
 
 // accept stages a suggestion. A fill gives each track its own value, on every
 // track whatever the editor has selected. A one-value suggestion on a multi
-// field adds the value, except on Artists and Album artists.
+// field adds the value, except on Artists, Album artists and Release type.
 export function accept(stage: Stage, all: LibraryTrack[], scope: LibraryTrack[], s: Suggestion, multi: boolean): Stage {
   if (s.tracks) {
     let next = stage

@@ -1,6 +1,6 @@
 # Tag editor feedback
 
-Status: drafted on 2026-11-16. Phases 1 and 2 are done on main and not deployed. A new session with a clean context builds each phase, in order. A phase is done when its "Done when" list holds, `make check`, `make lint`, `make web-check` and `docker build .` pass, and `docs/tags.md` and `docs/status.md` describe the result in the same commit.
+Status: drafted on 2026-11-16. Phases 1, 2 and 3 are done on main and not deployed. A new session with a clean context builds each phase, in order. A phase is done when its "Done when" list holds, `make check`, `make lint`, `make web-check` and `docker build .` pass, and `docs/tags.md` and `docs/status.md` describe the result in the same commit.
 
 ## Where this comes from
 
@@ -172,6 +172,15 @@ So the wrong EPs can be found:
 ### Done when
 
 Release type can hold several values from the editor, Navidrome reads them as several in every format shelf writes or `docs/tags.md` names the exception, and the filter lists albums by type.
+
+### What phase 3 found and changed from the steps above
+
+- **Feishin.** Feishin's artist page has a grouping selector. With "All release types" it files an album under all its types joined, primary first, so single and soundtrack make one group of their own. With "Primary release types" the album goes under Single. That is the combined category the friend saw. Shelf writes two values, and keeps doing so.
+- **Navidrome.** `make contract` against Navidrome 0.64.2 saves `single` and `soundtrack` to a FLAC, an MP3 and an M4A album. `getAlbum` answers `releaseTypes: ["single", "soundtrack"]` for each, so no format needs a comma-joined value.
+- **Index.** `library_albums.types` holds each album's types as `,single,soundtrack,`, from migration 00011. The facts already kept the release type, so the walk after the deploy fills the column without reading files again. Types are lower case, so `EP` and `ep` are one entry, and `type=` takes any case.
+- **Runs.** A run's Select all also sends `type`, because a run over the EP filter must select only EPs. The bulk panel now loads its preview again when the source or type changes, as it already did for the filter and folder.
+- **Suggestions.** On Release type a one-value suggestion replaces the list too, since a suggestion there is a release group's whole type.
+- **Menu names.** The filter menu names MusicBrainz's types, such as EP and Spoken word, and No release type. Any other type shows as the files hold it.
 
 ---
 

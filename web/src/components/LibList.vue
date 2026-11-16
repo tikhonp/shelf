@@ -6,7 +6,7 @@ import { count } from '../lib/format'
 import { typeAngles } from '../lib/formats'
 import { libraryTape } from '../lib/quality'
 import { sourceWords } from '../lib/source'
-import { isGuide, issueName } from '../lib/tags'
+import { isGuide, issueName, releaseTypeName } from '../lib/tags'
 import { usePhone } from '../lib/viewport'
 import { useBulk } from '../stores/bulk'
 import { useLibrary, type LibrarySort } from '../stores/library'
@@ -34,6 +34,7 @@ const turn = () => library.setSort(sorts[(at.value + 1) % sorts.length]!.id)
 
 const filterName = computed(() => {
   if (library.folder) return library.folder
+  if (library.type) return releaseTypeName(library.type)
   if (library.source === 'none') return 'No known source'
   if (library.source) return library.filters?.sources.find((s) => s.id === library.source)?.name ?? library.source
   if (library.filter === 'all') return 'All albums'

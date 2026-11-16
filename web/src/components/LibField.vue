@@ -17,6 +17,7 @@ const view = computed(() => fieldView(editor.scope, target.value, editor.stage))
 const locked = computed(() => !!props.f.perTrack && !editor.selected)
 const readOnly = computed(() => locked.value || view.value.readOnly)
 const id = computed(() => `lf-${props.f.field}`)
+const list = computed(() => (props.f.choices ? `${id.value}-choices` : undefined))
 const placeholder = computed(() => (view.value.mixed ? 'Mixed' : 'Empty'))
 const single = computed(() => view.value.values[0] ?? '')
 const was = computed(() => {
@@ -65,10 +66,11 @@ const on = computed(() => view.value.values[0] === '1')
       </span>
       <template v-else-if="f.multi && !readOnly">
         <span v-for="(v, i) in rows" :key="i" class="lf-in">
-          <input :id="i === 0 ? id : undefined" class="lib-in" :class="{ mixed: view.mixed, stg: view.staged }" :value="v" :placeholder="placeholder" :aria-label="`${f.label}, value ${i + 1}`" @input="typeAt(i, $event)" />
+          <input :id="i === 0 ? id : undefined" class="lib-in" :class="{ mixed: view.mixed, stg: view.staged }" :value="v" :placeholder="placeholder" :list="list" :aria-label="`${f.label}, value ${i + 1}`" @input="typeAt(i, $event)" />
           <button v-if="rows.length > 1" type="button" class="lf-rev" :aria-label="`Remove ${f.label} value ${i + 1}`" title="Remove" @click="removeAt(i)"><Icon name="close" /></button>
           <button v-else-if="view.staged" type="button" class="lf-rev" :aria-label="`Revert ${f.label}`" title="Revert" @click="editor.drop(target)"><Icon name="revert" /></button>
         </span>
+        <datalist v-if="list" :id="list"><option v-for="c in f.choices" :key="c" :value="c" /></datalist>
         <span class="lf-adds">
           <button v-if="!view.mixed" type="button" class="lf-add" @click="addRow"><Icon name="plus" size="s" />Add value</button>
           <button v-if="view.staged && rows.length > 1" type="button" class="lf-add" @click="editor.drop(target)"><Icon name="revert" size="s" />Revert</button>

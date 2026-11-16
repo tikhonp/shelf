@@ -28,6 +28,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -198,7 +199,9 @@ type ndAlbum struct {
 	Year      int    `json:"year"`
 	SongCount int    `json:"songCount"`
 	Starred   string `json:"starred"`
-	Song      []struct {
+	// ReleaseTypes is OpenSubsonic's list of the album's release types.
+	ReleaseTypes []string `json:"releaseTypes"`
+	Song         []struct {
 		ID         string `json:"id"`
 		Title      string `json:"title"`
 		Starred    string `json:"starred"`
@@ -295,6 +298,11 @@ func TestNavidromeContract(t *testing.T) {
 	r.add("singles/a.flac", "track.flac", blue("1", map[string][]string{"ALBUM": {"One"}}))
 	r.add("singles/b.flac", "track.flac", blue("1", map[string][]string{"ALBUM": {"Two"}}))
 	r.write("singles/cover.jpg", jpegOf(t, 120, 120))
+	// One album for each format shelf writes release types to.
+	typed := map[string]string{"Types FLAC": "track.flac", "Types MP3": "track.mp3", "Types M4A": "track.m4a"}
+	for name, fixture := range typed {
+		r.add("types/"+name+"/01"+filepath.Ext(fixture), fixture, blue("1", map[string][]string{"ALBUM": {name}}))
+	}
 	music, err := filepath.EvalSymlinks(r.root)
 	if err != nil {
 		t.Fatal(err)
@@ -392,6 +400,26 @@ func TestNavidromeContract(t *testing.T) {
 	reindex()
 	if y := check("after the date fix")["Moanin'"].Year; y != 1958 {
 		t.Errorf("Moanin' shows %d after the date fix", y)
+	}
+
+	// A Save of two release types gives Navidrome two types in every format.
+	for name := range typed {
+		a := ours[name]
+		r.saved(a.ID, saveBody{Tracks: everyTrack(r.open(a.ID), editJSON{Field: "releasetype", Values: []string{"single", "soundtrack"}})})
+	}
+	reindex()
+	nds = check("after the release types")
+	for name := range typed {
+		if got := nd.album(nds[name].ID).ReleaseTypes; !slices.Equal(got, []string{"single", "soundtrack"}) {
+			t.Errorf("Navidrome reads the release types of %s as %q", name, got)
+		}
+	}
+	var soundtracks []string
+	for _, a := range r.albums("?type=soundtrack").Albums {
+		soundtracks = append(soundtracks, a.Title)
+	}
+	if !slices.Equal(soundtracks, []string{"Types FLAC", "Types M4A", "Types MP3"}) {
+		t.Errorf("shelf lists %q as soundtracks", soundtracks)
 	}
 
 	// A new cover is what Navidrome serves for the album. The split left

@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import type { LibraryTrack, Suggestion, Suggestions, TagKey } from '../api/types'
-import { accept, addValue, changes, fieldView, fix, isLong, keyTarget, pastedRelease, revert, saveBody, stageEdit, suggestionsFor, tagKey, tagRows, type KnownField, type Stage } from './tags'
+import { accept, addValue, changes, fieldView, fix, isLong, keyTarget, pastedRelease, releaseTypeName, revert, saveBody, stageEdit, suggestionsFor, tagKey, tagRows, type KnownField, type Stage } from './tags'
 
 function track(id: number, tags: Record<string, string[]>, standard: TagKey[] = []): LibraryTrack {
   return {
@@ -58,11 +58,17 @@ test('a multi-value suggestion adds to each track and loses nothing', () => {
   expect(addValue(s, ts, 'genre', 'Pop')).toEqual(s)
 })
 
-test('a one-value suggestion replaces the Artists and Album artists lists, and adds to Genre', () => {
-  const t = track(1, { artists: ['Joni Mitchell', 'David Crosby'], albumartists: ['Joni Mitchell', 'David Crosby'], genre: ['Folk'] })
+test('a one-value suggestion replaces the Artists, Album artists and Release type lists, and adds to Genre', () => {
+  const t = track(1, { artists: ['Joni Mitchell', 'David Crosby'], albumartists: ['Joni Mitchell', 'David Crosby'], genre: ['Folk'], releasetype: ['ep'] })
+  expect(accept({}, [t], [t], sug({ field: 'releasetype', values: ['album'] }), true)[1]!.releasetype!.values).toEqual(['album'])
+  expect(accept({}, [t], [t], sug({ field: 'releasetype', values: ['single', 'soundtrack'] }), true)[1]!.releasetype!.values).toEqual(['single', 'soundtrack'])
   expect(accept({}, [t], [t], sug({ field: 'artists', values: ['Joni Mitchell'] }), true)[1]!.artists!.values).toEqual(['Joni Mitchell'])
   expect(accept({}, [t], [t], sug({ field: 'albumartists', values: ['Joni Mitchell'] }), true)[1]!.albumartists!.values).toEqual(['Joni Mitchell'])
   expect(accept({}, [t], [t], sug({ values: ['Pop'] }), true)[1]!.genre!.values).toEqual(['Folk', 'Pop'])
+})
+
+test('the filter menu names MusicBrainz types, and keeps any other as the files hold it', () => {
+  expect(['album', 'ep', 'spokenword', 'audio drama', 'dj-mix', 'none', 'Bootleg'].map(releaseTypeName)).toEqual(['Album', 'EP', 'Spoken word', 'Audio drama', 'DJ-mix', 'No release type', 'Bootleg'])
 })
 
 test('a fill gives every track its own value even with one selected', () => {

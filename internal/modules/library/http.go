@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/labstack/echo/v5"
 	"github.com/tikhonp/shelf/internal/modules/library/tagio"
@@ -102,6 +103,13 @@ func (m *Module) list(c *echo.Context) error {
 	if !m.validSource(q.Source) {
 		return echo.NewHTTPError(http.StatusBadRequest, "unknown source "+strconv.Quote(q.Source))
 	}
+	if c.QueryParams().Has("type") {
+		t, ok := releaseType(c.QueryParam("type"))
+		if !ok || t == "" {
+			return echo.NewHTTPError(http.StatusBadRequest, "type must be a release type, such as ep, or none")
+		}
+		q.Type = t
+	}
 	switch f := c.QueryParam("filter"); {
 	case f == "" || f == "all":
 	case f == "issues" || f == "guide" || f == "no_mbid" || slices.Contains(Kinds, Kind(f)):
@@ -175,6 +183,17 @@ type filtersJSON struct {
 	Sources []sourceCountJSON `json:"sources"`
 	// NoSource counts the albums no source is known for.
 	NoSource int `json:"no_source"`
+	// Types lists the release types the albums hold, and "none" for the
+	// albums with no type.
+	Types []countJSON `json:"types"`
+}
+
+// releaseType reads a filter by release type. Types are lower case, as
+// MusicBrainz writes them. Navidrome splits a type on commas, so no type
+// holds one.
+func releaseType(t string) (string, bool) {
+	t = strings.ToLower(strings.TrimSpace(t))
+	return t, !strings.ContainsFunc(t, func(r rune) bool { return r == ',' || unicode.IsControl(r) })
 }
 
 // validSource is a filter by a registered source, or by none.
@@ -200,7 +219,7 @@ func (m *Module) filters(c *echo.Context) error {
 		return err
 	}
 	out := filtersJSON{Albums: n.Albums, Issues: issues, NoMBID: n.NoMBID, Kinds: []countJSON{}, Folders: []countJSON{},
-		Sources: []sourceCountJSON{}, NoSource: n.Sources[""]}
+		Sources: []sourceCountJSON{}, NoSource: n.Sources[""], Types: []countJSON{}}
 	for _, s := range sourcesOf(m.sources) {
 		if a := n.Sources[s.id]; a > 0 {
 			out.Sources = append(out.Sources, sourceCountJSON{ID: s.id, Name: s.name, Albums: a})
@@ -215,6 +234,19 @@ func (m *Module) filters(c *echo.Context) error {
 		}
 	}
 	slices.SortFunc(out.Folders, func(a, b countJSON) int { return strings.Compare(a.Name, b.Name) })
+	for t, a := range n.Types {
+		out.Types = append(out.Types, countJSON{Name: t, Albums: a})
+	}
+	// None comes last, after the types by name.
+	slices.SortFunc(out.Types, func(a, b countJSON) int {
+		if (a.Name == "none") != (b.Name == "none") {
+			if a.Name == "none" {
+				return 1
+			}
+			return -1
+		}
+		return strings.Compare(a.Name, b.Name)
+	})
 	return c.JSON(http.StatusOK, out)
 }
 

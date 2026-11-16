@@ -152,18 +152,23 @@ func (s store) saveAlbums(ctx context.Context, albums []*album) error {
 			for _, is := range a.Issues {
 				kinds += string(is.Kind) + ","
 			}
+			types := ","
+			for _, t := range a.Types {
+				types += t + ","
+			}
 			var id int64
 			err = tx.GetContext(ctx, &id, `INSERT INTO library_albums
 				(folder, nd_id, title, artist, year, tracks, quality, length_ms, size, added_at, has_mbid, lamp, issues, kinds, search,
-				source, source_info)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+				source, source_info, types)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				ON CONFLICT (folder, nd_id) DO UPDATE SET title = excluded.title, artist = excluded.artist, year = excluded.year,
 					tracks = excluded.tracks, quality = excluded.quality, length_ms = excluded.length_ms, size = excluded.size,
 					added_at = excluded.added_at, has_mbid = excluded.has_mbid, lamp = excluded.lamp, issues = excluded.issues,
-					kinds = excluded.kinds, search = excluded.search, source = excluded.source, source_info = excluded.source_info
+					kinds = excluded.kinds, search = excluded.search, source = excluded.source, source_info = excluded.source_info,
+					types = excluded.types
 				RETURNING id`,
 				a.Folder, a.AlbumID, a.Title, a.Artist, a.Year, len(a.Files), a.Quality, a.LengthMS, a.Size, db.At(a.Added),
-				a.HasMBID, a.lamp(), string(issues), kinds, searchText(a.Title, a.Artist, a.Folder), a.Source.ID, string(src))
+				a.HasMBID, a.lamp(), string(issues), kinds, searchText(a.Title, a.Artist, a.Folder), a.Source.ID, string(src), types)
 			if err != nil {
 				return fmt.Errorf("library: save album %s: %w", a.Folder, err)
 			}
@@ -258,6 +263,8 @@ type listQuery struct {
 	Folder string
 	// Source is a source's ID, or "none" for albums no source is known for.
 	Source string
+	// Type is a release type, lower case, or "none" for albums with no type.
+	Type string
 	// Sort is "album", "artist", "year" or "added".
 	Sort   string
 	Desc   bool
@@ -301,6 +308,14 @@ func (s store) albums(ctx context.Context, q listQuery) ([]albumRow, int, error)
 	default:
 		where = append(where, `source = ?`)
 		args = append(args, q.Source)
+	}
+	switch q.Type {
+	case "":
+	case "none":
+		where = append(where, `types = ','`)
+	default:
+		where = append(where, `types LIKE ? ESCAPE '\'`)
+		args = append(args, "%,"+like(q.Type)+",%")
 	}
 	cond := ""
 	if where != nil {
@@ -352,18 +367,22 @@ type counts struct {
 	// Sources maps each source's ID to its albums, and "" to the albums no
 	// source is known for.
 	Sources map[string]int
-	NoMBID  int
+	// Types maps each release type to its albums, and "none" to the albums
+	// with no type. An album counts under each of its types.
+	Types  map[string]int
+	NoMBID int
 }
 
 func (s store) counts(ctx context.Context) (counts, error) {
-	c := counts{Kinds: map[Kind]int{}, Folders: map[string]int{}, Sources: map[string]int{}}
+	c := counts{Kinds: map[Kind]int{}, Folders: map[string]int{}, Sources: map[string]int{}, Types: map[string]int{}}
 	var rows []struct {
 		Folder  string `db:"folder"`
 		Kinds   string `db:"kinds"`
 		HasMBID bool   `db:"has_mbid"`
 		Source  string `db:"source"`
+		Types   string `db:"types"`
 	}
-	if err := s.db.R.SelectContext(ctx, &rows, `SELECT folder, kinds, has_mbid, source FROM library_albums`); err != nil {
+	if err := s.db.R.SelectContext(ctx, &rows, `SELECT folder, kinds, has_mbid, source, types FROM library_albums`); err != nil {
 		return c, err
 	}
 	for _, r := range rows {
@@ -374,6 +393,14 @@ func (s store) counts(ctx context.Context) (counts, error) {
 		}
 		c.Folders[top]++
 		c.Sources[r.Source]++
+		if r.Types == "," {
+			c.Types["none"]++
+		}
+		for t := range strings.SplitSeq(strings.Trim(r.Types, ","), ",") {
+			if t != "" {
+				c.Types[t]++
+			}
+		}
 		for k := range strings.SplitSeq(strings.Trim(r.Kinds, ","), ",") {
 			if k != "" {
 				c.Kinds[Kind(k)]++

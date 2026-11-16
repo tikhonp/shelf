@@ -238,7 +238,7 @@ The canvas boards are `project/Lib-*.dc.html`, styled by `project/retro.css` and
 - A staged field has an amber edge, a line with its old value, and a Revert button. Revert drops that one edit, so a Fix can be reviewed field by field.
 - A tag that belongs to a single track is read-only at All tracks, with a dashed edge and a lock, and accepts typing once a track is selected. That covers Title, Track, ISRC, the track IDs, track gain and lyrics. On the phone the Title and Track rows don't open, and the other tags aren't shown.
 - A per-track ID keeps its suggestion at All tracks, because one press fills every track with its own ID.
-- A multi-value tag has one input per value, a remove button on each when there are two or more, and a plain Add value button (`.lf-add`). A single-value field looks the same as before. Pressing a suggestion on a multi-value tag adds it as another value, except on Artists and Album artists, where it replaces the list. A Save a file refuses shows its message under the row it names, after a red lamp.
+- A multi-value tag has one input per value, a remove button on each when there are two or more, and a plain Add value button (`.lf-add`). A single-value field looks the same as before. Pressing a suggestion on a multi-value tag adds it as another value, except on Artists, Album artists and Release type, where it replaces the list. Release type's inputs offer MusicBrainz's types from a `<datalist>`. A Save a file refuses shows its message under the row it names, after a red lamp.
 - Delete in the cover dialog stages, like Apply to album. Save cover alone is the one action that writes at once.
 - An added custom field shows the same staged look as other edits. A deleted one stays in its row, struck through, until Save.
 - All fields is a small rocker in the Editor's title bar. On the phone, the same rocker pattern sets Compilation, and All fields doesn't exist.
@@ -246,7 +246,7 @@ The canvas boards are `project/Lib-*.dc.html`, styled by `project/retro.css` and
 - Select and History are caps in the Library title bar, and the bulk run and History open beside the album list. The phone has neither. An album's own History opens on both, from a History cap in the Editor's title bar on the desktop and in the album's title bar on the phone. On the phone the Inbox links an accepted change to its album's History. When the index no longer has the album, the Inbox names the change without a link, as "Change 84 is in History on a desktop".
 - Dividers (`.lib-split`) resize the panels by dragging or with the left and right arrows. Below 1100px the panels stack and the dividers go.
 - The desktop Inbox uses the same row of panels (`.lib-main`), so it fits the window and each window scrolls by itself.
-- The filter menu shows how many albums each entry holds.
+- The filter menu shows how many albums each entry holds. Its groups are Show, Issues, Guide, Sources, Release type and Folders, each shown when it has entries.
 - A phone confirm, such as the split warning, is a slot. A desktop confirm is a dialog.
 
 ### Help

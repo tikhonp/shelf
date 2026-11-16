@@ -38,7 +38,7 @@ const routes = (over: Record<string, unknown> = {}) => ({
   '/api/telegram': { enabled: false, connected: false, username: '', users: 0 },
   '/api/library/index': { indexing: false, ready: true, albums: 1, tracks: 2, read: 2, error: '' },
   '/api/library/musicbrainz': { ok: true, message: '', latency_ms: 120, checked_at: '' },
-  '/api/library/filters': { albums: 1, issues: 1, no_mbid: 1, kinds: [{ name: 'no_releasedate', albums: 1 }], folders: [{ name: 'rock', albums: 1 }], sources: [{ id: 'qobuz', name: 'Qobuz', albums: 1 }], no_source: 2 },
+  '/api/library/filters': { albums: 1, issues: 1, no_mbid: 1, kinds: [{ name: 'no_releasedate', albums: 1 }], folders: [{ name: 'rock', albums: 1 }], sources: [{ id: 'qobuz', name: 'Qobuz', albums: 1 }], no_source: 2, types: [{ name: 'album', albums: 1 }, { name: 'ep', albums: 3 }, { name: 'none', albums: 2 }] },
   '/api/library/keys': { fields: [{ name: 'title', key: 'TITLE', multi: false }, { name: 'bpm', key: 'BPM', multi: false }, { name: 'artists', key: 'ARTISTS', multi: true }] },
   '/api/library/albums/7/suggestions': suggestions,
   '/api/library/albums/7': detail(),
@@ -97,6 +97,28 @@ test('the list shows each album\'s source, and the filter menu picks a source or
   await w.find('[role=menu]').findAll('button').find((b) => b.text().startsWith('No known source'))!.trigger('click')
   await flushPromises()
   expect(calls.some((c) => c.url.includes('source=none'))).toBe(true)
+  w.unmount()
+})
+
+test('the filter menu lists albums by release type, and another entry leaves the type', async () => {
+  const { w, calls } = await at('/library')
+  await button(w, 'Filter: All albums').trigger('click')
+  const menu = w.find('[role=menu]')
+  const group = menu.findAll('.pop-h').map((h) => h.text())
+  expect(group.slice(group.indexOf('Release type') - 1, group.indexOf('Release type') + 2)).toEqual(['Sources', 'Release type', 'Folders'])
+  const entries = menu.findAll('button').map((b) => b.text())
+  expect(entries).toEqual(expect.arrayContaining(['Album1', 'EP3', 'No release type2']))
+  await menu.findAll('button').find((b) => b.text().startsWith('EP'))!.trigger('click')
+  await flushPromises()
+  expect(calls.at(-1)!.url).toContain('type=ep')
+  expect(button(w, 'Filter: EP').exists()).toBe(true)
+  await button(w, 'Filter: EP').trigger('click')
+  expect(w.find('[role=menu]').findAll('button').find((b) => b.text().startsWith('EP'))!.attributes('aria-checked')).toBe('true')
+  await w.find('[role=menu]').findAll('button').find((b) => b.text().startsWith('Qobuz'))!.trigger('click')
+  await flushPromises()
+  const last = calls.filter((c) => c.url.includes('/api/library/albums?')).at(-1)!.url
+  expect(last).toContain('source=qobuz')
+  expect(last).not.toContain('type=')
   w.unmount()
 })
 
@@ -264,6 +286,28 @@ test('a Save a file refuses names the field on its row', async () => {
   await flushPromises()
   expect(w.find('[data-target=artists] .lf-note.refused').text()).toContain('WMA files keep one value per tag')
   expect(w.find('[data-target=genre] .lf-note.refused').exists()).toBe(false)
+  w.unmount()
+})
+
+test('Release type is a list row after Compilation that offers the MusicBrainz types and keeps any typed value', async () => {
+  const types = { ...suggestions, album: [{ field: 'releasetype', values: ['single', 'soundtrack'], source: 'MusicBrainz', sources: ['MusicBrainz'], confidence: 90 }] }
+  const { w } = await at('/library/7', { '/api/library/albums/7/suggestions': types })
+  const labels = w.findAll('.lib-fields .lf-l').map((l) => l.text())
+  expect(labels.slice(labels.indexOf('Compilation'))).toEqual(['Compilation', 'Release type'])
+  const row = () => w.find('[data-target=releasetype]')
+  const input = row().find('#lf-releasetype')
+  expect(input.attributes('list')).toBe('lf-releasetype-choices')
+  const offered = row().findAll('#lf-releasetype-choices option').map((o) => o.attributes('value'))
+  expect(offered.slice(0, 5)).toEqual(['album', 'single', 'ep', 'broadcast', 'other'])
+  expect(offered).toContain('field recording')
+  await row().find('.sug').trigger('click')
+  expect(row().findAll('input').map((i) => (i.element as HTMLInputElement).value)).toEqual(['single', 'soundtrack'])
+  await row().findAll('input')[1]!.setValue('bootleg')
+  expect(row().findAll('input').map((i) => (i.element as HTMLInputElement).value)).toEqual(['single', 'bootleg'])
+  await row().findAll('button').find((b) => b.attributes('aria-label') === 'Remove Release type value 2')!.trigger('click')
+  await row().find('input').setValue('single, soundtrack')
+  expect(row().findAll('input').map((i) => (i.element as HTMLInputElement).value)).toEqual(['single, soundtrack'])
+  expect(row().text()).toContain('Add value')
   w.unmount()
 })
 
@@ -882,6 +926,15 @@ test('on the phone the ? cap explains History and gives the open change\'s full 
   await w.find('[aria-labelledby=lh-t] button[aria-label="Back to the album"]').trigger('click')
   await flushPromises()
   expect(w.find('.stack > .win.slot[role=note]').exists()).toBe(false)
+  w.unmount()
+})
+
+test('on the phone the Release type page offers the MusicBrainz types', async () => {
+  const { w } = await phoneAt('/library/7?field=releasetype')
+  expect(w.find('h1').text()).toBe('Release type')
+  expect(w.find('.lbl-f input').attributes('list')).toBe('pf-releasetype-choices')
+  expect(w.findAll('#pf-releasetype-choices option').map((o) => o.attributes('value'))).toContain('soundtrack')
+  expect(w.text()).toContain('Add value')
   w.unmount()
 })
 

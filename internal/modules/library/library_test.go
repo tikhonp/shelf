@@ -347,6 +347,71 @@ func TestListFiltersSortsAndSearches(t *testing.T) {
 	}
 }
 
+// The index keeps every release type any track of an album holds, lower case,
+// and splits a value on commas as Navidrome does.
+func TestReleaseTypeFilter(t *testing.T) {
+	r := newRig(t)
+	typed := func(rel, album string, types ...string) {
+		tags := tagged(map[string][]string{"ALBUM": {album}})
+		if types != nil {
+			tags["RELEASETYPE"] = types
+		}
+		r.add(rel, "track.flac", tags)
+	}
+	typed("folk/Blue/01.flac", "Blue", "album")
+	typed("folk/Blue/02.flac", "Blue")
+	typed("jazz/Hejira/01.flac", "Hejira", "single, Soundtrack")
+	typed("jazz/Court/01.flac", "Court and Spark", "ep")
+	typed("rock/Shoreline/01.flac", "Shoreline", "EP")
+	typed("rock/Plain/01.flac", "Plain")
+	r.walk()
+
+	titles := func(q string) []string {
+		var out []string
+		for _, a := range r.albums(q).Albums {
+			out = append(out, a.Title)
+		}
+		return out
+	}
+	cases := map[string][]string{
+		"?type=ep":                {"Court and Spark", "Shoreline"},
+		"?type=EP":                {"Court and Spark", "Shoreline"},
+		"?type=ep&folder=jazz":    {"Court and Spark"},
+		"?type=ep&q=shore":        {"Shoreline"},
+		"?type=ep&filter=no_mbid": {"Court and Spark", "Shoreline"},
+		"?type=album":             {"Blue"},
+		"?type=soundtrack":        {"Hejira"},
+		"?type=single":            {"Hejira"},
+		"?type=none":              {"Plain"},
+		"?type=live":              nil,
+		"?type=e_":                nil,
+	}
+	for q, want := range cases {
+		if got := titles(q); !slices.Equal(got, want) {
+			t.Errorf("%s: %q, want %q", q, got, want)
+		}
+	}
+	for _, q := range []string{"?type=", "?type=%20", "?type=single,soundtrack", "?type=ep%1F"} {
+		if rec := r.do(http.MethodGet, "/api/library/albums"+q); rec.Code != http.StatusBadRequest {
+			t.Errorf("%s: %d", q, rec.Code)
+		}
+	}
+
+	var f filtersJSON
+	r.getJSON("/api/library/filters", &f)
+	want := []countJSON{{"album", 1}, {"ep", 2}, {"single", 1}, {"soundtrack", 1}, {"none", 1}}
+	if !slices.Equal(f.Types, want) {
+		t.Errorf("types %+v, want %+v", f.Types, want)
+	}
+
+	if p := r.preview(runBody{Selection: selection{All: true, Type: "ep"}, Fixes: []string{FixReplayGain}}); p.Selected != 2 {
+		t.Errorf("a run over EPs selects %d", p.Selected)
+	}
+	if rec := r.post("/api/library/runs/preview", runBody{Selection: selection{All: true, Type: "ep,album"}, Fixes: []string{FixReplayGain}}); rec.Code != http.StatusBadRequest {
+		t.Errorf("a run over a malformed type: %d", rec.Code)
+	}
+}
+
 func TestOpenedAlbumIsReadAgain(t *testing.T) {
 	r := newRig(t)
 	p := r.add("folk/Blue/01.flac", "track.flac", blue("1", nil))

@@ -45,7 +45,7 @@ const tab = (w: Awaited<ReturnType<typeof mountAt>>['wrapper'], name: string) =>
 test('/ opens the Library and unknown paths too, and Library is the first tab', async () => {
   stubApi(routes({
     '/api/library/index': { indexing: false, ready: true, albums: 0, tracks: 0, read: 0, error: '' },
-    '/api/library/filters': { albums: 0, issues: 0, no_mbid: 0, kinds: [], folders: [], sources: [], no_source: 0 },
+    '/api/library/filters': { albums: 0, issues: 0, no_mbid: 0, kinds: [], folders: [], sources: [], no_source: 0, types: [] },
     '/api/library/albums': { albums: [], total: 0, limit: 100, offset: 0 },
   }))
   const { wrapper, router } = await mountAt('/')

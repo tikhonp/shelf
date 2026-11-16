@@ -119,7 +119,7 @@ The change's `deleted` holds `{"files", "bytes", "albums", "forgot", "navidrome"
 
 A run applies chosen fixes, or ReplayGain, to many albums as one undo step. Only the owner starts one, on the desktop. Select in the list's title bar shows a push button on each row, and `X` picks the row under the cursor. The panel opens with the first album picked, and `B` opens or closes it.
 
-**Selection.** A body names albums as `{"albums": [ids]}`, or as `{"all": true, "q", "filter", "folder", "except": [ids]}`. Select all uses the second form, because the list holds only the pages already loaded. The selection is stored in `library_run_albums`, since a job's payload stops at 64 KiB.
+**Selection.** A body names albums as `{"albums": [ids]}`, or as `{"all": true, "q", "filter", "folder", "source", "type", "except": [ids]}`. Select all uses the second form, because the list holds only the pages already loaded. The selection is stored in `library_run_albums`, since a job's payload stops at 64 KiB.
 
 **Preview.** `POST /api/library/runs/preview` takes `{"selection", "fixes"}` and answers `{"selected", "fixes": [{"fix", "albums"}], "albums", "files", "bytes", "samples"}`. Each fix counts the selected albums the index says have its issue, and ReplayGain counts every selected album. `albums`, `files` and `bytes` add up the albums the chosen fixes reach. A retag rewrites every file, and the backups copy each one again, so whole albums count. These numbers are a ceiling, because an album may turn out to have nothing to change. `samples` lists `{"album", "key", "before", "after"}`: shelf plans the first five albums for real and shows up to six changes. ReplayGain's values aren't known yet, so its sample says so.
 
@@ -174,7 +174,7 @@ The answer is `{"anchor", "album", "tracks", "covers", "notes", "unavailable", "
 - `unavailable` lists `{"source", "message"}` for each service that didn't answer. The other suggestions still come.
 - `fingerprinting` says a job is identifying the album by its audio, as [AcoustID](#the-anchor) says.
 
-A field shows its three best suggestions, plus pending agent proposal tapes. An ordinary suggestion that every track already holds is left out. Taking a one-value suggestion on a list field, such as Genre, adds the value. On Artists and Album artists a suggestion is a whole credit, so it replaces the list.
+A field shows its three best suggestions, plus pending agent proposal tapes. An ordinary suggestion that every track already holds is left out. Taking a one-value suggestion on a list field, such as Genre, adds the value. On Artists and Album artists a suggestion is a whole credit, and on Release type a release group's whole type, so it replaces the list.
 
 ### Sources
 
@@ -231,7 +231,8 @@ Every MusicBrainz suggestion comes from one release, the anchor. Accepting field
 
 The Library tab holds staged edits in the browser, per album, so opening another album loses none. A reload of the page drops them. Nothing reaches a file until Save.
 
-- **Main rows.** Title, Artist, Artists, Album, Album Artist, Album artists, Track, Disc, Genre, the three dates and Compilation show on every album, on the desktop and the phone. Artist and Album Artist are the names Navidrome shows. Artists and Album artists are the lists it links, one artist per value, and their notes say so. When they are empty, Navidrome splits the single tag. For a single with guests, Album Artist holds the main artist, Artist the full credit and Artists the list, all from the main rows. At All tracks, artists that differ show Mixed with no Add value, and a selected track edits its own.
+- **Main rows.** Title, Artist, Artists, Album, Album Artist, Album artists, Track, Disc, Genre, the three dates, Compilation and Release type show on every album, on the desktop and the phone. Artist and Album Artist are the names Navidrome shows. Artists and Album artists are the lists it links, one artist per value, and their notes say so. When they are empty, Navidrome splits the single tag. For a single with guests, Album Artist holds the main artist, Artist the full credit and Artists the list, all from the main rows. At All tracks, artists that differ show Mixed with no Add value, and a selected track edits its own.
+- **Release type.** One type per value, the primary type first, then any secondary types. Each input offers MusicBrainz's types in lower case, as MusicBrainz and Picard write them: album, single, ep, broadcast and other, then compilation, soundtrack, spokenword, interview, audiobook, audio drama, live, remix, dj-mix, mixtape/street, demo and field recording. It takes any other value too, since files already hold others. A value typed with a comma, such as `single, soundtrack`, stays one value in the file, and Navidrome splits it on the comma, as the row's note says. Navidrome 0.64.2 reads two values as two types in FLAC, MP3 and M4A, as the [contract](#navidrome-contract) shows.
 - **All fields.** All fields replaces the main rows. It lists every key the tracks hold, and a row for each field the stage or a pending proposal names that no file holds yet, main fields too.
 - **Targets.** An edit names a field or a raw key. All fields edits the field when its key is the one a main row shows, so two rows never stage two edits on one tag. A second key that feeds the same field keeps its own row and edits that key. A field shows an edit staged on its key, so a Fix that stages `RELEASEDATE` shows on Release date, and Revert takes it back.
 - **Rows with several values.** An All fields row takes several values and has Add value when Navidrome reads its field as a list, such as Genre, Artists, Release type or Composer, or when a file or the stage already holds several. Typing in one input then keeps the others. `GET /api/library/keys` says which fields Navidrome reads as lists.
@@ -285,6 +286,7 @@ The library module keeps an index of the music folder. A walk runs at start, eve
 - **Albums.** Files group by Navidrome album ID inside a release folder. A release folder is the file's folder, or the one above it when the file's folder is a disc folder such as `CD 2` or `Disc1`. Discs whose tags agree form one album, and discs that disagree form two albums in one folder, which the split check reports. Navidrome merges one album ID across folders, so the index also counts distinct album IDs, and that number is the one to hold against Navidrome's album count.
 - **Rows.** An album keeps its row ID while its folder and Navidrome ID stay the same. Every file and album has a row ID, so the API never puts a path in a URL. "Date added" is the earliest file's mtime when the index first saw it, which a retag doesn't move.
 - **An opened album.** `GET /api/library/albums/{id}` reads every file of the album again. When a file changed since the walk, the answer says `stale` and the module asks for a walk.
+- **Release types.** An album keeps every release type any of its tracks holds, in lower case, as Navidrome reads them after splitting on commas. The filter menu's Release type group lists each type with its albums, and No release type, and `type=` filters the list and a run's selection. An album counts under each of its types. Neither a check nor a run judges the type, since a rule such as "an EP with seven or more tracks is an album" would be wrong too often. To find wrong EPs, filter by EP and take the MusicBrainz suggestion on each album, or ask an agent through the Inbox.
 
 ## Album sources
 
@@ -336,6 +338,8 @@ After each step the test runs a quick scan, as production asks for, and holds ev
 8. A run's date fix keeps the album's year and star, Navidrome reports the run's ReplayGain on each song, and the run's undo brings the old gain and the album ID back.
 9. A delete removes its folder, and Navidrome forgets its tracks and the album, with no missing track left under the folder.
 
+Between steps 6 and 7, a Save of `single` and `soundtrack` as the release type of a FLAC, an MP3 and an M4A album gives each album both types in `getAlbum`'s `releaseTypes`, and shelf lists all three under soundtrack.
+
 Navidrome keeps the old `songCount` of an album that lost a track in a quick scan, though `getAlbum` lists the right songs. The test counts the songs.
 
 Navidrome serves its placeholder for a few seconds after a scan ends, then the new cover, with no other scan. The test waits for a cover up to 30 seconds. Reading it once failed about one run in three.
@@ -383,6 +387,7 @@ The test's container installs Alpine's ffmpeg, the one production has, because a
 | A walk with nothing new writes nothing | `TestWalkWithNothingNewWritesNothing` |
 | New Navidrome settings read every file again; Navidrome down keeps the settings last read | `TestNavidromeSettingsChangeTheIndex` |
 | List filters, sorts, search, paging and refusals; the filter menu's counts | `TestListFiltersSortsAndSearches` |
+| Release types from every track, lower case and split on commas; `type=` alone and with a folder, a search and a filter; no type; a type no album has; an empty or malformed type; the counts; a run by type | `TestReleaseTypeFilter` |
 | An opened album read again after another tool's retag, and its split seen from the folder's other album | `TestOpenedAlbumIsReadAgain`, `TestOpenedAlbumSeesItsSplit` |
 | Audio with its type and ranges; a file swapped for a symlink; an unknown track | `TestAudio` |
 | Run sweeps, walks at start, after a download and on request | `TestRunSweepsWalksAndHearsDownloads` |
@@ -439,7 +444,7 @@ The test's container installs Alpine's ffmpeg, the one production has, because a
 | An MP3 stream for a format the browser refuses; a file ffmpeg can't read | `TestAudioTranscode` |
 | The fields Navidrome reads, their usual keys, and which are lists | `TestKeysNavidromeReads`, `TestFieldMulti` in `tagio` |
 | A request the client left is logged as info, and a canceled context with the client still there as an error | `TestAClientThatLeftIsNoError` in `httpx` |
-| Mixed values, a staged edit and what it was, a track that holds the value, retyping the old value, Revert, multi-value adds, a one-value suggestion replacing Artists and Album artists, fills, the Save body, a cover's tracks | `web/src/lib/tags.test.ts` |
+| Mixed values, a staged edit and what it was, a track that holds the value, retyping the old value, Revert, multi-value adds, a one-value suggestion replacing Artists, Album artists and Release type, the filter menu's type names, fills, the Save body, a cover's tracks | `web/src/lib/tags.test.ts` |
 | Each Fix: the date pair, a key that feeds the release date, `DATE` alone, a file with no date, differing values, disagreeing tags and the tracks it leaves alone, the flag, and the issues with no Fix | `web/src/lib/tags.test.ts` |
 | All fields: each key once, a row and a main field on one tag, a second key's own row, where a new key goes, a new key without the known fields, a list field's row, a row staged with two values, a staged field's usual key, a staged main field no file holds, an empty Add field row | `web/src/lib/tags.test.ts` |
 | `ARTISTS` added by hand leaves the Artist row as it was, before and after Save | `web/src/stores/editor.store.test.ts` |
@@ -447,6 +452,8 @@ The test's container installs Alpine's ffmpeg, the one production has, because a
 | The list, its lamp, no match, a search in the address, the first index, a locked tag, a selected track, Revert, a suggestion, a note, a silent service, Fix, each refusal's state, an undo's confirm, custom fields, Add field with a field's usual key, Add field with no value, Add field without the known keys, a deleted tag, keys, keys behind a dialog, a pasted release, a failed anchor, the long editor, the transcode retry, Open in Library | `web/src/components/library.test.ts` |
 | Album History: the cap and back to the Editor, the titles, authors, tracks, Tags and pills, the date note, Undo run and a run's own files and Tags, the download row, no download, a failed downloads call, no Saves, Load more, the global History after it | `web/src/components/library.test.ts` |
 | Artists and Album artists on the desktop and the phone with their suggestions, a one-value suggestion replacing the list, Mixed artists, a refusal on its row | `web/src/components/library.test.ts` |
+| Release type after Compilation with MusicBrainz's types offered, its suggestion staging both values, a typed unknown value, a typed comma kept, the phone's page; the Release type group in the filter menu and leaving it for another entry | `web/src/components/library.test.ts` |
+| A run's Select all sends the release type with the other filters | `web/src/stores/bulk.store.test.ts` |
 | Album History on the phone: the cap before Delete and the back button, rows without keys, stacked lines, Undo, Redo and Undo run in the slot, no slot with nothing open or a delete open, a Save still writing, the download last, no Saves, the `?` note | `web/src/components/library.test.ts` |
 | The Inbox on the phone: an accepted change links to its album's History, or is named without a link when the album left the index | `web/src/components/inbox.test.ts` |
 | A change's pill words, a queued change as Saving, the album row titles, the Tags column and its phone words, the keys, a run's note, the phone's slot and its display | `web/src/lib/history.test.ts` |

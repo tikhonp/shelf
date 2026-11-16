@@ -45,6 +45,8 @@ type album struct {
 	Added    time.Time
 	HasMBID  bool
 	Issues   []Issue
+	// Types are the release types its tracks hold, lower case and sorted.
+	Types []string
 	// Source is where it came from. The walk sets it after group.
 	Source AlbumSource
 }
@@ -101,6 +103,12 @@ func (a *album) summarize() {
 		if a.Added.IsZero() || f.FirstSeen.Before(a.Added) {
 			a.Added = f.FirstSeen
 		}
+		for t := range strings.SplitSeq(fc.Shared["releasetype"], "\x1f") {
+			// Navidrome lists an album under every type any of its tracks holds.
+			if t = strings.ToLower(strings.TrimSpace(t)); t != "" && !slices.Contains(a.Types, t) {
+				a.Types = append(a.Types, t)
+			}
+		}
 		q := fc.quality().Short()
 		qualities[q]++
 		if best == "" || qualities[q] > qualities[best] {
@@ -108,6 +116,7 @@ func (a *album) summarize() {
 		}
 	}
 	a.Quality = best
+	slices.Sort(a.Types)
 }
 
 func (a *album) check(images map[string][]string, r *tagio.Rules) {

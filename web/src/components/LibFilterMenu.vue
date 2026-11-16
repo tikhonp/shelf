@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { isGuide, issueName } from '../lib/tags'
+import { isGuide, issueName, releaseTypeName } from '../lib/tags'
 import { useLibrary } from '../stores/library'
 import Icon from './Icon.vue'
 
@@ -13,6 +13,7 @@ interface Entry {
   filter: string
   folder?: string
   source?: string
+  type?: string
   count: number
 }
 
@@ -31,13 +32,14 @@ const groups = computed(() => {
         ...(f.no_source > 0 ? [{ label: 'No known source', filter: 'all', source: 'none', count: f.no_source }] : []),
       ],
     },
+    { name: 'Release type', entries: f.types.map<Entry>((t) => ({ label: releaseTypeName(t.name), filter: 'all', type: t.name, count: t.albums })) },
     { name: 'Folders', entries: f.folders.map<Entry>((d) => ({ label: d.name, filter: 'all', folder: d.name, count: d.albums })) },
   ].filter((g) => g.entries.length > 0)
 })
 
-const isOn = (e: Entry) => e.filter === library.filter && (e.folder ?? '') === library.folder && (e.source ?? '') === library.source
+const isOn = (e: Entry) => e.filter === library.filter && (e.folder ?? '') === library.folder && (e.source ?? '') === library.source && (e.type ?? '') === library.type
 function pick(e: Entry) {
-  library.setFilter(e.filter, e.folder, e.source)
+  library.setFilter(e.filter, e.folder, e.source, e.type)
   emit('close')
 }
 

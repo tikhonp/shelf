@@ -20,6 +20,8 @@ const view = computed(() => fieldView(editor.scope, props.field, editor.stage))
 const offers = computed(() => offersFor(editor.suggestions, props.field, editor.trackId, false, view.value.values))
 const rows = computed(() => (view.value.mixed ? [''] : view.value.values.length ? view.value.values : ['']))
 const multi = computed(() => 'multi' in f.value && !!f.value.multi)
+const choices = computed(() => ('choices' in f.value ? f.value.choices : undefined))
+const list = computed(() => (choices.value ? `pf-${props.field}-choices` : undefined))
 const was = computed(() => {
   const w = view.value.was
   if (!w) return ''
@@ -47,7 +49,8 @@ function type(i: number, e: Event) {
     <div v-if="editor.album" class="vscroll page">
       <div class="scope"><LibScope /></div>
       <div class="col g8 pad">
-        <label v-for="(v, i) in rows" :key="i" class="lbl-f">{{ rows.length > 1 ? `${f.label} ${i + 1}` : f.label }}<input class="input" :value="v" :placeholder="view.mixed ? 'Mixed' : 'Empty'" @input="type(i, $event)" /></label>
+        <label v-for="(v, i) in rows" :key="i" class="lbl-f">{{ rows.length > 1 ? `${f.label} ${i + 1}` : f.label }}<input class="input" :value="v" :placeholder="view.mixed ? 'Mixed' : 'Empty'" :list="list" @input="type(i, $event)" /></label>
+        <datalist v-if="list" :id="list"><option v-for="c in choices" :key="c" :value="c" /></datalist>
         <span v-if="was" class="lf-was">{{ was }}</span>
         <p v-if="editor.refusedOn(field)" class="lf-note refused" role="alert"><span class="led bad" aria-hidden="true"></span><span>Not saved: {{ editor.refusedOn(field) }}</span></p>
         <span class="lf-adds">

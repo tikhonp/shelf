@@ -352,7 +352,7 @@ func albumsSum(albums []*album) [32]byte {
 			ids[i] = f.ID
 		}
 		_ = enc.Encode([]any{a.Folder, a.AlbumID, a.Title, a.Artist, a.Year, a.Quality, a.LengthMS, a.Size,
-			a.Added, a.HasMBID, a.Issues, ids, a.Source})
+			a.Added, a.HasMBID, a.Issues, ids, a.Source, a.Types})
 	}
 	var out [32]byte
 	h.Sum(out[:0])

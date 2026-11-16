@@ -200,7 +200,7 @@ test('on the phone the dock keeps four tabs and the Library title bar opens the 
   vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
   stubApi({
     '/api/downloads': list([]), '/api/sources': [source('qobuz', 'Qobuz')], '/api/library/scan': { enabled: false }, '/api/telegram': { enabled: false },
-    '/api/library/albums': { albums: [], next: null }, '/api/library/filters': { albums: 0, issues: 0, no_mbid: 0, no_source: 0, kinds: [], folders: [], sources: [] }, '/api/library/index': { albums: 0, tracks: 0 },
+    '/api/library/albums': { albums: [], next: null }, '/api/library/filters': { albums: 0, issues: 0, no_mbid: 0, no_source: 0, kinds: [], folders: [], sources: [], types: [] }, '/api/library/index': { albums: 0, tracks: 0 },
     '/api/inbox': { pending: 2, changes_requested: 0, connections: 1, accounts: 'none', can_create_connections: false },
   })
   const pinia = createPinia(); setActivePinia(pinia)

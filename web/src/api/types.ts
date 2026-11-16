@@ -288,6 +288,8 @@ export interface LibraryFilters {
   folders: LibraryCount[]
   sources: { id: string; name: string; albums: number }[]
   no_source: number
+  // The release types the albums hold, and 'none' for albums with no type.
+  types: LibraryCount[]
 }
 
 export interface LibraryIndex {
@@ -457,6 +459,7 @@ export interface RunSelection {
   filter?: string
   folder?: string
   source?: string
+  type?: string
   except?: number[]
 }
 

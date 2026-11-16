@@ -17,6 +17,7 @@ const fields: Record<string, string> = {
   originaldate: 'The first release. While it is set and no release date exists, Navidrome reads DATE as the release date.',
   recordingdate: 'The DATE tag, which is the date of the recording.',
   compilation: 'On for every track of a Various Artists album.',
+  releasetype: 'First the primary type, then any secondary types, one per value. Navidrome splits a single value on commas.',
 }
 
 const issues: Record<string, string> = {

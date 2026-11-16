@@ -12,7 +12,7 @@ const bulk = useBulk()
 const library = useLibrary()
 onMounted(() => void bulk.load())
 // Select all means what the list finds, so a new search is a new selection.
-watch(() => library.total + library.query + library.filter + library.folder, () => {
+watch(() => [library.total, library.query, library.filter, library.folder, library.source, library.type].join('\n'), () => {
   if (bulk.all) void bulk.load()
 })
 
