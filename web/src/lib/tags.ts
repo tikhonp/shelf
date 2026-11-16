@@ -146,9 +146,13 @@ export function accept(stage: Stage, all: LibraryTrack[], scope: LibraryTrack[],
   return stageEdit(stage, scope, s.field, values, s.anchor)
 }
 
+// A placeholder is a row Add field made with no value yet. It writes nothing,
+// so neither the Save bar nor a Save counts it.
+const placeholder = (e: Staged) => e.values.length > 0 && e.values.every((v) => v === '')
+
 // changes counts what the Save bar names: one per target, however many tracks it reaches.
 export function changes(stage: Stage): number {
-  return new Set(Object.values(stage).flatMap((e) => Object.keys(e))).size
+  return new Set(Object.values(stage).flatMap((e) => Object.keys(e).filter((t) => !placeholder(e[t]!)))).size
 }
 
 export interface CoverEdit {
@@ -166,7 +170,7 @@ export interface SaveBody {
 export function saveBody(tracks: LibraryTrack[], stage: Stage, confirm: string[] = [], cover?: CoverEdit): SaveBody {
   const out: SaveBody = { tracks: [], confirm }
   for (const t of tracks) {
-    const edits = Object.entries(stage[t.id] ?? {}).map(([target, e]) => ({
+    const edits = Object.entries(stage[t.id] ?? {}).filter(([, e]) => !placeholder(e)).map(([target, e]) => ({
       ...(target.startsWith('key:') ? { key: target.slice(4) } : { field: target }),
       // An empty Add value row sends no value.
       values: e.values.filter((v) => v !== ''),
@@ -294,7 +298,18 @@ export function fix(issue: LibraryIssue, tracks: LibraryTrack[], s: Suggestions 
 // Tags that belong to one track, read-only at All tracks.
 const trackFields = new Set(['title', 'titlesort', 'track', 'lyrics', 'musicbrainz_trackid', 'musicbrainz_recordingid', 'replaygain_track_gain', 'replaygain_track_peak'])
 export const isLong = (values: string[]) => values.some((v) => v.length > longValue)
-const multiKeys = new Set(['ARTISTS', 'ALBUMARTISTS', 'GENRE', 'MOOD', 'COMPOSER', 'LYRICIST', 'PRODUCER', 'ENGINEER', 'MIXER', 'REMIXER', 'ARRANGER', 'CONDUCTOR', 'DIRECTOR', 'DJMIXER', 'PERFORMER'])
+
+// KnownField is a field Navidrome reads, as /api/library/keys names it, with the
+// key shelf adds for it and whether Navidrome reads it as a list.
+export interface KnownField {
+  name: string
+  key: string
+  multi: boolean
+}
+
+// knownField finds the field whose usual key is key, so a typed ARTISTS edits
+// the artists field and gets its suggestions.
+export const knownField = (known: KnownField[] | null, key: string) => known?.find((f) => f.key === key)
 
 export interface TagRow {
   key: string
@@ -309,24 +324,30 @@ export interface TagRow {
   custom: boolean
 }
 
-function rowOf(key: string, group: TagRow['group'], fields: string[], tracks: LibraryTrack[], custom: boolean): TagRow {
-  const field = fields.find((f) => tracks.some((t) => keyOf(t, f)?.key === key))
+// A row takes several values when Navidrome reads its field as a list, or when
+// a file or the stage already holds several, so typing in one input keeps the others.
+function rowOf(key: string, group: TagRow['group'], fields: string[], tracks: LibraryTrack[], stage: Stage, known: KnownField[] | null, custom: boolean, target?: Target): TagRow {
+  const to = target ?? fields.find((f) => tracks.some((t) => keyOf(t, f)?.key === key)) ?? keyTarget(key)
   return {
     key, group, fields, custom,
-    target: field ?? keyTarget(key),
+    target: to,
     perTrack: key === 'ISRC' || key.startsWith('LYRICS') || fields.some((f) => trackFields.has(f)),
-    multi: multiKeys.has(key) || tracks.some((t) => (keyOf(t, keyTarget(key))?.values.length ?? 0) > 1),
+    multi: fields.some((f) => known?.find((k) => k.name === f)?.multi) ||
+      tracks.some((t) => (keyOf(t, keyTarget(key))?.values.length ?? 0) > 1 || currentValues(t, to, stage).length > 1),
   }
 }
 
 // tagRows lists every tag of the tracks for All fields, and the targets only the
-// stage or a pending proposal names. known lists the keys Navidrome reads.
-export function tagRows(tracks: LibraryTrack[], stage: Stage, known: string[], proposed: Target[] = []): TagRow[] {
+// stage or a pending proposal names. known lists the fields Navidrome reads, or
+// is null when they didn't load. A new key then goes under Standard, because
+// nothing says Navidrome ignores it.
+export function tagRows(tracks: LibraryTrack[], stage: Stage, known: KnownField[] | null, proposed: Target[] = []): TagRow[] {
   const rows = new Map<string, TagRow>()
+  const groupOf = (key: string) => (!known || known.some((f) => f.key === key) ? 'standard' : 'extended')
   for (const group of ['standard', 'extended'] as const) {
     for (const t of tracks) {
       for (const k of t[group]) {
-        if (!rows.has(k.key)) rows.set(k.key, rowOf(k.key, group, k.fields ?? [], tracks, false))
+        if (!rows.has(k.key)) rows.set(k.key, rowOf(k.key, group, k.fields ?? [], tracks, stage, known, false))
       }
     }
   }
@@ -334,14 +355,14 @@ export function tagRows(tracks: LibraryTrack[], stage: Stage, known: string[], p
   for (const target of targets) {
     const key = target.startsWith('key:') ? target.slice(4) : null
     if (key) {
-      if (!rows.has(key)) rows.set(key, rowOf(key, known.includes(key) ? 'standard' : 'extended', [], tracks, true))
+      if (!rows.has(key)) rows.set(key, rowOf(key, groupOf(key), [], tracks, stage, known, true))
       continue
     }
     // A field no file holds yet, such as Album artists an agent proposes, gets a row of its own, so its tape shows.
     // Its key is the field's usual tag name; Save writes the field and picks the key itself.
     if (mainFields.some((f) => f.field === target) || [...rows.values()].some((r) => r.fields.includes(target))) continue
-    const name = target.toUpperCase()
-    if (!rows.has(name)) rows.set(name, { ...rowOf(name, known.includes(name) ? 'standard' : 'extended', [target], tracks, true), target })
+    const name = known?.find((f) => f.name === target)?.key ?? target.toUpperCase()
+    if (!rows.has(name)) rows.set(name, rowOf(name, 'standard', [target], tracks, stage, known, true, target))
   }
   return [...rows.values()]
 }

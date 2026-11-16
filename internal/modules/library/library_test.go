@@ -269,16 +269,32 @@ func TestAudioTranscode(t *testing.T) {
 func TestKeysNavidromeReads(t *testing.T) {
 	r := newRig(t)
 	var got struct {
-		Keys []string `json:"keys"`
+		Fields []keyField `json:"fields"`
 	}
 	r.getJSON("/api/library/keys", &got)
+	by := map[string]keyField{}
+	keys := map[string]bool{}
+	for _, f := range got.Fields {
+		by[f.Name] = f
+		keys[f.Key] = true
+	}
 	for _, k := range []string{"TITLE", "TRACKNUMBER", "RELEASEDATE"} {
-		if !slices.Contains(got.Keys, k) {
-			t.Errorf("%s is missing from %v", k, got.Keys)
+		if !keys[k] {
+			t.Errorf("%s is missing from %v", k, got.Fields)
 		}
 	}
-	if slices.Contains(got.Keys, "STUDIO") {
+	if keys["STUDIO"] {
 		t.Error("STUDIO is listed, and Navidrome ignores it")
+	}
+	for _, want := range []keyField{
+		{"artists", "ARTISTS", true}, {"albumartists", "ALBUMARTISTS", true}, {"genre", "GENRE", true},
+		{"releasetype", "RELEASETYPE", true}, {"composer", "COMPOSER", true}, {"performer", "PERFORMER", true},
+		{"artist", "ARTIST", false}, {"albumartist", "ALBUMARTIST", false}, {"title", "TITLE", false},
+		{"recordingdate", "DATE", false},
+	} {
+		if by[want.Name] != want {
+			t.Errorf("%s is %+v, want %+v", want.Name, by[want.Name], want)
+		}
 	}
 }
 

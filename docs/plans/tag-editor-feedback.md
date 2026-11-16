@@ -1,6 +1,6 @@
 # Tag editor feedback
 
-Status: drafted on 2026-11-16, nothing built. A new session with a clean context builds each phase, in order. A phase is done when its "Done when" list holds, `make check`, `make lint`, `make web-check` and `docker build .` pass, and `docs/tags.md` and `docs/status.md` describe the result in the same commit.
+Status: drafted on 2026-11-16. Phase 1 is done on main and not deployed. A new session with a clean context builds each phase, in order. A phase is done when its "Done when" list holds, `make check`, `make lint`, `make web-check` and `docker build .` pass, and `docs/tags.md` and `docs/status.md` describe the result in the same commit.
 
 ## Where this comes from
 
@@ -53,6 +53,10 @@ Fixes three defects that also make phases 2 and 3 safe. No decision needed.
 ### Reproduce first
 
 Before fixing bug 3, write a store test that adds `ARTISTS` with a value on an album without it, saves the body, and checks what the editor shows. That decides whether the friend's "read as Artist" was this bug, the scan delay, or that Navidrome's display name stays ARTIST by design (`navidrome.go:440`). Record the answer in this plan.
+
+Answer, from `ARTISTS added by hand leaves the Artist row as it was` in `editor.store.test.ts` and a run of the same steps before the fix: the editor never showed ARTISTS as Artist. Its Artist row kept the ARTIST value after staging ARTISTS and after the reload that follows a Save. Navidrome's display name also stays ARTIST while ARTISTS is set (`navidrome.go:440`), so "read as Artist" was that, by design. "Got added now" was most likely the scan after Save. Before the fix the hand-added row had no suggestions, and taking MusicBrainz's `artists` staged a second edit beside `key:ARTISTS`, so the Save sent two edits for one tag.
+
+Phase 1 differs from the steps above in two ways. `/api/library/keys` answers only `fields`, since nothing reads the old `keys` list. Add field with no value stages nothing on a tag the tracks hold, because an empty input there would look like a delete that Save doesn't send.
 
 ### Start here
 

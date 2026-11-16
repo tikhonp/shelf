@@ -39,7 +39,7 @@ const routes = (over: Record<string, unknown> = {}) => ({
   '/api/library/index': { indexing: false, ready: true, albums: 1, tracks: 2, read: 2, error: '' },
   '/api/library/musicbrainz': { ok: true, message: '', latency_ms: 120, checked_at: '' },
   '/api/library/filters': { albums: 1, issues: 1, no_mbid: 1, kinds: [{ name: 'no_releasedate', albums: 1 }], folders: [{ name: 'rock', albums: 1 }], sources: [{ id: 'qobuz', name: 'Qobuz', albums: 1 }], no_source: 2 },
-  '/api/library/keys': { keys: ['TITLE', 'BPM'] },
+  '/api/library/keys': { fields: [{ name: 'title', key: 'TITLE', multi: false }, { name: 'bpm', key: 'BPM', multi: false }, { name: 'artists', key: 'ARTISTS', multi: true }] },
   '/api/library/albums/7/suggestions': suggestions,
   '/api/library/albums/7': detail(),
   '/api/library/albums': { albums: [row()], total: 1, limit: 100, offset: 0 },
@@ -318,6 +318,55 @@ test('a custom key that has a row goes to that row', async () => {
   await w.find('form').trigger('submit')
   expect(w.findAll('.lf.tagrow').filter((r) => r.text().includes('UPC')).length).toBe(1)
   expect((w.find('#tag-UPC').element as HTMLInputElement).value).toBe('999')
+  w.unmount()
+})
+
+test('Add field with a field\'s usual key edits that field, shows its suggestions at once, and a taken one is the only edit', async () => {
+  const offer = { field: 'artists', values: ['Joni Mitchell', 'James Taylor'], source: 'MusicBrainz', sources: ['MusicBrainz'], confidence: 90 }
+  const { w, calls } = await at('/library/7', { '/api/library/albums/7/suggestions': { ...suggestions, album: [...suggestions.album, offer] } })
+  await button(w, 'All fields').trigger('click')
+  await flushPromises()
+  await button(w, 'Add field').trigger('click')
+  await w.find('[aria-label="New field\'s key"]').setValue('artists')
+  await w.find('[aria-label="New field\'s value"]').setValue('Joni Mitchell')
+  await w.find('form').trigger('submit')
+  const row = w.findAll('.lf.tagrow').find((r) => r.text().includes('ARTISTS'))!
+  expect(row.text()).toContain('James Taylor')
+  expect(row.text()).toContain('Add value')
+  await row.find('.lf-s button').trigger('click')
+  await button(w, 'Save').trigger('click')
+  await flushPromises()
+  const sent = calls.filter((c) => c.url === '/api/library/albums/7/save').map((c) => JSON.parse(c.init!.body as string))
+  expect(sent[0].tracks[0].edits).toEqual([{ field: 'artists', values: ['Joni Mitchell', 'James Taylor'] }])
+  w.unmount()
+})
+
+test('Add field with no value gives a staged empty row that Save leaves out', async () => {
+  const { w } = await at('/library/7')
+  await button(w, 'All fields').trigger('click')
+  await flushPromises()
+  await button(w, 'Add field').trigger('click')
+  await w.find('[aria-label="New field\'s key"]').setValue('studio')
+  await w.find('form').trigger('submit')
+  expect((w.find('#tag-STUDIO').element as HTMLInputElement).value).toBe('')
+  expect(w.find('label[for=tag-STUDIO] .led.stg').exists()).toBe(true)
+  expect(w.find('.lib-save').exists()).toBe(false)
+  await w.find('#tag-STUDIO').setValue('Fjord')
+  expect(w.find('.lib-save').text()).toContain('1 CHANGE')
+  w.unmount()
+})
+
+test('without the known keys a new field does not claim Navidrome ignores it', async () => {
+  const { w } = await at('/library/7', { '/api/library/keys': new Reply(500, { error: 'boom' }) })
+  await button(w, 'All fields').trigger('click')
+  await flushPromises()
+  await button(w, 'Add field').trigger('click')
+  await w.find('[aria-label="New field\'s key"]').setValue('studio')
+  await w.find('[aria-label="New field\'s value"]').setValue('Fjord')
+  await w.find('form').trigger('submit')
+  const nodes = w.findAll('.lib-fields > *').map((n) => n.text())
+  expect(nodes.findIndex((t) => t.includes('STUDIO'))).toBeLessThan(nodes.findIndex((t) => t.includes('Extended')))
+  expect(nodes[0]).toContain("Couldn't load the keys Navidrome reads")
   w.unmount()
 })
 

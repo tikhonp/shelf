@@ -4,6 +4,7 @@ import { flushPromises } from '@vue/test-utils'
 import type { DeletedFolder, LibraryAlbumDetail, LibraryChange, LibraryTrack } from '../api/types'
 import { Reply, stubApi } from '../testing/api'
 import { useEditor } from './editor'
+import { fieldView } from '../lib/tags'
 
 function track(id: number, over: Partial<LibraryTrack> = {}): LibraryTrack {
   return {
@@ -220,4 +221,24 @@ test('a Delete shelf refuses or that fails keeps the album and says why', async 
   await flushPromises()
   expect(again.e.outcome).toMatchObject({ ok: false, deleting: true, reason: 'partial' })
   expect(again.e.gone).toBeNull()
+})
+
+// The owner's friend added ARTISTS by hand and said it read as Artist. Navidrome
+// shows ARTIST as the display name while ARTISTS is set, and so does the editor's
+// Artist row, before Save and after.
+test('ARTISTS added by hand leaves the Artist row as it was, before and after Save', async () => {
+  const standard = (extra: LibraryTrack['standard'] = []) => [{ key: 'ALBUM', fields: ['album'], values: ['X'] }, { key: 'ARTIST', fields: ['artist'], values: ['John Coltrane'] }, ...extra]
+  let held = false
+  const { e, calls } = await opened({
+    '/api/library/albums/7': () => album(7, [1, 2].map((id) => track(id, { standard: standard(held ? [{ key: 'ARTISTS', fields: ['artists'], values: ['John Coltrane', 'Jimmy Garrison'] }] : []) }))),
+  })
+  e.edit('artists', ['John Coltrane', 'Jimmy Garrison'])
+  expect(fieldView(e.scope, 'artist', e.stage)).toMatchObject({ values: ['John Coltrane'], staged: false })
+  await e.save()
+  expect(body(calls, '/api/library/albums/7/save')[0].tracks[0].edits).toEqual([{ field: 'artists', values: ['John Coltrane', 'Jimmy Garrison'] }])
+  held = true
+  e.discard()
+  await e.reload()
+  expect(fieldView(e.scope, 'artist', e.stage).values).toEqual(['John Coltrane'])
+  expect(fieldView(e.scope, 'artists', e.stage).values).toEqual(['John Coltrane', 'Jimmy Garrison'])
 })

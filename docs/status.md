@@ -26,6 +26,8 @@ Since 2026-11-12, shelf-wrapper puts the wrapper in `error` when Apple no longer
 
 The [sign-in and agent review redesign](plans/signin-and-agent-review-design.md) and its [second pass](plans/signin-and-agent-review-second-pass.md) run in production.
 
+Phase 1 of the [tag editor feedback](plans/tag-editor-feedback.md) is on main and not deployed. An All fields row takes several values when Navidrome reads its field as a list, such as Release type, or when the stage holds several, so typing in one input no longer drops the others. Add field with a field's usual key, such as `ARTISTS`, edits the field and shows its suggestions at once. Add field with no value gives an empty staged row. A new key no longer claims Navidrome ignores it when the editor couldn't load the keys Navidrome reads.
+
 [Album History](plans/album-history.md) runs in production. A History cap on an album opens its Saves, deletes and runs, and the download that brought it, on the desktop and on the phone. On the desktop, a Save's row counts the tracks it wrote. On the phone the Inbox links an accepted change to its album's History. [tags.md](tags.md#the-editor) describes it. Since `v1.0.5`, hovering a change's time on the desktop opens a note with its full date. Before, the row's button covered the time, so the pointer never reached it.
 
 Tags disagree no longer flags a year beside a full date in that year, such as Picard's `ORIGINALYEAR=1997` beside `ORIGINALDATE=1997-07-01`. Before `v1.0.4` the check flagged 660 of the 1,020 albums in production, every one for this reason. The first walk after the deploy read all 11,514 files again, and now no album has the issue. The Fix changes only the tracks whose keys disagree.

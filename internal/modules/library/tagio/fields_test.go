@@ -112,3 +112,18 @@ func TestM4AReadOnlyKeys(t *testing.T) {
 		t.Error("only M4A's lowercase atoms are read-only")
 	}
 }
+
+func TestFieldMulti(t *testing.T) {
+	for _, name := range []string{"artists", "albumartists", "genre", "mood", "releasetype", "arranger", "composer", "conductor", "director", "djmixer", "engineer", "lyricist", "mixer", "performer", "producer", "remixer"} {
+		f, ok := FieldByName(name)
+		if !ok || !f.Multi() {
+			t.Errorf("%s: Multi() = false, want true", name)
+		}
+	}
+	for _, name := range []string{"artist", "albumartist", "title", "recordingdate"} {
+		f, ok := FieldByName(name)
+		if !ok || f.Multi() {
+			t.Errorf("%s: missing or Multi() = true, want false", name)
+		}
+	}
+}

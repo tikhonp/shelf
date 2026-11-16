@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import type { LibraryTrack, Suggestion, Suggestions, TagKey } from '../api/types'
-import { accept, addValue, changes, fieldView, fix, isLong, keyTarget, pastedRelease, revert, saveBody, stageEdit, suggestionsFor, tagKey, tagRows, type Stage } from './tags'
+import { accept, addValue, changes, fieldView, fix, isLong, keyTarget, pastedRelease, revert, saveBody, stageEdit, suggestionsFor, tagKey, tagRows, type KnownField, type Stage } from './tags'
 
 function track(id: number, tags: Record<string, string[]>, standard: TagKey[] = []): LibraryTrack {
   return {
@@ -9,6 +9,12 @@ function track(id: number, tags: Record<string, string[]>, standard: TagKey[] = 
     standard: [...Object.entries(tags).map(([k, values]) => ({ key: k.toUpperCase(), fields: [k], values })), ...standard],
   }
 }
+// known is part of what /api/library/keys answers.
+const known: KnownField[] = [
+  { name: 'artists', key: 'ARTISTS', multi: true }, { name: 'albumartists', key: 'ALBUMARTISTS', multi: true }, { name: 'genre', key: 'GENRE', multi: true },
+  { name: 'mood', key: 'MOOD', multi: true }, { name: 'releasetype', key: 'RELEASETYPE', multi: true }, { name: 'bpm', key: 'BPM', multi: false },
+  { name: 'recordlabel', key: 'LABEL', multi: false },
+]
 const sug = (over: Partial<Suggestion>): Suggestion => ({ field: 'genre', source: 'Qobuz', sources: ['Qobuz'], confidence: 70, ...over })
 const answer = (album: Suggestion[], tracks: Suggestions['tracks'] = []): Suggestions => ({ anchor: null, album, tracks, covers: [], notes: [], unavailable: [], fingerprinting: false })
 
@@ -142,7 +148,7 @@ test('a Fix that stages a raw key shows on the field it feeds, and Revert takes 
 test('All fields lists each key once, and a row and a main field edit one tag', () => {
   const ts = [track(1, { genre: ['Rock'] }), track(2, { genre: ['Jazz'], mood: ['Calm'] })]
   ts[0]!.extended = [{ key: 'UPC', values: ['1'] }]
-  const rows = tagRows(ts, {}, [])
+  const rows = tagRows(ts, {}, known)
   expect(rows.map((r) => r.key)).toEqual(['GENRE', 'MOOD', 'UPC'])
   expect(rows[0]).toMatchObject({ group: 'standard', target: 'genre', multi: true })
   expect(rows[2]).toMatchObject({ group: 'extended', target: 'key:UPC', custom: false })
@@ -157,7 +163,45 @@ test('a second key that feeds a field keeps its own row', () => {
 test('a new key goes under Standard when Navidrome reads it, else under Extended', () => {
   const t = track(1, {})
   const s = stageEdit(stageEdit({}, [t], keyTarget('BPM'), ['120']), [t], keyTarget('STUDIO'), ['Fjord'])
-  expect(tagRows([t], s, ['BPM']).map((r) => [r.key, r.group, r.custom])).toEqual([['BPM', 'standard', true], ['STUDIO', 'extended', true]])
+  expect(tagRows([t], s, known).map((r) => [r.key, r.group, r.custom])).toEqual([['BPM', 'standard', true], ['STUDIO', 'extended', true]])
+})
+
+test('without the known fields a new key goes under Standard, since nothing says Navidrome ignores it', () => {
+  const t = track(1, {})
+  const s = stageEdit({}, [t], keyTarget('STUDIO'), ['Fjord'])
+  expect(tagRows([t], s, null).map((r) => [r.key, r.group])).toEqual([['STUDIO', 'standard']])
+})
+
+test('a row is multi when Navidrome reads its field as a list, before any file holds two values', () => {
+  const t = track(1, { releasetype: ['album'], bpm: ['120'] })
+  expect(tagRows([t], {}, known).map((r) => [r.key, r.multi])).toEqual([['RELEASETYPE', true], ['BPM', false]])
+})
+
+test('a row whose stage holds two values is multi, and typing in the second keeps the first', () => {
+  const t = track(1, { bpm: ['120'] })
+  const s = accept({}, [t], [t], sug({ field: 'bpm', values: ['120', '121'] }), false)
+  const row = tagRows([t], s, known)[0]!
+  expect(row.multi).toBe(true)
+  const typed = stageEdit(s, [t], row.target, ['120', '122'])
+  expect(fieldView([t], 'bpm', typed).values).toEqual(['120', '122'])
+})
+
+test('a field staged with no file key takes its usual key from the known fields', () => {
+  const t = track(1, {})
+  const rows = tagRows([t], stageEdit({}, [t], 'recordlabel', ['Impulse!']), known)
+  expect(rows.map((r) => [r.key, r.target, r.group])).toEqual([['LABEL', 'recordlabel', 'standard']])
+})
+
+test('an empty Add field row is staged, but neither the Save bar nor a Save counts it', () => {
+  const t = track(1, { album: ['X'] })
+  const s = stageEdit({}, [t], keyTarget('STUDIO'), [''])
+  expect(tagRows([t], s, known).map((r) => r.key)).toContain('STUDIO')
+  expect(fieldView([t], keyTarget('STUDIO'), s)).toMatchObject({ values: [''], staged: true })
+  expect(changes(s)).toBe(0)
+  expect(saveBody([t], s).tracks).toEqual([])
+  const both = stageEdit(s, [t], 'album', ['Y'])
+  expect(changes(both)).toBe(1)
+  expect(saveBody([t], both).tracks[0]!.edits).toEqual([{ field: 'album', values: ['Y'] }])
 })
 
 test('a tag of one track is marked at All fields, and a typed key is cleaned', () => {
@@ -180,7 +224,7 @@ test('a value over 100 characters is long', () => {
 
 test('a field no file holds gets a row when a proposal names it or the stage holds it, and a held one never twice', () => {
   const t = track(1, { genre: ['Rock'] })
-  const rows = tagRows([t], {}, ['ALBUMARTISTS'], ['albumartists', 'genre', 'key:CATALOGNUMBER'])
+  const rows = tagRows([t], {}, known, ['albumartists', 'genre', 'key:CATALOGNUMBER'])
   expect(rows.map((r) => [r.key, r.target, r.group, r.custom])).toEqual([
     ['GENRE', 'genre', 'standard', false],
     ['ALBUMARTISTS', 'albumartists', 'standard', true],

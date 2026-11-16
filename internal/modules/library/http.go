@@ -218,14 +218,22 @@ func (m *Module) filters(c *echo.Context) error {
 	return c.JSON(http.StatusOK, out)
 }
 
-// keys lists the keys Navidrome reads, so the editor can tell where a custom
-// field goes before any file holds it.
+// keyField is a field Navidrome reads, with the key shelf adds for it.
+type keyField struct {
+	Name  string `json:"name"`
+	Key   string `json:"key"`
+	Multi bool   `json:"multi"`
+}
+
+// keys lists the fields Navidrome reads. The editor uses it to place a custom
+// key before any file holds it, to find the field a typed key edits, and to
+// give list fields several values.
 func (m *Module) keys(c *echo.Context) error {
-	out := []string{}
+	out := []keyField{}
 	for _, f := range tagio.Fields() {
-		out = append(out, f.Key)
+		out = append(out, keyField{Name: f.Name, Key: f.Key, Multi: f.Multi()})
 	}
-	return c.JSON(http.StatusOK, map[string][]string{"keys": out})
+	return c.JSON(http.StatusOK, map[string][]keyField{"fields": out})
 }
 
 func idParam(c *echo.Context, what string) (int64, error) {

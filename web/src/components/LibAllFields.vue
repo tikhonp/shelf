@@ -1,20 +1,21 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { get } from '../api/client'
-import { keyTarget, tagKey, tagRows, type TagRow } from '../lib/tags'
+import { currentValues, keyTarget, knownField, tagKey, tagRows, type KnownField, type TagRow } from '../lib/tags'
 import { useEditor } from '../stores/editor'
 import Icon from './Icon.vue'
 import LibTagRow from './LibTagRow.vue'
 
 defineEmits<{ long: [TagRow] }>()
 const editor = useEditor()
-const known = ref<string[]>([])
+// known is null when the fields Navidrome reads didn't load.
+const known = ref<KnownField[] | null>([])
 const adding = ref(false)
 const newKey = ref('')
 const newValue = ref('')
 
 onMounted(async () => {
-  known.value = (await get<{ keys: string[] }>('/api/library/keys').catch(() => ({ keys: [] }))).keys
+  known.value = await get<{ fields: KnownField[] }>('/api/library/keys').then((a) => a.fields, () => null)
 })
 
 // A pending proposal's field gets a row even when no file holds it yet, so its tape shows.
@@ -23,12 +24,17 @@ const rows = computed(() => tagRows(editor.scope, editor.stage, known.value, pro
 const standard = computed(() => rows.value.filter((r) => r.group === 'standard'))
 const extended = computed(() => rows.value.filter((r) => r.group === 'extended'))
 
-// A key that already has a row goes to that row, so two rows never edit one tag.
+// A key that already has a row goes to that row, and a field's usual key goes to
+// the field, so two rows never edit one tag. An empty value stages one empty
+// input, which Save leaves out. It stages nothing on a tag the tracks hold,
+// where the empty input would look like a delete.
 function add() {
   const key = tagKey(newKey.value)
   if (!key) return
-  const row = rows.value.find((r) => r.key === key)
-  editor.edit(row?.target ?? keyTarget(key), newValue.value === '' ? [] : [newValue.value])
+  const field = knownField(known.value, key)?.name
+  const row = rows.value.find((r) => r.key === key) ?? rows.value.find((r) => field && r.target === field)
+  const target = row?.target ?? field ?? keyTarget(key)
+  if (newValue.value !== '' || editor.scope.every((t) => currentValues(t, target, editor.stage).length === 0)) editor.edit(target, [newValue.value])
   newKey.value = ''
   newValue.value = ''
   adding.value = false
@@ -37,7 +43,7 @@ function add() {
 
 <template>
   <div class="lib-fields">
-    <div class="lib-h"><span>Standard</span><span class="low">Navidrome reads these</span></div>
+    <div class="lib-h"><span>Standard</span><span class="low">{{ known ? 'Navidrome reads these' : "Couldn't load the keys Navidrome reads" }}</span></div>
     <LibTagRow v-for="r in standard" :key="r.key" :row="r" @long="$emit('long', r)" />
     <div class="lib-h"><span>Extended</span><span class="low">Navidrome ignores these</span></div>
     <LibTagRow v-for="r in extended" :key="r.key" :row="r" @long="$emit('long', r)" />

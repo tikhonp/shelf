@@ -36,6 +36,17 @@ type Field struct {
 	MaxLength int
 }
 
+// roles are Navidrome's participant roles. mappings.yaml splits them on its
+// roles separators but doesn't name them.
+var roles = []string{"arranger", "composer", "conductor", "director", "djmixer", "engineer", "lyricist", "mixer", "performer", "producer", "remixer"}
+
+// Multi reports whether Navidrome reads the field as a list of values. Artist
+// and Album Artist are one display name each, beside the Artists and Album
+// artists lists.
+func (f Field) Multi() bool {
+	return len(f.Split) > 0 || f.Name == "artists" || f.Name == "albumartists" || slices.Contains(roles, f.Name)
+}
+
 //go:embed mappings.yaml
 var mappingsYAML []byte
 
