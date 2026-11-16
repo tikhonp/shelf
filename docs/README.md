@@ -10,7 +10,7 @@ The [sign-in and agent review redesign](plans/signin-and-agent-review-design.md)
 
 [Album History](plans/album-history.md) shows one album's changes on the desktop and the phone. It was designed and built on 2026-11-12 and runs in production. The plan lists the screens, the decisions, the API and the steps.
 
-The [tag editor feedback](plans/tag-editor-feedback.md) plan turns a user's feedback from 2026-11-16 into five phases: editor bugs, Artists and Album artists rows, Release type, folding rival suggestions, and a split suggestion with guidance. None of it is built yet.
+The [tag editor feedback](plans/tag-editor-feedback.md) plan turns a user's feedback from 2026-11-16 into five phases: editor bugs, Artists and Album artists rows, Release type, folding rival suggestions, and a split suggestion with guidance. All five run in production since `v1.1.0`.
 
 | Doc | What it holds |
 | --- | --- |
