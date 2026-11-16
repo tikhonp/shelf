@@ -26,13 +26,13 @@ Checked against the code on 2026-11-16, at 2bb02cf.
 
 ## Decisions
 
-The owner settles these before the phase that needs them. Each phase names the ones it depends on.
+The owner settled these on 2026-11-16. Each phase names the ones it depends on.
 
-- **D1.** The artist lists become main fields under Artist and Album Artist, labelled "Artists" and "Album artists". The notes on Artist and Artists explain the pair. The default is yes, without renaming Artist.
-- **D2.** Accepting a suggestion on Artists or Album artists replaces the list. On Genre and other multi fields, a one-value suggestion still adds. The default is yes.
-- **D3.** Release type becomes a main multi field with a list of MusicBrainz types to pick from, and still takes any typed value. The default is yes.
-- **D4.** Rival suggestions fold into one chip after one is taken, in the client only. A server mark that keeps them folded after Save is a later choice. The default is the client only.
-- **D5.** The split suggestion covers track artists only. The guest-single case gets a line in the guide, not a rule. The default is yes.
+- **D1.** The artist lists become main fields under Artist and Album Artist, labelled "Artists" and "Album artists". The notes on Artist and Artists explain the pair. The owner chose yes, without renaming Artist.
+- **D2.** Accepting a suggestion on Artists or Album artists replaces the list. On Genre and other multi fields, a one-value suggestion still adds. The owner chose yes.
+- **D3.** Release type becomes a main multi field with a list of MusicBrainz types to pick from, and still takes any typed value. The owner chose yes, with the filter by release type.
+- **D4.** Rival suggestions fold into one chip after one is taken. The owner chose to keep them folded after Save too, so the server marks them.
+- **D5.** The split suggestion covers track artists only. The guest-single case gets a line in the guide, not a rule. The owner chose yes.
 
 ---
 
@@ -125,7 +125,7 @@ The rows are on desktop and phone, the guest-single case (Album Artist = main ar
 
 ## Phase 3. Release type
 
-Depends on D3, and on phase 1. Ask the friend which client showed "single.soundtrack" first.
+Depends on D3, and on phase 1. The owner thinks the client that showed "single.soundtrack" was Feishin, which likely groups an album's release types into one category. Shelf writes two values, so check what Feishin shows for an album with two types before changing how shelf writes them.
 
 ### Behavior
 
@@ -171,7 +171,7 @@ Release type can hold several values from the editor, Navidrome reads them as se
 
 ## Phase 4. Fold rival suggestions
 
-Depends on D4. Client only.
+Depends on D4. The client folds, and the server marks rivals so they stay folded after Save.
 
 ### Behavior
 
@@ -182,13 +182,14 @@ Depends on D4. Client only.
 - A folded chip is a button with an accessible name such as "Show 2 other suggestions for Album".
 - Main fields and All fields rows behave the same, and so does the phone.
 
-### Known limit
+### After Save
 
-After Save the held value drops out on the server (`suggest.go:419`) and the rivals come back unfolded, since the client can't tell a rival from a new offer. Fixing that needs the server to mark suggestions for a field that already holds another source's value. Leave it unless the owner asks, and note it in `docs/tags.md`.
+After Save the held value drops out on the server (`suggest.go:419`), so the client can't tell a rival from a new offer. D4 keeps the rivals folded, so the server marks them. When the files hold a value one of a field's candidates offers, the server marks the field's other ordinary suggestions `rival: true`. When the files hold a value no source offers, it marks nothing, and every suggestion shows. The client folds marked suggestions the same way it folds them before Save. Describe the mark in `docs/tags.md`, Suggestions, and in the suggestions answer in `docs/architecture.md`.
 
 ### Start here
 
 - `web/src/lib/tags.ts` (`offersFor`, `suggestionsFor`), `LibField.vue`, `LibTagRow.vue`, `LibPhoneField.vue`, `LibSug.vue`.
+- `internal/modules/library/suggest.go` (`holds`, where it drops the held value) and `suggest_test.go`.
 - `docs/tags.md`, Suggestions.
 
 ### Tests
@@ -197,10 +198,12 @@ After Save the held value drops out on the server (`suggest.go:419`) and the riv
 - Typing a different value unfolds.
 - A proposal tape stays visible next to a fold.
 - A multi field never folds.
+- In `suggest_test.go`: files that hold one source's value mark the other source's suggestion as a rival; files that hold a value no source offers mark nothing; a multi field marks nothing.
+- After a Save and reload, marked rivals show folded.
 
 ### Done when
 
-A taken suggestion leaves one chip of rivals, and the docs say what happens after Save.
+A taken suggestion leaves one chip of rivals, before Save and after it, and the docs describe the mark.
 
 ---
 
