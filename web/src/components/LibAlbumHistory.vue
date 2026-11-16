@@ -11,6 +11,7 @@ import Icon from './Icon.vue'
 import LibChangeLines from './LibChangeLines.vue'
 import LibChangeNotes from './LibChangeNotes.vue'
 import LibTip from './LibTip.vue'
+import ScrollMore from './ScrollMore.vue'
 
 // One album's History, in place of the Editor and the Tracks window.
 const props = defineProps<{ albumId: number }>()
@@ -57,7 +58,7 @@ const { openId, downloads, toggle, downloadedAt } = useAlbumHistory(() => props.
           <LibChangeNotes :c="c" />
           <LibChangeLines v-if="openId === c.id" :c="c" />
         </template>
-        <div v-if="history.next !== null" class="pad"><button type="button" class="key block" @click="history.more()">Load more</button></div>
+        <div v-if="history.next !== null" class="pad"><ScrollMore :load="history.more" :count="history.changes.length" /></div>
       </div>
       <div v-if="downloads.length > 0" class="rows" role="table" aria-label="Download">
         <div class="lib-h flat"><span>Download</span></div>

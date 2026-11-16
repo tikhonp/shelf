@@ -4,6 +4,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import type { MemoryLayer } from '../api/agents'
 import Icon from '../components/Icon.vue'
 import MemoryDoc from '../components/MemoryDoc.vue'
+import ScrollMore from '../components/ScrollMore.vue'
 import { usePhone } from '../lib/viewport'
 import { useInbox } from '../stores/inbox'
 import { useMemory, type StatusFilter } from '../stores/memory'
@@ -104,7 +105,7 @@ const toggleLayer = (l: MemoryLayer) => (resetLayers.value = resetLayers.value.i
         <p v-if="memory.error" class="bad-text pad" role="alert">{{ memory.error }}</p>
         <div v-if="!memory.loading && memory.docs.length === 0 && !memory.error" class="empty"><h2>Nothing here</h2></div>
         <MemoryDoc v-for="d in memory.docs" :key="d.id" :doc="d" />
-        <div v-if="memory.next !== null" class="pad"><button type="button" class="key" :disabled="memory.loading" @click="memory.more()">Load more</button></div>
+        <div v-if="memory.next !== null" class="pad"><ScrollMore :load="memory.more" :count="memory.docs.length" :busy="memory.loading" /></div>
       </div>
     </section>
   </div>

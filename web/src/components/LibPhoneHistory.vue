@@ -13,6 +13,7 @@ import { useSources } from '../stores/sources'
 import Icon from './Icon.vue'
 import LibChangeLines from './LibChangeLines.vue'
 import LibChangeNotes from './LibChangeNotes.vue'
+import ScrollMore from './ScrollMore.vue'
 
 // One album's History as a page of its own on the phone. The open change's
 // key sits in the slot above the tab bar, so LibraryPage gets its ID through
@@ -59,7 +60,7 @@ onBeforeUnmount(() => {
           <p v-if="c.run" class="ah-note t2 sm">Run on {{ count(c.run.albums, 'album') }}, undone together. The lines below are this album's.</p>
         </LibChangeLines>
       </template>
-      <div v-if="history.next !== null" class="pad"><button type="button" class="key block" @click="history.more()">Load more</button></div>
+      <div v-if="history.next !== null" class="pad"><ScrollMore :load="history.more" :count="history.changes.length" /></div>
       <template v-if="downloads.length > 0">
         <div class="lib-h flat"><span>Download</span></div>
         <RouterLink v-for="d in downloads" :key="d.id" class="row ah-prow" :to="`/downloads/${d.id}`">

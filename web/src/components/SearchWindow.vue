@@ -12,6 +12,7 @@ import LinkCard from './LinkCard.vue'
 import RateWait from './RateWait.vue'
 import ResultsGrid from './ResultsGrid.vue'
 import ResultsList from './ResultsList.vue'
+import ScrollMore from './ScrollMore.vue'
 import SourceSetup from './SourceSetup.vue'
 import SourcesSwitch from './SourcesSwitch.vue'
 import TypeKnob from './TypeKnob.vue'
@@ -150,7 +151,7 @@ const limited = computed(() => search.failed.find((r) => r.rateLimited))
             <div class="line g12 between foot">
               <span v-if="phone" class="t3 sm num">{{ shown }}</span>
               <span v-else class="t3 sm">↑ ↓ move · Enter opens · Esc closes · / searches</span>
-              <button v-if="search.hasMore" type="button" class="key" :disabled="search.loading" @click="search.loadMore()">Load more</button>
+              <ScrollMore v-if="search.hasMore" class="grow" :load="search.loadMore" :count="search.items.length" :busy="search.loading" />
             </div>
           </template>
 

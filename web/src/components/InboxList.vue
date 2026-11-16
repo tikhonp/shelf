@@ -15,6 +15,7 @@ import Icon from './Icon.vue'
 import Knob from './Knob.vue'
 import LibTip from './LibTip.vue'
 import PickMenu from './PickMenu.vue'
+import ScrollMore from './ScrollMore.vue'
 
 defineProps<{ selected?: number }>()
 const inbox = useInbox()
@@ -95,7 +96,7 @@ const pill = (p: ProposalSummary) => inbox.filters.state === 'all' || (p.state =
         </span>
       </li>
     </ul>
-    <div v-if="inbox.next !== null" class="pad"><button type="button" class="key block" @click="inbox.moreList()">Load more</button></div>
+    <div v-if="inbox.next !== null" class="pad"><ScrollMore :load="inbox.moreList" :count="inbox.proposals.length" :busy="inbox.listLoading" /></div>
   </section>
 </template>
 

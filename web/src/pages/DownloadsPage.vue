@@ -9,6 +9,7 @@ import HistoryList from '../components/HistoryList.vue'
 import Icon from '../components/Icon.vue'
 import NoticeSlot from '../components/NoticeSlot.vue'
 import QueueShelf from '../components/QueueShelf.vue'
+import ScrollMore from '../components/ScrollMore.vue'
 import { useNow } from '../lib/clock'
 import { isTyping, moved } from '../lib/cursor'
 import { ago } from '../lib/format'
@@ -73,7 +74,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', key))
         <section class="col">
           <h2 class="px sec under">History</h2>
           <HistoryList v-model:cursor="cursor" />
-          <button v-if="downloads.historyNext !== null" type="button" class="key block more" @click="downloads.loadMore()">Load more</button>
+          <ScrollMore v-if="downloads.historyNext !== null" class="more" :load="downloads.loadMore" :count="downloads.history.length" />
         </section>
         <p v-if="scanWords" class="t3 sm center">{{ scanWords }}</p>
       </div>
@@ -91,7 +92,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', key))
       <section class="win" aria-label="History">
         <div class="tb"><h2>History</h2><span class="stripes"></span></div>
         <HistoryList v-model:cursor="cursor" :selected="id" />
-        <div v-if="downloads.historyNext !== null" class="more-row"><button type="button" class="key" @click="downloads.loadMore()">Load more</button></div>
+        <div v-if="downloads.historyNext !== null" class="more-row"><ScrollMore :load="downloads.loadMore" :count="downloads.history.length" /></div>
       </section>
     </div>
     <aside v-if="id || downloads.queued.length || downloads.deskNotice" class="page-side">
@@ -114,7 +115,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', key))
 .rs .sec { font-size: 17px; }
 .rs .under { padding-bottom: 6px; border-bottom: 2px solid var(--ink); }
 .rs .more { margin-top: 12px; }
-.rs .more-row { display: flex; justify-content: flex-end; padding: 14px; }
+.rs .more-row { padding: 14px; }
 .rs .dl-main { gap: 20px; }
 .rs .side { padding: 14px; }
 .rs .idle h1, .rs .idle h2 { font-size: 15px; font-weight: 500; }

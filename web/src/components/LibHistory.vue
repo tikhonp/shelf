@@ -9,6 +9,7 @@ import { useHistory } from '../stores/history'
 import Icon from './Icon.vue'
 import LibChangeLines from './LibChangeLines.vue'
 import LibChangeNotes from './LibChangeNotes.vue'
+import ScrollMore from './ScrollMore.vue'
 
 defineEmits<{ close: [] }>()
 const history = useHistory()
@@ -64,7 +65,7 @@ async function clear() {
         <LibChangeNotes :c="c" />
         <LibChangeLines v-if="openId === c.id" :c="c" :deep="!!c.run" />
       </template>
-      <div v-if="history.next !== null" class="pad"><button type="button" class="key block" @click="history.more()">Load more</button></div>
+      <div v-if="history.next !== null" class="pad"><ScrollMore :load="history.more" :count="history.changes.length" /></div>
     </div>
   </section>
 </template>

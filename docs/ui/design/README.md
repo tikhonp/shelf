@@ -225,7 +225,7 @@ Quality labels look like masking tape. The words always name the quality, and th
 - Download on a row uses the default format, and the caret next to it picks another one.
 - A phone row has the cover, two or three lines and one 46px button. The button queues the item in the default format and then shows its state.
 - The Density switch on the desktop's Status page sets how tall the rows are in search results, track lists and History. A preview of two History rows under the switch shows the choice. Compact keeps each row's second line. The phone has no switch, because a shorter row there would lose its quality labels.
-- Search shows the first page from each source in one list. The window title counts what is shown, such as "14 of 31 albums", and Load more fetches the next page.
+- Search shows the first page from each source in one list. The window title counts what is shown, such as "14 of 31 albums", and scrolling to the end reads the next page.
 
 ## Library
 
@@ -284,6 +284,7 @@ Help never shows on a screen at rest, and the design adds no helper text beside 
 - Status has no Rate limits module, and the Qobuz card has no last request time, because the API has neither.
 - A running track says Downloading, without a percentage, because the API has no per-track progress.
 - Between 720 and about 950 pixels the results and the history drop columns, and the menubar wraps.
+- The screens end long lists with Load more. The app reads the next page as the end of a list scrolls into view and says "Loading more..." meanwhile. Load more shows only when the browser has no `IntersectionObserver` or a page adds no rows, as a failed read does, so the owner can try again.
 - The screens' rockers have no I and O marks and no peach light when on.
 - A tag struck through for deletion uses `.lib-in.struck`, not the canvas's `.gone`, which `components.css` already uses to hide things.
 - The rotary labels, the rocker and the menu moved from one component's scoped style into `parts.css`, because the Library uses them too.

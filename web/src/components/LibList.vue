@@ -14,6 +14,7 @@ import Cover from './Cover.vue'
 import Icon from './Icon.vue'
 import Knob from './Knob.vue'
 import LibFilterMenu from './LibFilterMenu.vue'
+import ScrollMore from './ScrollMore.vue'
 
 const props = defineProps<{ current?: number }>()
 const phone = usePhone()
@@ -141,7 +142,7 @@ onMounted(() => {
         </button>
         <span v-if="lit(a)" class="led iss" role="img" aria-label="Has issues"></span>
       </div>
-      <button v-if="library.hasMore" type="button" class="key block more" :disabled="library.loading" @click="library.more()">Load more</button>
+      <ScrollMore v-if="library.hasMore" class="more" :load="library.more" :count="library.albums.length" :busy="library.loading" />
     </div>
 
     <div v-else class="lib-list" role="grid" aria-label="Albums">
@@ -174,7 +175,7 @@ onMounted(() => {
         <span class="sub ell lib-w lib-src" :title="sourceTitle(a)">{{ a.source.name || '—' }}</span>
         <span v-if="lit(a)" class="led iss" role="img" aria-label="Has issues"></span>
       </div>
-      <div v-if="library.hasMore" class="more"><button type="button" class="key block" :disabled="library.loading" @click="library.more()">Load more</button></div>
+      <div v-if="library.hasMore" class="more"><ScrollMore :load="library.more" :count="library.albums.length" :busy="library.loading" /></div>
     </div>
   </section>
 </template>

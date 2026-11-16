@@ -93,6 +93,7 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 | Notices and table density are per-browser settings on Status. Notices default to Failures. | A failure needs a person, and phone and desktop may want different levels. |
 | The fake source's covers are data URLs. | Any other host breaks the CSP. |
 | The Library tab is the home screen and the first tab. `/` and unknown paths open it. | The owner asked for it. The list shows every album's source and quality. |
+| A long list reads its next page as its end scrolls into view. Load more shows only when a page adds no rows or the browser has no `IntersectionObserver`. | The owner asked for it in place of Load more on every list. After a failed page the list shows the button and stops asking for that page. |
 
 ## Tags
 
