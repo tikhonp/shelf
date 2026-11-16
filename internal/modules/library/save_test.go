@@ -228,15 +228,16 @@ func TestSaveRefuses(t *testing.T) {
 		code   int
 		reason string
 		track  int64
+		field  string
 	}{
-		"no body":        {save, "x", http.StatusBadRequest, "", 0},
-		"no tracks":      {save, saveBody{}, http.StatusBadRequest, "", 0},
-		"no album":       {"/api/library/albums/999/save", saveBody{Tracks: everyTrack(d, title)}, http.StatusNotFound, "", 0},
-		"another album":  {save, saveBody{Tracks: []trackEdits{{ID: other.ID, Revision: other.Revision, Edits: []editJSON{title}}}}, http.StatusUnprocessableEntity, "", 0},
-		"conflict":       {save, saveBody{Tracks: []trackEdits{{ID: stale.ID, Revision: stale.Revision, Edits: []editJSON{title}}}}, http.StatusConflict, ReasonConflict, stale.ID},
-		"unknown field":  {save, saveBody{Tracks: everyTrack(d, editJSON{Field: "nope", Values: []string{"x"}})}, http.StatusUnprocessableEntity, ReasonRefused, d.Tracks[0].ID},
-		"nothing to do":  {save, saveBody{Tracks: everyTrack(d, editJSON{Field: "album", Values: []string{"Blue"}})}, http.StatusUnprocessableEntity, ReasonRefused, 0},
-		"too many edits": {save, saveBody{Tracks: everyTrack(d, slices.Repeat([]editJSON{title}, 300)...)}, http.StatusBadRequest, "", 0},
+		"no body":        {save, "x", http.StatusBadRequest, "", 0, ""},
+		"no tracks":      {save, saveBody{}, http.StatusBadRequest, "", 0, ""},
+		"no album":       {"/api/library/albums/999/save", saveBody{Tracks: everyTrack(d, title)}, http.StatusNotFound, "", 0, ""},
+		"another album":  {save, saveBody{Tracks: []trackEdits{{ID: other.ID, Revision: other.Revision, Edits: []editJSON{title}}}}, http.StatusUnprocessableEntity, "", 0, ""},
+		"conflict":       {save, saveBody{Tracks: []trackEdits{{ID: stale.ID, Revision: stale.Revision, Edits: []editJSON{title}}}}, http.StatusConflict, ReasonConflict, stale.ID, ""},
+		"unknown field":  {save, saveBody{Tracks: everyTrack(d, editJSON{Field: "nope", Values: []string{"x"}})}, http.StatusUnprocessableEntity, ReasonRefused, d.Tracks[0].ID, "nope"},
+		"nothing to do":  {save, saveBody{Tracks: everyTrack(d, editJSON{Field: "album", Values: []string{"Blue"}})}, http.StatusUnprocessableEntity, ReasonRefused, 0, ""},
+		"too many edits": {save, saveBody{Tracks: everyTrack(d, slices.Repeat([]editJSON{title}, 300)...)}, http.StatusBadRequest, "", 0, ""},
 	} {
 		rec := r.post(tc.path, tc.body)
 		if rec.Code != tc.code {
@@ -244,7 +245,7 @@ func TestSaveRefuses(t *testing.T) {
 			continue
 		}
 		if tc.reason != "" {
-			if f := decode[refusal](t, rec); f.Reason != tc.reason || f.Track != tc.track || f.Error == "" || strings.Contains(f.Error, r.root) {
+			if f := decode[refusal](t, rec); f.Reason != tc.reason || f.Track != tc.track || f.Field != tc.field || f.Error == "" || strings.Contains(f.Error, r.root) {
 				t.Errorf("%s: %+v", name, f)
 			}
 		}
@@ -322,6 +323,41 @@ func TestSaveAsksBeforeNavidromeMovesAStar(t *testing.T) {
 	asks("a confirmation that covers only one", saveBody{Tracks: one(album("Court and Spark")), Confirm: []string{ConfirmSplit}}, ConfirmMerge)
 	asks("whole album renamed", saveBody{Tracks: everyTrack(d, album("Blue (Remastered)"))})
 	asks("confirmed", saveBody{Tracks: one(album("Blue Too")), Confirm: []string{ConfirmSplit}})
+}
+
+// Album artists that match Navidrome's split of Album Artist move nothing,
+// so the Save asks nothing.
+func TestSaveAlbumArtistsAsSplit(t *testing.T) {
+	r := newRig(t)
+	duo := map[string][]string{"ALBUMARTIST": {"Joni Mitchell; David Crosby"}, "ALBUMARTISTS": nil}
+	r.add("folk/Blue/01.flac", "track.flac", blue("1", duo))
+	r.add("folk/Blue/02.flac", "track.flac", blue("2", duo))
+	r.walk()
+	id := r.albums("").Albums[0].ID
+	d := r.open(id)
+	save := "/api/library/albums/" + itoa(id) + "/save"
+	same := editJSON{Field: "albumartists", Values: []string{"Joni Mitchell", "David Crosby"}}
+	if rec := r.post(save, saveBody{Tracks: everyTrack(d, same)}); rec.Code != http.StatusAccepted {
+		t.Errorf("the split: %d %s", rec.Code, rec.Body)
+	}
+	other := editJSON{Field: "albumartists", Values: []string{"Joni Mitchell"}}
+	if f := decode[refusal](t, r.post(save, saveBody{Tracks: everyTrack(d, other)})); f.Reason != "confirm" || len(f.Confirm) != 1 || f.Confirm[0].Kind != ConfirmArtist {
+		t.Errorf("another list: %+v", f)
+	}
+}
+
+// A WMA file keeps one value per tag, and the refusal names the field.
+func TestSaveRefusesSeveralValuesInWMA(t *testing.T) {
+	r := newRig(t)
+	r.add("folk/Blue/01.wma", "track.wma", blue("1", nil))
+	r.walk()
+	id := r.albums("").Albums[0].ID
+	d := r.open(id)
+	rec := r.post("/api/library/albums/"+itoa(id)+"/save", saveBody{Tracks: everyTrack(d, editJSON{Field: "artists", Values: []string{"Joni Mitchell", "David Crosby"}})})
+	f := decode[refusal](t, rec)
+	if rec.Code != http.StatusUnprocessableEntity || f.Reason != ReasonRefused || f.Field != "artists" || f.Track != d.Tracks[0].ID || !strings.Contains(f.Error, "WMA files keep one value per tag") {
+		t.Errorf("%d %+v", rec.Code, f)
+	}
 }
 
 func TestSaveSeesAChangeBeforeItsJob(t *testing.T) {

@@ -5,9 +5,11 @@ import { runNote } from './history'
 // A note says what a name means to Navidrome. Names with nothing worth saying have none.
 const fields: Record<string, string> = {
   title: 'The name of this track. It belongs to one track, so select a track to change it.',
-  artist: 'Who plays this track. A value with / feat. ft. or ; gets split into several artists unless ARTISTS is set.',
+  artist: 'The name shown for this track. While Artists is set, Navidrome links the artists from Artists and only shows this.',
+  artists: 'One artist per value. Navidrome links each one. When it is empty, Navidrome splits Artist on / feat. ft. and ;.',
   album: 'Navidrome groups tracks by this name and Album Artist. A track with another spelling leaves the album.',
-  albumartist: 'This is the main artist of the album, or Various Artists for a compilation. Every track shares it. Set it even when it matches Artist.',
+  albumartist: 'This is the main artist of the album, or Various Artists for a compilation. Every track shares it. Set it even when it matches Artist. While Album artists is set, Navidrome files the album under those and only shows this.',
+  albumartists: 'One album artist per value. Navidrome files the album under each one. When it is empty, Navidrome splits Album Artist on / feat. ft. and ;.',
   track: 'The position on the disc. It belongs to one track, so select a track to change it.',
   disc: 'A multi-disc album stays one album while every disc keeps the same Album.',
   genre: 'One genre per value. Navidrome lists the album under each of them.',

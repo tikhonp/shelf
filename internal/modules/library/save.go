@@ -91,9 +91,13 @@ type warning struct {
 
 // refusal is a Save shelf won't run, with the track it stopped at.
 type refusal struct {
-	Error   string    `json:"error"`
-	Reason  string    `json:"reason"`
-	Track   int64     `json:"track,omitempty"`
+	Error  string `json:"error"`
+	Reason string `json:"reason"`
+	Track  int64  `json:"track,omitempty"`
+	// Field or Key names the edit a file refused, so the editor shows the
+	// refusal on that row.
+	Field   string    `json:"field,omitempty"`
+	Key     string    `json:"key,omitempty"`
 	Confirm []warning `json:"confirm,omitempty"`
 	// Conflicts are the keys an undo or redo can't restore.
 	Conflicts []conflictJSON `json:"conflicts,omitempty"`
@@ -267,6 +271,10 @@ func (m *Module) stopFor(err error, trackOf map[string]int64) (plannedSave, *sav
 	var fe *tagio.FileError
 	if errors.As(err, &fe) {
 		out.Track = trackOf[fe.Path]
+	}
+	var ee *tagio.EditError
+	if errors.As(err, &ee) {
+		out.Field, out.Key = ee.Field, ee.Key
 	}
 	return plannedSave{}, &saveStop{status: status, body: out}, nil
 }

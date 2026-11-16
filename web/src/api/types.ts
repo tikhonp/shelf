@@ -515,5 +515,8 @@ export interface SaveRefusal {
   error: string
   reason: string
   track?: number
+  // field or key names the edit a file refused.
+  field?: string
+  key?: string
   confirm?: SaveWarning[]
 }

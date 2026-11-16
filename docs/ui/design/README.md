@@ -238,7 +238,7 @@ The canvas boards are `project/Lib-*.dc.html`, styled by `project/retro.css` and
 - A staged field has an amber edge, a line with its old value, and a Revert button. Revert drops that one edit, so a Fix can be reviewed field by field.
 - A tag that belongs to a single track is read-only at All tracks, with a dashed edge and a lock, and accepts typing once a track is selected. That covers Title, Track, ISRC, the track IDs, track gain and lyrics. On the phone the Title and Track rows don't open, and the other tags aren't shown.
 - A per-track ID keeps its suggestion at All tracks, because one press fills every track with its own ID.
-- A multi-value tag has one input per value, a remove button on each when there are two or more, and a plain Add value button (`.lf-add`). A single-value field looks the same as before. Pressing a suggestion on a multi-value tag adds it as another value.
+- A multi-value tag has one input per value, a remove button on each when there are two or more, and a plain Add value button (`.lf-add`). A single-value field looks the same as before. Pressing a suggestion on a multi-value tag adds it as another value, except on Artists and Album artists, where it replaces the list. A Save a file refuses shows its message under the row it names, after a red lamp.
 - Delete in the cover dialog stages, like Apply to album. Save cover alone is the one action that writes at once.
 - An added custom field shows the same staged look as other edits. A deleted one stays in its row, struck through, until Save.
 - All fields is a small rocker in the Editor's title bar. On the phone, the same rocker pattern sets Compilation, and All fields doesn't exist.

@@ -25,8 +25,10 @@ export interface MainField {
 export const mainFields: MainField[] = [
   { field: 'title', label: 'Title', perTrack: true },
   { field: 'artist', label: 'Artist' },
+  { field: 'artists', label: 'Artists', multi: true },
   { field: 'album', label: 'Album' },
   { field: 'albumartist', label: 'Album Artist' },
+  { field: 'albumartists', label: 'Album artists', multi: true },
   { field: 'track', label: 'Track', perTrack: true },
   { field: 'disc', label: 'Disc' },
   { field: 'genre', label: 'Genre', multi: true },
@@ -130,8 +132,13 @@ export function addValue(stage: Stage, tracks: LibraryTrack[], target: Target, v
   return next
 }
 
+// Suggestions for these fields are whole credits, such as MusicBrainz's, so a
+// one-value suggestion replaces the list instead of joining it.
+const wholeLists = new Set(['artists', 'albumartists'])
+
 // accept stages a suggestion. A fill gives each track its own value, on every
-// track whatever the editor has selected.
+// track whatever the editor has selected. A one-value suggestion on a multi
+// field adds the value, except on Artists and Album artists.
 export function accept(stage: Stage, all: LibraryTrack[], scope: LibraryTrack[], s: Suggestion, multi: boolean): Stage {
   if (s.tracks) {
     let next = stage
@@ -142,7 +149,7 @@ export function accept(stage: Stage, all: LibraryTrack[], scope: LibraryTrack[],
     return next
   }
   const values = s.values ?? []
-  if (multi && values.length === 1) return addValue(stage, scope, s.field, values[0]!, s.anchor)
+  if (multi && values.length === 1 && !wholeLists.has(s.field)) return addValue(stage, scope, s.field, values[0]!, s.anchor)
   return stageEdit(stage, scope, s.field, values, s.anchor)
 }
 
@@ -359,8 +366,9 @@ export function tagRows(tracks: LibraryTrack[], stage: Stage, known: KnownField[
       continue
     }
     // A field no file holds yet, such as Album artists an agent proposes, gets a row of its own, so its tape shows.
+    // Main fields get one too, because All fields replaces the main rows.
     // Its key is the field's usual tag name; Save writes the field and picks the key itself.
-    if (mainFields.some((f) => f.field === target) || [...rows.values()].some((r) => r.fields.includes(target))) continue
+    if ([...rows.values()].some((r) => r.fields.includes(target))) continue
     const name = known?.find((f) => f.name === target)?.key ?? target.toUpperCase()
     if (!rows.has(name)) rows.set(name, rowOf(name, 'standard', [target], tracks, stage, known, true, target))
   }

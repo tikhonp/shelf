@@ -1,6 +1,6 @@
 # Tag editor feedback
 
-Status: drafted on 2026-11-16. Phase 1 is done on main and not deployed. A new session with a clean context builds each phase, in order. A phase is done when its "Done when" list holds, `make check`, `make lint`, `make web-check` and `docker build .` pass, and `docs/tags.md` and `docs/status.md` describe the result in the same commit.
+Status: drafted on 2026-11-16. Phases 1 and 2 are done on main and not deployed. A new session with a clean context builds each phase, in order. A phase is done when its "Done when" list holds, `make check`, `make lint`, `make web-check` and `docker build .` pass, and `docs/tags.md` and `docs/status.md` describe the result in the same commit.
 
 ## Where this comes from
 
@@ -120,6 +120,12 @@ Depends on D1 and D2, and on phase 1.
 ### Done when
 
 The rows are on desktop and phone, the guest-single case (Album Artist = main artist, Artist = full credit, Artists = list) can be done without opening All fields, and the docs and tests match.
+
+### What phase 2 changed from the steps above
+
+- All fields replaces the main rows. It doesn't sit beside them, so `tagRows` no longer skips a main field. A field the stage or a proposal names that no file holds gets an All fields row, main fields too. With the skip, an `ARTISTS` typed into Add field would have left All fields at once. A file's `ARTISTS` key always had its own All fields row, as `ARTIST` has.
+- The WMA refusal names the edit. The writer wraps a refused edit in `tagio.EditError`, the 422 carries its `field` or `key`, and the editor shows the message under that row, on the desktop and the phone.
+- The phone keeps both rows. It has no All fields to hide an empty Album artists row behind.
 
 ---
 

@@ -81,6 +81,7 @@ const on = computed(() => view.value.values[0] === '1')
       </span>
       <span v-if="was" class="lf-was">{{ was }}</span>
       <p v-if="view.readOnly" class="lf-note"><Icon name="note" /><span>shelf can't change this tag in this file.</span></p>
+      <p v-if="editor.refusedOn(target)" class="lf-note refused" role="alert"><span class="led bad" aria-hidden="true"></span><span>Not saved: {{ editor.refusedOn(target) }}</span></p>
       <p v-for="n in notes" :key="n.message" class="lf-note"><Icon name="note" /><span>{{ n.message }}</span></p>
     </div>
     <div class="lf-s"><LibSug v-for="s in offers" :key="`${s.source}${s.values?.join()}`" :s="s" @use="editor.take(s, !!f.multi)" /></div>

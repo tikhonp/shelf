@@ -5,7 +5,7 @@ import type { LibraryAlbumDetail, LibraryChange, LibraryTrack, SaveRefusal, Save
 import { useInbox } from './inbox'
 import { proposalSuggestions, withProposals } from '../lib/proposal-suggestions'
 import { useLibrary } from './library'
-import { accept, addValue, changes, fix, revert, saveBody, stageEdit, type CoverEdit, type Stage, type Target } from '../lib/tags'
+import { accept, addValue, changes, fix, keyTarget, revert, saveBody, stageEdit, type CoverEdit, type Stage, type Target } from '../lib/tags'
 
 // StagedCover is a cover edit waiting for Save, with what the editor previews.
 export interface StagedCover extends CoverEdit {
@@ -23,6 +23,8 @@ export interface Outcome {
   changes: number
   tracks: number
   cover: boolean
+  // target is the edit a file refused, so its row shows the message too.
+  target?: Target
 }
 
 interface Held {
@@ -155,6 +157,8 @@ export const useEditor = defineStore('editor', () => {
   const drop = (target: Target) => hold({ stage: revert(stage.value, scope.value, target) })
   const add = (target: Target, value: string) => hold({ stage: addValue(stage.value, scope.value, target, value) })
   const take = (s: Suggestion, multi: boolean) => hold({ stage: accept(stage.value, readable.value, scope.value, s, multi) })
+  // refusedOn is the message of a Save a file refused because of this row's edit.
+  const refusedOn = (target: Target) => (outcome.value && !outcome.value.ok && outcome.value.target === target ? outcome.value.message : '')
   const stageCover = (c: StagedCover | null) => hold({ cover: c })
   const discard = () => hold({ stage: {}, cover: null })
 
@@ -182,7 +186,8 @@ export const useEditor = defineStore('editor', () => {
         return
       }
       asks.value = null
-      outcome.value = failure(refusal?.reason ?? 'error', errorText(err))
+      const target = refusal?.field ?? (refusal?.key ? keyTarget(refusal.key) : undefined)
+      outcome.value = { ...failure(refusal?.reason ?? 'error', errorText(err)), ...(target ? { target } : {}) }
     }
   }
 
@@ -340,7 +345,7 @@ export const useEditor = defineStore('editor', () => {
   return {
     album, loading, error, trackId, cursor, noteOn, suggestions, suggesting, suggestError, saving, deleting, gone, outcome, asks, askKey, coverRev,
     held, stage, cover, tracks, readable, selected, scope, staged, kept, coverUrl,
-    open, close, reload, loadSuggestions, suggestionsChanged, edit, drop, add, take, stageCover, discard, fixable, applyFix,
+    open, close, reload, loadSuggestions, suggestionsChanged, edit, drop, add, take, refusedOn, stageCover, discard, fixable, applyFix,
     save, saveCoverAlone, remove, ask, confirmAsks, cancelAsks, applyChange, recheck, follow, afterReverse,
   }
 })

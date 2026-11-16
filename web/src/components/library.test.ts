@@ -207,6 +207,66 @@ test('a suggestion, a note and a silent service all show, and pressing one adds 
   w.unmount()
 })
 
+// MusicBrainz's credit for the album, which no file holds yet.
+const credits = {
+  ...suggestions,
+  album: [
+    { field: 'artists', values: ['Joni Mitchell', 'David Crosby'], source: 'MusicBrainz', sources: ['MusicBrainz'], confidence: 90 },
+    { field: 'albumartists', values: ['Joni Mitchell'], source: 'MusicBrainz', sources: ['MusicBrainz'], confidence: 90 },
+  ],
+}
+const withArtists = (id: number, values: string[]) => {
+  const t = track(id)
+  return { ...t, standard: [...t.standard, { key: 'ARTISTS', fields: ['artists'], values }] }
+}
+
+test('Artists and Album artists show with their suggestions on an album no file has them on', async () => {
+  const { w } = await at('/library/7', { '/api/library/albums/7/suggestions': credits })
+  const labels = w.findAll('.lib-fields .lf-l').map((l) => l.text())
+  expect(labels.slice(0, 5)).toEqual(['Title', 'Artist', 'Artists', 'Album', 'Album Artist'])
+  expect(labels[5]).toBe('Album artists')
+  expect(w.find('#lf-artists').attributes('placeholder')).toBe('Empty')
+  await w.find('[data-target=artists] .sug').trigger('click')
+  expect(w.findAll('[data-target=artists] input').map((i) => (i.element as HTMLInputElement).value)).toEqual(['Joni Mitchell', 'David Crosby'])
+  expect(w.find('[data-target=albumartists] .sug').text()).toContain('Joni Mitchell')
+  w.unmount()
+})
+
+test('a one-value suggestion on Artists replaces the list', async () => {
+  const one = { ...suggestions, album: [{ field: 'artists', values: ['Joni Mitchell'], source: 'MusicBrainz', sources: ['MusicBrainz'], confidence: 90 }] }
+  const both = ['Joni Mitchell', 'Graham Nash']
+  const { w } = await at('/library/7', { '/api/library/albums/7/suggestions': one, '/api/library/albums/7': detail({ tracks: [withArtists(1, both), withArtists(2, both)] }) })
+  await w.find('[data-target=artists] .sug').trigger('click')
+  expect(w.findAll('[data-target=artists] input').map((i) => (i.element as HTMLInputElement).value)).toEqual(['Joni Mitchell'])
+  expect(w.find('[data-target=artists] .lf-was').text()).toBe('Was Joni Mitchell, Graham Nash')
+  w.unmount()
+})
+
+test('Artists that differ across tracks show Mixed with no Add value, and a selected track edits its own', async () => {
+  const { w } = await at('/library/7', { '/api/library/albums/7': detail({ tracks: [withArtists(1, ['Joni Mitchell']), withArtists(2, ['Joni Mitchell', 'James Taylor'])] }) })
+  const artists = w.find('[data-target=artists]')
+  expect(artists.find('input').attributes('placeholder')).toBe('Mixed')
+  expect(artists.text()).not.toContain('Add value')
+  await w.findAll('.g-lt .lib-open')[2]!.trigger('click')
+  expect(w.findAll('[data-target=artists] input').map((i) => (i.element as HTMLInputElement).value)).toEqual(['Joni Mitchell', 'James Taylor'])
+  expect(w.find('[data-target=artists]').text()).toContain('Add value')
+  w.unmount()
+})
+
+test('a Save a file refuses names the field on its row', async () => {
+  const { w } = await at('/library/7', {
+    '/api/library/albums/7/save': () => new Reply(422, { error: "rock/x/1.wma: this file can't take the change: WMA files keep one value per tag", reason: 'refused', track: 1, field: 'artists' }),
+  })
+  await w.find('#lf-artists').setValue('Joni Mitchell')
+  await w.find('[data-target=artists] .lf-add').trigger('click')
+  await w.findAll('[data-target=artists] input')[1]!.setValue('David Crosby')
+  await button(w, 'Save').trigger('click')
+  await flushPromises()
+  expect(w.find('[data-target=artists] .lf-note.refused').text()).toContain('WMA files keep one value per tag')
+  expect(w.find('[data-target=genre] .lf-note.refused').exists()).toBe(false)
+  w.unmount()
+})
+
 test('Fix stages the date pair, and the fields show it for review', async () => {
   const { w } = await at('/library/7')
   await button(w, 'Fix').trigger('click')
@@ -822,5 +882,18 @@ test('on the phone the ? cap explains History and gives the open change\'s full 
   await w.find('[aria-labelledby=lh-t] button[aria-label="Back to the album"]').trigger('click')
   await flushPromises()
   expect(w.find('.stack > .win.slot[role=note]').exists()).toBe(false)
+  w.unmount()
+})
+
+test('on the phone the album lists Artists and Album artists, and the Artists page adds values', async () => {
+  const { w, router } = await phoneAt('/library/7', { '/api/library/albums/7/suggestions': credits })
+  const labels = w.findAll('.pf .pf-l').map((l) => l.text())
+  expect(labels.slice(0, 6)).toEqual(['Title', 'Artist', 'Artists', 'Album', 'Album Artist', 'Album artists'])
+  await w.find('button[aria-label="Edit Artists, now Empty"]').trigger('click')
+  await flushPromises()
+  expect(router.currentRoute.value.query.field).toBe('artists')
+  await w.find('.sug').trigger('click')
+  expect(w.findAll('.lbl-f input').map((i) => (i.element as HTMLInputElement).value)).toEqual(['Joni Mitchell', 'David Crosby'])
+  expect(w.text()).toContain('Add value')
   w.unmount()
 })

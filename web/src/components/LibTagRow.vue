@@ -67,6 +67,7 @@ const removeAt = (i: number) => editor.edit(props.row.target, view.value.values.
         <span v-if="row.multi && !readOnly && !view.mixed" class="lf-adds"><button type="button" class="lf-add" @click="editor.edit(row.target, [...view.values, ''])"><Icon name="plus" size="s" />Add value</button></span>
       </template>
       <span v-if="was" class="lf-was">{{ was }}</span>
+      <p v-if="editor.refusedOn(row.target)" class="lf-note refused" role="alert"><span class="led bad" aria-hidden="true"></span><span>Not saved: {{ editor.refusedOn(row.target) }}</span></p>
     </div>
     <div v-if="offers.length > 0" class="lf-s"><LibSug v-for="s in offers" :key="`${s.field}${s.source}${s.values?.join()}`" :s="s" @use="editor.take(s, row.multi)" /></div>
   </div>

@@ -44,6 +44,17 @@ type FileError struct {
 func (e *FileError) Error() string { return e.Path + ": " + e.Err.Error() }
 func (e *FileError) Unwrap() error { return e.Err }
 
+// EditError ties a refusal to the edit that caused it, so the editor can
+// show it on that field's row.
+type EditError struct {
+	Field string
+	Key   string
+	Err   error
+}
+
+func (e *EditError) Error() string { return e.Err.Error() }
+func (e *EditError) Unwrap() error { return e.Err }
+
 // Edit changes one tag of one file. It names either a field, which changes
 // every key of the file that feeds it, or a raw key, for tags Navidrome
 // doesn't read.
@@ -385,49 +396,8 @@ func resolve(f File, edits []Edit) (map[string][]string, error) {
 		return nil
 	}
 	for _, e := range edits {
-		for _, v := range e.Values {
-			if !validValue(v) {
-				return nil, fmt.Errorf("%w: an empty value or one with a control separator", ErrRefused)
-			}
-		}
-		if !f.Format.Multi && len(e.Values) > 1 {
-			return nil, fmt.Errorf("%w: %s files keep one value per tag", ErrRefused, f.Format.Label)
-		}
-		switch {
-		case e.Field != "" && e.Key != "":
-			return nil, fmt.Errorf("%w: an edit names a field and a key", ErrRefused)
-		case e.Field != "":
-			fd, ok := FieldByName(e.Field)
-			if !ok {
-				return nil, fmt.Errorf("%w: no field %q", ErrRefused, e.Field)
-			}
-			var present []string
-			for k := range f.Tags {
-				if fd.feeds(f.Format, k) {
-					present = append(present, k)
-				}
-			}
-			slices.Sort(present)
-			if len(present) == 0 && len(e.Values) > 0 {
-				present = []string{fd.Key}
-			}
-			for _, k := range present {
-				if err := set(k, e.Values); err != nil {
-					return nil, err
-				}
-			}
-		case e.Key != "":
-			if !validKey(e.Key) {
-				return nil, fmt.Errorf("%w: key %q", ErrRefused, e.Key)
-			}
-			if !f.Format.Custom && len(FieldsOf(f.Format, e.Key)) == 0 {
-				return nil, fmt.Errorf("%w: %s files drop custom fields", ErrRefused, f.Format.Label)
-			}
-			if err := set(existingKey(f.Tags, e.Key), e.Values); err != nil {
-				return nil, err
-			}
-		default:
-			return nil, fmt.Errorf("%w: an edit names no field or key", ErrRefused)
+		if err := resolveEdit(f, e, set); err != nil {
+			return nil, &EditError{Field: e.Field, Key: e.Key, Err: err}
 		}
 	}
 	for k, vs := range ops {
@@ -436,6 +406,55 @@ func resolve(f File, edits []Edit) (map[string][]string, error) {
 		}
 	}
 	return ops, nil
+}
+
+// resolveEdit sets the keys one edit changes.
+func resolveEdit(f File, e Edit, set func(string, []string) error) error {
+	for _, v := range e.Values {
+		if !validValue(v) {
+			return fmt.Errorf("%w: an empty value or one with a control separator", ErrRefused)
+		}
+	}
+	if !f.Format.Multi && len(e.Values) > 1 {
+		return fmt.Errorf("%w: %s files keep one value per tag", ErrRefused, f.Format.Label)
+	}
+	switch {
+	case e.Field != "" && e.Key != "":
+		return fmt.Errorf("%w: an edit names a field and a key", ErrRefused)
+	case e.Field != "":
+		fd, ok := FieldByName(e.Field)
+		if !ok {
+			return fmt.Errorf("%w: no field %q", ErrRefused, e.Field)
+		}
+		var present []string
+		for k := range f.Tags {
+			if fd.feeds(f.Format, k) {
+				present = append(present, k)
+			}
+		}
+		slices.Sort(present)
+		if len(present) == 0 && len(e.Values) > 0 {
+			present = []string{fd.Key}
+		}
+		for _, k := range present {
+			if err := set(k, e.Values); err != nil {
+				return err
+			}
+		}
+	case e.Key != "":
+		if !validKey(e.Key) {
+			return fmt.Errorf("%w: key %q", ErrRefused, e.Key)
+		}
+		if !f.Format.Custom && len(FieldsOf(f.Format, e.Key)) == 0 {
+			return fmt.Errorf("%w: %s files drop custom fields", ErrRefused, f.Format.Label)
+		}
+		if err := set(existingKey(f.Tags, e.Key), e.Values); err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("%w: an edit names no field or key", ErrRefused)
+	}
+	return nil
 }
 
 // Apply gives a copy of f with the edits made, and the keys they change with

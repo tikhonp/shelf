@@ -49,6 +49,7 @@ function type(i: number, e: Event) {
       <div class="col g8 pad">
         <label v-for="(v, i) in rows" :key="i" class="lbl-f">{{ rows.length > 1 ? `${f.label} ${i + 1}` : f.label }}<input class="input" :value="v" :placeholder="view.mixed ? 'Mixed' : 'Empty'" @input="type(i, $event)" /></label>
         <span v-if="was" class="lf-was">{{ was }}</span>
+        <p v-if="editor.refusedOn(field)" class="lf-note refused" role="alert"><span class="led bad" aria-hidden="true"></span><span>Not saved: {{ editor.refusedOn(field) }}</span></p>
         <span class="lf-adds">
           <button v-if="multi && !view.mixed" type="button" class="lf-add" @click="editor.edit(field, [...view.values, ''])"><Icon name="plus" size="s" />Add value</button>
           <button v-if="view.staged" type="button" class="lf-add" @click="editor.drop(field)"><Icon name="revert" size="s" />Revert</button>

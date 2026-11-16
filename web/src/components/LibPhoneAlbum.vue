@@ -76,6 +76,7 @@ const flagOn = (f: MainField) => view(f).values[0] === '1'
           <span class="two"><span class="pf-l"><span v-if="view(f).staged" class="led stg" role="img" aria-label="Staged"></span>{{ f.label }}</span><span class="pf-v" :class="{ none: none(f) }">{{ shown(f) }}</span></span>
           <Icon name="next" />
         </button>
+        <p v-if="editor.refusedOn(f.field)" class="lf-note refused" role="alert"><span class="led bad" aria-hidden="true"></span><span>Not saved: {{ editor.refusedOn(f.field) }}</span></p>
         <div v-if="best(f)" class="sugs"><LibSug :s="best(f)!" @use="editor.take(best(f)!, !!f.multi)" /></div>
       </div>
       <div class="lib-h static"><span>Tracks</span></div>

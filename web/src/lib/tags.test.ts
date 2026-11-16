@@ -58,6 +58,13 @@ test('a multi-value suggestion adds to each track and loses nothing', () => {
   expect(addValue(s, ts, 'genre', 'Pop')).toEqual(s)
 })
 
+test('a one-value suggestion replaces the Artists and Album artists lists, and adds to Genre', () => {
+  const t = track(1, { artists: ['Joni Mitchell', 'David Crosby'], albumartists: ['Joni Mitchell', 'David Crosby'], genre: ['Folk'] })
+  expect(accept({}, [t], [t], sug({ field: 'artists', values: ['Joni Mitchell'] }), true)[1]!.artists!.values).toEqual(['Joni Mitchell'])
+  expect(accept({}, [t], [t], sug({ field: 'albumartists', values: ['Joni Mitchell'] }), true)[1]!.albumartists!.values).toEqual(['Joni Mitchell'])
+  expect(accept({}, [t], [t], sug({ values: ['Pop'] }), true)[1]!.genre!.values).toEqual(['Folk', 'Pop'])
+})
+
 test('a fill gives every track its own value even with one selected', () => {
   const ts = [track(1, {}), track(2, {})]
   const s = accept({}, ts, [ts[0]!], sug({ field: 'musicbrainz_trackid', tracks: { 1: ['a'], 2: ['b'] }, anchor: 'rel' }), false)
@@ -233,6 +240,8 @@ test('a field no file holds gets a row when a proposal names it or the stage hol
   expect(rows[1]!.fields).toEqual(['albumartists'])
   const staged = stageEdit({}, [t], 'mood', ['Calm'])
   expect(tagRows([t], staged, []).map((r) => r.target)).toEqual(['genre', 'mood'])
+  // All fields replaces the main rows, so a main field staged with no file key gets a row too.
+  expect(tagRows([t], stageEdit({}, [t], 'artists', ['A', 'B']), known).map((r) => [r.key, r.target, r.multi])).toEqual([['GENRE', 'genre', true], ['ARTISTS', 'artists', true]])
   const held = track(2, { albumartists: ['DARKSIDE'] })
   expect(tagRows([held], {}, [], ['albumartists']).filter((r) => r.fields.includes('albumartists'))).toHaveLength(1)
 })

@@ -56,7 +56,7 @@ At start the library module removes temp files a crash left. It walks the music 
 
 `POST /api/library/albums/{id}/save` sends the edits of one album. Each track names its row ID, the revision the editor loaded, and its edits, each a field or a raw key with its new values. An album-level edit is the same edit on every track.
 
-1. **Check now.** shelf runs the writer's checks against the files as they are, touching none. A conflict, a locked file or a busy folder answers 409 with a `reason` and the track it stopped at. A change a file can't take answers 422. A Save that changes nothing answers 422 too, and nothing is stored.
+1. **Check now.** shelf runs the writer's checks against the files as they are, touching none. A conflict, a locked file or a busy folder answers 409 with a `reason` and the track it stopped at. A change a file can't take answers 422, with the `field` or `key` of the edit it refused, and the editor shows the message on that row too. A WMA file keeps one value per tag, so shelf refuses a list there this way. A Save that changes nothing answers 422 too, and nothing is stored.
 2. **Confirm what Navidrome does.** shelf works out each file's Navidrome album ID and album artists after the edits. Three outcomes move or lose a star or a rating, and a fourth changes other albums' covers, so the Save answers 409 with `reason: confirm` and a message for each, until the request's `confirm` names all of them:
    - `split`: the album's tracks end with more than one album ID. Tracks the Save leaves alone keep the ID the index read.
    - `merge`: tracks move to an album ID another album already has, in any folder.
@@ -174,7 +174,7 @@ The answer is `{"anchor", "album", "tracks", "covers", "notes", "unavailable", "
 - `unavailable` lists `{"source", "message"}` for each service that didn't answer. The other suggestions still come.
 - `fingerprinting` says a job is identifying the album by its audio, as [AcoustID](#the-anchor) says.
 
-A field shows its three best suggestions, plus pending agent proposal tapes. An ordinary suggestion that every track already holds is left out.
+A field shows its three best suggestions, plus pending agent proposal tapes. An ordinary suggestion that every track already holds is left out. Taking a one-value suggestion on a list field, such as Genre, adds the value. On Artists and Album artists a suggestion is a whole credit, so it replaces the list.
 
 ### Sources
 
@@ -231,6 +231,8 @@ Every MusicBrainz suggestion comes from one release, the anchor. Accepting field
 
 The Library tab holds staged edits in the browser, per album, so opening another album loses none. A reload of the page drops them. Nothing reaches a file until Save.
 
+- **Main rows.** Title, Artist, Artists, Album, Album Artist, Album artists, Track, Disc, Genre, the three dates and Compilation show on every album, on the desktop and the phone. Artist and Album Artist are the names Navidrome shows. Artists and Album artists are the lists it links, one artist per value, and their notes say so. When they are empty, Navidrome splits the single tag. For a single with guests, Album Artist holds the main artist, Artist the full credit and Artists the list, all from the main rows. At All tracks, artists that differ show Mixed with no Add value, and a selected track edits its own.
+- **All fields.** All fields replaces the main rows. It lists every key the tracks hold, and a row for each field the stage or a pending proposal names that no file holds yet, main fields too.
 - **Targets.** An edit names a field or a raw key. All fields edits the field when its key is the one a main row shows, so two rows never stage two edits on one tag. A second key that feeds the same field keeps its own row and edits that key. A field shows an edit staged on its key, so a Fix that stages `RELEASEDATE` shows on Release date, and Revert takes it back.
 - **Rows with several values.** An All fields row takes several values and has Add value when Navidrome reads its field as a list, such as Genre, Artists, Release type or Composer, or when a file or the stage already holds several. Typing in one input then keeps the others. `GET /api/library/keys` says which fields Navidrome reads as lists.
 - **Add field.** A key that already has a row goes to that row. A field's usual key, such as `ARTISTS`, edits the field, so the new row shows the field's suggestions at once, and taking one changes that edit instead of staging a second one. Any other key goes under Standard when Navidrome reads it and under Extended when it doesn't. When the keys Navidrome reads don't load, a new key goes under Standard, and Standard's header says they didn't load.
@@ -400,8 +402,10 @@ The test's container installs Alpine's ffmpeg, the one production has, because a
 | The records of downloads and imports, and a row with no folder left out | `downloads`: `TestFinishDone`, `TestRecordsNameTheirFolders` |
 | The source in the list, its words in a row's title, the Sources group and No known source in the filter menu, the editor's links, a moved album, an import with no link | `web/src/components/library.test.ts`, `web/src/lib/source.test.ts` |
 | A Save writes every track, stores before and after, asks for a scan and a walk, and follows the album's new ID | `TestSaveWritesTheAlbum` |
-| Bad bodies, another album's track, a conflict, an unknown field, nothing to change, too many edits, a busy folder, a locked folder | `TestSaveRefuses` |
+| Bad bodies, another album's track, a conflict, an unknown field and its name, nothing to change, too many edits, a busy folder, a locked folder | `TestSaveRefuses` |
 | Split, merge, album artist renames and their confirmations; an `ALBUMARTIST` edit under `ALBUMARTISTS`; a whole-album change that asks nothing | `TestSaveAsksBeforeNavidromeMovesAStar` |
+| Album artists equal to Navidrome's split of Album Artist ask nothing, and another list asks | `TestSaveAlbumArtistsAsSplit` |
+| Two values in a WMA file are refused, naming the field and the track | `TestSaveRefusesSeveralValuesInWMA` |
 | A file another tool changes between the check and the job | `TestSaveSeesAChangeBeforeItsJob` |
 | Interrupted changes settled as done, partial and failed, at start and by a resumed job, and only once | `TestInterruptedChangeIsSettled` |
 | The probe in each top folder, a folder shelf can't write, files another UID owns | `TestProbeAndLockedFiles` |
@@ -435,13 +439,14 @@ The test's container installs Alpine's ffmpeg, the one production has, because a
 | An MP3 stream for a format the browser refuses; a file ffmpeg can't read | `TestAudioTranscode` |
 | The fields Navidrome reads, their usual keys, and which are lists | `TestKeysNavidromeReads`, `TestFieldMulti` in `tagio` |
 | A request the client left is logged as info, and a canceled context with the client still there as an error | `TestAClientThatLeftIsNoError` in `httpx` |
-| Mixed values, a staged edit and what it was, a track that holds the value, retyping the old value, Revert, multi-value adds, fills, the Save body, a cover's tracks | `web/src/lib/tags.test.ts` |
+| Mixed values, a staged edit and what it was, a track that holds the value, retyping the old value, Revert, multi-value adds, a one-value suggestion replacing Artists and Album artists, fills, the Save body, a cover's tracks | `web/src/lib/tags.test.ts` |
 | Each Fix: the date pair, a key that feeds the release date, `DATE` alone, a file with no date, differing values, disagreeing tags and the tracks it leaves alone, the flag, and the issues with no Fix | `web/src/lib/tags.test.ts` |
-| All fields: each key once, a row and a main field on one tag, a second key's own row, where a new key goes, a new key without the known fields, a list field's row, a row staged with two values, a staged field's usual key, an empty Add field row | `web/src/lib/tags.test.ts` |
+| All fields: each key once, a row and a main field on one tag, a second key's own row, where a new key goes, a new key without the known fields, a list field's row, a row staged with two values, a staged field's usual key, a staged main field no file holds, an empty Add field row | `web/src/lib/tags.test.ts` |
 | `ARTISTS` added by hand leaves the Artist row as it was, before and after Save | `web/src/stores/editor.store.test.ts` |
 | A Save's confirm and Cancel, each refusal keeping the stage, a reload taking new revisions, a finished and a failed write, Save cover alone, following a new album ID, staged edits across albums, a reconnect | `web/src/stores/editor.store.test.ts` |
 | The list, its lamp, no match, a search in the address, the first index, a locked tag, a selected track, Revert, a suggestion, a note, a silent service, Fix, each refusal's state, an undo's confirm, custom fields, Add field with a field's usual key, Add field with no value, Add field without the known keys, a deleted tag, keys, keys behind a dialog, a pasted release, a failed anchor, the long editor, the transcode retry, Open in Library | `web/src/components/library.test.ts` |
 | Album History: the cap and back to the Editor, the titles, authors, tracks, Tags and pills, the date note, Undo run and a run's own files and Tags, the download row, no download, a failed downloads call, no Saves, Load more, the global History after it | `web/src/components/library.test.ts` |
+| Artists and Album artists on the desktop and the phone with their suggestions, a one-value suggestion replacing the list, Mixed artists, a refusal on its row | `web/src/components/library.test.ts` |
 | Album History on the phone: the cap before Delete and the back button, rows without keys, stacked lines, Undo, Redo and Undo run in the slot, no slot with nothing open or a delete open, a Save still writing, the download last, no Saves, the `?` note | `web/src/components/library.test.ts` |
 | The Inbox on the phone: an accepted change links to its album's History, or is named without a link when the album left the index | `web/src/components/inbox.test.ts` |
 | A change's pill words, a queued change as Saving, the album row titles, the Tags column and its phone words, the keys, a run's note, the phone's slot and its display | `web/src/lib/history.test.ts` |

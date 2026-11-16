@@ -119,6 +119,8 @@
 .rs .lf-was { font-size: 12px; line-height: 1.3; color: var(--text-2); }
 .rs .lf-note { display: flex; align-items: flex-start; gap: 6px; font-size: 13px; line-height: 1.35; color: var(--text-2); }
 .rs .lf-note svg.i { width: 15px; height: 15px; margin-top: 1px; }
+.rs .lf-note.refused { color: var(--text); }
+.rs .lf-note .led { margin-top: 3px; }
 .rs .lf-flag { display: flex; align-items: center; gap: 10px; min-height: 36px; }
 
 /* One input per value on a multi-value tag. Add value stays a plain word, so a row with one value looks like any other. */
