@@ -18,7 +18,7 @@ Every check in [manual-checklist.md](manual-checklist.md) passed in production, 
 
 ## Production
 
-Production runs `v1.1.0`, which shelf CI deployed through doco-cd on 2026-11-16. Optional [library agents](agents.md) are off by default and on in production. Production signs in with Shelf accounts. [auth.md](auth.md) describes setup.
+Production runs `v1.1.1`, which shelf CI deployed through doco-cd on 2026-11-16. Optional [library agents](agents.md) are off by default and on in production. Production signs in with Shelf accounts. [auth.md](auth.md) describes setup.
 
 shelf-wrapper builds from upstream's `ghcr.io/worldobservationlog/wrapper-lite` image pinned by digest. The index holds 11,461 tracks and 1,008 Navidrome album IDs, forming 1,013 albums because 5 Navidrome albums span two folders.
 
@@ -32,7 +32,7 @@ All five phases of the [tag editor feedback](plans/tag-editor-feedback.md) run i
 
 Tags disagree no longer flags a year beside a full date in that year, such as Picard's `ORIGINALYEAR=1997` beside `ORIGINALDATE=1997-07-01`. Before `v1.0.4` the check flagged 660 of the 1,020 albums in production, every one for this reason. The first walk after the deploy read all 11,514 files again, and now no album has the issue. The Fix changes only the tracks whose keys disagree.
 
-On a phone 400px wide or less, the album's title bar now drops its stripes, so its `?` key fits. On the vivo's 360px screen the bar needed 374px and had 338, so it cut off `?`. The Tag editor feedback checks found it on `v1.1.0`. The fix is on main and not deployed.
+On a phone 400px wide or less, the album's title bar now drops its stripes, so its `?` key fits. On the vivo's 360px screen the bar needed 374px and had 338, so it cut off `?`. The Tag editor feedback checks found it on `v1.1.0`, and `v1.1.1` fixed it. On the vivo the bar now fits History, Delete and `?`.
 
 `v1.0.4` has two phone fixes on the album page. The `?` key now lines up with History and Delete. Before, it sat 2.5px lower. The panel-coloured mask above the stuck LCD now covers only the 8px gap above it. Before, it covered the bottom 14px of the issue row.
 
