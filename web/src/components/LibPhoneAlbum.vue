@@ -96,4 +96,14 @@ const flagOn = (f: MainField) => view(f).values[0] === '1'
 .rs .still { cursor: default; }
 .rs .pf-open .two, .rs .pf-flag .two { gap: 2px; }
 .rs .static { position: static; margin-top: 10px; border-top: 1px solid var(--ink); }
+/* With the stripes the title bar needs 374px, and a 360px phone gives it 338.
+   Narrow phones drop the stripes, and the narrowest drop the title too. */
+@media (max-width: 400px) {
+  .rs .tb { gap: 6px; }
+  .rs .tb .stripes { display: none; }
+  .rs .tb .stripes + * { margin-left: auto; }
+}
+@media (max-width: 340px) {
+  .rs .tb h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
 </style>

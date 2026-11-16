@@ -32,6 +32,8 @@ All five phases of the [tag editor feedback](plans/tag-editor-feedback.md) run i
 
 Tags disagree no longer flags a year beside a full date in that year, such as Picard's `ORIGINALYEAR=1997` beside `ORIGINALDATE=1997-07-01`. Before `v1.0.4` the check flagged 660 of the 1,020 albums in production, every one for this reason. The first walk after the deploy read all 11,514 files again, and now no album has the issue. The Fix changes only the tracks whose keys disagree.
 
+On a phone 400px wide or less, the album's title bar now drops its stripes, so its `?` key fits. On the vivo's 360px screen the bar needed 374px and had 338, so it cut off `?`. The Tag editor feedback checks found it on `v1.1.0`. The fix is on main and not deployed.
+
 `v1.0.4` has two phone fixes on the album page. The `?` key now lines up with History and Delete. Before, it sat 2.5px lower. The panel-coloured mask above the stuck LCD now covers only the 8px gap above it. Before, it covered the bottom 14px of the issue row.
 
 An agent's 401 for a malformed token says whether the prefix is missing, a character is not allowed, or the length is wrong, and it gives the length for the whole token. The old message compared the 43 characters after the prefix with the whole token's length.

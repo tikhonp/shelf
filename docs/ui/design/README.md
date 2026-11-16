@@ -258,6 +258,7 @@ Help never shows on a screen at rest, and the design adds no helper text beside 
 - The menubar's `?` opens the Help sheet at the Tagging guide, and the `?` key opens it at Keyboard.
 - The Tagging guide's Several artists part says how to tag a single with guests. While the Inbox is enabled, an Agents part says that an agent can research tags and propose them.
 - The phone has no hover. A small `?` cap (`.wbtn.q`) sits in the title bar of the album, field and History pages and on each issue. It opens the note in a slot above the tab bar, and the slot links to the Tagging guide page, except on History. The album list stays as it is.
+- On a phone 400px wide or less, the album's title bar drops its stripes and uses 6px gaps, so History, Delete and `?` fit. At 340px or less it hides the word Album too, and screen readers still read it.
 
 ## Accessibility
 
