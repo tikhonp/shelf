@@ -80,6 +80,8 @@ export interface Format {
   label: string
   description: string
   default?: boolean
+  bit_depth?: number
+  sample_rate?: number
 }
 
 export interface Health {

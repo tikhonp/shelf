@@ -252,6 +252,11 @@ type Format struct {
 	// 27, FLAC up to 24-bit 192 kHz".
 	Description string `json:"description"`
 	Default     bool   `json:"default,omitempty"`
+	// BitDepth and SampleRate are the most a lossless format carries, set when
+	// a lower format of the same source carries less. The UI hides a format
+	// above a release when a lower one covers it.
+	BitDepth   int `json:"bit_depth,omitempty"`
+	SampleRate int `json:"sample_rate,omitempty"` // Hz
 }
 
 // DefaultFormat is the format marked Default, or the first one.

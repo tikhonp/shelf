@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import type { Format, ItemStatus, Ref } from '../api/types'
+import type { Format, ItemStatus, Quality, Ref } from '../api/types'
+import { defaultFormat, releaseFormats } from '../lib/formats'
 import { percent } from '../lib/lamps'
 import { useDownloads } from '../stores/downloads'
 import { useSources } from '../stores/sources'
@@ -9,7 +10,7 @@ import FormatMenu from './FormatMenu.vue'
 import Icon from './Icon.vue'
 
 // The control at the end of a row: Download, then the download's state.
-const props = defineProps<{ itemRef: Ref; title: string; status?: ItemStatus; cover?: string; layout: 'phone' | 'wide' | 'narrow' | 'track' }>()
+const props = defineProps<{ itemRef: Ref; title: string; quality?: Quality; status?: ItemStatus; cover?: string; layout: 'phone' | 'wide' | 'narrow' | 'track' }>()
 
 const downloads = useDownloads()
 const sources = useSources()
@@ -17,8 +18,9 @@ const menu = ref(false)
 const busy = ref(false)
 
 const live = computed(() => downloads.liveStatus(props.itemRef, props.status))
-const formats = computed(() => sources.formats(props.itemRef.source))
-const defaultLabel = computed(() => sources.defaultOf(props.itemRef.source)?.label ?? '')
+const formats = computed(() => releaseFormats(sources.formats(props.itemRef.source), props.itemRef.kind, props.quality))
+const fallback = computed(() => defaultFormat(formats.value))
+const defaultLabel = computed(() => fallback.value?.label ?? '')
 const sourceName = computed(() => sources.name(props.itemRef.source))
 const toDownload = computed(() => `/downloads/${live.value?.download_id}`)
 const iconClass = computed(() => (props.layout === 'phone' ? 'big' : props.layout === 'track' ? 'sm flat' : 'sm'))
@@ -26,7 +28,8 @@ const iconClass = computed(() => (props.layout === 'phone' ? 'big' : props.layou
 async function go(format?: Format) {
   menu.value = false
   busy.value = true
-  await downloads.queue(props.itemRef, { format: format?.id, title: props.title, cover: props.cover })
+  // The row's default can differ from the source's, as on a CD album.
+  await downloads.queue(props.itemRef, { format: (format ?? fallback.value)?.id, title: props.title, cover: props.cover })
   busy.value = false
 }
 </script>

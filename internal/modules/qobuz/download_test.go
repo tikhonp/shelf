@@ -20,9 +20,9 @@ func TestFormats(t *testing.T) {
 	r := newRig(t)
 	got := r.s.Formats()
 	want := []source.Format{
-		{ID: "qobuz:27", Label: "Max", Description: "Qobuz 27, FLAC up to 24-bit 192 kHz", Default: true},
-		{ID: "qobuz:7", Label: "24/96", Description: "Qobuz 7, FLAC up to 24-bit 96 kHz"},
-		{ID: "qobuz:6", Label: "CD", Description: "Qobuz 6, FLAC 16-bit 44.1 kHz"},
+		{ID: "qobuz:27", Label: "Max", Description: "Qobuz 27, FLAC up to 24-bit 192 kHz", Default: true, BitDepth: 24, SampleRate: 192000},
+		{ID: "qobuz:7", Label: "24/96", Description: "Qobuz 7, FLAC up to 24-bit 96 kHz", BitDepth: 24, SampleRate: 96000},
+		{ID: "qobuz:6", Label: "CD", Description: "Qobuz 6, FLAC 16-bit 44.1 kHz", BitDepth: 16, SampleRate: 44100},
 		{ID: "qobuz:5", Label: "MP3 320", Description: "Qobuz 5, MP3 320 kbps"},
 	}
 	if !slices.Equal(got, want) {

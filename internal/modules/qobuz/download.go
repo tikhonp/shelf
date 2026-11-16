@@ -20,11 +20,12 @@ import (
 var formats = []struct {
 	id           int
 	label, words string
+	bits, rate   int
 }{
-	{27, "Max", "FLAC up to 24-bit 192 kHz"},
-	{7, "24/96", "FLAC up to 24-bit 96 kHz"},
-	{6, "CD", "FLAC 16-bit 44.1 kHz"},
-	{5, "MP3 320", "MP3 320 kbps"},
+	{27, "Max", "FLAC up to 24-bit 192 kHz", 24, 192000},
+	{7, "24/96", "FLAC up to 24-bit 96 kHz", 24, 96000},
+	{6, "CD", "FLAC 16-bit 44.1 kHz", 16, 44100},
+	{5, "MP3 320", "MP3 320 kbps", 0, 0},
 }
 
 // Formats lists Max, 24/96, CD and MP3 320, with SHELF_QOBUZ_QUALITY as the
@@ -35,6 +36,7 @@ func (s *Source) Formats() []source.Format {
 		out[i] = source.Format{
 			ID: ID + ":" + strconv.Itoa(f.id), Label: f.label,
 			Description: "Qobuz " + strconv.Itoa(f.id) + ", " + f.words, Default: f.id == s.quality,
+			BitDepth: f.bits, SampleRate: f.rate,
 		}
 	}
 	return out

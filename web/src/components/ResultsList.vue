@@ -31,7 +31,7 @@ const coverSize = (it: Item) => (it.ref.kind === 'track' ? 48 : it.ref.kind === 
           <StateLine :status="downloads.liveStatus(it.ref, it.status)" />
         </span>
       </button>
-      <ItemAction v-if="downloadable(it)" :item-ref="it.ref" :title="it.title" :status="it.status" :cover="it.cover_url" layout="phone" />
+      <ItemAction v-if="downloadable(it)" :item-ref="it.ref" :title="it.title" :quality="it.quality" :status="it.status" :cover="it.cover_url" layout="phone" />
       <button v-else type="button" class="key flat icon go" :aria-label="`Open ${it.title} on ${sources.name(it.ref.source)}`" @click="emit('open', it)"><Icon name="next" /></button>
     </div>
   </div>

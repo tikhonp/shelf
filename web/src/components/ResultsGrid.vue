@@ -61,7 +61,7 @@ watch(
       <span role="gridcell"><Tapes :quality="it.quality" /></span>
       <span role="gridcell"><StateLine :status="downloads.liveStatus(it.ref, it.status)" /></span>
       <span role="gridcell">
-        <ItemAction v-if="downloadable(it)" :item-ref="it.ref" :title="it.title" :status="it.status" :cover="it.cover_url" :layout="compact ? 'narrow' : 'wide'" />
+        <ItemAction v-if="downloadable(it)" :item-ref="it.ref" :title="it.title" :quality="it.quality" :status="it.status" :cover="it.cover_url" :layout="compact ? 'narrow' : 'wide'" />
         <button v-else type="button" class="key sm" :aria-label="`Open ${it.title}`" @click="emit('open', it)">Open</button>
       </span>
       <span role="gridcell" class="w"><a v-if="it.url" class="key sm icon flat" :href="it.url" target="_blank" rel="noreferrer" :aria-label="`Open on ${sources.name(it.ref.source)}`"><Icon name="open" size="s" /></a></span>

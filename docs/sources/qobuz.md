@@ -71,7 +71,7 @@ Quality on search results and items:
 | `qobuz:6` | CD | 6, FLAC 16-bit 44.1 kHz |
 | `qobuz:5` | MP3 320 | 5, MP3 320 kbps |
 
-With fallback on, Qobuz may deliver less than asked. `shelf.txt` and the download record the delivered format.
+The UI shows an album or track only the lowest lossless format that covers its quality, so a CD album offers CD in place of Max and 24/96. With fallback on, Qobuz may deliver less than asked. `shelf.txt` and the download record the delivered format.
 
 ## Downloads
 

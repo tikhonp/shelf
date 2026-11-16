@@ -118,7 +118,7 @@ const artistSearch = () => void router.push({ path: '/search', query: { q: item.
                     <span v-if="phone" class="line g10 extra"><Tapes :quality="a.quality" /><StateLine :status="downloads.liveStatus(a.ref, a.status)" /></span>
                   </span>
                   <span v-if="!phone" role="cell"><Tapes :quality="a.quality" /></span>
-                  <span role="cell"><ItemAction :item-ref="a.ref" :title="a.title" :status="a.status" :cover="a.cover_url" layout="narrow" /></span>
+                  <span role="cell"><ItemAction :item-ref="a.ref" :title="a.title" :quality="a.quality" :status="a.status" :cover="a.cover_url" layout="narrow" /></span>
                 </div>
               </div>
             </template>

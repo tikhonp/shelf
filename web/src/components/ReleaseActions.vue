@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { Format, Item } from '../api/types'
-import { topFrequency } from '../lib/formats'
+import { defaultFormat, releaseFormats, topFrequency } from '../lib/formats'
 import { kindWord } from '../lib/format'
 import { percent } from '../lib/lamps'
 import { usePhone } from '../lib/viewport'
@@ -21,9 +21,14 @@ const phone = usePhone()
 const sources = useSources()
 const downloads = useDownloads()
 const source = computed(() => props.item.ref.source)
-const formats = computed(() => sources.formats(source.value))
-const chosen = ref(sources.defaultOf(source.value)?.id ?? '')
-watch(source, (s) => (chosen.value = sources.defaultOf(s)?.id ?? ''))
+const formats = computed(() => releaseFormats(sources.formats(source.value), props.item.ref.kind, props.item.quality))
+// The chosen format stays while the item offers it. Otherwise the item's
+// default takes its place, as on another source or a CD album after Max.
+const picked = ref('')
+const chosen = computed({
+  get: () => (formats.value.find((f) => f.id === picked.value) ?? defaultFormat(formats.value))?.id ?? '',
+  set: (id: string) => (picked.value = id),
+})
 const format = computed(() => formats.value.find((f) => f.id === chosen.value))
 const menu = ref(false)
 const busy = ref(false)

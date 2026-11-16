@@ -22,7 +22,7 @@ const playlist = () => props.item.ref.kind === 'playlist'
       </span>
       <span role="cell" class="t2 num r sm">{{ duration(t.duration) }}</span>
       <span v-if="!phone" role="cell"><Tapes :quality="t.quality" /></span>
-      <span role="cell"><ItemAction :item-ref="trackRef(t)" :title="t.title" :status="t.status" :cover="item.cover_url" :layout="phone ? 'narrow' : 'track'" /></span>
+      <span role="cell"><ItemAction :item-ref="trackRef(t)" :title="t.title" :quality="t.quality" :status="t.status" :cover="item.cover_url" :layout="phone ? 'narrow' : 'track'" /></span>
     </div>
   </div>
 </template>
