@@ -33,6 +33,7 @@ const (
 	srcFolder   = "Folder"
 	srcSiblings = "Other tracks"
 	srcShelf    = "shelf.txt"
+	srcSplit    = "Navidrome's split"
 	srcMB       = "MusicBrainz"
 	srcCAA      = "Cover Art Archive"
 	srcLRCLIB   = "LRCLIB"

@@ -190,6 +190,7 @@ Before Save the editor folds from the stage. After Save the files hold the taken
 | File name | Track, disc and title from names such as `01 - Title`, `01. Title` and `1-02 Title`, and the artist from `01 Artist - Title` when the track has none. A disc folder such as `CD 2` gives the disc. Only where the track lacks the field. | track 60%, disc 50%, title 45%, artist 35% |
 | Folder | Album and album artist from names such as `Artist - Album (1959) [24B-96kHz]`, or the album from the folder and the artist from the folder above it. Only where no track has the field. | album 50%, album artist 40% |
 | Other tracks | Where the tracks differ on a field they should share, each value some of them hold. | 40%, plus up to 50% by the share of tracks that hold it |
+| Navidrome's split | Artists for a track with no `ARTISTS`, as Navidrome splits its `ARTIST`, when the split gives two or more. Taking it changes no artist Navidrome shows. It lets the owner see a wrong split, such as a band name the split exceptions miss, and correct it. It suggests nothing for Album artists. | 50% |
 | `shelf.txt` | The latest album block's title, artist, label, release date and UPC, and each track's ISRC by its file name. | 85% |
 | MusicBrainz | Every field of the anchor release: titles, artists with sort names and IDs, dates, label, catalogue number, barcode, country, status, type, script, genre, and the compilation flag on a Various Artists release. A classical album also gets each track's composer and work. | the anchor's |
 | Cover Art Archive | The anchor release's front cover. | the anchor's |
@@ -467,6 +468,7 @@ The test's container installs Alpine's ffmpeg, the one production has, because a
 | Anchors by barcode, ISRC and search, with a compilation and a live album; a staged link; a files ID that fails the threshold or names no release; a bad anchor | `TestAnchorWays` |
 | A classical album searched without its artist, read with works, with composers | `TestClassicalSuggestsComposers` |
 | File and folder names, other tracks, `shelf.txt` and the catalog it names | `TestLocalSuggestions`, `TestParseNames` |
+| Navidrome's split suggests Artists for two or more artists, and nothing for one artist, a set `ARTISTS` or a split exception | `TestSplitSuggestions` |
 | Services that fail, a source's own reason, nothing stored | `TestSuggestionsWhenServicesFail` |
 | A deferred job with a follow-up waiting, and the stream carrying a run | `jobs`: `TestDeferTakesInACoalescedFollowUp`; `downloads`: `TestEventsStreamCarriesARun` |
 | Lyrics per track, held lyrics, LRCLIB down | `TestLyrics` |

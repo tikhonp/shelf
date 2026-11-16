@@ -518,6 +518,45 @@ Tracks:
 	}
 }
 
+// Navidrome's split suggests Artists only where ARTIST splits into two or
+// more and no ARTISTS is set.
+func TestSplitSuggestions(t *testing.T) {
+	r := newRig(t)
+	cfg := tagio.NavidromeConfig{ArtistSplitExceptions: []string{"Salt / Sea"}}
+	r.m = r.module(func(context.Context) (tagio.NavidromeConfig, error) { return cfg, nil })
+	dir := "folk/Low Tide Hymns"
+	tracks := map[string]map[string][]string{
+		"01.flac": {"ARTIST": {"Northern Static feat. Joni Mitchell; Salt / Sea"}},
+		"02.flac": {"ARTIST": {"Northern Static"}},
+		"03.flac": {"ARTIST": {"Northern Static feat. Joni Mitchell"}, "ARTISTS": {"Northern Static", "Joni Mitchell"}},
+		"04.flac": {"ARTIST": {"Salt / Sea"}},
+	}
+	for name, over := range tracks {
+		r.add(dir+"/"+name, "track.flac", tagged(over))
+	}
+	r.walk()
+	id := r.albums("").Albums[0].ID
+	byName := map[string]int64{}
+	for _, tr := range r.open(id).Tracks {
+		byName[filepath.Base(tr.Path)] = tr.ID
+	}
+	s := r.suggest(id, "")
+	got := find(s, byName["01.flac"], "artists")
+	if len(got) != 1 || !slices.Equal(got[0].Values, []string{"Northern Static", "Joni Mitchell", "Salt / Sea"}) ||
+		got[0].Source != srcSplit || got[0].Confidence != 50 {
+		t.Fatalf("split %+v", got)
+	}
+	// One artist, ARTISTS already set and a split exception give none.
+	for _, name := range []string{"02.flac", "03.flac", "04.flac"} {
+		if got := find(s, byName[name], "artists"); got != nil {
+			t.Errorf("%s: %+v", name, got)
+		}
+	}
+	if got := find(s, 0, "artists"); got != nil {
+		t.Errorf("album: %+v", got)
+	}
+}
+
 func TestSuggestionsWhenServicesFail(t *testing.T) {
 	r, sv, cat := suggestRig(t)
 	sv.down = true

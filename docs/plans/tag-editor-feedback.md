@@ -1,6 +1,6 @@
 # Tag editor feedback
 
-Status: drafted on 2026-11-16. Phases 1 to 4 are done on main and not deployed. A new session with a clean context builds each phase, in order. A phase is done when its "Done when" list holds, `make check`, `make lint`, `make web-check` and `docker build .` pass, and `docs/tags.md` and `docs/status.md` describe the result in the same commit.
+Status: drafted on 2026-11-16. All five phases are done on main and not deployed. A new session with a clean context builds each phase, in order. A phase is done when its "Done when" list holds, `make check`, `make lint`, `make web-check` and `docker build .` pass, and `docs/tags.md` and `docs/status.md` describe the result in the same commit.
 
 ## Where this comes from
 
@@ -254,6 +254,11 @@ Depends on D5, and on phase 2.
 ### Done when
 
 The suggestion shows on split artists, the Sources table lists it, and the two guide lines are in.
+
+### What phase 5 changed from the steps above
+
+- **Test.** `TestSplitSuggestions` holds the cases, not `TestLocalSuggestions`, because a split exception needs Navidrome's settings and an album of its own. The test rig's walk now hands its rules to the module, as `Run` does, so the suggestions read an opened album under the exceptions.
+- **Agents line.** The Tagging guide gets an Agents part in its last column, shown only while the Inbox is enabled.
 
 ---
 

@@ -114,6 +114,10 @@ func (r *rig) walk() Status {
 	if err := r.m.ix.walk(bg); err != nil {
 		r.t.Fatal(err)
 	}
+	// As Run does, so the module reads an opened album under the walk's rules.
+	r.m.mu.Lock()
+	r.m.rules = r.m.ix.current()
+	r.m.mu.Unlock()
 	return r.m.ix.status()
 }
 

@@ -14,7 +14,9 @@ import (
 // Local sources fill gaps: a file or folder name suggests a field only
 // when the tracks lack it, since names are cut and cleaned versions of the
 // tags. Other tracks suggest the values most of the album holds, and
-// shelf.txt what the catalog said when the album was downloaded.
+// shelf.txt what the catalog said when the album was downloaded. Navidrome's
+// split is what Navidrome already shows, so it is only a guess at what
+// Artists should hold.
 const (
 	pNameTrack  = 0.6
 	pNameDisc   = 0.5
@@ -24,6 +26,7 @@ const (
 	pFolderArt  = 0.4
 	pSibling    = 0.4 // plus up to 0.5 by the share of tracks that hold the value
 	pShelf      = 0.85
+	pSplit      = 0.5
 )
 
 // localResult is what the local sources found for the lookups that follow.
@@ -36,6 +39,7 @@ type localResult struct {
 func (m *Module) localSuggestions(s *subject, col *collector) localResult {
 	for _, t := range s.tracks {
 		col.add(nameSuggestions(t)...)
+		col.add(splitSuggestions(t)...)
 	}
 	col.add(folderSuggestions(s)...)
 	col.add(siblingSuggestions(s)...)
@@ -87,6 +91,21 @@ func nameSuggestions(t *subjectTrack) []cand {
 	}
 	add("title", title, pNameTitle)
 	return out
+}
+
+// splitSuggestions show the artists Navidrome splits from a track's
+// ARTIST, so the owner sees a wrong split, such as a band name with a
+// slash, and corrects it in Artists. Taking one changes no artist
+// Navidrome shows.
+func splitSuggestions(t *subjectTrack) []cand {
+	if len(t.values("artist")) == 0 || len(t.values("artists")) > 0 {
+		return nil
+	}
+	a := t.View.Artists()
+	if len(a) < 2 {
+		return nil
+	}
+	return []cand{{track: t.ID, field: "artists", values: a, source: srcSplit, p: pSplit}}
 }
 
 func trailingNumber(s string) int {

@@ -256,6 +256,7 @@ Help never shows on a screen at rest, and the design adds no helper text beside 
 - On the desktop, a note (`.tipbox`) opens 350ms after the pointer reaches a name, and closes when it leaves. Names with a note gain a dotted underline under the pointer. That covers field and tag names, the display that says which tracks an edit reaches, issue names, Standard and Extended, filter entries, suggestions, the Save bar's count, Undo and Redo, and the fixes of a bulk run. A field with nothing worth explaining has no note.
 - The `N` key shows the same note for the field the cursor is on. In the app, the note is also the field's `aria-describedby`.
 - The menubar's `?` opens the Help sheet at the Tagging guide, and the `?` key opens it at Keyboard.
+- The Tagging guide's Several artists part says how to tag a single with guests. While the Inbox is enabled, an Agents part says that an agent can research tags and propose them.
 - The phone has no hover. A small `?` cap (`.wbtn.q`) sits in the title bar of the album, field and History pages and on each issue. It opens the note in a slot above the tab bar, and the slot links to the Tagging guide page, except on History. The album list stays as it is.
 
 ## Accessibility
