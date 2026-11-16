@@ -79,6 +79,28 @@ test('Load more asks each source for its next page', async () => {
   expect(s.hasMore).toBe(false)
 })
 
+test('an item a later page repeats shows once, and the next page starts after it', async () => {
+  ready(q)
+  const calls = stubApi({
+    '/api/search': (url: string) =>
+      url.includes('offset=0')
+        ? page([item('qobuz', 'q1'), item('qobuz', 'q2')], 6)
+        : url.includes('offset=2')
+          ? page([item('qobuz', 'q2'), item('qobuz', 'q3'), item('qobuz', 'q3')], 6)
+          : page([item('qobuz', 'q4')], 6),
+  })
+  const s = useSearch()
+  s.query = 'x'
+  await s.submit()
+  await s.loadMore()
+  expect(s.items.map((i) => i.ref.id)).toEqual(['q1', 'q2', 'q3'])
+  expect(s.hasMore).toBe(true)
+  await s.loadMore()
+  expect(searches(calls).map((p) => p.get('offset'))).toEqual(['0', '2', '5'])
+  expect(s.items.map((i) => i.ref.id)).toEqual(['q1', 'q2', 'q3', 'q4'])
+  expect(s.hasMore).toBe(false)
+})
+
 test('an empty page ends a source, whatever its total said', async () => {
   ready(q)
   stubApi({ '/api/search': (url: string) => (url.includes('offset=0') ? page([item('qobuz', 'q1')], 9) : page([], 9)) })

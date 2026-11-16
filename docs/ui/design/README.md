@@ -226,7 +226,7 @@ Quality labels look like masking tape. The words always name the quality, and th
 - Download on a row uses the default format, and the caret next to it picks another one. Both follow the item's quality, as on the album.
 - A phone row has the cover, two or three lines and one 46px button. The button queues the item in the default format and then shows its state.
 - The Density switch on the desktop's Status page sets how tall the rows are in search results, track lists and History. A preview of two History rows under the switch shows the choice. Compact keeps each row's second line. The phone has no switch, because a shorter row there would lose its quality labels.
-- Search shows the first page from each source in one list. The window title counts what is shown, such as "14 of 31 albums", and scrolling to the end reads the next page.
+- Search shows the first page from each source in one list. The window title counts what is shown, such as "14 of 31 albums", and scrolling to the end reads the next page. Past about 800 results, Qobuz can repeat items from the end of one page at the start of the next. Search shows such an item once, and the next page starts after everything the source sent.
 
 ## Library
 

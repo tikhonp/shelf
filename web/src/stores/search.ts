@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { ApiError, errorText, get, post } from '../api/client'
 import type { Item, Page, SearchType } from '../api/types'
 import { linkKind } from '../lib/links'
+import { itemKey } from '../lib/rows'
 import { load as loadSetting, save as saveSetting } from '../lib/storage'
 import { useSources } from './sources'
 
@@ -13,6 +14,10 @@ const offKey = 'shelf.sources.off'
 export interface SourceResults {
   id: string
   items: Item[]
+  // read counts the items the source sent, repeats included, so the next
+  // page starts after them. Past about 800 results Qobuz can repeat the end of
+  // one page at the start of the next, and items keeps the first copy.
+  read: number
   total: number
   loading: boolean
   error: string
@@ -79,18 +84,26 @@ export const useSearch = defineStore('search', () => {
   const noSources = computed(() => useSources().loaded && on.value.length === 0)
 
   function canGrow(r: SourceResults) {
-    return !r.error && !r.ended && r.items.length < r.total
+    return !r.error && !r.ended && r.read < r.total
   }
 
   async function fetchPage(r: SourceResults, text: string, mine: number) {
     r.loading = true
     r.error = ''
     r.rateLimited = false
-    const q = new URLSearchParams({ source: r.id, type: type.value, q: text, limit: String(pageSize), offset: String(r.items.length) })
+    const q = new URLSearchParams({ source: r.id, type: type.value, q: text, limit: String(pageSize), offset: String(r.read) })
     try {
       const page = await get<Page>(`/api/search?${q}`)
       if (mine !== run) return
-      r.items = [...r.items, ...page.items]
+      const seen = new Set(r.items.map(itemKey))
+      const fresh: Item[] = []
+      for (const it of page.items) {
+        if (seen.has(itemKey(it))) continue
+        seen.add(itemKey(it))
+        fresh.push(it)
+      }
+      r.items = [...r.items, ...fresh]
+      r.read += page.items.length
       r.total = page.total
       r.ended = page.items.length === 0
     } catch (err) {
@@ -123,7 +136,7 @@ export const useSearch = defineStore('search', () => {
     link.value = null
     if (!text) return
     if (linkKind(text)) return resolve(text, mine)
-    results.value = searched.value.map((s) => ({ id: s.id, items: [], total: 0, loading: true, error: '', rateLimited: false, ended: false }))
+    results.value = searched.value.map((s) => ({ id: s.id, items: [], read: 0, total: 0, loading: true, error: '', rateLimited: false, ended: false }))
     await Promise.all(results.value.map((r) => fetchPage(r, text, mine)))
   }
 

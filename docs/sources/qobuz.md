@@ -52,7 +52,7 @@ Upstream qobuz-dl doesn't accept three forms the site uses, so the module reads 
 
 ## Search
 
-`catalog/search` with `type` of albums, tracks, artists or playlists, `query`, `limit` and `offset`, through qobuz-dl-go's `SearchAlbums`, `SearchTracks`, `SearchArtists` and `SearchPlaylists`. They return a typed page with the items and the total, and return errors where qobuz-dl answers `{}`. Queries need at least 3 characters, as in qobuz-dl; the typed search doesn't check that, so the module answers a shorter query with an empty page.
+`catalog/search` with `type` of albums, tracks, artists or playlists, `query`, `limit` and `offset`, through qobuz-dl-go's `SearchAlbums`, `SearchTracks`, `SearchArtists` and `SearchPlaylists`. They return a typed page with the items and the total, and return errors where qobuz-dl answers `{}`. Queries need at least 3 characters, as in qobuz-dl; the typed search doesn't check that, so the module answers a shorter query with an empty page. Past about 800 results, a page can start with items from the end of the page before. On 2026-11-16 an album search for "Bach cello" repeated 10 albums between offsets 840 and 1,000.
 
 Quality on search results and items:
 
