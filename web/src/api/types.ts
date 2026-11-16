@@ -342,6 +342,8 @@ export interface Suggestion {
   sources: string[]
   confidence: number
   anchor?: string
+  // rival is a value the files passed over for another source's, on a one-value field.
+  rival?: boolean
 }
 
 export interface CoverSuggestion {

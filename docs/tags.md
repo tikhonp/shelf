@@ -168,13 +168,19 @@ A suggestion is a value for a field, shown beside it with its source and a confi
 
 The answer is `{"anchor", "album", "tracks", "covers", "notes", "unavailable", "fingerprinting"}`:
 
-- `album` lists the album's suggestions, and `tracks` lists `{"id", "suggestions"}` per track. Each suggestion is `{"field", "values", "source", "sources", "confidence", "anchor"}`. A fill has `tracks` in place of `values`: one accept gives every track its own value, as a release's track IDs need.
+- `album` lists the album's suggestions, and `tracks` lists `{"id", "suggestions"}` per track. Each suggestion is `{"field", "values", "source", "sources", "confidence", "anchor", "rival"}`. A fill has `tracks` in place of `values`: one accept gives every track its own value, as a release's track IDs need. `rival` is set on a suggestion the files passed over, as [Rivals](#rivals) says.
 - `covers` lists `{"image", "source", "confidence", "anchor"}`. `GET /api/library/remote/{image}` serves a preview through shelf, so the CSP stays as it is. `POST /api/library/remote/{image}/cover` fetches the full image and stores it as an upload, which a Save names as the cover. shelf fetches only images a suggestion offered, and an offer lasts 30 days.
 - `notes` say where Navidrome shows something else. An `.lrc` file beside a track hides its embedded lyrics.
 - `unavailable` lists `{"source", "message"}` for each service that didn't answer. The other suggestions still come.
 - `fingerprinting` says a job is identifying the album by its audio, as [AcoustID](#the-anchor) says.
 
 A field shows its three best suggestions, plus pending agent proposal tapes. An ordinary suggestion that every track already holds is left out. Taking a one-value suggestion on a list field, such as Genre, adds the value. On Artists and Album artists a suggestion is a whole credit, and on Release type a release group's whole type, so it replaces the list.
+
+### Rivals
+
+Once a one-value field takes one suggestion, the field's other ordinary suggestions fold into one chip, such as "2 other". Pressing the chip shows them until the field changes again. Revert, or a typed value no suggestion has, unfolds them. Proposal tapes and fills never fold, and neither do list fields such as Genre, where each suggestion adds or replaces on purpose. Main fields, All fields rows and the phone's field page fold the same way.
+
+Before Save the editor folds from the stage. After Save the files hold the taken value and the answer leaves it out, so the editor can't tell a rival from a new offer. The server marks rivals itself. When every track holds a value one of a one-value field's suggestions offers, the field's other suggestions get `"rival": true`. The server marks a track's own suggestions the same way, from that track's files. When the files hold a value no source offers, nothing is marked and every suggestion shows.
 
 ### Sources
 
@@ -467,6 +473,9 @@ The test's container installs Alpine's ffmpeg, the one production has, because a
 | Cover previews and uploads through shelf, an unknown or broken image, retention | `TestRemoteCovers` |
 | Two anchors in a Save; an anchor beside another release's album ID, also on a track left out | `TestSaveRefusesTwoReleases` |
 | Agreement, one count per source, release fields held to one value, three per field | `TestMerge` |
+| Rivals of a held value marked, on the album and on one track; nothing marked when no source offers the held value or on a list field | `TestMergeMarksRivals` |
+| The fold: a taken suggestion folds the others, a typed value or a server mark, proposal tapes and list fields | `web/src/lib/tags.test.ts` |
+| Rivals folded on the desktop and the phone, the chip opening them, Revert and typing unfolding them, the fold kept after a Save | `web/src/components/library.test.ts` |
 | A run's fixes, one undo step, redo, one scan per run, an album of a run refused alone | `TestRunFixesAlbumsAsOneUndoStep` |
 | Fixes in order on each other's results; a tie; each date case; M4A's date | `TestRunFixesBuildOnEachOther`, `TestCommonValues`, `TestReleaseDateEdits` |
 | Preview counts, samples, each selection form, bad fixes and filters | `TestRunPreview` |

@@ -95,7 +95,7 @@ function accept(n: number) {
   const f = mainFields.find((m) => m.field === editor.cursor)
   if (!f) return
   const locked = !!f.perTrack && !editor.selected
-  const s = offersFor(editor.suggestions, f.field, editor.trackId, locked, fieldView(editor.scope, f.field, editor.stage).values)[n]
+  const s = offersFor(editor.suggestions, f.field, editor.trackId, locked, fieldView(editor.scope, f.field, editor.stage), !!f.multi).shown[n]
   if (s) editor.take(s, !!f.multi)
 }
 

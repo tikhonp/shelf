@@ -1,6 +1,6 @@
 # Tag editor feedback
 
-Status: drafted on 2026-11-16. Phases 1, 2 and 3 are done on main and not deployed. A new session with a clean context builds each phase, in order. A phase is done when its "Done when" list holds, `make check`, `make lint`, `make web-check` and `docker build .` pass, and `docs/tags.md` and `docs/status.md` describe the result in the same commit.
+Status: drafted on 2026-11-16. Phases 1 to 4 are done on main and not deployed. A new session with a clean context builds each phase, in order. A phase is done when its "Done when" list holds, `make check`, `make lint`, `make web-check` and `docker build .` pass, and `docs/tags.md` and `docs/status.md` describe the result in the same commit.
 
 ## Where this comes from
 
@@ -219,6 +219,13 @@ After Save the held value drops out on the server (`suggest.go:419`), so the cli
 ### Done when
 
 A taken suggestion leaves one chip of rivals, before Save and after it, and the docs describe the mark.
+
+### What phase 4 changed from the steps above
+
+- **Fills.** A fill, such as the track IDs, never folds. Like a proposal tape, it gives each track its own value, so no staged value equals it.
+- **Mark.** The server marks a track's own suggestions from that track's files, as it marks the album's from every track's.
+- **Keys.** A suggestion's number key reaches only the tapes on show, not the folded ones.
+- **All fields.** An All fields row now picks its tapes as a main field does, so every pending proposal tape shows. Before, a row showed its first three tapes, proposals included.
 
 ---
 

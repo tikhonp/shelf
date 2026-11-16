@@ -32,7 +32,7 @@ const shown = (f: MainField) => {
 }
 const none = (f: MainField) => view(f).mixed || view(f).values.length === 0
 const locked = (f: MainField) => !!f.perTrack && !editor.selected
-const best = (f: MainField) => offersFor(editor.suggestions, f.field, editor.trackId, locked(f), view(f).values)[0]
+const best = (f: MainField) => offersFor(editor.suggestions, f.field, editor.trackId, locked(f), view(f), !!f.multi).shown[0]
 const openField = (f: MainField) => router.push({ query: { field: f.field } })
 const flagOn = (f: MainField) => view(f).values[0] === '1'
 </script>

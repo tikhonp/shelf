@@ -16,6 +16,7 @@ import (
 
 	"github.com/tikhonp/shelf/internal/modules/library/lrclib"
 	"github.com/tikhonp/shelf/internal/modules/library/musicbrainz"
+	"github.com/tikhonp/shelf/internal/modules/library/tagio"
 	"github.com/tikhonp/shelf/internal/source"
 )
 
@@ -672,6 +673,51 @@ func TestMerge(t *testing.T) {
 	}
 	if percent(0.999) != 99 || percent(0) != 1 {
 		t.Fatal("percent bounds")
+	}
+}
+
+func TestMergeMarksRivals(t *testing.T) {
+	track := func(id int64, tags map[string][]string) *subjectTrack {
+		return &subjectTrack{ID: id, View: tagio.View{Tags: tags}}
+	}
+	s := &subject{tracks: []*subjectTrack{
+		track(1, map[string][]string{"album": {"Blue"}, "albumartist": {"Joni"}, "genre": {"Folk"}, "title": {"A"}}),
+		track(2, map[string][]string{"album": {"Blue"}, "albumartist": {"Joni"}, "genre": {"Folk"}, "title": {"B"}}),
+	}}
+	cands := []cand{
+		// The files hold the folder's album, so MusicBrainz's is a rival.
+		{field: "album", values: []string{"Blue"}, source: srcFolder, p: 0.5},
+		{field: "album", values: []string{"Blue (Remastered)"}, source: srcMB, p: 0.9},
+		// No source offers the album artist the files hold, so nothing is marked.
+		{field: "albumartist", values: []string{"Joni Mitchell"}, source: srcMB, p: 0.9},
+		{field: "albumartist", values: []string{"J. Mitchell"}, source: srcShelf, p: 0.8},
+		// Genre is a list, so every suggestion adds on purpose.
+		{field: "genre", values: []string{"Folk"}, source: srcMB, p: 0.9},
+		{field: "genre", values: []string{"Rock"}, source: "Catalog", p: 0.5},
+		// A track's own field: track 2 holds one title, track 1 none.
+		{track: 2, field: "title", values: []string{"B"}, source: srcFileName, p: 0.5},
+		{track: 2, field: "title", values: []string{"Bee"}, source: "Catalog", p: 0.5},
+		{track: 1, field: "title", values: []string{"Aye"}, source: "Catalog", p: 0.5},
+	}
+	rival := map[string]bool{}
+	for _, m := range merge(s, cands, nil) {
+		rival[m.Field+itoa(m.track)+":"+strings.Join(m.Values, ",")] = m.Rival
+	}
+	want := map[string]bool{
+		"album0:Blue (Remastered)":   true,
+		"albumartist0:Joni Mitchell": false,
+		"albumartist0:J. Mitchell":   false,
+		"genre0:Rock":                false,
+		"title2:Bee":                 true,
+		"title1:Aye":                 false,
+	}
+	if len(rival) != len(want) {
+		t.Fatalf("suggestions %v", rival)
+	}
+	for k, w := range want {
+		if got, ok := rival[k]; !ok || got != w {
+			t.Errorf("%s: rival %v (shown %v), want %v", k, got, ok, w)
+		}
 	}
 }
 

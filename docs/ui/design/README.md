@@ -231,7 +231,7 @@ Quality labels look like masking tape. The words always name the quality, and th
 
 The canvas boards are `project/Lib-*.dc.html`, styled by `project/retro.css` and `project/library.css`. `Lib-Phone` holds the whole phone flow and `Lib-Desk` the whole desktop flow. The other boards import one of the two with a prop, and the exported screens are their first states.
 
-- A suggestion is a strip of masking tape (`.sug`) beside its field, or under it in a narrow panel. One press stages its value.
+- A suggestion is a strip of masking tape (`.sug`) beside its field, or under it in a narrow panel. One press stages its value. Once a one-value field holds one suggestion's value, the others fold into one tape (`.sug.fold`) that says "2 other" in regular weight, and pressing it shows them.
 - The grey knob sorts the album list by Album, Artist, Year or Added. It uses the type knob's pointer angles.
 - The album list shows every column in a wide panel. Below 640px of panel width, the year moves into the row's second line and the track count sits under the quality label.
 - A display above the fields says which tracks an edit reaches, `ALL 11 TRACKS` or `TRACK 03 ONLY`. The track list starts with an All 11 tracks row, which is the way back from a selected track.

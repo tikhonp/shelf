@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Suggestion } from '../api/types'
 import { fieldNote } from '../lib/notes'
 import { fieldView, isLong, offersFor, type MainField } from '../lib/tags'
 import { useEditor } from '../stores/editor'
 import Icon from './Icon.vue'
 import LibTip from './LibTip.vue'
-import LibSug from './LibSug.vue'
+import LibSugs from './LibSugs.vue'
 
 const props = defineProps<{ f: MainField }>()
 defineEmits<{ long: [] }>()
@@ -27,7 +26,7 @@ const was = computed(() => {
   return w.values.length ? `Was ${w.values.join(', ')}` : 'Was empty'
 })
 
-const offers = computed<Suggestion[]>(() => offersFor(editor.suggestions, target.value, editor.trackId, locked.value, view.value.values))
+const offers = computed(() => offersFor(editor.suggestions, target.value, editor.trackId, locked.value, view.value, !!props.f.multi))
 const notes = computed(() => (editor.suggestions?.notes ?? []).filter((n) => n.field === target.value && (!n.track || n.track === editor.trackId)))
 
 const rows = computed(() => (view.value.mixed ? [''] : view.value.values.length ? view.value.values : ['']))
@@ -86,7 +85,7 @@ const on = computed(() => view.value.values[0] === '1')
       <p v-if="editor.refusedOn(target)" class="lf-note refused" role="alert"><span class="led bad" aria-hidden="true"></span><span>Not saved: {{ editor.refusedOn(target) }}</span></p>
       <p v-for="n in notes" :key="n.message" class="lf-note"><Icon name="note" /><span>{{ n.message }}</span></p>
     </div>
-    <div class="lf-s"><LibSug v-for="s in offers" :key="`${s.source}${s.values?.join()}`" :s="s" @use="editor.take(s, !!f.multi)" /></div>
+    <div class="lf-s"><LibSugs :offers="offers" :label="f.label" @use="editor.take($event, !!f.multi)" /></div>
   </div>
 </template>
 

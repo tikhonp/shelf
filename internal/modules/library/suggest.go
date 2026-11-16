@@ -66,6 +66,10 @@ type Suggestion struct {
 	// Anchor is the MusicBrainz release a release field came from. A Save
 	// sends it back with the edit.
 	Anchor string `json:"anchor,omitempty"`
+	// Rival marks a value the files passed over. They hold another source's
+	// value for this one-value field. The editor folds rivals, so a Save
+	// doesn't bring back the suggestions the owner didn't take.
+	Rival bool `json:"rival,omitempty"`
 
 	p float64
 }
@@ -386,8 +390,9 @@ type merged struct {
 }
 
 // merge joins the candidates that give the same value, works out their
-// confidence, drops what the tracks already hold, holds release fields to
-// one value, and keeps the best few per field.
+// confidence, drops what the tracks already hold, marks the rivals of a
+// held value, holds release fields to one value, and keeps the best few
+// per field.
 //
 // Confidence: each source gives its own p between 0 and 1, and sources
 // that agree combine as 1 - (1-p1)(1-p2)..., so agreement raises it. One
@@ -415,8 +420,17 @@ func merge(s *subject, cands []cand, a *anchor) []merged {
 		}
 	}
 	var out []merged
+	// held names the track and field whose files hold a candidate's value.
+	type spot struct {
+		track int64
+		field string
+	}
+	held := map[spot]bool{}
 	for _, g := range groups {
 		if holds(s, g.cand) {
+			if g.tracks == nil {
+				held[spot{g.track, g.field}] = true
+			}
 			continue
 		}
 		miss := 1.0
@@ -431,6 +445,10 @@ func merge(s *subject, cands []cand, a *anchor) []merged {
 		p := 1 - miss
 		out = append(out, merged{track: g.track, Suggestion: Suggestion{Field: g.field, Values: g.values, Tracks: g.tracks,
 			Source: sources[0], Sources: sources, Confidence: percent(p), Anchor: g.anchor, p: p}})
+	}
+	for i := range out {
+		sg := &out[i]
+		sg.Rival = sg.Tracks == nil && held[spot{sg.track, sg.Field}] && !multiField(sg.Field)
 	}
 	matched := a != nil && a.Matched
 	slices.SortStableFunc(out, func(x, y merged) int {
@@ -499,6 +517,13 @@ func holds(s *subject, c cand) bool {
 		}
 	}
 	return true
+}
+
+// multiField reports whether Navidrome reads a field as a list. Each of
+// its suggestions adds or replaces on purpose, so none is a rival.
+func multiField(name string) bool {
+	f, ok := tagio.FieldByName(name)
+	return ok && f.Multi()
 }
 
 // fieldOrder sorts suggestions in the order of Navidrome's mappings.

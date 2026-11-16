@@ -48,7 +48,7 @@ test('track selection keeps each proposed value on its own track', () => {
   if (op.type !== 'tag') throw new Error('tag')
   op.tracks[1]!.values = ['Other']
   const s = withProposals(null, proposalSuggestions([p], tracks))
-  const tape = offersFor(s, 'albumartists', 2, false, [])[0]!
+  const tape = offersFor(s, 'albumartists', 2, false, { values: [], staged: false }, true).shown[0]!
   const stage = accept({}, tracks, [tracks[1]!], tape, true)
   expect(Object.keys(stage)).toEqual(['2'])
   expect(saveBody(tracks, stage).tracks[0]!.edits[0]!.values).toEqual(['Other'])
@@ -58,7 +58,7 @@ test('proposal tapes stay beside regular suggestions even with three existing of
   const p = proposal()
   const regular = { field: 'albumartists', values: ['Other'], source: 'files', sources: ['Files'], confidence: 50 }
   const s = withProposals({ album: [], tracks: [{ id: 1, suggestions: [regular, regular, regular] }] } as unknown as Suggestions, proposalSuggestions([p], tracks))
-  expect(offersFor(s, 'albumartists', 1, false, [])).toHaveLength(4)
+  expect(offersFor(s, 'albumartists', 1, false, { values: [], staged: false }, true).shown).toHaveLength(4)
 })
 
 test('removal tape keeps an empty value list and its zero confidence', async () => {

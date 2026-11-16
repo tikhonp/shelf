@@ -7,7 +7,7 @@ import { useEditor } from '../stores/editor'
 import { useHelp } from '../stores/help'
 import Icon from './Icon.vue'
 import LibScope from './LibScope.vue'
-import LibSug from './LibSug.vue'
+import LibSugs from './LibSugs.vue'
 
 const props = defineProps<{ field: string }>()
 const editor = useEditor()
@@ -17,9 +17,9 @@ const note = computed(() => fieldNote(props.field))
 
 const f = computed(() => mainFields.find((m) => m.field === props.field) ?? { field: props.field, label: props.field })
 const view = computed(() => fieldView(editor.scope, props.field, editor.stage))
-const offers = computed(() => offersFor(editor.suggestions, props.field, editor.trackId, false, view.value.values))
 const rows = computed(() => (view.value.mixed ? [''] : view.value.values.length ? view.value.values : ['']))
 const multi = computed(() => 'multi' in f.value && !!f.value.multi)
+const offers = computed(() => offersFor(editor.suggestions, props.field, editor.trackId, false, view.value, multi.value))
 const choices = computed(() => ('choices' in f.value ? f.value.choices : undefined))
 const list = computed(() => (choices.value ? `pf-${props.field}-choices` : undefined))
 const was = computed(() => {
@@ -58,7 +58,7 @@ function type(i: number, e: Event) {
           <button v-if="view.staged" type="button" class="lf-add" @click="editor.drop(field)"><Icon name="revert" size="s" />Revert</button>
         </span>
       </div>
-      <div class="col g8 pad"><LibSug v-for="s in offers" :key="`${s.source}${s.values?.join()}`" :s="s" block @use="editor.take(s, multi)" /></div>
+      <div class="col g8 pad"><LibSugs :offers="offers" :label="f.label" block @use="editor.take($event, multi)" /></div>
     </div>
   </section>
 </template>

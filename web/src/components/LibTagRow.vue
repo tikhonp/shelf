@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { fieldView, isLong as tooLong, pastedRelease, suggestionsFor, type TagRow } from '../lib/tags'
+import { fieldView, foldOffers, isLong as tooLong, pastedRelease, suggestionsFor, type TagRow } from '../lib/tags'
 import { useEditor } from '../stores/editor'
 import Icon from './Icon.vue'
-import LibSug from './LibSug.vue'
+import LibSugs from './LibSugs.vue'
 
 const props = defineProps<{ row: TagRow }>()
 defineEmits<{ long: [] }>()
@@ -24,13 +24,7 @@ const was = computed(() => {
   if (w.mixed) return 'Was mixed'
   return w.values.length ? `Was ${w.values.join(', ')}` : 'Was empty'
 })
-const offers = computed(() => {
-  const now = view.value.values.join('\u0000')
-  return props.row.fields
-    .flatMap((f) => suggestionsFor(editor.suggestions, f, editor.trackId))
-    .filter((s) => s.tracks || (!locked.value && (s.values ?? []).join('\u0000') !== now))
-    .slice(0, 3)
-})
+const offers = computed(() => foldOffers(props.row.fields.flatMap((f) => suggestionsFor(editor.suggestions, f, editor.trackId)), locked.value, view.value, props.row.multi))
 
 function type(i: number, e: Event) {
   const v = (e.target as HTMLInputElement).value
@@ -69,7 +63,7 @@ const removeAt = (i: number) => editor.edit(props.row.target, view.value.values.
       <span v-if="was" class="lf-was">{{ was }}</span>
       <p v-if="editor.refusedOn(row.target)" class="lf-note refused" role="alert"><span class="led bad" aria-hidden="true"></span><span>Not saved: {{ editor.refusedOn(row.target) }}</span></p>
     </div>
-    <div v-if="offers.length > 0" class="lf-s"><LibSug v-for="s in offers" :key="`${s.field}${s.source}${s.values?.join()}`" :s="s" @use="editor.take(s, row.multi)" /></div>
+    <div v-if="offers.shown.length + offers.rivals.length > 0" class="lf-s"><LibSugs :offers="offers" :label="row.key" @use="editor.take($event, row.multi)" /></div>
   </div>
 </template>
 

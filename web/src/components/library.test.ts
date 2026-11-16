@@ -229,6 +229,65 @@ test('a suggestion, a note and a silent service all show, and pressing one adds 
   w.unmount()
 })
 
+// Two sources that name the album differently.
+const rivals = {
+  ...suggestions,
+  album: [
+    { field: 'album', values: ['Blue (Remastered)'], source: 'MusicBrainz', sources: ['MusicBrainz'], confidence: 90 },
+    { field: 'album', values: ['Blue (2022)'], source: 'Qobuz', sources: ['Qobuz'], confidence: 70 },
+  ],
+}
+const albumSugs = (w: Awaited<ReturnType<typeof at>>['w']) => w.findAll('[data-target=album] .sug').map((s) => s.text())
+
+test('taking one of two suggestions folds the other into one chip, which opens, and Revert unfolds it', async () => {
+  const { w } = await at('/library/7', { '/api/library/albums/7/suggestions': rivals })
+  expect(albumSugs(w)).toHaveLength(2)
+  await w.find('[data-target=album] .sug').trigger('click')
+  expect((w.find('#lf-album').element as HTMLInputElement).value).toBe('Blue (Remastered)')
+  expect(albumSugs(w)).toEqual(['1 other'])
+  await button(w, 'Show 1 other suggestion for Album').trigger('click')
+  expect(albumSugs(w)).toEqual([expect.stringContaining('Blue (2022)')])
+  await button(w, 'Revert Album').trigger('click')
+  expect(albumSugs(w)).toHaveLength(2)
+  w.unmount()
+})
+
+test('typing a value no suggestion has unfolds the rivals', async () => {
+  const { w } = await at('/library/7', { '/api/library/albums/7/suggestions': rivals })
+  await w.find('[data-target=album] .sug').trigger('click')
+  expect(albumSugs(w)).toEqual(['1 other'])
+  await w.find('#lf-album').setValue('Blue II')
+  expect(albumSugs(w)).toHaveLength(2)
+  w.unmount()
+})
+
+test('after a Save the suggestions the server marks as rivals stay folded', async () => {
+  let saved = false
+  const done = {
+    id: 9, kind: 'save', target: null, album_id: 7, folder: 'rock/x', title: 'Blue (Remastered)', artist: 'Joni', state: 'done', reason: '', error: '',
+    undone: false, tags: 2, cover: false, tracks: 2, conflicts: [], job_id: 1, created_at: '2026-11-16T18:00:00Z', finished_at: '2026-11-16T18:00:01Z',
+  }
+  const remastered = (id: number) => {
+    const t = track(id)
+    return { ...t, revision: `s${id}`, standard: t.standard.map((k) => (k.key === 'ALBUM' ? { ...k, values: ['Blue (Remastered)'] } : k)) }
+  }
+  const { w } = await at('/library/7', {
+    '/api/library/albums/7/suggestions': () => (saved ? { ...rivals, album: [{ ...rivals.album[1]!, rival: true }] } : rivals),
+    '/api/library/albums/7/save': () => { saved = true; return { ...done, state: 'queued' } },
+    '/api/library/changes/9': done,
+    '/api/library/albums/7': () => (saved ? detail({ tracks: [remastered(1), remastered(2)] }) : detail()),
+  })
+  await w.find('[data-target=album] .sug').trigger('click')
+  await button(w, 'Save').trigger('click')
+  await flushPromises()
+  FakeEventSource.all[0]!.emit('change', done)
+  await flushPromises()
+  expect((w.find('#lf-album').element as HTMLInputElement).value).toBe('Blue (Remastered)')
+  expect(w.find('.lib-save').exists()).toBe(false)
+  expect(albumSugs(w)).toEqual(['1 other'])
+  w.unmount()
+})
+
 // MusicBrainz's credit for the album, which no file holds yet.
 const credits = {
   ...suggestions,
@@ -948,5 +1007,16 @@ test('on the phone the album lists Artists and Album artists, and the Artists pa
   await w.find('.sug').trigger('click')
   expect(w.findAll('.lbl-f input').map((i) => (i.element as HTMLInputElement).value)).toEqual(['Joni Mitchell', 'David Crosby'])
   expect(w.text()).toContain('Add value')
+  w.unmount()
+})
+
+test('on the phone a field page folds the rivals of a taken suggestion into one chip', async () => {
+  const { w } = await phoneAt('/library/7?field=album', { '/api/library/albums/7/suggestions': rivals })
+  expect(w.findAll('.sug')).toHaveLength(2)
+  await w.find('.sug').trigger('click')
+  expect(w.findAll('.sug').map((s) => s.text())).toEqual(['1 other'])
+  expect(w.find('.sug').classes()).toContain('block')
+  await button(w, 'Show 1 other suggestion for Album').trigger('click')
+  expect(w.findAll('.sug').map((s) => s.text())).toEqual([expect.stringContaining('Blue (2022)')])
   w.unmount()
 })

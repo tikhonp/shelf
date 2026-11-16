@@ -141,6 +141,7 @@
 .rs .sug-p { flex: none; font-family: var(--label); font-weight: 700; font-variant-numeric: tabular-nums; }
 .rs .sug.block { display: flex; width: 100%; }
 .rs .sug.block .sug-s { margin-left: auto; }
+.rs .sug.fold .sug-v { font-weight: 400; }
 
 /* A title-bar rocker for one on or off choice, smaller than the source rockers */
 .rs .rocker.mini { flex: none; gap: 7px; min-height: 28px; padding: 0 5px; }

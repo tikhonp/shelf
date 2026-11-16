@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import type { LibraryTrack, Suggestion, Suggestions, TagKey } from '../api/types'
-import { accept, addValue, changes, fieldView, fix, isLong, keyTarget, pastedRelease, releaseTypeName, revert, saveBody, stageEdit, suggestionsFor, tagKey, tagRows, type KnownField, type Stage } from './tags'
+import { accept, addValue, changes, fieldView, fix, foldOffers, isLong, keyTarget, pastedRelease, releaseTypeName, revert, saveBody, stageEdit, suggestionsFor, tagKey, tagRows, type KnownField, type Stage } from './tags'
 
 function track(id: number, tags: Record<string, string[]>, standard: TagKey[] = []): LibraryTrack {
   return {
@@ -250,4 +250,35 @@ test('a field no file holds gets a row when a proposal names it or the stage hol
   expect(tagRows([t], stageEdit({}, [t], 'artists', ['A', 'B']), known).map((r) => [r.key, r.target, r.multi])).toEqual([['GENRE', 'genre', true], ['ARTISTS', 'artists', true]])
   const held = track(2, { albumartists: ['DARKSIDE'] })
   expect(tagRows([held], {}, [], ['albumartists']).filter((r) => r.fields.includes('albumartists'))).toHaveLength(1)
+})
+
+const offer = (values: string[], source: string, over: Partial<Suggestion> = {}): Suggestion => ({ field: 'album', values, source, sources: [source], confidence: 50, ...over })
+
+test('a one-value field folds the other suggestions once it takes one, and a typed value unfolds them', () => {
+  const mb = offer(['Blue (Remastered)'], 'MusicBrainz')
+  const qobuz = offer(['Blue (2022)'], 'Qobuz')
+  const fill = offer([], 'MusicBrainz', { values: undefined, tracks: { 1: ['x'] } })
+  const list = [mb, qobuz, fill]
+  expect(foldOffers(list, false, { values: ['Blue'], staged: false }, false)).toEqual({ shown: list, rivals: [], held: 'Blue' })
+  const taken = foldOffers(list, false, { values: ['Blue (Remastered)'], staged: true }, false)
+  expect(taken.shown).toEqual([fill])
+  expect(taken.rivals).toEqual([qobuz])
+  expect(foldOffers(list, false, { values: ['Blue II'], staged: true }, false).rivals).toEqual([])
+})
+
+test('a proposal tape never folds, and a multi field keeps every suggestion', () => {
+  const tape = offer(['Blue'], 'proposal:1:1', { proposal: true, tracks: { 1: ['Blue'] } })
+  const list = [tape, offer(['Blue (Remastered)'], 'MusicBrainz'), offer(['Blue (2022)'], 'Qobuz')]
+  const folded = foldOffers(list, false, { values: ['Blue (Remastered)'], staged: true }, false)
+  expect(folded.shown).toEqual([tape])
+  expect(folded.rivals).toHaveLength(1)
+  const genres = [offer(['Folk'], 'MusicBrainz', { field: 'genre' }), offer(['Jazz'], 'Qobuz', { field: 'genre', rival: true })]
+  expect(foldOffers(genres, false, { values: ['Folk'], staged: true }, true)).toMatchObject({ shown: [genres[1]], rivals: [] })
+})
+
+test('after a Save the server\'s rival mark folds, and a staged value no suggestion has unfolds it', () => {
+  const rival = offer(['Blue (2022)'], 'Qobuz', { rival: true })
+  const other = offer(['Blue (Live)'], 'Folder')
+  expect(foldOffers([rival, other], false, { values: ['Blue (Remastered)'], staged: false }, false)).toMatchObject({ shown: [other], rivals: [rival] })
+  expect(foldOffers([rival, other], false, { values: ['Blue II'], staged: true }, false)).toMatchObject({ shown: [rival, other], rivals: [] })
 })

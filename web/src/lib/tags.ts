@@ -218,17 +218,37 @@ export function suggestionsFor(s: Suggestions | null, target: Target, track: num
   })
 }
 
-// offersFor picks what a field shows: its best few, without the value it holds. A
+// Offers are what a field shows. Rivals fold into one chip that opens them.
+export interface Offers {
+  shown: Suggestion[]
+  rivals: Suggestion[]
+  // held is the field's value, so a chip opened on it closes when it changes.
+  held: string
+}
+
+// foldOffers picks what a field shows: its best few, without the value it holds. A
 // value at All tracks that belongs to one track can't go on all of them, but a
-// fill gives each track its own.
-export function offersFor(s: Suggestions | null, target: Target, track: number | null, locked: boolean, held: string[]): Suggestion[] {
-  const now = held.join('\u0000')
+// fill gives each track its own. Once a one-value field takes one suggestion, its
+// other ordinary suggestions are rivals. Before Save the stage tells which, and
+// after it the server's mark does. A value no suggestion has folds nothing.
+// Proposal tapes and fills never fold.
+export function foldOffers(list: Suggestion[], locked: boolean, view: Pick<FieldView, 'values' | 'staged'>, multi: boolean): Offers {
+  const held = view.values.join('\u0000')
+  const plain = (x: Suggestion) => !x.proposal && !x.tracks
+  const taken = view.staged && list.some((x) => plain(x) && (x.values ?? []).join('\u0000') === held)
+  const out: Offers = { shown: [], rivals: [], held }
   let regular = 0
-  return suggestionsFor(s, target, track).filter((x) => {
-    if (x.proposal) return true
-    if (!x.tracks && (locked || (x.values ?? []).join('\u0000') === now)) return false
-    return regular++ < 3
-  })
+  for (const x of list) {
+    if (x.proposal) out.shown.push(x)
+    else if (!x.tracks && (locked || (x.values ?? []).join('\u0000') === held)) continue
+    else if (!multi && plain(x) && (view.staged ? taken : x.rival)) out.rivals.push(x)
+    else if (regular++ < 3) out.shown.push(x)
+  }
+  return out
+}
+
+export function offersFor(s: Suggestions | null, target: Target, track: number | null, locked: boolean, view: Pick<FieldView, 'values' | 'staged'>, multi: boolean): Offers {
+  return foldOffers(suggestionsFor(s, target, track), locked, view, multi)
 }
 
 function common(tracks: LibraryTrack[], target: Target): string[] | null {
