@@ -320,7 +320,7 @@ async function send() {
 .rs .ib-moved, .rs .ib-ev-row { border-bottom: 1px solid var(--line); }
 .rs .ib-tapes, .rs .ib-thread, .rs .ib-ev-row { display: flex; flex-direction: column; }
 .rs .ib-tapes { align-items: flex-start; gap: 8px; }
-.rs .ib-tapes .sug { max-width: 100%; flex-wrap: wrap; }
+.rs .ib-tapes .sug { max-width: 100%; flex-wrap: wrap; padding-inline: calc(2% + 10px); }
 .rs .ib-tapes .sug-v, .rs .ib-tapes .sug-s, .rs .meta dd { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
 .rs .sug.tape { cursor: default; }
 .rs a.sug { text-decoration: none; }
