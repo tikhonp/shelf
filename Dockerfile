@@ -32,7 +32,7 @@ RUN --mount=type=cache,target=/go/pkg/mod/ \
     --mount=type=cache,target=/root/.cache \
     --mount=type=bind,target=. \
     golangci-lint run && \
-    go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+    go run golang.org/x/vuln/cmd/govulncheck@v1.10.0 ./...
 
 # build: one static binary from a bind-mounted source that never lands in an
 # image, with the web stage's build mounted over the committed placeholder.

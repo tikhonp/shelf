@@ -63,7 +63,7 @@ jobs:
 
       # Fails on every vulnerability shelf's code reaches.
       - name: govulncheck
-        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.10.0 ./...
 
   web:
     runs-on: ubuntu-latest

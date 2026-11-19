@@ -11,6 +11,8 @@ Every check in [manual-checklist.md](manual-checklist.md) passed in production, 
 
 The next deployment includes qobuz-dl-go v0.1.2 and reports missing Qobuz streaming access on failed downloads.
 
+The 2026-11-19 dependency update brings go-telegram/bot v1.30.0, Echo v5.4.6 and Vue Router 5.5.1. CI and the Docker lint stage use govulncheck v1.10.0.
+
 ## Remotes
 
 | Repo | Origin | Notes |
