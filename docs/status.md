@@ -2,14 +2,14 @@
 
 shelf is finished and runs in production on blackberry. [vision.md](vision.md) says what it is for.
 
-- **Downloads.** The web UI at `shelf.music.tikhonnnnn.com` and the bot `@music_shelf_bot` search and download from Qobuz, through qobuz-dl-go `v0.1.1`, and from Apple Music, through amdl and shelf-wrapper. Navidrome scans after downloads. shelf imported the old bot's 169 downloads.
+- **Downloads.** The web UI at `shelf.music.tikhonnnnn.com` and the bot `@music_shelf_bot` search and download from Qobuz, through qobuz-dl-go `v0.1.2`, and from Apple Music, through amdl and shelf-wrapper. Navidrome scans after downloads. shelf imported the old bot's 169 downloads.
 - **Tags.** The Library tab edits every tag in the library, with suggestions, checks and fixes, covers, playback, history with undo, and bulk runs with ReplayGain and AcoustID. [tags.md](tags.md) describes it. `make contract` passes against Navidrome 0.64.2.
 - **Home.** The Library tab is the home screen and the first tab. Each album shows its source, from the downloads' records, `shelf.txt` or its source folder, and the filter menu filters by source. [tags.md](tags.md#album-sources) describes it.
 - **Delete.** The Library tab deletes an album's release folder and has Navidrome forget its tracks, as [tags.md](tags.md#deleting) describes. `make contract` covers it.
 
 Every check in [manual-checklist.md](manual-checklist.md) passed in production, as its Last run says.
 
-The next deployment includes qobuz-dl-go v0.1.2 and reports missing Qobuz streaming access on failed downloads.
+Shelf reports missing Qobuz streaming access on failed downloads.
 
 The 2026-11-19 dependency update brings go-telegram/bot v1.30.0, Echo v5.4.6 and Vue Router 5.5.1. CI and the Docker lint stage use govulncheck v1.10.0.
 
@@ -22,7 +22,7 @@ The 2026-11-19 dependency update brings go-telegram/bot v1.30.0, Echo v5.4.6 and
 
 ## Production
 
-Production runs `v1.1.3`, which shelf CI deployed through doco-cd on 2026-11-16. Long lists read their next page as their end scrolls into view, in place of Load more: the album list, search results, History, an album's History, Downloads, the Inbox and Memory. An album or track offers only the lowest lossless format that covers its quality, so a CD album no longer offers Max or 24/96, and its Download asks for CD. Both passed their checks in production on `v1.1.2`. Since `v1.1.3`, an album that Qobuz repeats on two pages of a search shows once. For "Bach cello", Qobuz returns 1,000 albums, and 22 of them repeat albums from earlier pages. shelf shows 978. Optional [library agents](agents.md) are off by default and on in production. Production signs in with Shelf accounts. [auth.md](auth.md) describes setup.
+Production runs `v1.2.1`, deployed on 2026-11-19. Long lists read their next page as their end scrolls into view, in place of Load more: the album list, search results, History, an album's History, Downloads, the Inbox and Memory. An album or track offers only the lowest lossless format that covers its quality, so a CD album no longer offers Max or 24/96, and its Download asks for CD. Both passed their checks in production on `v1.1.2`. Since `v1.1.3`, an album that Qobuz repeats on two pages of a search shows once. For "Bach cello", Qobuz returns 1,000 albums, and 22 of them repeat albums from earlier pages. shelf shows 978. Optional [library agents](agents.md) are off by default and on in production. Production signs in with Shelf accounts. [auth.md](auth.md) describes setup.
 
 shelf-wrapper builds from upstream's `ghcr.io/worldobservationlog/wrapper-lite` image pinned by digest. The index holds 11,461 tracks and 1,008 Navidrome album IDs, forming 1,013 albums because 5 Navidrome albums span two folders.
 
@@ -66,9 +66,9 @@ Since 2026-11-12, shelf uses goose v3.30.1 and `github.com/mfridman/interpolate`
 
 A pushed `v*` tag now deploys through sh-blackberry and doco-cd, as [deployment.md](deployment.md#deploys) describes.
 
-## In development
+## Proposal review
 
-Proposal Details opens on grouped Fields with inline editors. Brief holds the agent's explanation and evidence, Files shows the current preview and completed acceptance snapshots, and Talkback keeps review outcomes, including earlier failed attempts. The review bar stays visible while the proposal scrolls on desktop and phone.
+Since `v1.2.0`, Proposal Details opens on grouped Fields with inline editors. Brief holds the agent's explanation and evidence, Files shows the current preview and completed acceptance snapshots, and Talkback keeps review outcomes, including earlier failed attempts. The review bar stays visible while the proposal scrolls on desktop and phone.
 
 ## Operational notes
 
