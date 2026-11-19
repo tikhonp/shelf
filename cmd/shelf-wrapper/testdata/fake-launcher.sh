@@ -91,8 +91,8 @@ case "${FAKE_SERVICE:-run}" in
 esac
 # The tests' /status answers while this file exists.
 touch "$FAKE_DATA/listening"
-say INFO "wrapper-lite listening on 0.0.0.0:12340"
 say INFO "request: GET /status"
+say INFO "wrapper-lite listening on 0.0.0.0:12340"
 while :; do
   if [ -f "$FAKE_DATA/request" ]; then
     rm -f "$FAKE_DATA/request"

@@ -202,8 +202,11 @@ func TestStateSignedOut(t *testing.T) {
 	if st.Storefront != "" {
 		t.Fatalf("%+v", st)
 	}
-	// Requests for /status stay out of the log.
-	if text := r.logText(); strings.Contains(text, "GET /status") || !strings.Contains(text, "listening on") {
+	// The fake logs its status request before the listening message.
+	r.waitFor("the listening message", func(wrapperapi.Status) bool {
+		return strings.Contains(r.logText(), "listening on")
+	})
+	if text := r.logText(); strings.Contains(text, "GET /status") {
 		t.Fatalf("log:\n%s", text)
 	}
 }
