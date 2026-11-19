@@ -10,7 +10,7 @@ require (
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/labstack/echo/v5 v5.4.6
 	github.com/pressly/goose/v3 v3.30.1
-	github.com/tikhonp/qobuz-dl-go v0.1.2
+	github.com/tikhonp/qobuz-dl-go v0.1.3
 	go.senan.xyz/taglib v0.15.0
 	go.yaml.in/yaml/v3 v3.0.6
 	golang.org/x/crypto v0.59.0

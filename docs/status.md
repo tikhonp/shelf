@@ -9,6 +9,8 @@ shelf is finished and runs in production on blackberry. [vision.md](vision.md) s
 
 Every check in [manual-checklist.md](manual-checklist.md) passed in production, as its Last run says.
 
+The next Shelf build uses qobuz-dl-go `v0.1.3` to give the Qobuz player script five minutes to download.
+
 Shelf reports missing Qobuz streaming access on failed downloads.
 
 The 2026-11-19 dependency update brings go-telegram/bot v1.30.0, Echo v5.4.6 and Vue Router 5.5.1. CI and the Docker lint stage use govulncheck v1.10.0.

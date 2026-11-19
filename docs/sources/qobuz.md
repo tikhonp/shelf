@@ -21,6 +21,7 @@ A qobuz-dl-go instance has one quality and one downloads database, and `HandleID
 
 ## Startup and health
 
+- The player script has a five-minute download deadline. The login page and API calls have 30 seconds each.
 - At startup the module fetches the web player bundle with `GetTokens`, which keeps the app ID and the non-empty secrets. `InitializeClient` then checks the token with `user/get` and picks the first secret that passes a signed `track/getFileUrl` call.
 - qobuz-dl treats the app ID `798273057` as a legacy ID and fetches the bundle a second time, keeping all its secrets, the empty one included. The bundle carries that ID, so startup makes two bundle fetches and tries the empty secret first, which fails. The port does the same.
 - When no secret passes, the port logs a warning and goes on with the first, as qobuz-dl does without the warning. Later calls then fail with HTTP 400.
