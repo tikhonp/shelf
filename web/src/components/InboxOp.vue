@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { Op } from '../api/agents'
 import { coverSrc, decidedLine, decisionClass, decisionWord, fieldGroup, isLong, opLabel, trackLabel, wasLine } from '../lib/inbox'
 import { count } from '../lib/format'
@@ -32,13 +32,24 @@ const tracks = computed(() => tag.value ? inbox.tracksOf(tag.value) : [])
 const open = ref(false)
 const split = ref(false)
 const showMore = ref(false)
+// Keep each editor's track membership until the reviewer explicitly regroups.
+const regroupedValues = ref(new Map<number, string[]>())
+function groupMatchingValues() {
+  const op = tag.value
+  if (!op) return
+  regroupedValues.value = new Map(tracks.value.map((t) => [t.track_id, inbox.values(op, t.track_id)]))
+  split.value = false
+}
+watch([() => d.value.head, edited], ([head, hasDraft], [oldHead]) => {
+  if (!hasDraft || head !== oldHead) regroupedValues.value.clear()
+})
 const lists = computed(() => {
   const groups = new Map<string, { ids: number[]; values: string[] }>()
   const op = tag.value
   if (!op) return []
   for (const t of tracks.value) {
     const values = inbox.values(op, t.track_id)
-    const key = split.value ? String(t.track_id) : JSON.stringify(values)
+    const key = split.value ? String(t.track_id) : JSON.stringify([regroupedValues.value.get(t.track_id) ?? t.values, values])
     const list = groups.get(key)
     if (list) list.ids.push(t.track_id)
     else groups.set(key, { ids: [t.track_id], values })
@@ -111,7 +122,7 @@ const blockLabel = (ids: number[]) => ids.length === 1 ? trackLabel(d.value, ids
       <template v-if="tag">
         <div v-if="pending && (tracks.length > 1 || split)" class="line g8 wrap">
           <button v-if="!split" type="button" class="key sm flat" @click="split = true"><LibTip title="Per track" :note="phone ? '' : inboxNotes.perTrack">Per track</LibTip></button>
-          <button v-else type="button" class="key sm flat" @click="split = false">Group matching values</button>
+          <button v-else type="button" class="key sm flat" @click="groupMatchingValues">Group matching values</button>
         </div>
         <div v-for="list in visibleLists" :key="list.ids[0]" class="col g4" :class="{ 'ib-track': spread }">
           <div v-if="spread" class="line g8">

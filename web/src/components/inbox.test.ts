@@ -709,3 +709,41 @@ test('Files can show the proposal fields written by a partial library Save', asy
   expect(files.text()).toContain('ORIGINALDATE')
   expect(files.text()).not.toContain('GENRE')
 })
+
+test('typing through another group’s value keeps the edit on its original tracks', async () => {
+  const d = detail()
+  const op = d.current.ops[1]!
+  if (op.type !== 'tag') throw new Error('Expected a tag operation')
+  op.tracks.forEach((t) => { t.values = [t.track_id <= 2 ? 'Pop' : 'Rock'] })
+  const w = await openDetail({ '/api/inbox/proposals/4': d })
+  const row = w.get('[data-op="albumartists"]')
+  await row.get('.ib-label').trigger('click')
+  const first = row.get('input')
+  await first.setValue('Rock')
+  expect(row.findAll('input')).toHaveLength(2)
+  await first.setValue('Rockabilly')
+  expect(useInbox().revisionOps()[0]?.tracks).toEqual(op.tracks.map((t) => ({
+    ...t, values: [t.track_id <= 2 ? 'Rockabilly' : 'Rock'],
+  })))
+})
+
+test('Files shows the completed snapshot after another reviewer accepts the remaining fields', async () => {
+  const d = detail()
+  const preview = { ...sameOnSix(), warnings: [] }
+  const w = await openDetail({
+    '/api/inbox/proposals/4': () => structuredClone(d),
+    '/api/inbox/proposals/4/preview': { preview, refusal: null, missing: [] },
+    '/api/inbox/proposals/4/accept': () => {
+      d.state = 'reviewed'
+      d.summary = { ...d.summary, pending: 0, accepted: d.ops.length }
+      d.ops.forEach((op) => { op.decision = 'accepted'; op.acceptance = 9 })
+      d.acceptances = [{ id: 9, revision: 1, ops: d.ops.map((op) => op.id), change_id: 9, author: 'alice', created_at: '2026-11-09T11:00:00Z', preview, outcome: { state: 'done' } }]
+      return new Reply(409, { code: 'decided_op' })
+    },
+  })
+  await w.get('.ib-review-actions .sun').trigger('click')
+  await flushPromises()
+  await w.get('#tab-files').trigger('click')
+  expect(w.get<HTMLSelectElement>('#panel-files select').element.value).toBe('9')
+  expect(w.get('#panel-files').text()).toContain('What Accept wrote')
+})

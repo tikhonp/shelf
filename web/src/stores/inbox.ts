@@ -330,6 +330,7 @@ export const useInbox = defineStore('inbox', () => {
     const d = detail.value
     if (!d || selected.value.every((o) => held(d, o))) {
       ++previewSeq
+      if (!d || !d.ops.some((o) => selectable(d, o.id) && !held(d, o.id))) reviewRequired.value = false
       selection.value = null
       selectionKey.value = ''
       previewing.value = false
