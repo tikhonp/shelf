@@ -105,7 +105,7 @@ func TestAlbumThroughTheJob(t *testing.T) {
 		"Source link: https://www.qobuz.com/fr-fr/album/begin-again-norah-jones/k43q1q3kx88fa\n",
 		"Title: Begin Again\n", "Artist: Norah Jones\n", "Label: Blue Note Records\n", "Release date: 2019-04-12\n",
 		"UPC: 0602577440397\n", "Requested format: Qobuz 27, FLAC up to 24-bit 192 kHz\n", "Delivered: FLAC 24-bit 96 kHz\n",
-		", qobuz-dl-go v0.1.1 porting qobuz-dl 2.5.9\n",
+		", qobuz-dl-go v0.1.2 porting qobuz-dl 2.5.9\n",
 		"  1  01 - My Heart Is Full.flac  track 58780541  ISRC USUM71807619  FLAC 24/96  done\n",
 	} {
 		if !strings.Contains(txt, want) {
@@ -208,6 +208,39 @@ func TestPartialAlbumThroughTheJob(t *testing.T) {
 	}
 	if txt := r.provenance(d); !strings.Contains(txt, "failed") {
 		t.Fatal(txt)
+	}
+}
+
+func TestStreamingAccessThroughTheJob(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		restrictAll bool
+	}{
+		{"all tracks", true},
+		{"one track", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := newJobRig(t)
+			r.up()
+			a := r.item(source.KindAlbum, qobuzdltest.AlbumHiRes96)
+			for _, track := range a.Tracks {
+				r.srv.Uncredentialed(track.ID)
+				if !tc.restrictAll {
+					break
+				}
+			}
+			d := r.wait(r.queue("https://play.qobuz.com/album/" + qobuzdltest.AlbumHiRes96).ID)
+			if tc.restrictAll {
+				if d.Status != downloads.Failed || d.Error != "Download failed: "+errStreamingAccess.Error() || d.TracksFailed != len(a.Tracks) {
+					t.Fatalf("%+v", d.Download)
+				}
+			} else if d.Status != downloads.Partial || d.TracksFailed != 1 {
+				t.Fatalf("%+v", d.Download)
+			}
+			if d.Tracks[0].Error != errStreamingAccess.Error() || !r.s.Health(bg).OK {
+				t.Fatalf("track error %q, health %+v", d.Tracks[0].Error, r.s.Health(bg))
+			}
+		})
 	}
 }
 

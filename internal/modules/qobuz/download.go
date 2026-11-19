@@ -64,9 +64,10 @@ func tool() string {
 
 // Reasons a download wrote nothing, which reach the download's error.
 var (
-	errNoFormat = errors.New("qobuz: this format isn't offered, and SHELF_QOBUZ_FALLBACK is off")
-	errDemo     = errors.New("qobuz: only a demo of this track is offered")
-	errNothing  = errors.New("qobuz: nothing was delivered")
+	errStreamingAccess = errors.New("the Qobuz account lacks streaming access. Check the subscription, then retry the download")
+	errNoFormat        = errors.New("qobuz: this format isn't offered, and SHELF_QOBUZ_FALLBACK is off")
+	errDemo            = errors.New("qobuz: only a demo of this track is offered")
+	errNothing         = errors.New("qobuz: nothing was delivered")
 )
 
 // Download fetches an album, track or playlist. An album or track ignores
@@ -128,6 +129,8 @@ func wroteNothing(out *qobuzdl.Result) error {
 			err = errNoFormat
 		case r.Skip == qobuzdl.SkipDemo:
 			err = errDemo
+		case allTracksRestricted(r):
+			continue
 		case r.Err != nil:
 			err = r.Err
 		default:
@@ -137,7 +140,20 @@ func wroteNothing(out *qobuzdl.Result) error {
 			why = err
 		}
 	}
+	if why == nil && len(out.Releases) > 0 {
+		return errStreamingAccess
+	}
 	return why
+}
+
+// Albums retain the individual causes on their tracks and only a count on the release.
+func allTracksRestricted(r *qobuzdl.Release) bool {
+	for _, t := range r.Tracks {
+		if t.Outcome != qobuzdl.OutcomeFailed || !errors.Is(t.Err, qobuzdl.ErrUserUncredentialed) {
+			return false
+		}
+	}
+	return len(r.Tracks) > 0
 }
 
 // progress is qobuz-dl-go's Progress over a Reporter. A track ends in the
@@ -197,7 +213,9 @@ func (p *progress) TrackEnd(t qobuzdl.TrackResult) {
 		return
 	}
 	err := cmp.Or(t.Err, errNothing)
-	if isExpired(err) {
+	if errors.Is(err, qobuzdl.ErrUserUncredentialed) {
+		err = errStreamingAccess
+	} else if isExpired(err) {
 		err = p.s.failed(err)
 	}
 	p.rep.Done(t.Position, source.TrackResult{Err: err})

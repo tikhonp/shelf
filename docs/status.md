@@ -9,6 +9,8 @@ shelf is finished and runs in production on blackberry. [vision.md](vision.md) s
 
 Every check in [manual-checklist.md](manual-checklist.md) passed in production, as its Last run says.
 
+The next deployment includes qobuz-dl-go v0.1.2 and reports missing Qobuz streaming access on failed downloads.
+
 ## Remotes
 
 | Repo | Origin | Notes |

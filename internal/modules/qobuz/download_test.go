@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	qobuzdl "github.com/tikhonp/qobuz-dl-go"
 	"github.com/tikhonp/qobuz-dl-go/qobuzdltest"
 	"github.com/tikhonp/shelf/internal/source"
 )
@@ -92,7 +93,7 @@ func TestDownloadResult(t *testing.T) {
 			t.Errorf("%s is missing", f)
 		}
 	}
-	if res.Tool != "qobuz-dl-go v0.1.1 porting qobuz-dl 2.5.9" {
+	if res.Tool != "qobuz-dl-go v0.1.2 porting qobuz-dl 2.5.9" {
 		t.Errorf("tool %q", res.Tool)
 	}
 	if res.TrackNoun != "" {
@@ -334,6 +335,17 @@ func TestEveryTrackFailedIsAnError(t *testing.T) {
 	}
 	if rec.last(7).Err == nil {
 		t.Error("the tracks did not fail")
+	}
+}
+
+func TestPreviewAloneDoesNotReportMissingStreamingAccess(t *testing.T) {
+	r := newRig(t).up()
+	for _, f := range formats {
+		r.srv.Sample(qobuzdltest.TrackSingle, f.id)
+	}
+	rec, _, err := r.download(source.KindTrack, qobuzdltest.TrackSingle, formatMax, false)
+	if !errors.Is(err, qobuzdl.ErrPreviewOnly) || !errors.Is(rec.last(1).Err, qobuzdl.ErrPreviewOnly) {
+		t.Fatalf("download error %v, track error %v", err, rec.last(1).Err)
 	}
 }
 
