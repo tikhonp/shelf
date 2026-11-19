@@ -52,45 +52,69 @@ func (m *Module) reconcileSavesThrough(ctx context.Context, lib libraryport.Port
 	return cursor, nil
 }
 
-func savedOp(op Op, base []BaseTrack, change libraryport.HistoryChange) bool {
+// A Save can write more than the proposal. Retain the physical keys that prove
+// this operation was written, including aliases the Library matched to its field.
+func savedOpKeys(op Op, base []BaseTrack, change libraryport.HistoryChange) map[string][]string {
 	if op.Type != "tag" || len(op.Tracks) == 0 {
-		return false
+		return nil
 	}
 	paths := map[int64]string{}
 	for _, b := range base {
 		paths[b.TrackID] = b.Path
 	}
+	out := map[string][]string{}
 	for _, target := range op.Tracks {
-		found := false
+		path := paths[target.TrackID]
 		for _, f := range change.Files {
-			if !f.Written || f.TrackID != target.TrackID || paths[target.TrackID] == "" || f.Path != paths[target.TrackID] {
+			if !f.Written || f.TrackID != target.TrackID || path == "" || f.Path != path {
 				continue
 			}
-			matched := false
-			touched := false
 			for _, tag := range f.Tags {
 				if op.Field != "" && slices.Contains(tag.Fields, op.Field) || op.TagKey != "" && strings.EqualFold(tag.Key, op.TagKey) {
 					if !slices.Equal(tag.Values, target.Values) {
-						return false
+						return nil
 					}
-					matched = true
 					for _, key := range f.Keys {
 						if key.Key == tag.Key {
-							touched = true
+							out[path] = append(out[path], key.Key)
 						}
 					}
 				}
 			}
-			if !matched || !touched {
-				return false
-			}
-			found = true
+			break
 		}
-		if !found {
-			return false
+		if len(out[path]) == 0 {
+			return nil
 		}
 	}
-	return true
+	return out
+}
+
+// Older Save snapshots contain the full library change. Keep them in History,
+// where they can be read with the other writes made by that Save.
+type savePreview struct {
+	libraryport.Preview
+	ProposalFieldsOnly bool `json:"proposal_fields_only"`
+}
+
+func savePreviewFor(change libraryport.HistoryChange, keys map[string]map[string]bool) savePreview {
+	p := emptyPreview()
+	p.Album = libraryport.PreviewAlbum{Folder: change.Folder, Title: change.Title, Artist: change.Artist}
+	for _, f := range change.Files {
+		if !f.Written || len(keys[f.Path]) == 0 {
+			continue
+		}
+		pf := libraryport.PreviewFile{TrackID: f.TrackID, Path: f.Path, Keys: []libraryport.KeyChange{}}
+		for _, key := range f.Keys {
+			if keys[f.Path][key.Key] {
+				pf.Keys = append(pf.Keys, key)
+			}
+		}
+		p.Files = append(p.Files, pf)
+	}
+	sum := sha256.Sum256([]byte(mustJSON(p)))
+	p.Digest = hex.EncodeToString(sum[:])
+	return savePreview{Preview: p, ProposalFieldsOnly: true}
 }
 
 func (m *Module) acceptSaved(ctx context.Context, change libraryport.HistoryChange) error {
@@ -145,23 +169,31 @@ func (m *Module) acceptSaved(ctx context.Context, change libraryport.HistoryChan
 			}
 			ops := []Op{}
 			ids := []string{}
+			keys := map[string]map[string]bool{}
 			for _, op := range r.ops() {
-				if rows[op.ID].Decision == "pending" && savedOp(op, r.base(), change) {
-					ops = append(ops, op)
-					ids = append(ids, op.ID)
+				if rows[op.ID].Decision != "pending" {
+					continue
+				}
+				matches := savedOpKeys(op, r.base(), change)
+				if matches == nil {
+					continue
+				}
+				ops = append(ops, op)
+				ids = append(ids, op.ID)
+				for path, names := range matches {
+					if keys[path] == nil {
+						keys[path] = map[string]bool{}
+					}
+					for _, key := range names {
+						keys[path][key] = true
+					}
 				}
 			}
 			if len(ids) == 0 {
 				return nil
 			}
 			slices.Sort(ids)
-			preview := emptyPreview()
-			preview.Album = libraryport.PreviewAlbum{Folder: change.Folder, Title: change.Title, Artist: change.Artist}
-			for _, f := range change.Files {
-				preview.Files = append(preview.Files, f.PreviewFile)
-			}
-			sum := sha256.Sum256([]byte(mustJSON(preview)))
-			preview.Digest = hex.EncodeToString(sum[:])
+			preview := savePreviewFor(change, keys)
 			result, err := tx.ExecContext(ctx, `INSERT INTO agents_acceptances(proposal_id,revision,op_ids,idem_key,digest,preview,change_id,author_id,author,created_at,via_save) VALUES(?,?,?,?,?,?,?,?,?,?,1)`, p.ID, p.Head, mustJSON(ids), "save:"+itoa(change.ID)+":proposal:"+itoa(p.ID), preview.Digest, mustJSON(preview), change.ID, change.AuthorID, change.Author, m.now())
 			if err != nil {
 				return err

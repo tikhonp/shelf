@@ -2,6 +2,7 @@ package agents
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -49,7 +50,7 @@ func TestSavedOpRequiresEveryWrittenTarget(t *testing.T) {
 			case "unrelated":
 				c.Files[0].Tags[0].Fields = []string{"mood"}
 			}
-			if got := savedOp(op, base, c); got != want {
+			if got := savedOpKeys(op, base, c) != nil; got != want {
 				t.Fatalf("got %v, want %v", got, want)
 			}
 		})
@@ -194,5 +195,50 @@ func TestHistoryCatchUpStopsAtCutoffAndHonorsDeadline(t *testing.T) {
 	<-r.m.reconcileGate
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("deadline: %v", err)
+	}
+}
+
+func TestSavePreviewIncludesOnlyWrittenProposalFields(t *testing.T) {
+	r := rig(t, true, nil)
+	id := create(t, r)
+	path := fmt.Sprintf("/api/inbox/proposals/%d", id)
+	want(t, r.call(t, "POST", path+"/decline", map[string]any{"revision": 1, "ops": []string{"mood"}}, false), 201)
+	c := savedChange()
+	c.Files[0].Tags = append(c.Files[0].Tags, libraryport.Tag{Key: "MOOD", Fields: []string{"mood"}, Values: []string{"Happy"}})
+	c.Files[0].Keys = append(c.Files[0].Keys, libraryport.KeyChange{Key: "MOOD", After: []string{"Happy"}})
+	c.Files[0].CoverAfter = "artwork"
+	c.Files = append(c.Files, libraryport.HistoryFile{PreviewFile: libraryport.PreviewFile{Path: "music/album/cover.jpg", CoverAfter: "artwork"}, Written: true})
+	if err := r.m.acceptSaved(context.Background(), c); err != nil {
+		t.Fatal(err)
+	}
+	read := func() *libraryport.Preview {
+		t.Helper()
+		res := r.call(t, "GET", path, nil, false)
+		want(t, res, 200)
+		var d struct {
+			Acceptances []struct {
+				Preview *libraryport.Preview
+				ViaSave bool `json:"via_save"`
+			}
+		}
+		if err := json.Unmarshal(res.Body.Bytes(), &d); err != nil {
+			t.Fatal(err)
+		}
+		if len(d.Acceptances) != 1 || !d.Acceptances[0].ViaSave {
+			t.Fatalf("Save acceptance: %+v", d)
+		}
+		return d.Acceptances[0].Preview
+	}
+	if p := read(); p == nil || len(p.Files) != 1 || len(p.Folder) != 0 || len(p.Files[0].Keys) != 1 ||
+		p.Files[0].Keys[0].Key != "GENRE" || p.Files[0].CoverAfter != "" {
+		t.Fatalf("Save preview: %+v", p)
+	}
+	legacy := emptyPreview()
+	legacy.Files = append(legacy.Files, c.Files[0].PreviewFile)
+	if _, err := r.app.DB.W.Exec(`UPDATE agents_acceptances SET preview=? WHERE proposal_id=?`, mustJSON(legacy), id); err != nil {
+		t.Fatal(err)
+	}
+	if p := read(); p != nil {
+		t.Fatalf("legacy Save leaked unrelated writes: %+v", p)
 	}
 }

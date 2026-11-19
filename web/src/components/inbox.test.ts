@@ -7,7 +7,7 @@ import App from '../App.vue'
 import { setAuthHandling } from '../api/client'
 import { createAppRouter } from '../router'
 import { useInbox } from '../stores/inbox'
-import { FakeEventSource, list, source, stubApi } from '../testing/api'
+import { FakeEventSource, list, Reply, source, stubApi } from '../testing/api'
 import InboxDetail from './InboxDetail.vue'
 import InboxDiff from './InboxDiff.vue'
 import InboxList from './InboxList.vue'
@@ -63,33 +63,35 @@ test('the title bar names the album, and labels and talkback use field names, ne
   expect(w.text()).toContain('Album artists')
   expect(w.text()).not.toContain('albumartists')
   expect(w.text()).toContain('Goes with Original date')
-  expect(w.text()).toContain('proposed Original date, Release date, Album artists')
+  await w.get('#tab-talkback').trigger('click')
+  expect(w.get('#panel-talkback').text()).toContain('proposed Original date, Release date, Album artists')
   expect(w.text()).not.toContain('That explains the proposal')
 })
 
 test('fields are rockers, and a required field sits above the fields that need it', async () => {
   const w = await openDetail()
-  const names = w.findAll('.ib-op .rocker .rk-name').map((n) => n.text())
-  expect(names).toEqual(['Original date', 'Release date', 'Album artists'])
+  const names = w.findAll('.ib-op [role="switch"]').map((n) => n.attributes('aria-label'))
+  expect(names).toEqual(['Album artists', 'Original date', 'Release date'])
   expect(w.findAll('.ib-op input[type="checkbox"]')).toHaveLength(0)
   expect(w.find('.ib-op .rk-state').text()).toBe('All 6 tracks')
 })
 
 test('switching off a required field switches off what needs it and says so in field names', async () => {
   const w = await openDetail()
-  await w.findAll('.ib-op .rocker')[0]!.trigger('click')
+  await w.get('.ib-op [aria-label="Original date"]').trigger('click')
   await flushPromises()
   expect(w.find('.ib-moved').text()).toBe('Release date goes with Original date, so it switched off too.')
-  expect(w.findAll('.ib-op .rocker').map((r) => r.attributes('aria-checked'))).toEqual(['false', 'false', 'true'])
+  expect(w.findAll('.ib-op .rocker').map((r) => r.attributes('aria-checked'))).toEqual(['true', 'false', 'false'])
 })
 
 test("a server refusal for a missing dependency is worded with the fields' names", async () => {
   const w = await openDetail({ '/api/inbox/proposals/4/preview': { preview: null, refusal: { error: 'operation releasedate requires originaldate', reason: 'refused' }, missing: [] } })
-  expect(w.find('.bad-text').text()).toBe("Release date goes with Original date, which is no longer pending, so it can't be accepted.")
+  expect(w.find('.bad-text').text()).toBe("Release date goes with Original date, which can no longer be accepted with it.")
 })
 
 test('evidence is tape, and only a web address opens', async () => {
   const w = await openDetail()
+  await w.get('#tab-brief').trigger('click')
   const links = w.findAll('.ib-tapes a')
   expect(links).toHaveLength(1)
   expect(links[0]!.attributes('href')).toBe('https://musicbrainz.org/release/x')
@@ -105,6 +107,7 @@ test('evidence that names a field uses the editor word, not the field ID', async
   const d = detail()
   d.current.evidence = [{ kind: 'suggestion', source: 'musicbrainz', field: 'originaldate' }, { kind: 'suggestion', source: 'file', key: 'ORIGINALYEAR' }]
   const w = await openDetail({ '/api/inbox/proposals/4': d })
+  await w.get('#tab-brief').trigger('click')
   const tapes = w.findAll('.ib-tapes .sug-v').map((t) => t.text())
   expect(tapes).toEqual(['Original date', 'ORIGINALYEAR'])
 })
@@ -134,6 +137,7 @@ test('one reply box: Send comments, or requests changes with the rocker on', asy
 test('the review bar counts what Accept writes, and the displays count fields, files and tag writes', async () => {
   const w = await openDetail()
   const bar = w.find('[aria-label="Review"]')
+  await w.get('#tab-files').trigger('click')
   expect(bar.text()).toContain('3 fields · 6 files')
   expect(bar.text()).not.toContain('Accept writes')
   expect(bar.text()).toContain('Accept 3 fields')
@@ -149,12 +153,23 @@ test('the diff has one row per tag while every file changes alike, and Show each
   expect(rows).toHaveLength(18)
 })
 
-test('warnings are confirmed with rockers', async () => {
-  const w = mount(InboxDiff, { props: { preview: sameOnSix(), title: 'x', confirm: [] } })
-  const r = w.find('.ib-warn .rocker')
-  expect(r.attributes('role')).toBe('switch')
-  await r.trigger('click')
-  expect(w.emitted('toggle')?.[0]).toEqual(['reissue'])
+test('the rename warning is confirmed from the review bar on either tab or layout', async () => {
+  for (const phone of [false, true]) {
+    const preview = { ...sameOnSix(), warnings: [{ kind: 'album_artist', message: 'This renames the album artist in Navidrome.' }] }
+    const over = { '/api/inbox/proposals/4/preview': { preview, refusal: null, missing: ['album_artist'] } }
+    const w = phone ? await openOnPhone(over) : await openDetail(over)
+    const bar = w.get('[aria-label="Review"]')
+    const rocker = bar.get('.ib-warn [role="switch"]')
+    expect(bar.get('.sun').attributes('disabled')).toBeDefined()
+    expect(rocker.attributes('aria-checked')).toBe('false')
+    await w.get('#tab-brief').trigger('click')
+    expect(rocker.isVisible()).toBe(true)
+    await rocker.trigger('click')
+    expect(rocker.attributes('aria-checked')).toBe('true')
+    expect(bar.get('.sun').attributes('disabled')).toBeUndefined()
+    w.unmount()
+    useInbox().close()
+  }
 })
 
 const summary = (over: Partial<ProposalSummary> = {}): ProposalSummary => ({
@@ -243,6 +258,7 @@ test('evidence without a label shows its URL and never links non-web schemes', a
     { kind: 'link', text: 'https://example.com/label-only' },
   ]
   const w = await openDetail({ '/api/inbox/proposals/4': d })
+  await w.get('#tab-brief').trigger('click')
   const links = w.findAll('.ib-tapes a')
   expect(links).toHaveLength(1)
   expect(links[0]!.attributes('href')).toBe('http://example.com/credits')
@@ -261,9 +277,12 @@ const six = (v: string[]) => Object.fromEntries([1, 2, 3, 4, 5, 6].map((t) => [S
 test('each proposed value says what the files hold now', async () => {
   const before = { originaldate: six([]), releasedate: six(['2012']), albumartists: { ...six(['Kraftwerk']), 3: ['Ralf & Florian'] } }
   const w = await openDetail({ '/api/inbox/proposals/4': withBefore(before) })
-  expect(w.findAll('.ib-op .lf-was').map((e) => e.text())).toEqual(['Was empty', 'Was 2012', 'Was different on each track'])
-  await w.findAll('.ib-op')[2]!.findAll('button').find((b) => b.text() === 'Per track')!.trigger('click')
-  const perTrack = w.findAll('.ib-op')[2]!.findAll('.lf-was').map((e) => e.text())
+  expect(w.findAll('.ib-op .lf-was').map((e) => e.text())).toEqual(['Was different on each track', 'Was empty', 'Was 2012'])
+  const row = w.get('[data-op="albumartists"]')
+  await row.get('.ib-label').trigger('click')
+  await row.findAll('button').find((b) => b.text() === 'Per track')!.trigger('click')
+  await row.findAll('button').find((b) => b.text() === 'Show 1 more track')!.trigger('click')
+  const perTrack = row.findAll('.ib-op-val .lf-was').map((e) => e.text())
   expect(perTrack).toHaveLength(6)
   expect(perTrack[2]).toBe('Was Ralf & Florian')
 })
@@ -278,9 +297,9 @@ test('a patch cable joins the fields requires links, named for screen readers', 
   const cable = w.find('.ib-bank svg.ib-cable')
   expect(cable.attributes('role')).toBe('img')
   expect(cable.attributes('aria-label')).toBe('Original date and Release date go together')
-  expect(w.find('.ib-bank').classes()).toContain('cabled')
+  expect(w.get('#ib-bank-release').classes()).toContain('cabled')
   expect(w.find('.ib-plug').exists()).toBe(false)
-  expect(w.findAll('.ib-op .sr').map((s) => s.text())).toEqual(['Goes with Original date. They switch on and off together.'])
+  expect(w.findAll('.ib-op .sr').map((s) => s.text())).toEqual(['Goes with Release date. They switch on and off together.', 'Goes with Original date. They switch on and off together.'])
 })
 
 test('a proposal with no requires draws no cable', async () => {
@@ -309,17 +328,17 @@ test('on the phone the review bar is a slot above the dock, outside the proposal
   const w = await openOnPhone()
   const slot = w.find('.stack > section.win.slot[aria-label="Review"]')
   expect(slot.text()).toContain('3 fields · 6 files')
-  expect(slot.findAll('button').map((b) => b.text())).toEqual(['Accept 3'])
+  expect(slot.findAll('button.key').map((b) => b.text())).toEqual(['Accept 3'])
   expect(w.find('.ib-detail [aria-label="Review"]').exists()).toBe(false)
   // Decline shows once a field is off, and declines the fields left off.
-  await w.findAll('.ib-op .rocker')[2]!.trigger('click')
+  await w.get('.ib-op [aria-label="Album artists"]').trigger('click')
   await flushPromises()
-  expect(w.find('.stack > section.win.slot').findAll('button').map((b) => b.text())).toEqual(['Decline 1', 'Accept 2'])
+  expect(w.find('.stack > section.win.slot').findAll('button.key').map((b) => b.text())).toEqual(['Decline 1', 'Accept 2'])
 })
 
 test('on the phone a field row shows the new value, and pressing its label opens the field', async () => {
   const w = await openOnPhone()
-  const row = w.findAll('.ib-op')[0]!
+  const row = w.get('[data-op="originaldate"]')
   expect(row.find('.rocker').attributes('aria-label')).toBe('Original date')
   expect(row.find('.ib-label .rk-state').text()).toBe('x, was empty')
   expect(row.find('.ib-op-val').exists()).toBe(false)
@@ -336,7 +355,7 @@ test('after Accept the bar shows the outcome, the files and the change in Histor
   await flushPromises()
   const out = w.find('[aria-label="Review"] .ib-out')
   expect(out.find('.pill').text()).toBe('Written')
-  expect(out.text()).toContain('6 of 6 files')
+  expect(out.text()).toContain('6 of 6 files written')
   expect(out.text()).toContain('Change 31 in History')
 })
 
@@ -412,7 +431,7 @@ test('help notes sit on names and keys, never at rest, and open 350ms after the 
   try {
     const w = await openDetail()
     const tips = () => w.findAll('.has-tip').map((t) => t.text())
-    expect(tips()).toEqual(expect.arrayContaining(['Open album', 'revision 1', '86%', 'Not sure:', 'Release credits', 'Release date', 'Original date', 'TAG WRITES', 'Talkback', 'Ask for changes', 'Accept 3 fields']))
+    expect(tips()).toEqual(expect.arrayContaining(['Open album', 'revision 1', '86%', 'Not sure', 'Release credits', 'Release date', 'Original date', 'TAG WRITES', 'Talkback', 'Ask for changes', 'Accept 3 fields']))
     // Only the first tape carries the evidence note.
     expect(tips().filter((t) => t === 'Booklet says 1974')).toEqual([])
     expect(w.find('.ib-bank > .has-tip svg.ib-cable').exists()).toBe(true)
@@ -468,4 +487,225 @@ test('fields the files already hold are hidden, stay on, and count nowhere', asy
   inbox.selectAll(false)
   expect(inbox.selected).toEqual(['albumartists'])
   expect([...inbox.rest].sort()).toEqual(['originaldate', 'releasedate'])
+})
+
+test('Fields opens first and a collapsed group keeps its switch and inline editor state', async () => {
+  const w = await openDetail()
+  expect(w.get('#tab-fields').attributes('aria-selected')).toBe('true')
+  expect(w.get('#panel-fields').isVisible()).toBe(true)
+  expect(w.get('#panel-files').attributes('style')).toContain('display: none')
+  expect(w.get('#panel-brief').attributes('style')).toContain('display: none')
+  expect(w.get('#panel-talkback').attributes('style')).toContain('display: none')
+  const fold = w.get('#ib-group-release')
+  const group = w.get('[aria-labelledby="ib-group-release"]')
+  const row = group.get('[data-op="originaldate"]')
+  expect(row.find('input').exists()).toBe(false)
+  await row.get('.ib-label').trigger('click')
+  await fold.trigger('click')
+  expect(fold.attributes('aria-expanded')).toBe('false')
+  expect(group.get('#ib-bank-release').attributes('style')).toContain('display: none')
+  const toggle = group.get('.lib-h [role="switch"]')
+  await toggle.trigger('click')
+  expect(toggle.isVisible()).toBe(true)
+  expect(toggle.attributes('aria-checked')).toBe('false')
+  expect(w.get('[data-op="albumartists"] [role="switch"]').attributes('aria-checked')).toBe('true')
+  await fold.trigger('click')
+  expect(row.get('input').isVisible()).toBe(true)
+  await w.get('#tab-fields').trigger('keydown', { key: 'ArrowRight' })
+  expect(w.get('#tab-brief').attributes('aria-selected')).toBe('true')
+  expect(w.get('#panel-brief').isVisible()).toBe(true)
+  expect(w.get('[aria-label="Review"]').isVisible()).toBe(true)
+})
+
+test('Files uses the selected physical preview and counts embedded and folder artwork separately', async () => {
+  const d = detail()
+  d.current.ops.push({ id: 'cover', type: 'cover', action: 'replace', image: 'new' })
+  d.ops.push({ id: 'cover', type: 'cover', decision: 'pending' })
+  d.summary.pending++
+  const preview = {
+    ...sameOnSix(),
+    files: [{ ...file(1, []), cover_before: 'old', cover_after: 'new' }],
+    folder: [{ path: 'a/cover.jpg', before: 'small', after: 'large' }],
+    warnings: [],
+  }
+  const w = await openDetail({ '/api/inbox/proposals/4': d, '/api/inbox/proposals/4/preview': { preview, refusal: null, missing: [] } })
+  await w.get('#tab-files').trigger('click')
+  const files = w.get('#panel-files')
+  expect(files.get('.ib-lcds').text()).toMatch(/4\s*FIELDS1\s*FILE0\s*TAG WRITES/)
+  expect(files.text()).not.toContain('GENRE')
+  expect(files.get('[aria-label="Embedded artwork"]').text()).toContain('01.flac')
+  expect(files.get('[aria-label="Folder artwork"]').text()).toContain('cover.jpg')
+  expect(w.get('[aria-label="Review"]').text()).toContain('1 folder artwork change')
+})
+
+test('a changed preview blocks phone acceptance until the reviewer acknowledges the updated Files tab', async () => {
+  const updated = { ...sameOnSix(), files: [file(1, [{ key: 'DATE', before: ['2012'], after: ['2023'] }])], warnings: [], digest: 'changed' }
+  const seen = new Set<string>()
+  const w = await openOnPhone({
+    '/api/inbox/proposals/4/preview': { preview: { ...sameOnSix(), warnings: [] }, refusal: null, missing: [] },
+    '/api/inbox/proposals/4/accept': (_url: string, init?: RequestInit) => {
+      const { digest } = JSON.parse(init!.body as string)
+      seen.add(digest)
+      return new Reply(409, { code: 'preview_changed', preview: updated })
+    },
+  })
+  const review = w.get('[aria-label="Review"]')
+  await review.get('.sun').trigger('click')
+  await flushPromises()
+  expect(review.get('.sun').attributes('disabled')).toBeDefined()
+  expect(seen).toEqual(new Set(['d']))
+  await review.get('button.link').trigger('click')
+  expect(w.get('#tab-files').attributes('aria-selected')).toBe('true')
+  const files = w.get('#panel-files')
+  expect(files.text()).toContain('2023')
+  await files.findAll('button').find((b) => b.text() === 'I reviewed the updated changes')!.trigger('click')
+  expect(review.get('.sun').attributes('disabled')).toBeUndefined()
+  await review.get('.sun').trigger('click')
+  await flushPromises()
+  expect(seen).toEqual(new Set(['d', 'changed']))
+})
+
+test('a phone editor preserves ordered per-track values, artwork scope, discard and saving a revision', async () => {
+  const d = detail()
+  d.current.ops.push({ id: 'cover', type: 'cover', action: 'replace', image: 'new' })
+  d.ops.push({ id: 'cover', type: 'cover', decision: 'pending' })
+  d.summary.pending++
+  const submitted: unknown[] = []
+  const w = await openOnPhone({
+    '/api/inbox/proposals/4': d,
+    '/api/inbox/proposals/4/revisions': (_url: string, init?: RequestInit) => {
+      submitted.push(JSON.parse(init!.body as string))
+      return { ...d, head: 2 }
+    },
+  })
+  const row = w.get('[data-op="albumartists"]')
+  await row.get('.ib-label').trigger('click')
+  await row.findAll('button').find((b) => b.text() === 'Per track')!.trigger('click')
+  const track = row.get('.ib-track')
+  await track.get('input').setValue('A, B')
+  await track.get('.lf-add').trigger('click')
+  await track.findAll('input')[1]!.setValue('C; D')
+  await row.findAll('.ib-track')[1]!.get('button.link').trigger('click')
+  const cover = w.get('[data-op="cover"]')
+  await cover.get('.ib-label').trigger('click')
+  const scope = cover.get('.ib-op-val [role="switch"]')
+  await scope.trigger('click')
+  await w.get('#tab-brief').trigger('click')
+  expect(w.get('[aria-label="Unsaved values"]').isVisible()).toBe(true)
+  await w.get('[aria-label="Unsaved values"] button.key').trigger('click')
+  await w.get('#tab-fields').trigger('click')
+  expect((track.get('input').element as HTMLInputElement).value).toBe('x')
+  expect(scope.attributes('aria-checked')).toBe('false')
+  await track.get('input').setValue('A, B')
+  await track.get('.lf-add').trigger('click')
+  await track.findAll('input')[1]!.setValue('C; D')
+  await row.findAll('.ib-track')[1]!.get('button.link').trigger('click')
+  await scope.trigger('click')
+  await w.get('[aria-label="Unsaved values"] .sun').trigger('click')
+  await flushPromises()
+  expect(submitted).toEqual([{ parent_revision: 1, ops: [
+    { id: 'albumartists', tracks: d.current.ops[1]!.type === 'tag' ? d.current.ops[1]!.tracks.filter((t) => t.track_id !== 2).map((t) => ({ ...t, values: t.track_id === 1 ? ['A, B', 'C; D'] : t.values })) : [] },
+    { id: 'cover', every_track: true },
+  ] }])
+  expect(w.get('[aria-label="Review"]').text()).toContain('Saved as revision 2')
+})
+
+test('a subset retry keeps untouched accepted fields retryable, records only the completed subset, and retains its original failure in Talkback', async () => {
+  const d = detail()
+  d.state = 'reviewed'
+  d.summary = { pending: 0, accepted: 2, declined: 1, superseded: 0 }
+  d.ops = [
+    { id: 'originaldate', decision: 'accepted', type: 'tag', acceptance: 8 },
+    { id: 'releasedate', decision: 'accepted', type: 'tag', acceptance: 8 },
+    { id: 'albumartists', decision: 'declined', type: 'tag' },
+  ]
+  const done = { ...sameOnSix(), files: [file(1, [{ key: 'ORIGINALDATE', before: [], after: ['1974'] }])], warnings: [], digest: 'written' }
+  d.acceptances = [{ id: 8, revision: 1, ops: ['originaldate', 'releasedate'], change_id: 8, author: 'alice', created_at: '2026-11-09T10:00:00Z', preview: sameOnSix(), outcome: { state: 'failed', files: 6, written: 0, error: 'The source file changed.' } }]
+  const accepted = { id: 9, revision: 1, ops: ['originaldate'], change_id: 9, author: 'alice', created_at: '2026-11-09T11:00:00Z', preview: done, outcome: { state: 'done' as const, files: 1, written: 1 } }
+  const tried: string[][] = []
+  let detailAfter = d
+  const w = await openDetail({
+    '/api/inbox/proposals/4': () => detailAfter,
+    '/api/inbox/proposals/4/preview': { preview: { ...done, digest: 'planned' }, refusal: null, missing: [] },
+    '/api/inbox/proposals/4/accept': (_url: string, init?: RequestInit) => {
+      tried.push(JSON.parse(init!.body as string).ops)
+      detailAfter = { ...d, ops: d.ops.map((o) => o.id === 'originaldate' ? { ...o, acceptance: 9 } : o), acceptances: [...d.acceptances, accepted] }
+      return { acceptance: accepted, change: {} }
+    },
+  })
+  await w.get('[data-op="releasedate"] [role="switch"]').trigger('click')
+  await flushPromises()
+  expect(w.find('.ib-review-actions').text()).toBe('Accept again 1 field')
+  await w.get('.ib-review-actions .sun').trigger('click')
+  await flushPromises()
+  expect(tried).toEqual([['originaldate']])
+  await w.get('#panel-files select').setValue('9')
+  const files = w.get('#panel-files')
+  expect(files.text()).toContain('What Accept wrote')
+  expect(files.text()).toContain('ORIGINALDATE')
+  expect(files.text()).not.toContain('GENRE')
+  await w.get('#tab-fields').trigger('click')
+  expect(useInbox().detail?.ops.find((o) => o.id === 'releasedate')).toMatchObject({ decision: 'accepted', acceptance: 8 })
+  const remaining = w.get('[data-op="releasedate"] [role="switch"]')
+  expect(remaining.isVisible()).toBe(true)
+  await remaining.trigger('click')
+  await flushPromises()
+  expect(w.get('.ib-review-actions').text()).toBe('Accept again 1 field')
+  expect(useInbox().declineCount).toBe(0)
+  await w.get('#tab-talkback').trigger('click')
+  expect(w.get('#panel-talkback').text()).toContain('The source file changed.')
+  expect(w.get('#panel-talkback').text()).toContain('0 of 6 files written')
+})
+
+test('groups switch dependencies across headers and a linked field opens its collapsed group', async () => {
+  const d = detail()
+  d.current.ops[2]!.requires = ['albumartists']
+  const w = await openDetail({ '/api/inbox/proposals/4': d })
+  const artists = w.get('#ib-group-artists')
+  await artists.trigger('click')
+  await w.get('[aria-label="All on in Artists"]').trigger('click')
+  expect(useInbox().shown).toEqual([])
+  expect(w.get('.ib-moved').text()).toContain('Release date, Original date go with Artists')
+  await w.get('[aria-label="All on in Release"]').trigger('click')
+  expect(useInbox().shown).toHaveLength(3)
+  const original = w.get('[data-op="originaldate"]')
+  await original.get('.ib-label').trigger('click')
+  await original.get('.ib-op-val button.link').trigger('click')
+  await flushPromises()
+  expect(artists.attributes('aria-expanded')).toBe('true')
+  expect(w.get('[data-op="albumartists"] .ib-label').attributes('aria-expanded')).toBe('true')
+})
+
+test('the phone decline form submits only pending fields left off and keeps the reason', async () => {
+  const requests: unknown[] = []
+  const w = await openOnPhone({
+    '/api/inbox/proposals/4/decline': (_url: string, init?: RequestInit) => {
+      requests.push(JSON.parse(init!.body as string))
+      return {}
+    },
+  })
+  await w.get('[data-op="albumartists"] [role="switch"]').trigger('click')
+  await flushPromises()
+  const bar = w.get('.stack > section.win.slot[aria-label="Review"]')
+  await bar.findAll('button.key').find((b) => b.text() === 'Decline 1')!.trigger('click')
+  await bar.get('input').setValue('Use the original credit.')
+  await bar.get('.sun').trigger('click')
+  await flushPromises()
+  expect(requests).toEqual([{ revision: 1, ops: ['albumartists'], reason: 'Use the original credit.' }])
+  expect(bar.find('input').exists()).toBe(false)
+})
+
+test('Files can show the proposal fields written by a partial library Save', async () => {
+  const d = detail()
+  d.state = 'reviewed'
+  d.ops = d.ops.map((o) => ({ ...o, decision: o.id === 'originaldate' ? 'accepted' : 'declined' }))
+  d.summary = { pending: 0, accepted: 1, declined: 2, superseded: 0 }
+  const preview = { ...sameOnSix(), files: [file(1, [{ key: 'ORIGINALDATE', before: [], after: ['1974'] }])], warnings: [] }
+  d.acceptances = [{ id: 8, revision: 1, ops: ['originaldate'], change_id: 8, author: 'alice', created_at: '2026-11-09T10:00:00Z', preview, outcome: { state: 'partial', files: 2, written: 1 }, via_save: true }]
+  const w = await openDetail({ '/api/inbox/proposals/4': d })
+  await w.get('#tab-files').trigger('click')
+  const files = w.get('#panel-files')
+  expect(files.text()).toContain('Proposal fields written by Save')
+  expect(files.text()).toContain('ORIGINALDATE')
+  expect(files.text()).not.toContain('GENRE')
 })

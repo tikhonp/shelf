@@ -116,7 +116,19 @@ func (m *Module) detail(ctx context.Context, id int64, base string, live bool) (
 	}
 	acceptances := []map[string]any{}
 	for _, a := range as {
-		acceptances = append(acceptances, acceptanceJSON(a))
+		record := acceptanceJSON(a)
+		if live {
+			record["via_save"] = a.ViaSave
+			if !a.ViaSave {
+				record["preview"] = json.RawMessage(a.Preview)
+			} else {
+				var preview savePreview
+				if json.Unmarshal([]byte(a.Preview), &preview) == nil && preview.ProposalFieldsOnly {
+					record["preview"] = preview.Preview
+				}
+			}
+		}
+		acceptances = append(acceptances, record)
 	}
 	events := []eventRow{}
 	if err = m.db.R.SelectContext(ctx, &events, `SELECT `+eventCols+` FROM agents_events WHERE proposal_id=? ORDER BY id`, id); err != nil {

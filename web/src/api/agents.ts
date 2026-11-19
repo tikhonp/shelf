@@ -171,10 +171,13 @@ export interface Acceptance {
   author: string
   created_at: string
   outcome: Outcome
+  preview?: Preview
+  via_save?: boolean
 }
 
 export interface ProposalEvent {
   id: number
+  acceptance_id?: number | null
   kind: string
   actor_kind: 'user' | 'agent' | 'system'
   actor: string

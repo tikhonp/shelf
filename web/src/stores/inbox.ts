@@ -21,6 +21,7 @@ import {
   type Warning,
 } from '../api/agents'
 import { ApiError, errorText, get, post } from '../api/client'
+import { previewCounts } from '../lib/inbox'
 
 export type StateFilter = 'pending' | 'reviewed' | 'withdrawn' | 'all'
 export interface Filters {
@@ -74,7 +75,7 @@ const typed = (values: string[]) => values.filter((v) => v.trim() !== '')
 export function retryable(d: ProposalDetail, op: OpDecision): boolean {
   if (op.decision !== 'accepted' || op.acceptance == null) return false
   const a = d.acceptances.find((x) => x.id === op.acceptance)
-  return a?.outcome.state === 'failed' && (a.outcome.written ?? 0) === 0
+  return a?.outcome.state === 'failed' && !a.via_save && !a.outcome.expired && !a.outcome.undone && (a.outcome.written ?? 0) === 0
 }
 
 // held is a pending field the files already hold. The Inbox hides it and counts it nowhere, but keeps it on, so Accept
@@ -206,12 +207,15 @@ export const useInbox = defineStore('inbox', () => {
   const detailId = ref<number | null>(null)
   const detail = ref<ProposalDetail | null>(null)
   const detailLoading = ref(false)
+  const detailRefreshing = ref(false)
   const detailError = ref('')
   const selected = ref<string[]>([])
   const drafts = ref<Record<string, Draft>>({})
   const selection = ref<PreviewAnswer | null>(null)
   // selectionKey says which revision and ops the selection preview answers for.
   const selectionKey = ref('')
+  const reviewRequired = ref(false)
+  const lastAccepted = ref<AcceptAnswer | null>(null)
   const previewing = ref(false)
   const confirm = ref<string[]>([])
   const cascade = ref<Cascade | null>(null)
@@ -224,18 +228,25 @@ export const useInbox = defineStore('inbox', () => {
   let savingReview: number | null = null
   let detailSeq = 0
   let previewSeq = 0
+  let recoveringKey = ''
+  let lastPreview: { key: string; digest: string } | null = null
   // attempt keeps the request ID of an acceptance whose answer never came, so pressing Accept again retries it.
   let attempt: { key: string; id: string } | null = null
 
   function reset() {
     ++reviewSeq
     ++previewSeq
+    recoveringKey = ''
+    lastPreview = null
     previewing.value = false
+    detailRefreshing.value = false
     detail.value = null
     selected.value = []
     drafts.value = {}
     selection.value = null
     selectionKey.value = ''
+    reviewRequired.value = false
+    lastAccepted.value = null
     confirm.value = []
     cascade.value = null
     error.value = ''
@@ -263,18 +274,28 @@ export const useInbox = defineStore('inbox', () => {
     const pid = detailId.value
     if (pid === null) return
     const seq = ++detailSeq
+    const review = reviewSeq
     detailLoading.value = !detail.value
+    detailRefreshing.value = true
     try {
       const d = await get<ProposalDetail>(`/api/inbox/proposals/${pid}`)
-      if (seq !== detailSeq) return
+      if (seq !== detailSeq || review !== reviewSeq) return
       take(d)
       detailError.value = ''
     } catch (err) {
       // A failed reload keeps what the page shows and the reviewer's values.
       if (seq === detailSeq) detailError.value = errorText(err)
     } finally {
-      if (seq === detailSeq) detailLoading.value = false
+      if (seq === detailSeq) {
+        detailLoading.value = false
+        detailRefreshing.value = false
+      }
     }
+  }
+
+  function checkFiles() {
+    error.value = ''
+    return loadDetail()
   }
 
   // take shows a detail and keeps the reviewer's work that still applies to it.
@@ -282,7 +303,7 @@ export const useInbox = defineStore('inbox', () => {
     const first = detail.value === null || detail.value.id !== d.id
     detail.value = d
     if (first) {
-      selected.value = d.ops.filter((o) => o.decision === 'pending' && d.state !== 'withdrawn' && d.current.ops.some((c) => c.id === o.id)).map((o) => o.id)
+      selected.value = d.ops.filter((o) => selectable(d, o.id)).map((o) => o.id)
       headSeen.value = d.head
     } else {
       selected.value = selected.value.filter((o) => selectable(d, o))
@@ -316,20 +337,27 @@ export const useInbox = defineStore('inbox', () => {
     }
     const ops = sorted(selected.value)
     const key = keyOf(d.head, ops)
-    if (!force && key === selectionKey.value && selection.value) return
+    if (!force && !previewing.value && key === selectionKey.value && selection.value) return
     const seq = ++previewSeq
     previewing.value = true
     try {
       const answer = await post<PreviewAnswer>(`/api/inbox/proposals/${d.id}/preview`, { revision: d.head, ops })
       if (seq !== previewSeq) return
+      recoveringKey = ''
       setSelection(answer, key)
     } catch (err) {
       if (seq !== previewSeq) return
       const body = err instanceof ApiError ? err.body : undefined
       const code = errorCode(body)
-      if (code === 'stale_revision') {
-        error.value = 'The proposal has a new revision. It shows now; check it before you accept.'
-        void loadDetail()
+      if (code === 'stale_revision' || code === 'decided_op') {
+        selection.value = null
+        selectionKey.value = ''
+        reviewRequired.value = true
+        error.value = code === 'stale_revision' ? 'The proposal has a new revision. Check it before accepting.' : 'One of the selected fields has already been decided.'
+        if (recoveringKey !== key) {
+          recoveringKey = key
+          void loadDetail()
+        }
         return
       }
       if (err instanceof ApiError && err.status === 422) {
@@ -347,36 +375,58 @@ export const useInbox = defineStore('inbox', () => {
 
   function setSelection(answer: PreviewAnswer, key: string) {
     const previous = selection.value?.preview?.warnings ?? []
+    const digest = answer.refusal ? undefined : answer.preview?.digest
+    const changed = digest !== undefined && lastPreview?.key === key && lastPreview.digest !== digest
+    if (changed) reviewRequired.value = true
+    if (digest !== undefined) lastPreview = { key, digest }
     const unchanged = new Set((answer.preview?.warnings ?? []).filter((w) => previous.some((p) => p.kind === w.kind && p.message === w.message)).map((w) => w.kind))
     selection.value = { preview: answer.preview ?? null, refusal: answer.refusal ?? null, missing: answer.missing ?? [] }
     selectionKey.value = key
-    confirm.value = confirm.value.filter((k) => unchanged.has(k))
+    confirm.value = changed ? [] : confirm.value.filter((k) => unchanged.has(k))
   }
 
-  // toggle keeps the selection whole: switching a field on switches on what it requires, and switching it off switches off what requires it.
   function toggle(opId: string) {
-    const d = detail.value
-    if (!d || !selectable(d, opId)) return
-    const ops = d.current.ops
-    const on = !selected.value.includes(opId)
-    let moved: string[]
-    if (on) {
-      moved = needs(ops, opId).filter((x) => selectable(d, x) && !selected.value.includes(x))
-      selected.value = [...selected.value, opId, ...moved]
-    } else {
-      moved = selected.value.filter((x) => x !== opId && needs(ops, x).includes(opId))
-      selected.value = selected.value.filter((x) => x !== opId && !moved.includes(x))
-    }
-    cascade.value = moved.length ? { op: opId, on, moved } : null
-    error.value = ''
-    void refreshPreview()
+    switchFields([opId], !selected.value.includes(opId), opId)
   }
 
   function selectAll(on: boolean) {
     const d = detail.value
     if (!d) return
-    selected.value = d.ops.filter((o) => o.decision === 'pending' && selectable(d, o.id) && (on || held(d, o.id))).map((o) => o.id)
+    if (on) {
+      switchFields(d.current.ops.map((o) => o.id), true)
+      return
+    }
+    selected.value = d.ops.filter((o) => selectable(d, o.id) && held(d, o.id)).map((o) => o.id)
     cascade.value = null
+    error.value = ''
+    void refreshPreview()
+  }
+
+  // Switch the whole group before asking for a preview, including dependencies in other groups.
+  function switchFields(ids: string[], on: boolean, label?: string) {
+    const d = detail.value
+    if (!d) return
+    const targets = new Set(ids.filter((id) => selectable(d, id) && (on || !held(d, id))))
+    const previous = new Set(selected.value)
+    const next = new Set(previous)
+    const required = new Set(on ? [...targets].flatMap((id) => needs(d.current.ops, id)) : [])
+    const moved: string[] = []
+    for (const id of d.current.ops.map((o) => o.id)) {
+      if (!selectable(d, id)) continue
+      const linked = on ? required.has(id) : needs(d.current.ops, id).some((dep) => targets.has(dep))
+      if (!targets.has(id) && !linked) continue
+      if (on) next.add(id)
+      else next.delete(id)
+      if (!targets.has(id) && previous.has(id) !== on) moved.push(id)
+    }
+    if (on) {
+      for (const o of d.current.ops) {
+        if (held(d, o.id) && needs(d.current.ops, o.id).every((id) => !selectable(d, id) || next.has(id))) next.add(o.id)
+      }
+    }
+    selected.value = [...next]
+    cascade.value = label && moved.length ? { op: label, on, moved } : null
+    error.value = ''
     void refreshPreview()
   }
 
@@ -503,24 +553,27 @@ export const useInbox = defineStore('inbox', () => {
   }
 
   const current = computed(() => (detail.value ? keyOf(detail.value.head, selected.value) : ''))
+  const currentSelection = computed(() => selectionKey.value === current.value ? selection.value : null)
+  const preview = computed(() => !previewing.value && !detailRefreshing.value && !detailError.value && !currentSelection.value?.refusal ? currentSelection.value?.preview ?? null : null)
   // shown is the selected fields the reviewer sees, without the held ones.
   const shown = computed(() => {
     const d = detail.value
     return d ? selected.value.filter((o) => !held(d, o)) : []
   })
-  const warnings = computed<Warning[]>(() => selection.value?.preview?.warnings ?? [])
+  const warnings = computed<Warning[]>(() => preview.value?.warnings ?? [])
   const confirmed = computed(() => warnings.value.every((w) => confirm.value.includes(w.kind)))
+  function reviewPreview(digest: string) {
+    if (!dirty.value && preview.value?.digest === digest) reviewRequired.value = false
+  }
   const canAccept = computed(
     () =>
       !!detail.value &&
       detail.value.state !== 'withdrawn' &&
       shown.value.length > 0 &&
-      !!selection.value?.preview &&
-      !selection.value.refusal &&
-      selectionKey.value === current.value &&
+      !!preview.value &&
+      !reviewRequired.value &&
       confirmed.value &&
       !dirty.value &&
-      !previewing.value &&
       !busy.value,
   )
   const pendingSelected = computed(() => {
@@ -528,14 +581,11 @@ export const useInbox = defineStore('inbox', () => {
     return d ? selected.value.filter((o) => d.ops.find((x) => x.id === o)?.decision === 'pending') : []
   })
 
-  const lastAccepted = ref<AcceptAnswer | null>(null)
-
   // writes counts what Accept writes for the fields that are on: the fields, the files and the tag writes.
   const writes = computed(() => {
-    const p = shown.value.length > 0 ? selection.value?.preview : null
+    const p = shown.value.length > 0 ? preview.value : null
     if (!p) return null
-    const files = p.files.filter((f) => f.keys.length > 0 || f.cover_before !== f.cover_after).length
-    return { fields: shown.value.length, files, tags: p.files.reduce((n, f) => n + f.keys.length, 0) }
+    return { fields: shown.value.length, ...previewCounts(p) }
   })
 
   async function accept(): Promise<boolean> {
@@ -581,19 +631,27 @@ export const useInbox = defineStore('inbox', () => {
         void refreshPreview()
         return
       }
+      ++previewSeq
+      previewing.value = false
       setSelection({ preview: body.preview, refusal: null, missing: body.preview.warnings.map((w) => w.kind) }, submittedKey)
-      notice.value = 'The changes differ from what you saw. Check the new diff and accept again.'
+      reviewRequired.value = true
+      confirm.value = []
       return
     }
     if (code === 'confirm' && submittedKey === current.value && selection.value?.preview) {
       const extra = (body?.confirm ?? []).filter((w) => !warnings.value.some((x) => x.kind === w.kind))
       const preview = { ...selection.value.preview, warnings: [...selection.value.preview.warnings, ...extra] }
       selection.value = { ...selection.value, preview, missing: (body?.confirm ?? []).map((w) => w.kind) }
+      confirm.value = confirm.value.filter((kind) => !selection.value?.missing.includes(kind))
       error.value = 'Confirm each warning before you accept.'
       return
     }
     if (err.status === 422) {
-      error.value = body?.refusal?.error ?? err.message
+      if (submittedKey === current.value) {
+        ++previewSeq
+        previewing.value = false
+        setSelection({ preview: null, refusal: body?.refusal ?? { reason: code, error: err.message }, missing: [] }, submittedKey)
+      }
       return
     }
     error.value =
@@ -602,7 +660,14 @@ export const useInbox = defineStore('inbox', () => {
         : code === 'decided_op'
           ? 'Someone already decided one of the selected fields. The proposal shows its current state.'
           : err.message
-    if (code === 'stale_revision' || code === 'decided_op') void loadDetail()
+    if (code === 'stale_revision' || code === 'decided_op' || code === 'stale_base') {
+      ++previewSeq
+      previewing.value = false
+      selection.value = null
+      selectionKey.value = ''
+      reviewRequired.value = true
+      void loadDetail()
+    }
   }
 
   async function act(path: string, body: unknown, done: string): Promise<boolean> {
@@ -644,10 +709,14 @@ export const useInbox = defineStore('inbox', () => {
     if (!d || d.state === 'withdrawn') return []
     return d.ops.filter((o) => o.decision === 'pending' && d.current.ops.some((c) => c.id === o.id) && !selected.value.includes(o.id) && !held(d, o.id)).map((o) => o.id)
   })
+  const declineCount = computed(() => {
+    const d = detail.value
+    return rest.value.length + (d && d.state !== 'withdrawn' && !shown.value.length ? d.ops.filter((o) => held(d, o.id)).length : 0)
+  })
 
   function declineRest(reason: string) {
     const d = detail.value
-    if (!d || rest.value.length === 0) return Promise.resolve(false)
+    if (!d || declineCount.value === 0) return Promise.resolve(false)
     const body = shown.value.length === 0 ? { revision: d.head, remaining: true, reason } : { revision: d.head, ops: sorted(rest.value), reason }
     return act('decline', body, 'Declined. Nothing in the library changed.')
   }
@@ -698,10 +767,11 @@ export const useInbox = defineStore('inbox', () => {
   return {
     enabled, info, detect, reload,
     filters, proposals, next, listLoading, listError, loadList, moreList, setFilters,
-    detailId, detail, detailLoading, detailError, selected, drafts, selection, previewing, confirm, cascade, error, notice, busy, headSeen, lastAccepted, writes,
-    open, close, loadDetail, refreshPreview, toggle, selectAll, toggleConfirm,
+    detailId, detail, detailLoading, detailRefreshing, detailError, selected, drafts, selection, previewing, confirm, cascade, error, notice, busy, headSeen, lastAccepted, writes,
+    open, close, loadDetail, checkFiles, refreshPreview, toggle, selectAll, switchFields, toggleConfirm,
+    currentSelection, preview, reviewRequired, reviewPreview,
     values, tracksOf, everyTrack, setValues, dropTrack, setEveryTrack, discard, revisionOps, dirty, saveValues, rebase,
-    warnings, confirmed, canAccept, shown, pendingSelected, accept, decline, rest, declineRest, requestChanges, comment,
+    warnings, confirmed, canAccept, shown, pendingSelected, accept, decline, rest, declineCount, declineRest, requestChanges, comment,
     byAlbum, loadAlbum, applyHub,
     headOp: (opId: string): Op | undefined => headOp(opId),
   }

@@ -3,6 +3,35 @@ import { fieldLabel } from './tags'
 
 const base = (path: string) => path.split('/').pop() || path
 
+export function previewCounts(preview: Preview) {
+  return {
+    files: preview.files.filter((f) => f.keys.length > 0 || f.cover_before !== f.cover_after).length,
+    tags: preview.files.reduce((n, f) => n + f.keys.length, 0),
+    folder: preview.folder.filter((f) => f.before !== f.after).length,
+  }
+}
+
+export const fieldGroups = {
+  artists: 'Artists',
+  release: 'Release',
+  credits: 'Credits',
+  tracks: 'Tracks',
+  ids: 'MusicBrainz IDs',
+  artwork: 'Artwork',
+  other: 'Other tags',
+}
+
+export function fieldGroup(op: Op): keyof typeof fieldGroups {
+  if (op.type === 'cover') return 'artwork'
+  const key = (op.field ?? op.tag_key ?? '').toLowerCase().replace(/[ _-]/g, '')
+  if (/^(musicbrainz)?(album)?artists?(sort|id)?$/.test(key)) return 'artists'
+  if (key.startsWith('musicbrainz')) return 'ids'
+  if (/^(composer|lyricist|writer|producer|engineer|mixer|remixer|arranger|conductor|performer|djmixer)s?(sort)?$/.test(key) || key === 'recordingdate') return 'credits'
+  if (/^(title|track(number|total)?|totaltracks|disc(number|total|subtitle)?|totaldiscs|isrc|.*lyrics|bpm|replaygaintrack.*)$/.test(key)) return 'tracks'
+  if (/^(album.*|original(date|year)|release.*|date|year|genre|style|mood|label|publisher|catalog(number|no)|barcode|compilation|media|copyright|script|language|replaygainalbum.*)$/.test(key)) return 'release'
+  return 'other'
+}
+
 // trackLabel names a track by its file, from whichever record still has the path.
 export function trackLabel(d: ProposalDetail, trackId: number): string {
   const previews = [d.live?.preview, d.current.preview].filter((p): p is Preview => !!p)

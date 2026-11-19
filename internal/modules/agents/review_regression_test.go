@@ -206,3 +206,70 @@ func TestMemoryVersionMigrationSeedsExistingMaximum(t *testing.T) {
 		t.Fatal("migration did not seed maximum")
 	}
 }
+
+func TestSubsetRetryKeepsPriorFailureAndRecordedPreview(t *testing.T) {
+	r := rig(t, true, nil)
+	ctx := context.Background()
+	tag := func(id, field, value string) Op {
+		return Op{ID: id, Type: "tag", Field: field, Tracks: []OpTrack{{TrackID: 1, Values: []string{value}}}}
+	}
+	res := r.call(t, "POST", "/api/agent/v1/proposals", map[string]any{
+		"run_id": r.run, "album_id": 1, "title": "Three fields", "reason": "Test",
+		"base": []BaseTrack{{TrackID: 1, Revision: "r1"}},
+		"ops":  []Op{tag("a", "genre", "Jazz"), tag("b", "mood", "Happy"), tag("c", "title", "New title")},
+	}, true)
+	want(t, res, 201)
+	var p struct{ ID int64 }
+	if err := json.Unmarshal(res.Body.Bytes(), &p); err != nil {
+		t.Fatal(err)
+	}
+	path := fmt.Sprintf("/api/inbox/proposals/%d", p.ID)
+	want(t, r.call(t, "POST", path+"/decline", map[string]any{"revision": 1, "ops": []string{"c"}}, false), 201)
+	accept := func(key string, ops []string) libraryport.Preview {
+		t.Helper()
+		pv := preview(t, r, p.ID, ops)
+		want(t, r.call(t, "POST", path+"/accept", map[string]any{"revision": 1, "ops": ops, "digest": pv.Digest, "request_id": key}, false), 202)
+		return pv
+	}
+	failed := accept("first", []string{"a", "b"})
+	r.lib.mu.Lock()
+	r.lib.states[1] = libraryport.ChangeStatus{ID: 1, State: "failed", Files: 1, Error: "File changed before writing"}
+	r.lib.mu.Unlock()
+	written := accept("subset", []string{"a"})
+	r.lib.mu.Lock()
+	r.lib.states[2] = libraryport.ChangeStatus{ID: 2, State: "done", Files: 1, Written: 1}
+	r.lib.mu.Unlock()
+	if err := r.m.reconcileOutcomes(ctx, r.lib); err != nil {
+		t.Fatal(err)
+	}
+	want(t, r.call(t, "POST", path+"/decline", map[string]any{"revision": 1, "ops": []string{"b"}}, false), 409)
+	preview(t, r, p.ID, []string{"b"})
+	rows, err := getOps(ctx, r.app.DB.R, p.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rows["a"].Decision != "accepted" || rows["b"].Decision != "accepted" || rows["a"].AcceptanceID == rows["b"].AcceptanceID || rows["c"].Decision != "declined" {
+		t.Fatalf("field decisions after retry: %+v", rows)
+	}
+	res = r.call(t, "GET", path, nil, false)
+	want(t, res, 200)
+	var detail struct {
+		Acceptances []struct {
+			ID      int64
+			Preview libraryport.Preview
+			Outcome outcome
+		}
+	}
+	if err := json.Unmarshal(res.Body.Bytes(), &detail); err != nil {
+		t.Fatal(err)
+	}
+	as := detail.Acceptances
+	if len(as) != 2 || as[0].ID != rows["b"].AcceptanceID.Int64 || as[0].Preview.Digest != failed.Digest ||
+		as[0].Outcome.Error != "File changed before writing" || !as[0].Outcome.retryable() ||
+		as[1].Outcome.State != "done" || as[1].Preview.Digest != written.Digest {
+		t.Fatalf("acceptance records after retry: %+v", as)
+	}
+	if files := as[1].Preview.Files; len(files) != 1 || len(files[0].Keys) != 1 || files[0].Keys[0].Key != "genre" {
+		t.Fatalf("subset snapshot: %+v", files)
+	}
+}

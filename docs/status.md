@@ -62,6 +62,10 @@ Since 2026-11-12, shelf uses goose v3.30.1 and `github.com/mfridman/interpolate`
 
 A pushed `v*` tag now deploys through sh-blackberry and doco-cd, as [deployment.md](deployment.md#deploys) describes.
 
+## In development
+
+Proposal Details opens on grouped Fields with inline editors. Brief holds the agent's explanation and evidence, Files shows the current preview and completed acceptance snapshots, and Talkback keeps review outcomes, including earlier failed attempts. The review bar stays visible while the proposal scrolls on desktop and phone.
+
 ## Operational notes
 
 - Source modules log in and start goroutines in `Run`, never `Init`, and register with `Switch` when settings are missing.

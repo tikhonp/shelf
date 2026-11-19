@@ -15,6 +15,7 @@ import { filtersFromQuery, filtersToQuery, useInbox } from '../stores/inbox'
 const route = useRoute()
 const router = useRouter()
 const phone = usePhone()
+const proposal = ref<InstanceType<typeof InboxDetail>>()
 const inbox = useInbox()
 const agents = useAgents()
 const help = useHelp()
@@ -79,20 +80,20 @@ onBeforeUnmount(() => (help.note = null))
 
 <template>
   <div v-if="phone" class="stack">
-    <InboxDetail v-if="id" phone @close="close" />
+    <InboxDetail v-if="id" :key="id" ref="proposal" phone @close="close" />
     <div v-if="id && help.note" class="win slot tall" role="note">
       <div class="lib-note">
         <span class="tip-head"><span class="grow bold">{{ help.note.title }}</span><button type="button" class="wbtn" aria-label="Close the note" @click="help.note = null"><Icon name="close" /></button></span>
         <p class="t2">{{ help.note.text }}</p>
       </div>
     </div>
-    <InboxBar v-if="id" phone />
+    <InboxBar v-if="id" :key="id" phone @files="proposal?.openFiles($event)" />
     <InboxList v-else />
   </div>
   <main v-else v-vars="widths" class="lib-main ib-page">
     <InboxList class="ib-list" :class="{ wide: !id }" :selected="id" />
     <LibSplit v-if="id" label="proposal list" @move="moveList" />
-    <InboxDetail v-if="id" class="ib-main" @close="close" />
+    <InboxDetail v-if="id" :key="id" class="ib-main" @close="close" />
   </main>
 </template>
 

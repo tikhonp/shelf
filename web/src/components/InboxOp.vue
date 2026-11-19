@@ -1,150 +1,164 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { Op, TagOp } from '../api/agents'
-import { decidedLine, decisionClass, decisionWord, isLong, opLabel, opName, trackLabel, wasLine } from '../lib/inbox'
+import type { Op } from '../api/agents'
+import { coverSrc, decidedLine, decisionClass, decisionWord, fieldGroup, isLong, opLabel, trackLabel, wasLine } from '../lib/inbox'
+import { count } from '../lib/format'
 import { fieldNote, inboxNotes } from '../lib/notes'
-import { selectable, useInbox } from '../stores/inbox'
+import { held, retryable, selectable, useInbox } from '../stores/inbox'
+import Cover from './Cover.vue'
+import Icon from './Icon.vue'
 import InboxValues from './InboxValues.vue'
 import LibTip from './LibTip.vue'
 
 const props = defineProps<{ op: Op; phone?: boolean }>()
+const emit = defineEmits<{ reveal: [id: string] }>()
 const inbox = useInbox()
 
 const d = computed(() => inbox.detail!)
 const decision = computed(() => d.value.ops.find((o) => o.id === props.op.id))
 const pending = computed(() => decision.value?.decision === 'pending' && d.value.state !== 'withdrawn')
+const retry = computed(() => decision.value && retryable(d.value, decision.value))
 const canPick = computed(() => selectable(d.value, props.op.id))
 const picked = computed(() => inbox.selected.includes(props.op.id))
-const stale = computed(() => !!d.value.live?.op_stale?.[props.op.id])
+const stale = computed(() => pending.value && !!d.value.live?.op_stale?.[props.op.id])
 const edited = computed(() => !!inbox.drafts[props.op.id])
 const label = computed(() => opLabel(props.op))
-const note = computed(() => (props.op.type === 'tag' && props.op.field ? fieldNote(props.op.field) : ''))
-const goesWith = computed(() => (props.op.requires ?? []).map((id) => opName(d.value.current.ops, id)))
+const note = computed(() => (!props.phone && props.op.type === 'tag' && props.op.field ? fieldNote(props.op.field) : ''))
+const linked = computed(() => d.value.current.ops.filter((o) => props.op.requires?.includes(o.id) || o.requires?.includes(props.op.id)))
+const crossLinks = computed(() => linked.value.filter((o) => fieldGroup(o) !== fieldGroup(props.op) && !held(d.value, o.id)))
 
-const tag = computed(() => (props.op.type === 'tag' ? (props.op as TagOp) : null))
-const tracks = computed(() => (tag.value ? inbox.tracksOf(tag.value) : []))
-const lists = computed(() => tracks.value.map((t) => inbox.values(tag.value!, t.track_id)))
-// One editor serves every track while they share their values, and the reviewer can split it per track.
+const tag = computed(() => props.op.type === 'tag' ? props.op : null)
+const tracks = computed(() => tag.value ? inbox.tracksOf(tag.value) : [])
+const open = ref(false)
 const split = ref(false)
-const shared = computed(() => lists.value.every((l) => l.length === lists.value[0]!.length && l.every((v, i) => v === lists.value[0]![i])))
-const perTrack = computed(() => split.value || !shared.value)
-const dropped = computed(() => (tag.value ? tag.value.tracks.length - tracks.value.length : 0))
+const showMore = ref(false)
+const lists = computed(() => {
+  const groups = new Map<string, { ids: number[]; values: string[] }>()
+  const op = tag.value
+  if (!op) return []
+  for (const t of tracks.value) {
+    const values = inbox.values(op, t.track_id)
+    const key = split.value ? String(t.track_id) : JSON.stringify(values)
+    const list = groups.get(key)
+    if (list) list.ids.push(t.track_id)
+    else groups.set(key, { ids: [t.track_id], values })
+  }
+  return [...groups.values()]
+})
+const spread = computed(() => split.value || lists.value.length > 1)
+const visibleLists = computed(() => showMore.value ? lists.value : lists.value.slice(0, 5))
+const dropped = computed(() => (tag.value?.tracks.length ?? 0) - tracks.value.length)
 const scope = computed(() => {
-  if (!tag.value) return props.op.type === 'cover' && props.op.every_track ? 'Folder and every track' : 'Folder cover'
-  const n = tracks.value.length
-  if (n === 1) return trackLabel(d.value, tracks.value[0]!.track_id)
-  return n >= d.value.current.base.length ? `All ${n} tracks` : `${n} tracks`
+  if (props.op.type === 'cover') {
+    if (props.op.action === 'remove') return 'Folder and embedded covers'
+    return inbox.everyTrack(props.op) ? 'Folder and every track' : 'Folder and tracks with a cover'
+  }
+  const ids = tracks.value.map((t) => t.track_id)
+  return ids.length === 1 ? trackLabel(d.value, ids[0]!) : `${ids.length >= d.value.current.base.length ? 'All ' : ''}${count(ids.length, 'track')}`
 })
 
-const setAll = (values: string[]) => inbox.setValues(props.op.id, tracks.value.map((t) => t.track_id), values)
-const setOne = (trackId: number, values: string[]) => inbox.setValues(props.op.id, [trackId], values)
-const shown = (values: string[]) => (values.length ? values.join(' / ') : 'Removed')
-
-// Was is what the files hold now, from the live part of the detail.
+const shown = (values: string[]) => values.length ? values.join(' / ') : 'Removed'
+const proposed = computed(() => {
+  if (props.op.type === 'cover') return props.op.action === 'remove' ? 'Remove artwork' : 'New cover'
+  const value = shown(lists.value[0]?.values ?? [])
+  return !split.value && lists.value.length > 1 ? `${value}, and ${count(lists.value.length - 1, 'other list')}` : split.value ? count(tracks.value.length, 'track') : value
+})
 const before = computed(() => d.value.live?.before?.[props.op.id])
-const was = (trackIds: number[]) => wasLine(trackIds.map((id) => before.value?.[String(id)]))
+const was = (ids: number[]) => wasLine(ids.map((id) => before.value?.[String(id)]))
 const wasAll = computed(() => was(tracks.value.map((t) => t.track_id)))
-// On the phone a row shows the rocker with the new value, and pressing the label opens the field.
-const open = ref(false)
 const phoneState = computed(() => {
   if (!tag.value) return scope.value
-  const value = perTrack.value ? `${tracks.value.length} values` : shown(lists.value[0] ?? [])
-  const w = wasAll.value.replace(/^Was /, 'was ')
-  return w ? `${value}, ${w}` : value
+  const value = spread.value ? count(lists.value.length, split.value ? 'track' : 'list') : proposed.value
+  return wasAll.value ? `${value}, ${wasAll.value.replace(/^Was /, 'was ')}` : value
 })
-const editing = computed(() => !props.phone || open.value)
+const blockLabel = (ids: number[]) => ids.length === 1 ? trackLabel(d.value, ids[0]!) : count(ids.length, 'track')
 </script>
 
 <template>
-  <div class="ib-op" :class="{ picked, edited, off: canPick && !picked, phone }" :data-op="op.id">
+  <div class="ib-op" :class="{ edited, off: canPick && !picked, phone, closed: !open }" :data-op="op.id">
     <div class="ib-op-row">
       <div class="ib-op-sw">
-        <template v-if="canPick && phone">
-          <button type="button" class="rocker flat ib-paddle" role="switch" :aria-checked="picked" :aria-label="label" @click="inbox.toggle(op.id)">
-            <span class="rk" aria-hidden="true"><span class="rk-case"><span class="rk-paddle"></span></span></span>
-          </button>
-          <button type="button" class="ib-label rk-t" :aria-expanded="open" @click="open = !open"><span class="rk-name">{{ label }}</span><span class="rk-state sm">{{ phoneState }}</span></button>
-        </template>
-        <button v-else-if="canPick" type="button" class="rocker flat" role="switch" :aria-checked="picked" @click="inbox.toggle(op.id)">
+        <button v-if="canPick" type="button" class="rocker flat ib-paddle" role="switch" :aria-checked="picked" :aria-label="label" @click="inbox.toggle(op.id)">
           <span class="rk" aria-hidden="true"><span class="rk-case"><span class="rk-paddle"></span></span></span>
-          <span class="rk-t"><span class="rk-name"><LibTip :title="label" :note="note">{{ label }}</LibTip></span><span class="rk-state sm">{{ scope }}</span></span>
         </button>
-        <span v-else class="col g4"><span class="bold"><LibTip :title="label" :note="phone ? '' : note">{{ label }}</LibTip></span><span class="t2 sm">{{ scope }}</span></span>
-        <span v-if="goesWith.length" class="sr">Goes with {{ goesWith.join(', ') }}. They switch on and off together.</span>
+        <button type="button" class="ib-label rk-t" :aria-expanded="open" @click="open = !open">
+          <Icon name="chevron" :class="{ folded: !open }" />
+          <span class="col g4 grow">
+            <span class="rk-name"><LibTip :title="label" :note="note">{{ label }}</LibTip></span>
+            <span class="rk-state sm ell" :title="phone && !open ? phoneState : scope">{{ phone && !open ? phoneState : scope }}</span>
+            <span v-if="phone && decision && !pending" class="sm" :class="retry ? 'bad-text' : 't2'">{{ retry ? 'Retry available' : decisionWord(decision.decision) }}</span>
+            <span v-else-if="phone && stale" class="sm t2">Changed since proposed</span>
+          </span>
+        </button>
+        <span v-if="linked.length" class="sr">Goes with {{ linked.map(opLabel).join(', ') }}. They switch on and off together.</span>
       </div>
-
-      <div v-if="editing" class="ib-op-val">
-        <template v-if="tag">
-          <template v-if="pending">
-            <template v-if="!perTrack">
-              <InboxValues :values="lists[0] ?? []" :label="label" :long="isLong(op)" @update="setAll" />
-              <span v-if="wasAll" class="lf-was ell" :title="wasAll">{{ wasAll }}</span>
-            </template>
-            <template v-else>
-              <div v-for="(t, i) in tracks" :key="t.track_id" class="col g4 ib-track">
-                <div class="line g8"><span class="lbl-f grow ell">{{ trackLabel(d, t.track_id) }}</span><button v-if="tracks.length > 1" type="button" class="link sm" @click="inbox.dropTrack(op.id, t.track_id)">Leave out</button></div>
-                <InboxValues :values="lists[i] ?? []" :label="`${label}, ${trackLabel(d, t.track_id)}`" :long="isLong(op)" @update="(v) => setOne(t.track_id, v)" />
-                <span v-if="was([t.track_id])" class="lf-was ell">{{ was([t.track_id]) }}</span>
-              </div>
-            </template>
-          </template>
-          <dl v-else class="meta">
-            <template v-for="t in tag.tracks" :key="t.track_id"><dt>{{ trackLabel(d, t.track_id) }}</dt><dd>{{ shown(t.values) }}</dd></template>
-          </dl>
-        </template>
-        <template v-else-if="op.type === 'cover'">
-          <button v-if="pending && op.action === 'replace'" type="button" class="rocker flat self" role="switch" :aria-checked="inbox.everyTrack(op)" @click="inbox.setEveryTrack(op.id, !inbox.everyTrack(op))">
-            <span class="rk" aria-hidden="true"><span class="rk-case"><span class="rk-paddle"></span></span></span><span class="rk-name">Embed in every track</span>
-          </button>
-          <p v-else-if="op.action === 'replace'" class="t2 sm">{{ op.every_track ? 'Embedded in every track too.' : 'Folder cover, and tracks that already embed one.' }}</p>
-        </template>
+      <div v-if="!phone" class="ib-op-summary col g4">
+        <span class="ell" :title="proposed">{{ proposed }}</span>
+        <span v-if="wasAll" class="lf-was ell" :title="wasAll">{{ wasAll }}</span>
       </div>
-
       <div class="ib-op-side">
-        <span v-if="op.type === 'tag' && op.tag_key && !op.field" class="mono t2">{{ op.tag_key }}</span>
         <span v-if="edited" class="led stg" role="img" aria-label="Edited, not saved"></span>
-        <span v-if="stale" class="pill partial">Changed since proposed</span>
-        <span v-if="decision && !pending" class="pill" :class="decisionClass(decision.decision)">{{ decisionWord(decision.decision) }}</span>
-        <template v-if="tag && pending && editing">
-          <button v-if="!perTrack && tracks.length > 1" type="button" class="key sm flat" @click="split = true"><LibTip title="Per track" :note="phone ? '' : inboxNotes.perTrack">Per track</LibTip></button>
-          <button v-else-if="shared && split" type="button" class="key sm flat" @click="split = false">All tracks together</button>
-        </template>
+        <span v-if="!phone && stale" class="pill partial">Changed since proposed</span>
+        <span v-if="!phone && decision && !pending" class="pill" :class="retry ? 'failed' : decisionClass(decision.decision)">{{ retry ? 'Retry available' : decisionWord(decision.decision) }}</span>
       </div>
     </div>
-    <p v-if="decision && decidedLine(decision)" class="t2 sm">{{ decidedLine(decision) }}</p>
-    <p v-if="op.type === 'tag' && op.anchor" class="t2 sm">MusicBrainz release {{ op.anchor }}</p>
-    <p v-if="dropped && pending" class="t2 sm">{{ dropped }} {{ dropped === 1 ? 'track' : 'tracks' }} left out.</p>
-    <button v-if="edited && pending" type="button" class="link sm self" @click="inbox.discard(op.id)">Undo my edits to {{ label }}</button>
+
+    <div v-if="open" class="ib-op-val col g8">
+      <p v-if="linked.length" class="t2 sm">
+        Goes with <template v-for="(other, i) in linked" :key="other.id">{{ i ? ', ' : '' }}<button v-if="crossLinks.includes(other)" type="button" class="link sm" @click="emit('reveal', other.id)">{{ opLabel(other) }}</button><template v-else>{{ opLabel(other) }}</template></template>.
+      </p>
+      <p v-if="op.type === 'tag' && op.anchor" class="t2 sm">MusicBrainz release <span class="mono">{{ op.anchor }}</span></p>
+      <template v-if="tag">
+        <div v-if="pending && (tracks.length > 1 || split)" class="line g8 wrap">
+          <button v-if="!split" type="button" class="key sm flat" @click="split = true"><LibTip title="Per track" :note="phone ? '' : inboxNotes.perTrack">Per track</LibTip></button>
+          <button v-else type="button" class="key sm flat" @click="split = false">Group matching values</button>
+        </div>
+        <div v-for="list in visibleLists" :key="list.ids[0]" class="col g4" :class="{ 'ib-track': spread }">
+          <div v-if="spread" class="line g8">
+            <span class="lbl-f grow ell" :title="list.ids.map((id) => trackLabel(d, id)).join(', ')">{{ blockLabel(list.ids) }}</span>
+            <button v-if="pending && list.ids.length === 1 && tracks.length > 1" type="button" class="link sm" @click="inbox.dropTrack(op.id, list.ids[0]!)">Leave out</button>
+          </div>
+          <InboxValues v-if="pending" :values="list.values" :label="spread ? `${label}, ${blockLabel(list.ids)}` : label" :long="isLong(op)" @update="(v) => inbox.setValues(op.id, list.ids, v)" />
+          <p v-else class="ib-value">{{ shown(list.values) }}</p>
+          <span v-if="was(list.ids)" class="lf-was ell" :title="was(list.ids)">{{ was(list.ids) }}</span>
+        </div>
+      <button v-if="lists.length > visibleLists.length" type="button" class="link sm" @click="showMore = true">Show {{ count(lists.length - visibleLists.length, split ? 'more track' : 'more list') }}</button>
+      </template>
+      <template v-else-if="op.type === 'cover' && op.action === 'replace'">
+        <Cover v-if="op.image" :url="coverSrc(op.image)" :size="72" />
+        <button v-if="pending" type="button" class="rocker flat" role="switch" :aria-checked="inbox.everyTrack(op)" @click="inbox.setEveryTrack(op.id, !inbox.everyTrack(op))">
+          <span class="rk" aria-hidden="true"><span class="rk-case"><span class="rk-paddle"></span></span></span><span class="rk-name">Embed in every track</span>
+        </button>
+      </template>
+      <p v-if="decision && decidedLine(decision)" class="t2 sm">{{ decidedLine(decision) }}. <template v-if="retry">The write failed before any files were written. You can retry this field.</template></p>
+      <p v-if="dropped && pending" class="t2 sm">{{ count(dropped, 'track') }} left out.</p>
+      <button v-if="edited && pending" type="button" class="link sm" @click="inbox.discard(op.id)">Undo my edits to {{ label }}</button>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.rs .ib-op { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.rs .ib-op { padding: 0 14px; border-bottom: 1px solid var(--line); scroll-margin-top: calc(var(--ib-tabs-height, 59px) + 48px); }
 .rs .ib-op.edited { box-shadow: inset 3px 0 0 var(--sun); }
-/* A field that is off stays editable but reads as left out of Accept. */
-.rs .ib-op.off .ib-op-val { opacity: .6; }
-/* One row per field, as in the bulk run: the rocker, the value with what the files hold now, then the keys. */
-.rs .ib-op-row { display: grid; grid-template-columns: minmax(180px, 250px) minmax(0, 1fr) auto; gap: 8px 16px; align-items: center; }
-.rs .ib-op-sw { min-width: 0; }
-.rs .ib-op-sw .rk-name { white-space: normal; }
-.rs .ib-op-val { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.rs .ib-op-side { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.rs .ib-op.off .ib-op-summary { color: var(--text-2); }
+.rs .ib-op-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 8px 12px; align-items: center; min-height: 63px; }
+.rs .ib-op-sw { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.rs .ib-paddle { flex: none; min-height: 44px; padding: 0; }
+.rs .ib-label { display: flex; flex: 1 1 auto; flex-direction: row; align-items: center; gap: 6px; min-width: 0; min-height: 44px; padding: 0; border: 0; background: none; color: var(--text); text-align: left; cursor: pointer; }
+.rs .ib-label > span { min-width: 0; }
+.rs .ib-label svg { flex: none; width: 15px; }
+.rs .ib-label .folded { transform: rotate(-90deg); }
+.rs .ib-label .rk-name { white-space: normal; overflow-wrap: anywhere; }
+.rs .ib-label .rk-state { max-width: 100%; }
+.rs .ib-op-summary { min-width: 0; }
+.rs .ib-op-side { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; max-width: 115px; }
 .rs .ib-op-side:empty { display: none; }
+.rs .ib-op-side .pill { white-space: normal; }
+.rs .ib-op-val { align-items: flex-start; padding-bottom: 12px; min-width: 0; overflow-wrap: anywhere; }
+.rs .ib-op-val > div { width: 100%; min-width: 0; }
 .rs .ib-track { padding-left: 10px; border-left: 2px solid var(--line); }
-.rs .self { align-self: flex-start; }
-@media (max-width: 999px) {
-  .rs .ib-op-row { grid-template-columns: minmax(0, 1fr) auto; }
-  .rs .ib-op-val { grid-column: 1 / -1; grid-row: 2; }
-}
-.rs .ib-op.phone .ib-op-sw { display: flex; align-items: center; gap: 10px; }
-/* On the phone a long tag key or a pill moves under the label instead of squeezing it to one letter per line. */
-.rs .ib-op.phone .ib-op-row { display: flex; flex-wrap: wrap; }
-.rs .ib-op.phone .ib-op-sw { flex: 1 1 200px; }
-.rs .ib-op.phone .ib-op-side { order: 1; min-width: 0; max-width: 100%; justify-content: flex-start; }
-.rs .ib-op.phone .ib-op-side .mono { overflow-wrap: anywhere; }
-.rs .ib-op.phone .ib-op-val { order: 2; flex: 1 1 100%; }
-.rs .ib-paddle { flex: none; min-height: 44px; }
-.rs .ib-label { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; min-height: 44px; padding: 0; border: 0; background: none; color: var(--text); text-align: left; cursor: pointer; }
-/* The state can quote a whole value, such as a MusicBrainz ID, so it wraps instead of widening the page. */
-.rs .ib-label .rk-state { white-space: normal; overflow-wrap: anywhere; }
+.rs .ib-value { white-space: pre-wrap; }
+.rs .ib-op.phone { padding: 0 10px; }
+.rs .ib-op.phone .ib-op-row { grid-template-columns: minmax(0, 1fr) auto; min-height: 71px; }
+.rs .ib-op.phone .rk-state { white-space: nowrap; }
 </style>

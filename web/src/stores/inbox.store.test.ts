@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, afterEach, test, expect, vi } from 'vitest'
-import type { ProposalDetail, Preview } from '../api/agents'
+import type { ProposalDetail, Preview, PreviewAnswer } from '../api/agents'
 import { setAuthHandling } from '../api/client'
 import { Reply, stubApi } from '../testing/api'
 import { useInbox } from './inbox'
@@ -57,6 +57,11 @@ test('a changed diff is displayed and only the next explicit acceptance uses its
   await store.accept()
   expect(store.selection?.preview?.digest).toBe('b')
   expect(parsed(calls, '/accept')).toHaveLength(1)
+  expect(store.canAccept).toBe(false)
+  expect(await store.accept()).toBe(false)
+  store.reviewPreview('a')
+  expect(store.canAccept).toBe(false)
+  store.reviewPreview('b')
   await store.accept()
   expect(parsed(calls, '/accept').map(b => b.digest)).toEqual(['a', 'b'])
 })
@@ -79,6 +84,9 @@ test('reload refreshes the selected preview even when the proposal revision stay
   await store.loadDetail()
   await flushPromises()
   expect(store.selection?.preview?.digest).toBe('b')
+  expect(store.canAccept).toBe(false)
+  store.reviewPreview('b')
+  expect(store.canAccept).toBe(true)
 })
 
 test('a concurrent revision keeps user drafts until the user chooses to rebase them', async () => {
@@ -326,4 +334,71 @@ test('late album proposal reads cannot restore old suggestion tapes', async () =
   response.resolve({ proposals: [detail()] })
   await first
   expect(store.byAlbum[7]).toEqual([])
+})
+
+test('a preview check blocks acceptance and a late answer cannot replace a newer selection', async () => {
+  const pending = deferred<unknown>()
+  let starting = true
+  const { store, calls } = await opened({
+    '/api/inbox/proposals/1': dated(),
+    '/api/inbox/proposals/1/preview': (_url: string, init?: RequestInit) => {
+      const key = JSON.parse(init!.body as string).ops.join(',')
+      if (key === 'originaldate,releasedate') return pending.promise
+      return { preview: preview(starting ? 'original' : 'updated'), refusal: null, missing: [] }
+    },
+  })
+  expect(store.canAccept).toBe(true)
+  store.toggle('genre')
+  expect(store.previewing).toBe(true)
+  expect(store.canAccept).toBe(false)
+  expect(await store.accept()).toBe(false)
+  starting = false
+  store.toggle('genre')
+  await flushPromises()
+  pending.resolve({ preview: preview('late'), refusal: null, missing: [] })
+  await flushPromises()
+  expect(store.preview?.digest).toBe('updated')
+  expect(store.canAccept).toBe(false)
+  expect(parsed(calls, '/accept')).toHaveLength(0)
+  store.reviewPreview('updated')
+  expect(store.canAccept).toBe(true)
+})
+
+test('an acceptance refusal invalidates its earlier preview', async () => {
+  const { store, calls } = await opened({
+    '/api/inbox/proposals/1/accept': new Reply(422, { code: 'refused', refusal: { error: 'The track is locked.', reason: 'locked' } }),
+  })
+  expect(store.canAccept).toBe(true)
+  expect(await store.accept()).toBe(false)
+  expect(store.currentSelection?.refusal?.reason).toBe('locked')
+  expect(store.preview).toBeNull()
+  expect(store.canAccept).toBe(false)
+  expect(await store.accept()).toBe(false)
+  expect(parsed(calls, '/accept')).toHaveLength(1)
+})
+
+test('checking again after a temporary refusal still requires review of a changed preview', async () => {
+  let answer: PreviewAnswer = { preview: preview('original'), refusal: null, missing: [] }
+  const { store } = await opened({ '/api/inbox/proposals/1/preview': () => answer })
+  answer = { preview: null, refusal: { reason: 'locked', error: 'The track is locked.' }, missing: [] }
+  await store.checkFiles()
+  await flushPromises()
+  expect(store.canAccept).toBe(false)
+  answer = { preview: preview('updated'), refusal: null, missing: [] }
+  await store.checkFiles()
+  await flushPromises()
+  expect(store.preview?.digest).toBe('updated')
+  expect(store.canAccept).toBe(false)
+  store.reviewPreview('updated')
+  expect(store.canAccept).toBe(true)
+})
+
+test('All off keeps hidden fields selected, even when they depend on a visible field', async () => {
+  const d = dated()
+  d.live = { preview: preview(), refusal: null, op_stale: {}, op_unchanged: { releasedate: true } }
+  const { store } = await opened({ '/api/inbox/proposals/1': d })
+  store.selectAll(false)
+  expect(store.selected).toEqual(['releasedate'])
+  expect(store.shown).toEqual([])
+  expect(store.declineCount).toBe(3)
 })

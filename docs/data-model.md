@@ -296,7 +296,7 @@ The agents module always migrates its STRICT tables, including when the feature 
 | `agents_revisions` | Immutable agent/user values, evidence, recorded file paths and revisions, operations, preview and per-operation digests. |
 | `agents_ops` | Stable operation IDs, fingerprints, decisions, reviewer and acceptance links. |
 | `agents_targets` | Recorded library-relative paths for album links. |
-| `agents_acceptances` | Exact selected revision and preview, stable request key, confirmations, reviewer, library change ID, durable outcome snapshot. `via_save` marks operations already written by an ordinary Save, including operations fully written in a partial Save. |
+| `agents_acceptances` | Exact selected revision and preview, stable request key, confirmations, reviewer, library change ID, durable outcome snapshot. `via_save` marks operations already written by an ordinary Save, including operations fully written in a partial Save. New Save snapshots record only the physical tag keys that matched those operations and set `proposal_fields_only` in the preview JSON. |
 | `agents_events` | Ordered feedback, comments, decisions, revisions, memory corrections and write/undo outcomes. |
 | `agents_memory` | Versioned shared rules, inferred preferences, context, evidence and deletion tombstones. |
 | `agents_learning` | One library-wide versioned checkpoint and event/history cursors. |
