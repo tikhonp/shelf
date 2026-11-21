@@ -116,12 +116,25 @@ func (s *Source) Download(ctx context.Context, req source.DownloadRequest, rep s
 		out, err = s.runner.Run(ctx, link, formatFlags[f.ID], line)
 	}
 	if err != nil {
+		if ctx.Err() != nil {
+			return res, err
+		}
+		var written []writtenTrack
+		if out.Listed {
+			written = existingTracks(out.Tracks)
+		} else {
+			written = s.recoverWritten(req.MusicDir, rel, tr)
+		}
+		done := s.collect(req, f.ID, rel, written, tr, rep, &res, true)
+		if done > 0 && errors.As(err, &ee) && amdl.FailedPass(out.Tail) {
+			return res, nil
+		}
 		return res, err
 	}
 	if !out.Listed {
 		return res, fmt.Errorf("amdl stopped before it listed its songs: %s", strings.Join(amdl.ErrorLines(out.Tail), " | "))
 	}
-	if done := s.collect(req, f.ID, rel, out.Tracks, tr, rep, &res); done == 0 && len(rel.item.Tracks) > 0 {
+	if done := s.collect(req, f.ID, rel, fromAMDL(out.Tracks), tr, rep, &res, false); done == 0 && len(rel.item.Tracks) > 0 {
 		reason := "amdl wrote no songs"
 		if last := tr.LastFailure(); last != "" {
 			reason += ": " + last
@@ -167,20 +180,37 @@ func (r release) task(pos int, tr *amdl.Tracker) int {
 	return 0
 }
 
+type writtenTrack struct {
+	path string
+	song string
+	// pos is set when recovery already matched the file to a release track,
+	// so duplicate titles on different discs cannot shift onto another track.
+	pos int
+}
+
+func fromAMDL(tracks []amdl.Track) []writtenTrack {
+	out := make([]writtenTrack, len(tracks))
+	for i, t := range tracks {
+		out[i] = writtenTrack{path: t.Path, song: t.Song}
+	}
+	return out
+}
+
 // collect matches amdl's list to the release's tracks and reports each
 // track. amdl lists songs in release order with their catalog names, so a
-// song matches the next track of that name. It returns how many tracks
-// amdl wrote.
-func (s *Source) collect(req source.DownloadRequest, format string, rel release, written []amdl.Track, tr *amdl.Tracker, rep source.Reporter, res *source.DownloadResult) int {
+// song matches the next track of that name. When fromErr is set, tracks
+// amdl never started stay unreported so finish marks them not downloaded.
+// It returns how many tracks amdl wrote or found complete.
+func (s *Source) collect(req source.DownloadRequest, format string, rel release, written []writtenTrack, tr *amdl.Tracker, rep source.Reporter, res *source.DownloadResult, fromErr bool) int {
 	log := rep.Log()
 	tracks := rel.item.Tracks
 	assigned := map[int]bool{}
 	folders := map[string]bool{}
 	cursor := 0
 	for _, w := range written {
-		path, err := filepath.Rel(req.MusicDir, w.Path)
+		path, err := filepath.Rel(req.MusicDir, w.path)
 		if err != nil || !filepath.IsLocal(path) {
-			log.Warn("amdl wrote %s, outside the music folder", w.Path)
+			log.Warn("amdl wrote %s, outside the music folder", w.path)
 			continue
 		}
 		if dir := filepath.Dir(path); !folders[dir] {
@@ -188,26 +218,189 @@ func (s *Source) collect(req source.DownloadRequest, format string, rel release,
 			res.Folders = append(res.Folders, dir)
 		}
 		res.Files = append(res.Files, path)
-		pos := match(tracks, assigned, &cursor, w.Song)
+		pos := 0
+		if w.pos > 0 && !assigned[w.pos] {
+			pos = w.pos
+		} else {
+			pos = match(tracks, assigned, &cursor, w.song)
+		}
 		if pos == 0 {
 			log.Warn("amdl wrote %s, which matches no song of this release", path)
 			continue
 		}
 		assigned[pos] = true
-		q, size := fileQuality(w.Path, format)
+		q, size := fileQuality(w.path, format)
 		rep.Done(pos, source.TrackResult{Path: path, Quality: q, Size: size, Skipped: tr.Skipped(rel.task(pos, tr))})
 	}
 	for _, t := range tracks {
 		if assigned[t.Position] {
 			continue
 		}
-		msg := tr.Failure(rel.task(t.Position, tr))
+		task := rel.task(t.Position, tr)
+		msg := tr.Failure(task)
+		if msg == "" && fromErr {
+			msg = tr.PrevFailure(task)
+		}
 		if msg == "" {
+			if fromErr && !tr.Started(task) {
+				continue
+			}
 			msg = "amdl did not write this song"
 		}
 		rep.Done(t.Position, source.TrackResult{Err: errors.New(msg)})
 	}
 	return len(assigned)
+}
+
+// existingTracks keeps only tracks whose file exists on disk.
+func existingTracks(tracks []amdl.Track) []writtenTrack {
+	var out []writtenTrack
+	for _, t := range tracks {
+		if fi, err := os.Stat(t.Path); err == nil && !fi.IsDir() {
+			out = append(out, writtenTrack{path: t.Path, song: t.Song})
+		}
+	}
+	return out
+}
+
+// recoverWritten finds the files amdl wrote or found complete on disk when
+// a non-zero exit prevented it from printing its JSON list. Every file is
+// verified on disk before being returned.
+func (s *Source) recoverWritten(musicDir string, rel release, tr *amdl.Tracker) []writtenTrack {
+	folder := tr.Folder()
+	if folder == "" {
+		return nil
+	}
+	dir := findReleaseDir(filepath.Join(musicDir, s.dir), folder, rel.item.Artist)
+	if dir == "" {
+		return nil
+	}
+	audioFiles := listAudioFiles(dir)
+	used := map[string]bool{}
+	var out []writtenTrack
+	for _, t := range rel.item.Tracks {
+		task := rel.task(t.Position, tr)
+		if task == 0 || !tr.Completed(task) {
+			continue
+		}
+		full := matchTrackFile(dir, audioFiles, used, tr.File(task), tr.Title(task), t.Title)
+		if full == "" {
+			continue
+		}
+		used[full] = true
+		out = append(out, writtenTrack{path: full, song: t.Title, pos: t.Position})
+	}
+	return out
+}
+
+// findReleaseDir locates the directory under root that matches the folder
+// name amdl printed, allowing for amdl's filename sanitisation. It checks
+// direct children first, then an artist subfolder matching artist.
+func findReleaseDir(root, printed, artist string) string {
+	want := sanitizeAMDLName(printed)
+	if want == "" {
+		return ""
+	}
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return ""
+	}
+	for _, e := range entries {
+		if e.IsDir() && (e.Name() == printed || strings.EqualFold(sanitizeAMDLName(e.Name()), want)) {
+			return filepath.Join(root, e.Name())
+		}
+	}
+	wantArtist := sanitizeAMDLName(artist)
+	if wantArtist == "" {
+		return ""
+	}
+	var match string
+	for _, e := range entries {
+		if !e.IsDir() || (e.Name() != artist && !strings.EqualFold(sanitizeAMDLName(e.Name()), wantArtist)) {
+			continue
+		}
+		sub := filepath.Join(root, e.Name())
+		children, err := os.ReadDir(sub)
+		if err != nil {
+			continue
+		}
+		for _, c := range children {
+			if c.IsDir() && (c.Name() == printed || strings.EqualFold(sanitizeAMDLName(c.Name()), want)) {
+				if match != "" {
+					return ""
+				}
+				match = filepath.Join(sub, c.Name())
+			}
+		}
+	}
+	return match
+}
+
+func listAudioFiles(dir string) []string {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	var out []string
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		switch strings.ToLower(filepath.Ext(e.Name())) {
+		case ".flac", ".m4a", ".aac", ".mp3", ".opus", ".ogg", ".wav":
+			full := filepath.Join(dir, e.Name())
+			if fi, err := os.Stat(full); err == nil && !fi.IsDir() {
+				out = append(out, full)
+			}
+		}
+	}
+	return out
+}
+
+func matchTrackFile(dir string, audioFiles []string, used map[string]bool, converted, header, title string) string {
+	if converted != "" {
+		full := filepath.Join(dir, filepath.Base(converted))
+		if !used[full] {
+			if fi, err := os.Stat(full); err == nil && !fi.IsDir() {
+				return full
+			}
+		}
+	}
+	if header != "" {
+		want := sanitizeAMDLName(header)
+		for _, full := range audioFiles {
+			if used[full] {
+				continue
+			}
+			base := filepath.Base(full)
+			stem := strings.TrimSuffix(base, filepath.Ext(base))
+			if stem == header || strings.EqualFold(sanitizeAMDLName(stem), want) {
+				return full
+			}
+		}
+	}
+	if title != "" {
+		want := strings.ToLower(sanitizeAMDLName(title))
+		for _, full := range audioFiles {
+			if used[full] {
+				continue
+			}
+			base := filepath.Base(full)
+			stem := strings.ToLower(sanitizeAMDLName(strings.TrimSuffix(base, filepath.Ext(base))))
+			if stem == want || strings.HasSuffix(stem, ". "+want) {
+				return full
+			}
+		}
+	}
+	return ""
+}
+
+var amdlSanitizer = strings.NewReplacer(
+	"<", "_", ">", "_", ":", "_", `"`, "_", "/", "_", `\`, "_", "|", "_", "?", "_", "*", "_",
+)
+
+func sanitizeAMDLName(s string) string {
+	return strings.TrimSpace(amdlSanitizer.Replace(s))
 }
 
 func match(tracks []source.Track, assigned map[int]bool, cursor *int, song string) int {

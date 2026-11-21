@@ -11,7 +11,7 @@ Every check in [manual-checklist.md](manual-checklist.md) passed in production, 
 
 Since `v1.2.3`, Shelf uses qobuz-dl-go `v0.1.4` to fetch the web player bundle once at startup and share the startup client across formats, lets download jobs wait for the first Qobuz start while keeping interactive lookups at 15 seconds, and stops startup retries after a 401 token expiry.
 
-Shelf reports missing Qobuz streaming access on failed downloads.
+Shelf reports missing Qobuz streaming access on failed downloads, and reconciles completed songs and per-song errors when Apple Music's amdl exits non-zero.
 
 The 2026-11-19 dependency update brings go-telegram/bot v1.30.0, Echo v5.4.6 and Vue Router 5.5.1. CI and the Docker lint stage use govulncheck v1.10.0.
 

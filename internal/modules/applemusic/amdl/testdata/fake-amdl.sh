@@ -57,6 +57,13 @@ if [ "${FAKE_AMDL:-ok}" = fail ]; then
   echo "Error detected, exiting..."
   exit 1
 fi
+if [ "${FAKE_AMDL:-ok}" = fail_listed ]; then
+  echo "03. Breakwater"
+  echo "webplayback rejected failureType=3076"
+  d="$FAKE_MUSIC/apple-music/Northern Static - Low Tide Hymns (2019)[24B-96kHz]"
+  echo "[{\"path\":\"$d/01. Shoreline.flac\",\"artist\":\"Northern Static\",\"artist_id\":\"111\",\"album\":\"Low Tide Hymns\",\"song\":\"Shoreline\"}]"
+  exit 1
+fi
 echo "Unavailable"
 echo "=======  [✔ ] Completed: 2/3  |  [⚠ ] Warnings: 1  |  [✖ ] Errors: 0  ======="
 d="$FAKE_MUSIC/apple-music/Northern Static - Low Tide Hymns (2019)[24B-96kHz]"

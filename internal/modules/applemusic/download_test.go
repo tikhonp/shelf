@@ -266,16 +266,185 @@ func TestDownloadRunsAgain(t *testing.T) {
 		t.Fatalf("log kept a redraw:\n%s", log)
 	}
 
-	// A song that fails twice fails the download, after two runs.
+	// A song that fails twice still reconciles the songs on disk as partial,
+	// after two runs, with the failed song's exact error.
 	_ = os.Remove(filepath.Join(dir, "02. Undertow.flac"))
 	_ = os.Remove(state)
-	_, _, _, err = r.download("flaky", album, FormatALAC, "FAKE_STATE="+state, "FAKE_FAILS=2")
-	var ee *amdl.ExitError
-	if !errors.As(err, &ee) || err.Error() != "amdl exited with code 1: "+keyRefused {
+	rep, res, _, err := r.download("flaky", album, FormatALAC, "FAKE_STATE="+state, "FAKE_FAILS=2")
+	if err != nil {
 		t.Fatalf("%v", err)
 	}
 	if b, _ := os.ReadFile(state); string(b) != "2" {
 		t.Fatalf("%s runs", b)
+	}
+	if d := rep.done[1]; d.Err != nil || !d.Skipped || d.Path != folder+"/01. Shoreline.flac" {
+		t.Fatalf("song 1: %+v", d)
+	}
+	if d := rep.done[2]; d.Err == nil || d.Err.Error() != keyRefused {
+		t.Fatalf("song 2: %+v", d)
+	}
+	if d := rep.done[3]; d.Err != nil || !d.Skipped || d.Path != folder+"/03. Breakwater.flac" {
+		t.Fatalf("song 3: %+v", d)
+	}
+	if !slices.Equal(res.Folders, []string{folder}) || len(res.Files) != 2 {
+		t.Fatalf("%+v", res)
+	}
+}
+
+func TestDownloadReconcileNonZeroExit(t *testing.T) {
+	// Every song fails with webplayback rejected: 0 done, exit error kept,
+	// and every song carries its own error instead of "not downloaded".
+	r := newRig(t)
+	rep, res, _, err := r.download("fail_all", album, FormatALAC)
+	var ee *amdl.ExitError
+	if !errors.As(err, &ee) || !strings.Contains(err.Error(), "webplayback rejected failureType=3076") {
+		t.Fatalf("%v", err)
+	}
+	if len(res.Folders) != 0 || len(res.Files) != 0 {
+		t.Fatalf("%+v", res)
+	}
+	for _, pos := range []int{1, 2, 3} {
+		if d := rep.done[pos]; d.Err == nil || d.Err.Error() != "webplayback rejected failureType=3076" {
+			t.Fatalf("song %d: %+v", pos, d)
+		}
+	}
+
+	// Sanitized folder and converted filename match on disk across two passes:
+	// song 1 counts as done (not skipped), songs 2 and 3 carry their 404 error.
+	rep, res, _, err = r.download("fail_sanitized", album, FormatALAC)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	const wantFolder = "apple-music/Northern Static - Low Tide_ Hymns (2019)[24B-96kHz]"
+	if !slices.Equal(res.Folders, []string{wantFolder}) || len(res.Files) != 1 {
+		t.Fatalf("%+v", res)
+	}
+	if d := rep.done[1]; d.Err != nil || d.Skipped || d.Path != wantFolder+"/01. Shoreline_ Live.flac" || d.Quality.BitDepth != 24 {
+		t.Fatalf("song 1: %+v", d)
+	}
+	const notAvail = "Failed to dl aac-lc via lite-server: lite-server /webplayback returned code=404 msg=webplayback not available"
+	for _, pos := range []int{2, 3} {
+		if d := rep.done[pos]; d.Err == nil || d.Err.Error() != notAvail {
+			t.Fatalf("song %d: %+v", pos, d)
+		}
+	}
+
+	// Files claimed in output that do not exist on disk are never credited.
+	r = newRig(t)
+	rep, res, _, err = r.download("fail_ghost", album, FormatALAC)
+	if !errors.As(err, &ee) {
+		t.Fatalf("%v", err)
+	}
+	if len(res.Files) != 0 || rep.done[1].Err == nil || rep.done[2].Err == nil || rep.done[3].Err == nil {
+		t.Fatalf("res=%+v done=%+v", res, rep.done)
+	}
+
+	// Non-zero exit without FailedPass that printed a JSON list credits only
+	// verified files, reports failures, leaves unstarted tracks unreported,
+	// and keeps the exit error.
+	r = newRig(t)
+	rep, res, _, err = r.download("fail_listed", album, FormatALAC)
+	if !errors.As(err, &ee) {
+		t.Fatalf("%v", err)
+	}
+	if d := rep.done[1]; d.Err != nil || d.Path != folder+"/01. Shoreline.flac" {
+		t.Fatalf("song 1: %+v", d)
+	}
+	if d := rep.done[2]; d.Err == nil || d.Err.Error() != "Failed to run v4: key retrieval failed" {
+		t.Fatalf("song 2: %+v", d)
+	}
+	if _, ok := rep.done[3]; ok {
+		t.Fatalf("unstarted song 3 reported: %+v", rep.done[3])
+	}
+	if !slices.Equal(res.Folders, []string{folder}) || len(res.Files) != 1 {
+		t.Fatalf("%+v", res)
+	}
+}
+
+func TestRecoverEdgeCases(t *testing.T) {
+	// Duplicate titles: when only the second "Intro" completes, recovery
+	// keeps its position instead of shifting it onto the first "Intro".
+	music := t.TempDir()
+	albumDir := filepath.Join(music, "apple-music", "Artist - Twin (2026)[16B-44.1kHz]")
+	if err := os.MkdirAll(albumDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	intro2 := filepath.Join(albumDir, "02. Intro.flac")
+	if err := os.WriteFile(intro2, flacHeader(16, 44100), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// Dangling symlink for track 1 must never be credited as a completed file.
+	if err := os.Symlink(filepath.Join(albumDir, "missing.flac"), filepath.Join(albumDir, "01. Intro.flac")); err != nil {
+		t.Fatal(err)
+	}
+	if files := listAudioFiles(albumDir); !slices.Equal(files, []string{intro2}) {
+		t.Fatalf("listAudioFiles kept dangling symlink: %v", files)
+	}
+	tr := amdl.NewTracker()
+	for _, l := range []string{
+		"Queue 1 of 1: Album",
+		"Artist - Twin (2026)[16B-44.1kHz]",
+		"Track 1 of 3: songs", "01. Intro", "Converted track already exists locally.",
+		"Track 2 of 3: songs", "02. Intro", "Conversion completed in 1s: 02. Intro.flac",
+		"Track 3 of 3: songs", "03. Outro", "webplayback rejected failureType=3076",
+	} {
+		tr.Line(l)
+	}
+	// Pass 2 crashes before revisiting track 3: track 3 keeps pass 1's error.
+	tr.Again()
+	for _, l := range []string{
+		"Queue 1 of 1: Album",
+		"Artist - Twin (2026)[16B-44.1kHz]",
+		"Track 1 of 3: songs", "01. Intro", "Failed to run v4: key retrieval failed",
+		"Track 2 of 3: songs", "02. Intro", "Converted track already exists locally.",
+	} {
+		tr.Line(l)
+	}
+
+	s := &Source{dir: "apple-music"}
+	rel := release{
+		item: source.Item{
+			Artist: "Artist",
+			Tracks: []source.Track{
+				{Position: 1, Title: "Intro"},
+				{Position: 2, Title: "Intro"},
+				{Position: 3, Title: "Outro"},
+			},
+		},
+		positions: map[int]int{1: 1, 2: 2, 3: 3},
+	}
+	written := s.recoverWritten(music, rel, tr)
+	rep := newReporter()
+	var res source.DownloadResult
+	done := s.collect(source.DownloadRequest{MusicDir: music}, FormatALAC, rel, written, tr, rep, &res, true)
+	if done != 1 {
+		t.Fatalf("done=%d written=%+v", done, written)
+	}
+	if d := rep.done[1]; d.Err == nil || d.Err.Error() != "Failed to run v4: key retrieval failed" {
+		t.Fatalf("track 1: %+v", d)
+	}
+	if d := rep.done[2]; d.Err != nil || d.Path != "apple-music/Artist - Twin (2026)[16B-44.1kHz]/02. Intro.flac" {
+		t.Fatalf("track 2: %+v", d)
+	}
+	if d := rep.done[3]; d.Err == nil || d.Err.Error() != "webplayback rejected failureType=3076" {
+		t.Fatalf("track 3: %+v", d)
+	}
+
+	// Artist-folder layout never picks another artist's identically named folder.
+	root := t.TempDir()
+	other := filepath.Join(root, "Other Artist", "Greatest Hits")
+	if err := os.MkdirAll(other, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got := findReleaseDir(root, "Greatest Hits", "Target Artist"); got != "" {
+		t.Fatalf("matched wrong artist folder: %q", got)
+	}
+	right := filepath.Join(root, "Target Artist", "Greatest Hits")
+	if err := os.MkdirAll(right, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got := findReleaseDir(root, "Greatest Hits", "Target Artist"); got != right {
+		t.Fatalf("got %q, want %q", got, right)
 	}
 }
 
@@ -286,7 +455,7 @@ func TestDownloadFailure(t *testing.T) {
 	if !errors.As(err, &ee) || err.Error() != "amdl exited with code 1: Failed to run v4: key retrieval failed" {
 		t.Fatalf("%v", err)
 	}
-	if len(rep.done) != 0 {
+	if len(rep.done) != 1 || rep.done[1].Err == nil || rep.done[1].Err.Error() != "Failed to run v4: key retrieval failed" {
 		t.Fatalf("%+v", rep.done)
 	}
 

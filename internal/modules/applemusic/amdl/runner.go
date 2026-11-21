@@ -43,7 +43,7 @@ type Track struct {
 	Song     string `json:"song"`
 }
 
-// Result is what a run that exited 0 printed.
+// Result is what a run printed.
 type Result struct {
 	// Tracks are the songs amdl wrote or found complete, in its order.
 	Tracks []Track
@@ -152,19 +152,6 @@ func (r *Runner) Run(ctx context.Context, link string, flags []string, line func
 	close(ended)
 	<-killed
 
-	switch {
-	case ctx.Err() != nil:
-		return Result{Tail: tail}, ctx.Err()
-	case tctx.Err() != nil:
-		return Result{Tail: tail}, fmt.Errorf("%w: it ran longer than %s", ErrTimeout, r.Timeout)
-	}
-	if werr != nil {
-		var ee *exec.ExitError
-		if errors.As(werr, &ee) {
-			return Result{Tail: tail}, &ExitError{Code: ee.ExitCode(), Lines: ErrorLines(tail)}
-		}
-		return Result{Tail: tail}, werr
-	}
 	res := Result{Tail: tail}
 	// The array is the last line that parses; a song or folder name that
 	// starts with [ prints a line that doesn't.
@@ -174,6 +161,19 @@ func (r *Runner) Run(ctx context.Context, link string, flags []string, line func
 			res.Tracks, res.Listed = tracks, true
 			break
 		}
+	}
+	switch {
+	case ctx.Err() != nil:
+		return res, ctx.Err()
+	case tctx.Err() != nil:
+		return res, fmt.Errorf("%w: it ran longer than %s", ErrTimeout, r.Timeout)
+	}
+	if werr != nil {
+		var ee *exec.ExitError
+		if errors.As(werr, &ee) {
+			return res, &ExitError{Code: ee.ExitCode(), Lines: ErrorLines(tail)}
+		}
+		return res, werr
 	}
 	return res, nil
 }

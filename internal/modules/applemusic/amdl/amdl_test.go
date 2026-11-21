@@ -222,6 +222,20 @@ func TestRunnerFailure(t *testing.T) {
 	if err.Error() != "amdl exited with code 1: Failed to run v4: key retrieval failed" {
 		t.Fatal(err)
 	}
+
+	// A non-zero exit that still printed its JSON list preserves the list
+	// and captures webplayback rejected errors.
+	music := t.TempDir()
+	res, err := runner(t, "FAKE_AMDL=fail_listed", "FAKE_MUSIC="+music).Run(context.Background(), "x", nil, nil)
+	if !errors.As(err, &ee) || ee.Code != 1 {
+		t.Fatalf("%v", err)
+	}
+	if !res.Listed || len(res.Tracks) != 1 || res.Tracks[0].Song != "Shoreline" {
+		t.Fatalf("%+v", res)
+	}
+	if !slices.Equal(ee.Lines, []string{"webplayback rejected failureType=3076"}) {
+		t.Fatalf("%q", ee.Lines)
+	}
 }
 
 func pidFile(t *testing.T) (string, func() int) {
@@ -495,25 +509,48 @@ func TestSplitBar(t *testing.T) {
 func TestTrackerAgain(t *testing.T) {
 	tr := amdl.NewTracker()
 	for _, l := range []string{
-		"Track 1 of 3: songs", "Converted track already exists locally.",
-		"Track 2 of 3: songs", "Conversion completed in 1s: 02. B.flac",
-		"Track 3 of 3: songs", "Failed to run v4: key retrieval failed",
+		"Queue 1 of 1: Album",
+		"Artist - Album: Deluxe (2026)[24B-44.1kHz]",
+		"Track 1 of 3: songs", "01. A", "Converted track already exists locally.",
+		"Track 2 of 3: songs", "02. B: Live", "Conversion completed in 1s: 02. B_ Live.flac",
+		"Track 3 of 3: songs", "03. C", "webplayback rejected failureType=3076",
 	} {
 		tr.Line(l)
+	}
+	if tr.Folder() != "Artist - Album: Deluxe (2026)[24B-44.1kHz]" {
+		t.Fatalf("folder %q", tr.Folder())
+	}
+	if !tr.Completed(1) || !tr.Completed(2) || tr.Completed(3) {
+		t.Fatalf("completed %v %v %v", tr.Completed(1), tr.Completed(2), tr.Completed(3))
+	}
+	if tr.File(2) != "02. B_ Live.flac" || tr.Title(1) != "01. A" || tr.Failure(3) != "webplayback rejected failureType=3076" {
+		t.Fatalf("file=%q title=%q failure=%q", tr.File(2), tr.Title(1), tr.Failure(3))
 	}
 	tr.Again()
 	if tr.Failure(3) != "" || tr.LastFailure() != "" {
 		t.Fatal("failures kept")
 	}
+	if tr.PrevFailure(3) != "webplayback rejected failureType=3076" {
+		t.Fatalf("prev failure %q", tr.PrevFailure(3))
+	}
 	for _, l := range []string{
-		"Track 1 of 3: songs", "Converted track already exists locally.",
-		"Track 2 of 3: songs", "Converted track already exists locally.",
-		"Track 3 of 3: songs", "Conversion completed in 1s: 03. C.flac",
+		"Queue 1 of 1: Album",
+		"Artist - Album: Deluxe (2026)[24B-44.1kHz]",
+		"Track 1 of 3: songs", "01. A", "Converted track already exists locally.",
+		"Track 2 of 3: songs", "02. B: Live", "Converted track already exists locally.",
+		"Track 3 of 3: songs", "03. C", "Conversion completed in 1s: 03. C.flac",
 	} {
 		tr.Line(l)
+	}
+	if tr.PrevFailure(3) != "" {
+		t.Fatalf("prev failure kept after revisit: %q", tr.PrevFailure(3))
 	}
 	// Song 1 was there before the first run; the first run wrote song 2.
 	if !tr.Skipped(1) || tr.Skipped(2) || tr.Skipped(3) || tr.First() != 1 {
 		t.Fatalf("skipped %v %v %v", tr.Skipped(1), tr.Skipped(2), tr.Skipped(3))
+	}
+	// Converted filename from pass 1 stays available after pass 2's exists line.
+	if tr.File(2) != "02. B_ Live.flac" || !tr.Completed(2) || !tr.Completed(3) || !tr.Started(3) {
+		t.Fatalf("file=%q completed=%v %v started=%v", tr.File(2), tr.Completed(2), tr.Completed(3), tr.Started(3))
 	}
 }

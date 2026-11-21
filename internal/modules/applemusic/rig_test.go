@@ -444,6 +444,66 @@ func fakeAMDL(mode string, args []string) int {
 		fmt.Println("Failed to run v4: key retrieval failed")
 		fmt.Println("Error detected, exiting...")
 		return 1
+	case "fail_all":
+		fmt.Println("Queue 1 of 1: Album")
+		fmt.Println(filepath.Base(dir))
+		for i, song := range []string{"Shoreline", "Undertow", "Breakwater"} {
+			fmt.Printf("Track %d of 3: songs\n%02d. %s\n", i+1, i+1, song)
+			fmt.Println("webplayback rejected failureType=3076")
+		}
+		fmt.Println("=======  [✔ ] Completed: 0/3  |  [⚠ ] Warnings: 0  |  [✖ ] Errors: 3  =======")
+		fmt.Println("Error detected, exiting...")
+		return 1
+	case "fail_sanitized":
+		// Folder and converted filename have ":" on stdout and "_" on disk.
+		sdir := filepath.Join(cfg.Paths.ALAC, "Northern Static - Low Tide_ Hymns (2019)[24B-96kHz]")
+		fmt.Println("Queue 1 of 1: Album")
+		fmt.Println("Northern Static - Low Tide: Hymns (2019)[24B-96kHz]")
+		fmt.Println("Track 1 of 3: songs")
+		fmt.Println("01. Shoreline: Live")
+		p := filepath.Join(sdir, "01. Shoreline_ Live.flac")
+		if _, err := os.Stat(p); err == nil {
+			fmt.Println("Converted track already exists locally.")
+		} else {
+			_ = os.MkdirAll(sdir, 0o755)
+			_ = os.WriteFile(p, flacHeader(24, 96000), 0o644)
+			fmt.Println("Conversion completed in 446ms: 01. Shoreline_ Live.flac")
+		}
+		for i, song := range []string{"Undertow", "Breakwater"} {
+			fmt.Printf("Track %d of 3: songs\nUnavailable, trying to dl aac-lc\n%02d. %s\n", i+2, i+2, song)
+			fmt.Println("Failed to dl aac-lc via lite-server: lite-server /webplayback returned code=404 msg=webplayback not available")
+		}
+		fmt.Println("=======  [✔ ] Completed: 1/3  |  [⚠ ] Warnings: 0  |  [✖ ] Errors: 2  =======")
+		fmt.Println("Error detected, exiting...")
+		return 1
+	case "fail_ghost":
+		// Claims tracks completed, but writes no files to disk.
+		fmt.Println("Queue 1 of 1: Album")
+		fmt.Println(filepath.Base(dir))
+		fmt.Println("Track 1 of 3: songs")
+		fmt.Println("01. Shoreline")
+		fmt.Println("Converted track already exists locally.")
+		fmt.Println("Track 2 of 3: songs")
+		fmt.Println("02. Undertow")
+		fmt.Println("Conversion completed in 1s: 02. Undertow.flac")
+		fmt.Println("Track 3 of 3: songs")
+		fmt.Println("03. Breakwater")
+		fmt.Println("Failed to run v4: key retrieval failed")
+		fmt.Println("=======  [✔ ] Completed: 2/3  |  [⚠ ] Warnings: 0  |  [✖ ] Errors: 1  =======")
+		fmt.Println("Error detected, exiting...")
+		return 1
+	case "fail_listed":
+		// Exits 1 after printing a JSON list where only track 1 exists on disk.
+		fmt.Println("Queue 1 of 1: Album")
+		fmt.Println(filepath.Base(dir))
+		fmt.Println("Track 1 of 3: songs")
+		write(1, "Shoreline")
+		fmt.Println("Track 2 of 3: songs")
+		fmt.Println("Failed to run v4: key retrieval failed")
+		list = append(list, added{Path: filepath.Join(dir, "02. Undertow.flac"), Artist: "Northern Static", ArtistID: "111", Album: "Low Tide Hymns", Song: "Undertow"})
+		out, _ := json.Marshal(list)
+		fmt.Println(string(out))
+		return 1
 	}
 	fmt.Println("=======  [✔ ] Completed")
 	out, _ := json.Marshal(list)
