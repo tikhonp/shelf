@@ -8,6 +8,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { download, FakeEventSource, list, source, stubApi } from '../testing/api'
 import { useDownloads } from './downloads'
 import { useEvents } from './events'
+import { useInbox } from './inbox'
 import { useSources } from './sources'
 import { useStatus } from './status'
 
@@ -143,4 +144,33 @@ test('a reconnect preserves the result of a Save that finished while disconnecte
   // A later reconnect also keeps the result that was already on screen.
   useEvents().disconnect(); useEvents().connect(); FakeEventSource.all.at(-1)!.onopen?.(); await flushPromises()
   expect(editor.outcome).toMatchObject({ ok: true, changes: 1 })
+})
+
+test('a completed Library change event for the open proposal album refreshes the open proposal', async () => {
+  let detailCalls = 0
+  const proposal = {
+    id: 4, url: '/inbox/4', state: 'pending', changes_requested: false, connection: { id: 1, name: 'Agent' }, run_id: 1,
+    album: { id: 7, current_id: 7, title: 'Blue', artist: 'Joni', folder: 'rock/Blue' }, group: '', follow_up_of: null, head: 1, revisions: [],
+    current: { title: 'Genre', reason: 'Update', uncertainties: '', confidence: null, evidence: [], base: [{ track_id: 1, revision: 'r1' }], ops: [], preview: { album: { id: 7, folder: 'rock/Blue', title: 'Blue', artist: 'Joni' }, files: [], folder: [], warnings: [], digest: 'd' } },
+    ops: [], summary: { pending: 0, accepted: 0, declined: 0, superseded: 0 }, acceptances: [], events: [],
+  }
+  stubApi({
+    ...routes,
+    '/api/inbox/proposals/4': () => { detailCalls++; return proposal },
+  })
+  const inbox = useInbox()
+  await inbox.open(4)
+  expect(detailCalls).toBe(1)
+
+  useEvents().connect()
+  // Unrelated album or unfinished change does not refresh the proposal.
+  stream().emit('change', { id: 10, kind: 'save', album_id: 7, folder: 'rock/Blue', state: 'writing', conflicts: [] })
+  stream().emit('change', { id: 11, kind: 'save', album_id: 99, folder: 'jazz/Other', state: 'done', conflicts: [] })
+  await flushPromises()
+  expect(detailCalls).toBe(1)
+
+  // Completed change on the open proposal's album triggers a refresh.
+  stream().emit('change', { id: 12, kind: 'save', album_id: 7, folder: 'rock/Blue', state: 'done', conflicts: [] })
+  await flushPromises()
+  expect(detailCalls).toBe(2)
 })

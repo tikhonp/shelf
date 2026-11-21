@@ -39,7 +39,7 @@
   --text: #0E1218; --text-2: #141A24; --text-3: #161C27;
   --sun: #E8901A; --sun-hi: #F8C77A; --sun-ink: #1B1F27; --sun-text: #2A1600; --sun-glow: transparent;
   --lamp: #FBDDB0; --lit-glow: transparent;
-  --sel: #9AAFC7; --focus: #FFFFFF;
+  --sel: #9AAFC7; --focus: #FFFFFF; --focus-edge: #10141B;
   --wood: repeating-linear-gradient(91deg, #85542F 0 2px, #98663E 2px 5px, #8C5C36 5px 8px, #A57148 8px 12px, #925F38 12px 15px);
   --deck: #CDD1D7; --plate: #2A2F37;
   --lcd: #B7C79D; --lcd-text: #1F2B14; --lcd-glow: transparent;

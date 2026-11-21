@@ -14,6 +14,7 @@ body:has(.rs.day) { background: #CBC6BC; }
 .rs a { color: var(--sun-text); text-underline-offset: 2px; }
 .rs h1, .rs h2, .rs h3, .rs p, .rs dl, .rs dd, .rs figure, .rs ol { margin: 0; }
 .rs :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.rs.day :focus-visible { box-shadow: 0 0 0 2px var(--focus-edge); }
 .rs .px { font-family: var(--label); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
 .rs .mono { font-family: var(--mono); font-size: 13px; }
 .rs .num { font-variant-numeric: tabular-nums; }
@@ -68,6 +69,7 @@ body:has(.rs.day) { background: #CBC6BC; }
 .rs .split.block > .key:first-child { flex: 1; }
 .rs .field { display: flex; align-items: center; gap: 10px; min-height: 50px; padding: 0 6px 0 12px; background: var(--field); border: 1px solid var(--ink); border-radius: 6px; box-shadow: inset 1px 2px 4px rgba(0, 0, 0, .45); color: var(--text-3); }
 .rs .field:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+.rs.day .field:focus-within { box-shadow: inset 1px 2px 4px rgba(0, 0, 0, .45), 0 0 0 2px var(--focus-edge); }
 .rs .field input { flex: 1; min-width: 0; height: 46px; border: 0; outline: 0; background: transparent; font-size: 16px; color: var(--text); }
 .rs .field input::placeholder { color: var(--text-3); }
 .rs.day .field { color: #5D6573; }
@@ -83,6 +85,7 @@ body:has(.rs.day) { background: #CBC6BC; }
 .rs .row { display: grid; align-items: center; column-gap: 12px; min-height: 58px; padding: 7px 14px; border-bottom: 1px solid var(--line); }
 .rs .row:hover { background: var(--win-2); }
 .rs .row.cur, .rs .row.cur:hover { background: var(--sel); box-shadow: inset 0 0 0 2px var(--focus); }
+.rs.day .row.cur, .rs.day .row.cur:hover { box-shadow: inset 0 0 0 2px var(--focus), inset 0 0 0 4px var(--focus-edge); }
 .rs .thead { position: sticky; top: 0; z-index: 2; min-height: 34px; padding-top: 0; padding-bottom: 0; background: var(--win-2); border-bottom: 1px solid var(--ink); font-family: var(--label); font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); }
 .rs .thead:hover { background: var(--win-2); }
 .rs .two { display: flex; flex-direction: column; gap: 1px; min-width: 0; }

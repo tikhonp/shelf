@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import type { Op, ProposalSummary } from '../api/agents'
 import { useNow } from '../lib/clock'
@@ -32,7 +32,24 @@ const states: { id: StateFilter; label: string }[] = [
   { id: 'all', label: 'All' },
 ]
 const at = computed(() => states.findIndex((s) => s.id === inbox.filters.state))
+const checkedStateIndex = computed(() => Math.max(0, at.value))
 const turn = () => set({ state: states[(at.value + 1) % states.length]!.id })
+function stateKey(event: KeyboardEvent, index: number) {
+  const n = states.length
+  const next = {
+    ArrowRight: (index + 1) % n,
+    ArrowDown: (index + 1) % n,
+    ArrowLeft: (index + n - 1) % n,
+    ArrowUp: (index + n - 1) % n,
+    Home: 0,
+    End: n - 1,
+  }[event.key]
+  if (next === undefined) return
+  event.preventDefault()
+  const target = states[next]!
+  set({ state: target.id })
+  root.value?.querySelector<HTMLElement>(`[role="radio"][data-state="${target.id}"]`)?.focus()
+}
 const kinds: { id: Filters['kind']; label: string }[] = [
   { id: '', label: 'Tags and covers' },
   { id: 'tag', label: 'Tags' },
@@ -55,10 +72,23 @@ const fieldNames = (p: ProposalSummary) => [...new Set((p.fields ?? []).map((f) 
 const second = (p: ProposalSummary) => [p.album.artist, fieldNames(p)].filter(Boolean).join(' · ')
 // A row names its state only when the filter doesn't already say it.
 const pill = (p: ProposalSummary) => inbox.filters.state === 'all' || (p.state === 'pending' && p.changes_requested)
+
+const root = ref<HTMLElement>()
+function retryList() {
+  void inbox.retryList()
+}
+function focusRow(proposalId: number): boolean {
+  const link = root.value?.querySelector<HTMLElement>(`a[data-proposal-id="${proposalId}"]`)
+  if (!link) return false
+  link.scrollIntoView?.({ block: 'nearest' })
+  link.focus({ preventScroll: true })
+  return true
+}
+defineExpose({ focusRow })
 </script>
 
 <template>
-  <section class="win" aria-labelledby="ib-h">
+  <section ref="root" class="win" aria-labelledby="ib-h">
     <div class="tb">
       <RouterLink v-if="phone" class="wbtn" to="/library" aria-label="Back to the library" title="Library"><Icon name="back" /></RouterLink>
       <h1 id="ib-h">Inbox</h1>
@@ -67,9 +97,9 @@ const pill = (p: ProposalSummary) => inbox.filters.state === 'all' || (p.state =
     </div>
     <div class="rotary" role="radiogroup" aria-label="State">
       <div class="rot-labels">
-        <button v-for="s in states.slice(0, 2)" :key="s.id" type="button" role="radio" :aria-checked="s.id === inbox.filters.state" @click="set({ state: s.id })"><span class="led"></span>{{ s.label }}</button>
+        <button v-for="(s, i) in states.slice(0, 2)" :key="s.id" type="button" role="radio" :data-state="s.id" :aria-checked="s.id === inbox.filters.state" :tabindex="i === checkedStateIndex ? 0 : -1" @click="set({ state: s.id })" @keydown="stateKey($event, i)"><span class="led"></span>{{ s.label }}</button>
         <Knob color="grey" :size="phone ? 48 : 44" :angle="typeAngles[at] ?? 0" :label="`Change the state, now ${states[at]?.label}`" @press="turn" />
-        <button v-for="s in states.slice(2)" :key="s.id" type="button" role="radio" :aria-checked="s.id === inbox.filters.state" @click="set({ state: s.id })"><span class="led"></span>{{ s.label }}</button>
+        <button v-for="(s, i) in states.slice(2)" :key="s.id" type="button" role="radio" :data-state="s.id" :aria-checked="s.id === inbox.filters.state" :tabindex="i + 2 === checkedStateIndex ? 0 : -1" @click="set({ state: s.id })" @keydown="stateKey($event, i + 2)"><span class="led"></span>{{ s.label }}</button>
       </div>
     </div>
     <div class="ib-filters">
@@ -77,7 +107,12 @@ const pill = (p: ProposalSummary) => inbox.filters.state === 'all' || (p.state =
       <PickMenu label="Kind" :options="kinds" :value="inbox.filters.kind" @pick="(id) => set({ kind: id })" />
       <span v-if="inbox.filters.album" class="ib-chip"><span class="ell">{{ albumName }}</span><button type="button" class="link" aria-label="Show every album" @click="set({ album: null })">Every album</button></span>
     </div>
-    <p v-if="inbox.listError" class="bad-text pad" role="alert">{{ inbox.listError }}</p>
+    <div v-if="inbox.listError" class="pad col g8 ib-list-err" role="alert">
+      <p class="bad-text">{{ inbox.listError }}</p>
+      <div class="line g8">
+        <button type="button" class="key sm" :disabled="inbox.listLoading" @click="retryList">Retry</button>
+      </div>
+    </div>
     <div v-if="!inbox.listLoading && inbox.proposals.length === 0 && !inbox.listError" class="empty">
       <h2>{{ inbox.filters.state === 'pending' ? 'Nothing to review' : 'No proposals' }}</h2>
       <p>Proposals from a connected agent show here. Connect one on Status.</p>
@@ -85,23 +120,24 @@ const pill = (p: ProposalSummary) => inbox.filters.state === 'all' || (p.state =
     <ul v-else class="rows ib-rows" aria-label="Proposals">
       <li v-for="p in inbox.proposals" :key="p.id" class="row ib-row" :class="{ cur: selected === p.id, ph: phone }">
         <Cover :url="cover(p)" :size="phone ? 62 : 46" />
-        <RouterLink class="two plain" :to="{ path: `/inbox/${p.id}`, query }" :aria-current="selected === p.id ? 'page' : undefined">
+        <RouterLink class="two plain" :data-proposal-id="p.id" :to="{ path: `/inbox/${p.id}`, query }" :aria-current="selected === p.id ? 'page' : undefined">
           <span class="ttl"><span class="ell">{{ p.album.title }}</span></span>
           <span class="sub ell">{{ second(p) }}</span>
-          <span class="sub ell t3">{{ p.connection.name }} · {{ finishedAt(p.updated_at, now) }}<template v-if="p.stale"> · Changed since proposed</template></span>
+          <span class="sub ell t3">{{ p.connection.name }} · {{ finishedAt(p.updated_at, now) }}</span>
         </RouterLink>
         <span class="col g4 r">
           <span v-if="p.confidence != null" class="lcd ib-sure num" :aria-label="`Confidence ${p.confidence}%`"><LibTip title="Confidence" :note="phone ? '' : inboxNotes.confidence">{{ p.confidence }}%</LibTip></span>
           <span v-if="pill(p)" class="pill" :class="stateClass(p.state, p.changes_requested)">{{ stateWord(p) }}</span>
         </span>
       </li>
+      <li v-if="inbox.next !== null" class="ib-more"><ScrollMore :load="inbox.moreList" :count="inbox.proposals.length" :busy="inbox.listLoading || !!inbox.listError" /></li>
     </ul>
-    <div v-if="inbox.next !== null" class="pad"><ScrollMore :load="inbox.moreList" :count="inbox.proposals.length" :busy="inbox.listLoading" /></div>
   </section>
 </template>
 
 <style scoped>
 .rs .pad { padding: 14px; }
+.rs .ib-more { flex: none; padding: 14px; }
 .rs .ib-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--ink); }
 .rs .ib-rows { flex: 1; min-height: 0; margin: 0; padding: 0; list-style: none; overflow-y: auto; }
 /* A row never shrinks below its three lines. On the phone it has the Library's sizes. */

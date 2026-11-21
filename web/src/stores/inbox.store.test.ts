@@ -402,3 +402,377 @@ test('All off keeps hidden fields selected, even when they depend on a visible f
   expect(store.shown).toEqual([])
   expect(store.declineCount).toBe(3)
 })
+
+test('a new revision that changes previewed writes forces reviewRequired and clears warning confirmations even with identical warning text', async () => {
+  const d = detail()
+  let digest = 'rev1'
+  const warn = { kind: 'album_artist', message: 'Renames the album artist in Navidrome.' }
+  const { store } = await opened({
+    '/api/inbox/proposals/1': () => structuredClone(d),
+    '/api/inbox/proposals/1/preview': () => ({ preview: { ...preview(digest), warnings: [warn] }, refusal: null, missing: ['album_artist'] }),
+  })
+  store.toggleConfirm('album_artist')
+  expect(store.reviewRequired).toBe(false)
+  expect(store.canAccept).toBe(true)
+
+  d.head = 2
+  digest = 'rev2'
+  await store.loadDetail()
+  await flushPromises()
+  expect(store.reviewRequired).toBe(true)
+  expect(store.confirm).toEqual([])
+  expect(store.canAccept).toBe(false)
+
+  store.reviewPreview('rev2')
+  expect(store.reviewRequired).toBe(false)
+  expect(store.canAccept).toBe(false)
+  store.toggleConfirm('album_artist')
+  expect(store.canAccept).toBe(true)
+})
+
+test('a new revision that changes an op target under the same op ID blocks silent rebase and surfaces a conflict', async () => {
+  const d = dated()
+  const { store, calls } = await opened({
+    '/api/inbox/proposals/1': () => structuredClone(d),
+    '/api/inbox/proposals/1/revisions': () => ({ ...structuredClone(d), head: 3 }),
+  })
+  store.setValues('genre', [1], ['Progressive Rock'])
+  store.setValues('originaldate', [1], ['1974'])
+
+  d.head = 2
+  const genreOp = d.current.ops.find((o) => o.id === 'genre')!
+  if (genreOp.type !== 'tag') throw new Error('expected tag op')
+  genreOp.field = 'mood'
+  genreOp.tracks = [{ track_id: 1, values: ['Calm'] }]
+
+  await store.loadDetail()
+  await flushPromises()
+
+  expect(store.draftConflicts).toHaveLength(1)
+  expect(store.draftConflicts[0]).toMatchObject({ opId: 'genre', originalLabel: 'Genre', currentLabel: 'Mood', text: 'Progressive Rock' })
+  // Conflicted draft must not leak onto Mood or be sent in revisionOps.
+  expect(store.values(store.detail!.current.ops.find((o) => o.id === 'genre') as import('../api/agents').TagOp, 1)).toEqual(['Calm'])
+  expect(store.revisionOps().map((o) => o.id)).toEqual(['originaldate'])
+  expect(store.rebase()).toBe(false)
+  expect(await store.saveValues()).toBe(false)
+  expect(parsed(calls, '/revisions')).toHaveLength(0)
+
+  // Discarding the conflicted draft unblocks rebasing and saving the matching draft.
+  store.discard('genre')
+  expect(store.draftConflicts).toEqual([])
+  expect(store.rebase()).toBe(true)
+  expect(await store.saveValues()).toBe(true)
+  expect(parsed(calls, '/revisions')[0]).toEqual({ parent_revision: 2, ops: [{ id: 'originaldate', tracks: [{ track_id: 1, values: ['1974'] }] }] })
+})
+
+test('deciding or superseding an edited op via live refresh retains the dropped draft until dismissed', async () => {
+  const d = dated()
+  const { store } = await opened({ '/api/inbox/proposals/1': () => structuredClone(d) })
+  store.setValues('genre', [1], ['Progressive Rock'])
+  store.setValues('originaldate', [1], ['1974'])
+
+  d.head = 2
+  d.ops.find((o) => o.id === 'genre')!.decision = 'superseded'
+  d.current.ops = d.current.ops.filter((o) => o.id !== 'genre')
+  d.ops.find((o) => o.id === 'originaldate')!.decision = 'accepted'
+
+  await store.loadDetail()
+  await flushPromises()
+
+  expect(store.drafts).toEqual({})
+  expect(store.droppedDrafts).toEqual([
+    { opId: 'genre', label: 'Genre', reason: 'superseded', text: 'Progressive Rock' },
+    { opId: 'originaldate', label: 'Original date', reason: 'accepted', text: '1974' },
+  ])
+  store.dismissDroppedDraft('genre')
+  expect(store.droppedDrafts.map((x) => x.opId)).toEqual(['originaldate'])
+  store.dismissDroppedDraft()
+  expect(store.droppedDrafts).toEqual([])
+})
+
+test('hasUnsaved tracks value edits including pending empty rows, reply text, and decline reason', async () => {
+  const { store } = await opened()
+  expect(store.hasUnsaved).toBe(false)
+
+  // Adding a pending empty row marks hasUnsaved even though revisionOps() drops empty strings.
+  store.setValues('genre', [1], ['Art Rock', ''])
+  expect(store.dirty).toBe(false)
+  expect(store.hasValueDrafts).toBe(true)
+  expect(store.hasUnsaved).toBe(true)
+
+  // Removing the empty row returns to head and clears hasUnsaved.
+  store.setValues('genre', [1], ['Art Rock'])
+  expect(store.hasValueDrafts).toBe(false)
+  expect(store.hasUnsaved).toBe(false)
+
+  store.replyDraft = '   '
+  expect(store.hasUnsaved).toBe(false)
+  store.replyDraft = 'Check the pressing'
+  expect(store.hasReplyDraft).toBe(true)
+  expect(store.hasUnsaved).toBe(true)
+
+  store.replyDraft = ''
+  store.declineReason = 'Not this reissue'
+  expect(store.hasDeclineDraft).toBe(true)
+  expect(store.hasUnsaved).toBe(true)
+
+  store.close()
+  expect(store.replyDraft).toBe('')
+  expect(store.declineReason).toBe('')
+  expect(store.hasUnsaved).toBe(false)
+})
+
+const summary = (id: number, title = `Album ${id}`) => ({
+  id,
+  state: 'pending' as const,
+  changes_requested: false,
+  title: 'Tags',
+  album: { id, current_id: id, title, artist: 'Artist', folder: `a/${id}` },
+  connection: { id: 1, name: 'Agent' },
+  kinds: ['tag'],
+  fields: [{ id: 'genre', type: 'tag' as const, field: 'genre' }],
+  confidence: 80,
+  summary: { pending: 1, accepted: 0, declined: 0, superseded: 0 },
+  updated_at: '2026-11-09T10:00:00Z',
+  stale: false,
+})
+
+test('detect disables Inbox only on 404 and keeps a retryable error on transient failures', async () => {
+  let fail = true
+  stubApi({
+    '/api/inbox': () => (fail ? new Reply(503, { error: 'Service unavailable' }) : { pending: 2, connections: 1, changes_requested: 0, accounts: 'none', can_create_connections: false }),
+  })
+  const store = useInbox()
+  await store.detect()
+  expect(store.enabled).toBeNull()
+  expect(store.detectError).toContain('Service unavailable')
+
+  fail = false
+  await store.detect()
+  expect(store.enabled).toBe(true)
+  expect(store.detectError).toBe('')
+  expect(store.info?.pending).toBe(2)
+
+  // A later transient error keeps enabled = true instead of hiding the Inbox.
+  fail = true
+  await store.detect()
+  expect(store.enabled).toBe(true)
+  expect(store.detectError).toContain('Service unavailable')
+
+  // Only a confirmed 404 disables Inbox.
+  stubApi({ '/api/inbox': new Reply(404, { error: 'Not found' }) })
+  await store.detect()
+  expect(store.enabled).toBe(false)
+  expect(store.detectError).toBe('')
+})
+
+test('changing filters clears stale rows and cursor immediately and stays empty on failure', async () => {
+  let resolveNext: ((v: unknown) => void) | null = null
+  stubApi({
+    '/api/inbox/proposals': (url: string) => {
+      if (url.includes('kind=cover')) {
+        return new Promise((resolve) => { resolveNext = resolve })
+      }
+      return { proposals: [summary(10), summary(9)], next: 9 }
+    },
+  })
+  const store = useInbox()
+  store.setFilters({ state: 'pending', album: null, kind: '', connection: null })
+  await flushPromises()
+  expect(store.proposals.map((p) => p.id)).toEqual([10, 9])
+  expect(store.next).toBe(9)
+
+  store.setFilters({ state: 'pending', album: null, kind: 'cover', connection: null })
+  expect(store.proposals).toEqual([])
+  expect(store.next).toBeNull()
+  expect(store.listLoading).toBe(true)
+
+  resolveNext!(new Reply(500, { error: 'Filter query failed' }))
+  await flushPromises()
+  expect(store.proposals).toEqual([])
+  expect(store.next).toBeNull()
+  expect(store.listError).toContain('Filter query failed')
+})
+
+test('SSE refresh preserves already paginated pages without dropping earlier pages', async () => {
+  let version = 1
+  stubApi({
+    '/api/inbox': { pending: 3, connections: 1, changes_requested: 0, accounts: 'none', can_create_connections: false },
+    '/api/inbox/proposals': (url: string) => {
+      if (url.includes('before=20')) {
+        return { proposals: [summary(10, `Page 2 v${version}`)], next: null }
+      }
+      return { proposals: [summary(30, `Page 1a v${version}`), summary(20, `Page 1b v${version}`)], next: 20 }
+    },
+  })
+  const store = useInbox()
+  await store.loadList()
+  await store.moreList()
+  expect(store.proposals.map((p) => p.id)).toEqual([30, 20, 10])
+  expect(store.next).toBeNull()
+
+  version = 2
+  store.applyHub({ proposal: 30 })
+  await flushPromises()
+  expect(store.proposals.map((p) => [p.id, p.album.title])).toEqual([
+    [30, 'Page 1a v2'],
+    [20, 'Page 1b v2'],
+    [10, 'Page 2 v2'],
+  ])
+  expect(store.next).toBeNull()
+})
+
+test('saveValues does not rebind in-flight edits when an agent retargets the op after save commits, and keeps newer SSE detail', async () => {
+  const response = deferred<ProposalDetail>()
+  const d = detail()
+  const { store } = await opened({
+    '/api/inbox/proposals/1': d,
+    '/api/inbox/proposals/1/revisions': () => response.promise,
+  })
+
+  // Edit Genre, start saving, then keep typing Genre while the request is in flight.
+  store.setValues('genre', [1], ['Saved Genre'])
+  const saving = store.saveValues()
+  store.setValues('genre', [1], ['Still Genre'])
+
+  // Server committed save as rev 2, then an agent retargeted op "genre" to Mood in rev 3 before the response read detail.
+  const rev3 = detail()
+  rev3.head = 3
+  rev3.current.ops = [{ id: 'genre', type: 'tag', field: 'mood', tracks: [{ track_id: 1, values: ['Calm'] }] }]
+  response.resolve(rev3)
+  expect(await saving).toBe(true)
+
+  // Remaining draft must stay targeted to Genre, conflict against rev 3 Mood, and headSeen stays at saved rev 2.
+  expect(store.headSeen).toBe(2)
+  expect(store.drafts.genre?.target?.field).toBe('genre')
+  expect(store.draftConflicts).toHaveLength(1)
+  expect(store.draftConflicts[0]?.reason).toContain('Genre')
+  expect(store.draftConflicts[0]?.reason).toContain('Mood')
+  expect(store.rebase()).toBe(false)
+
+  // Now test that a newer SSE detail already received is not overwritten by an older save response.
+  const response2 = deferred<ProposalDetail>()
+  const d2 = detail()
+  const rev4 = detail()
+  rev4.head = 4
+  rev4.current.title = 'Newer SSE title'
+  const { store: store2 } = await opened({
+    '/api/inbox/proposals/1': () => rev4,
+    '/api/inbox/proposals/1/revisions': () => response2.promise,
+  })
+  // Reset store2 detail to rev 1 first.
+  store2.detail = d2
+  store2.headSeen = 1
+  store2.setValues('genre', [1], ['Edit 1'])
+  const saving2 = store2.saveValues()
+  await store2.loadDetail()
+  expect(store2.detail?.head).toBe(4)
+
+  const rev2 = detail()
+  rev2.head = 2
+  rev2.current.title = 'Older save response'
+  response2.resolve(rev2)
+  await saving2
+  expect(store2.detail?.head).toBe(4)
+  expect(store2.detail?.current.title).toBe('Newer SSE title')
+})
+
+test.each([true, false])('failed SSE refresh retries refreshList across multiple pages (hasMore: %s)', async (hasMore) => {
+  let version = 1
+  let failRefresh = false
+  stubApi({
+    '/api/inbox': { pending: 3, connections: 1, changes_requested: 0, accounts: 'none', can_create_connections: false },
+    '/api/inbox/proposals': (url: string) => {
+      if (failRefresh) return new Reply(503, { error: 'Refresh failed' })
+      if (url.includes('before=20')) {
+        return { proposals: [summary(10, `Page 2 v${version}`)], next: hasMore ? 10 : null }
+      }
+      return { proposals: [summary(30, `Page 1a v${version}`), summary(20, `Page 1b v${version}`)], next: 20 }
+    },
+  })
+  const store = useInbox()
+  await store.loadList()
+  await store.moreList()
+  expect(store.proposals.map((p) => p.id)).toEqual([30, 20, 10])
+  expect(store.next).toBe(hasMore ? 10 : null)
+
+  version = 2
+  failRefresh = true
+  store.applyHub({ proposal: 30 })
+  await flushPromises()
+  expect(store.listError).toContain('Refresh failed')
+  expect(store.proposals.map((p) => p.album.title)).toEqual(['Page 1a v1', 'Page 1b v1', 'Page 2 v1'])
+
+  failRefresh = false
+  // Automatic pagination while a refresh error is active must not wipe the refresh failure.
+  await store.moreList()
+  expect(store.listError).toContain('Refresh failed')
+
+  await store.retryList()
+  expect(store.listError).toBe('')
+  expect(store.proposals.map((p) => [p.id, p.album.title])).toEqual([
+    [30, 'Page 1a v2'],
+    [20, 'Page 1b v2'],
+    [10, 'Page 2 v2'],
+  ])
+  expect(store.next).toBe(hasMore ? 10 : null)
+})
+
+test('same-head withdrawal/decline is not rolled back by a delayed save response, and replacement drafts keep their new target', async () => {
+  // 1. Delayed save response at head 2 must not roll back a same-head withdrawal with more events.
+  const saveRes = deferred<ProposalDetail>()
+  const d1 = detail()
+  const withdrawnAt2 = detail()
+  withdrawnAt2.head = 2
+  withdrawnAt2.state = 'withdrawn'
+  withdrawnAt2.events = [
+    ...withdrawnAt2.events,
+    { id: 2, at: '2026-11-09T11:00:00Z', kind: 'proposal_edited', actor_kind: 'user', actor: 'alice' },
+    { id: 3, at: '2026-11-09T11:01:00Z', kind: 'proposal_withdrawn', actor_kind: 'agent', actor: 'Claude' },
+  ]
+  const { store } = await opened({
+    '/api/inbox/proposals/1': () => structuredClone(withdrawnAt2),
+    '/api/inbox/proposals/1/revisions': () => saveRes.promise,
+  })
+  store.detail = d1
+  store.headSeen = 1
+  store.setValues('genre', [1], ['Edit'])
+  const saving = store.saveValues()
+  await store.loadDetail()
+  expect(store.detail?.state).toBe('withdrawn')
+
+  const staleSaveAnswer = detail()
+  staleSaveAnswer.head = 2
+  staleSaveAnswer.events = [
+    ...staleSaveAnswer.events,
+    { id: 2, at: '2026-11-09T11:00:00Z', kind: 'proposal_edited', actor_kind: 'user', actor: 'alice' },
+  ]
+  saveRes.resolve(staleSaveAnswer)
+  await saving
+  expect(store.detail?.state).toBe('withdrawn')
+
+  // 2. Discarding a conflicting draft and editing the retargeted op while POST is pending preserves the new draft target.
+  const saveRes2 = deferred<ProposalDetail>()
+  const rev3 = detail()
+  rev3.head = 3
+  rev3.current.ops = [{ id: 'genre', type: 'tag', field: 'mood', tracks: [{ track_id: 1, values: ['Calm'] }, { track_id: 2, values: ['Calm'] }] }]
+  const { store: store2 } = await opened({
+    '/api/inbox/proposals/1': () => structuredClone(rev3),
+    '/api/inbox/proposals/1/revisions': () => saveRes2.promise,
+  })
+  store2.detail = detail()
+  store2.headSeen = 1
+  store2.setValues('genre', [1], ['Old Genre'])
+  const saving2 = store2.saveValues()
+  await store2.loadDetail()
+  expect(store2.draftConflicts).toHaveLength(1)
+  store2.discard('genre')
+  store2.setValues('genre', [1, 2], ['Upbeat'])
+  expect(store2.draftConflicts).toHaveLength(0)
+
+  saveRes2.resolve(staleSaveAnswer)
+  await saving2
+  expect(store2.drafts.genre?.target?.field).toBe('mood')
+  expect(store2.drafts.genre?.target?.track_ids).toEqual([1, 2])
+  expect(store2.draftConflicts).toHaveLength(0)
+})

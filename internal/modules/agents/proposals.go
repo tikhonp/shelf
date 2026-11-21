@@ -651,7 +651,7 @@ func (m *Module) postRevision(c *echo.Context) error {
 				_, err = tx.ExecContext(ctx, `INSERT INTO agents_ops (proposal_id, op_id, type, fingerprint, decision) VALUES (?, ?, ?, ?, 'pending')`,
 					id, o.ID, o.Type, p.fps[o.ID])
 			} else {
-				_, err = tx.ExecContext(ctx, `UPDATE agents_ops SET fingerprint = ? WHERE proposal_id = ? AND op_id = ?`, p.fps[o.ID], id, o.ID)
+				_, err = tx.ExecContext(ctx, `UPDATE agents_ops SET type = ?, fingerprint = ? WHERE proposal_id = ? AND op_id = ?`, o.Type, p.fps[o.ID], id, o.ID)
 			}
 			if err != nil {
 				return err

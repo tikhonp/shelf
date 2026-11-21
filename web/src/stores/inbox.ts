@@ -21,7 +21,9 @@ import {
   type Warning,
 } from '../api/agents'
 import { ApiError, errorText, get, post } from '../api/client'
-import { previewCounts } from '../lib/inbox'
+import type { LibraryChange } from '../api/types'
+import { count } from '../lib/format'
+import { opLabel, opName, previewCounts, trackLabel } from '../lib/inbox'
 
 export type StateFilter = 'pending' | 'reviewed' | 'withdrawn' | 'all'
 export interface Filters {
@@ -59,17 +61,107 @@ export function filtersToQuery(f: Filters): Record<string, string> {
   return q
 }
 
+export interface DraftTarget {
+  type: Op['type']
+  field?: string
+  tag_key?: string
+  action?: CoverOp['action']
+  track_ids: number[]
+}
+
 // A draft is the reviewer's values for one op that aren't a revision yet.
 export interface Draft {
+  target?: DraftTarget
+  label?: string
   tracks: Record<number, string[]>
   dropped: number[]
   every_track?: boolean
+}
+
+export interface DraftConflict {
+  opId: string
+  originalLabel: string
+  currentLabel: string
+  reason: string
+  text: string
+}
+
+export interface DroppedDraft {
+  opId: string
+  label: string
+  reason: string
+  text: string
+}
+
+export interface DeclineSnapshot {
+  revision: number
+  ops: string[]
+  names?: string[]
 }
 
 const sorted = (xs: string[]) => [...xs].sort()
 const sameList = (a: string[], b: string[]) => a.length === b.length && a.every((v, i) => v === b[i])
 // An empty input is a value the reviewer hasn't typed yet; every other value is sent as typed, never split.
 const typed = (values: string[]) => values.filter((v) => v.trim() !== '')
+
+function opTargetSnapshot(op: Op): DraftTarget {
+  if (op.type === 'cover') return { type: 'cover', action: op.action, track_ids: [] }
+  return {
+    type: 'tag',
+    field: op.field,
+    tag_key: op.tag_key,
+    track_ids: op.tracks.map((t) => t.track_id).sort((a, b) => a - b),
+  }
+}
+
+function sameDraftTarget(a: DraftTarget, b: DraftTarget): boolean {
+  if (a.type !== b.type) return false
+  if (a.type === 'cover') return a.action === b.action
+  if ((a.field ?? '') !== (b.field ?? '') || (a.tag_key ?? '') !== (b.tag_key ?? '')) return false
+  return a.track_ids.length === b.track_ids.length && a.track_ids.every((id, i) => id === b.track_ids[i])
+}
+
+function isStaleDetail(next: ProposalDetail, cur: ProposalDetail | null): boolean {
+  if (!cur || cur.id !== next.id) return false
+  if (next.head < cur.head) return true
+  if (next.head > cur.head) return false
+  if (next.events.length < cur.events.length) return true
+  if (next.acceptances.length < cur.acceptances.length) return true
+  if (cur.state === 'withdrawn' && next.state !== 'withdrawn') return true
+  return false
+}
+
+function sameTarget(a: DraftTarget, op: Op): boolean {
+  if (a.type !== op.type) return false
+  if (op.type === 'cover') return a.action === op.action
+  if ((a.field ?? '') !== (op.field ?? '') || (a.tag_key ?? '') !== (op.tag_key ?? '')) return false
+  const ids = op.tracks.map((t) => t.track_id).sort((x, y) => x - y)
+  return a.track_ids.length === ids.length && a.track_ids.every((id, i) => id === ids[i])
+}
+
+function formatDraftText(draft: Draft, d: ProposalDetail | null): string {
+  if (draft.target?.type === 'cover') {
+    return draft.every_track ? 'Embed in every track' : 'Folder and tracks with a cover'
+  }
+  const entries = Object.entries(draft.tracks)
+    .map(([tid, vals]) => [Number(tid), typed(vals)] as const)
+    .sort(([a], [b]) => a - b)
+  const parts: string[] = []
+  if (entries.length > 0) {
+    const first = entries[0]![1]
+    if (entries.every(([, v]) => sameList(v, first))) {
+      parts.push(first.length ? first.join(' / ') : 'Removed')
+    } else {
+      parts.push(
+        entries
+          .map(([tid, vals]) => `${d ? trackLabel(d, tid) : `Track ${tid}`}: ${vals.length ? vals.join(' / ') : 'Removed'}`)
+          .join('; '),
+      )
+    }
+  }
+  if (draft.dropped.length > 0) parts.push(`${count(draft.dropped.length, 'track')} left out`)
+  return parts.join(' · ')
+}
 
 // retryable is an accepted op whose write failed before it wrote anything, the one case the server accepts again.
 export function retryable(d: ProposalDetail, op: OpDecision): boolean {
@@ -130,18 +222,25 @@ export const useInbox = defineStore('inbox', () => {
   // enabled is null until GET /api/inbox answers. A 404 means the feature is off, and nothing shows.
   const enabled = ref<boolean | null>(null)
   const info = ref<InboxInfo | null>(null)
+  const detecting = ref(false)
+  const detectError = ref('')
 
   async function detect() {
+    detecting.value = true
     try {
       info.value = await get<InboxInfo>('/api/inbox')
       enabled.value = true
+      detectError.value = ''
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) {
         enabled.value = false
         info.value = null
-      } else if (enabled.value === null) {
-        enabled.value = false
+        detectError.value = ''
+      } else {
+        detectError.value = errorText(err)
       }
+    } finally {
+      detecting.value = false
     }
   }
 
@@ -153,6 +252,8 @@ export const useInbox = defineStore('inbox', () => {
   const listError = ref('')
   let listSeq = 0
   let listLoaded = false
+  let loadedPages = 0
+  let failedListOp: 'load' | 'more' | 'refresh' | null = null
 
   function listPath(before?: number) {
     const p = new URLSearchParams({ state: filters.state })
@@ -166,6 +267,7 @@ export const useInbox = defineStore('inbox', () => {
 
   async function loadList() {
     const seq = ++listSeq
+    failedListOp = null
     listLoading.value = true
     listError.value = ''
     try {
@@ -174,32 +276,97 @@ export const useInbox = defineStore('inbox', () => {
       proposals.value = page.proposals
       next.value = page.next ?? null
       listLoaded = true
+      loadedPages = 1
     } catch (err) {
-      if (seq === listSeq) listError.value = errorText(err)
+      if (seq === listSeq) {
+        failedListOp = 'load'
+        listError.value = errorText(err)
+      }
     } finally {
       if (seq === listSeq) listLoading.value = false
     }
   }
 
   async function moreList() {
-    if (next.value === null || listLoading.value) return
+    if (next.value === null || listLoading.value || failedListOp === 'refresh') return
     const seq = listSeq
+    failedListOp = null
     listLoading.value = true
+    listError.value = ''
     try {
       const page = await get<ProposalPage>(listPath(next.value))
       if (seq !== listSeq) return
-      proposals.value = [...proposals.value, ...page.proposals]
+      const seen = new Set(proposals.value.map((p) => p.id))
+      proposals.value = [...proposals.value, ...page.proposals.filter((p) => !seen.has(p.id))]
       next.value = page.next ?? null
+      loadedPages = Math.max(loadedPages, 1) + 1
     } catch (err) {
-      listError.value = errorText(err)
+      if (seq === listSeq) {
+        failedListOp = 'more'
+        listError.value = errorText(err)
+      }
     } finally {
       if (seq === listSeq) listLoading.value = false
     }
   }
 
+  // refreshList reloads the currently paginated pages in place so SSE refreshes keep pagination and scroll position.
+  async function refreshList() {
+    if (!listLoaded) return
+    const seq = ++listSeq
+    const pages = Math.max(1, loadedPages)
+    failedListOp = null
+    listLoading.value = true
+    try {
+      const items: ProposalSummary[] = []
+      const seen = new Set<number>()
+      let cursor: number | null = null
+      let fetched = 0
+      while (fetched < pages) {
+        const page: ProposalPage = await get<ProposalPage>(listPath(cursor ?? undefined))
+        if (seq !== listSeq) return
+        for (const p of page.proposals) {
+          if (!seen.has(p.id)) {
+            seen.add(p.id)
+            items.push(p)
+          }
+        }
+        cursor = page.next ?? null
+        fetched++
+        if (cursor === null) break
+      }
+      if (seq !== listSeq) return
+      proposals.value = items
+      next.value = cursor
+      loadedPages = fetched
+      listError.value = ''
+    } catch (err) {
+      if (seq === listSeq) {
+        failedListOp = 'refresh'
+        listError.value = errorText(err)
+      }
+    } finally {
+      if (seq === listSeq) listLoading.value = false
+    }
+  }
+
+  function retryList() {
+    if (failedListOp === 'refresh') return refreshList()
+    if (failedListOp === 'more' && next.value !== null) return moreList()
+    return loadList()
+  }
+
   function setFilters(f: Filters) {
     const same = f.state === filters.state && f.album === filters.album && f.kind === filters.kind && f.connection === filters.connection
     Object.assign(filters, f)
+    if (!same) {
+      proposals.value = []
+      next.value = null
+      listError.value = ''
+      listLoaded = false
+      loadedPages = 0
+      failedListOp = null
+    }
     if (!same || !listLoaded) void loadList()
   }
 
@@ -209,8 +376,15 @@ export const useInbox = defineStore('inbox', () => {
   const detailLoading = ref(false)
   const detailRefreshing = ref(false)
   const detailError = ref('')
+  const detailMissing = ref(false)
   const selected = ref<string[]>([])
   const drafts = ref<Record<string, Draft>>({})
+  const droppedDrafts = ref<DroppedDraft[]>([])
+  const replyDraft = ref('')
+  const replyAsking = ref(false)
+  const declining = ref(false)
+  const declineSnap = ref<DeclineSnapshot | null>(null)
+  const declineReason = ref('')
   const selection = ref<PreviewAnswer | null>(null)
   // selectionKey says which revision and ops the selection preview answers for.
   const selectionKey = ref('')
@@ -229,7 +403,10 @@ export const useInbox = defineStore('inbox', () => {
   let detailSeq = 0
   let previewSeq = 0
   let recoveringKey = ''
-  let lastPreview: { key: string; digest: string } | null = null
+  // reviewedDigests tracks the last reviewed preview digest per op selection across revisions.
+  let reviewedDigests = new Map<string, string>()
+  let lastDigest: string | null = null
+  let revisionChanged = false
   // attempt keeps the request ID of an acceptance whose answer never came, so pressing Accept again retries it.
   let attempt: { key: string; id: string } | null = null
 
@@ -237,12 +414,20 @@ export const useInbox = defineStore('inbox', () => {
     ++reviewSeq
     ++previewSeq
     recoveringKey = ''
-    lastPreview = null
+    reviewedDigests = new Map()
+    lastDigest = null
+    revisionChanged = false
     previewing.value = false
     detailRefreshing.value = false
     detail.value = null
     selected.value = []
     drafts.value = {}
+    droppedDrafts.value = []
+    replyDraft.value = ''
+    replyAsking.value = false
+    declining.value = false
+    declineSnap.value = null
+    declineReason.value = ''
     selection.value = null
     selectionKey.value = ''
     reviewRequired.value = false
@@ -252,6 +437,7 @@ export const useInbox = defineStore('inbox', () => {
     error.value = ''
     notice.value = ''
     detailError.value = ''
+    detailMissing.value = false
     attempt = null
     headSeen.value = 0
   }
@@ -280,11 +466,15 @@ export const useInbox = defineStore('inbox', () => {
     try {
       const d = await get<ProposalDetail>(`/api/inbox/proposals/${pid}`)
       if (seq !== detailSeq || review !== reviewSeq) return
-      take(d)
+      if (!isStaleDetail(d, detail.value)) take(d)
       detailError.value = ''
+      detailMissing.value = false
     } catch (err) {
       // A failed reload keeps what the page shows and the reviewer's values.
-      if (seq === detailSeq) detailError.value = errorText(err)
+      if (seq === detailSeq) {
+        detailMissing.value = err instanceof ApiError && err.status === 404
+        detailError.value = detailMissing.value ? 'This proposal is no longer available.' : errorText(err)
+      }
     } finally {
       if (seq === detailSeq) {
         detailLoading.value = false
@@ -299,9 +489,40 @@ export const useInbox = defineStore('inbox', () => {
   }
 
   // take shows a detail and keeps the reviewer's work that still applies to it.
-  function take(d: ProposalDetail) {
-    const first = detail.value === null || detail.value.id !== d.id
+  function take(d: ProposalDetail, fromSave = false) {
+    const prev = detail.value
+    const first = prev === null || prev.id !== d.id
     detail.value = d
+    if (!first && d.head !== prev.head) {
+      if (fromSave) {
+        reviewedDigests = new Map()
+        lastDigest = null
+        revisionChanged = false
+      } else {
+        revisionChanged = true
+      }
+    }
+    const open =
+      d.state === 'withdrawn'
+        ? new Set<string>()
+        : new Set(d.ops.filter((o) => o.decision === 'pending' && d.current.ops.some((c) => c.id === o.id)).map((o) => o.id))
+    const kept: Record<string, Draft> = {}
+    const newlyDropped: DroppedDraft[] = []
+    for (const [k, draft] of Object.entries(drafts.value)) {
+      if (open.has(k)) {
+        kept[k] = draft
+        continue
+      }
+      const decision = d.ops.find((o) => o.id === k)?.decision
+      const reason = d.state === 'withdrawn' ? 'withdrawn' : decision && decision !== 'pending' ? decision : 'removed'
+      const label = draft.label ?? (prev ? opName(prev.current.ops, k) : opName(d.current.ops, k))
+      newlyDropped.push({ opId: k, label, reason, text: formatDraftText(draft, prev ?? d) })
+    }
+    drafts.value = kept
+    if (newlyDropped.length > 0) {
+      const replaced = new Set(newlyDropped.map((x) => x.opId))
+      droppedDrafts.value = [...droppedDrafts.value.filter((x) => !replaced.has(x.opId)), ...newlyDropped]
+    }
     if (first) {
       selected.value = d.ops.filter((o) => selectable(d, o.id)).map((o) => o.id)
       headSeen.value = d.head
@@ -314,17 +535,20 @@ export const useInbox = defineStore('inbox', () => {
         selected.value = selected.value.filter((o) => !removed.includes(o))
         cascade.value = { op: required, on: false, moved: removed }
       }
-      if (d.head !== headSeen.value && Object.keys(drafts.value).length > 0) {
+      if (d.head !== headSeen.value && Object.keys(drafts.value).length > 0 && draftConflicts.value.length === 0) {
         notice.value = `Revision ${d.head} arrived while you edited. Your values are kept; check them against it before you save.`
       }
       if (Object.keys(drafts.value).length === 0) headSeen.value = d.head
     }
-    const open = new Set(d.ops.filter((o) => o.decision === 'pending').map((o) => o.id))
-    drafts.value = Object.fromEntries(Object.entries(drafts.value).filter(([k]) => open.has(k)))
     void refreshPreview(true)
   }
 
+  function dismissDroppedDraft(opId?: string) {
+    droppedDrafts.value = opId === undefined ? [] : droppedDrafts.value.filter((x) => x.opId !== opId)
+  }
+
   const keyOf = (revision: number, ops: string[]) => JSON.stringify([revision, sorted(ops)])
+  const opsKeyOf = (ops: string[]) => JSON.stringify(sorted(ops))
 
   async function refreshPreview(force = false) {
     const d = detail.value
@@ -338,6 +562,7 @@ export const useInbox = defineStore('inbox', () => {
     }
     const ops = sorted(selected.value)
     const key = keyOf(d.head, ops)
+    const opsKey = opsKeyOf(ops)
     if (!force && !previewing.value && key === selectionKey.value && selection.value) return
     const seq = ++previewSeq
     previewing.value = true
@@ -345,7 +570,7 @@ export const useInbox = defineStore('inbox', () => {
       const answer = await post<PreviewAnswer>(`/api/inbox/proposals/${d.id}/preview`, { revision: d.head, ops })
       if (seq !== previewSeq) return
       recoveringKey = ''
-      setSelection(answer, key)
+      setSelection(answer, key, opsKey)
     } catch (err) {
       if (seq !== previewSeq) return
       const body = err instanceof ApiError ? err.body : undefined
@@ -363,7 +588,7 @@ export const useInbox = defineStore('inbox', () => {
       }
       if (err instanceof ApiError && err.status === 422) {
         const refusal = (body as { refusal?: Refusal } | undefined)?.refusal ?? { error: err.message, reason: code || 'refused' }
-        setSelection({ preview: null, refusal, missing: [] }, key)
+        setSelection({ preview: null, refusal, missing: [] }, key, opsKey)
         return
       }
       selection.value = null
@@ -374,12 +599,18 @@ export const useInbox = defineStore('inbox', () => {
     }
   }
 
-  function setSelection(answer: PreviewAnswer, key: string) {
+  function setSelection(answer: PreviewAnswer, key: string, opsKey: string) {
     const previous = selection.value?.preview?.warnings ?? []
     const digest = answer.refusal ? undefined : answer.preview?.digest
-    const changed = digest !== undefined && lastPreview?.key === key && lastPreview.digest !== digest
+    const reviewed = reviewedDigests.get(opsKey)
+    const expected = reviewed ?? (revisionChanged ? lastDigest : undefined)
+    const changed = digest !== undefined && expected != null && expected !== digest
     if (changed) reviewRequired.value = true
-    if (digest !== undefined) lastPreview = { key, digest }
+    if (digest !== undefined) {
+      if (reviewed === undefined && !changed) reviewedDigests.set(opsKey, digest)
+      lastDigest = digest
+      revisionChanged = false
+    }
     const unchanged = new Set((answer.preview?.warnings ?? []).filter((w) => previous.some((p) => p.kind === w.kind && p.message === w.message)).map((w) => w.kind))
     selection.value = { preview: answer.preview ?? null, refusal: answer.refusal ?? null, missing: answer.missing ?? [] }
     selectionKey.value = key
@@ -438,24 +669,59 @@ export const useInbox = defineStore('inbox', () => {
   // Values the reviewer edits.
   const headOp = (opId: string) => detail.value?.current.ops.find((o) => o.id === opId)
 
+  function isConflicted(opId: string): boolean {
+    const draft = drafts.value[opId]
+    if (!draft?.target) return false
+    const op = headOp(opId)
+    return !op || !sameTarget(draft.target, op)
+  }
+
+  const draftConflicts = computed<DraftConflict[]>(() => {
+    const d = detail.value
+    if (!d) return []
+    const out: DraftConflict[] = []
+    for (const [opId, draft] of Object.entries(drafts.value)) {
+      if (!draft.target) continue
+      const op = headOp(opId)
+      if (op && sameTarget(draft.target, op)) continue
+      const originalLabel = draft.label ?? opId
+      const currentLabel = op ? opLabel(op) : 'removed'
+      const reason = !op
+        ? 'removed from this revision'
+        : draft.target.type !== op.type ||
+            (op.type === 'cover' ? draft.target.action !== op.action : (draft.target.field ?? '') !== (op.field ?? '') || (draft.target.tag_key ?? '') !== (op.tag_key ?? ''))
+          ? `changed from ${originalLabel} to ${currentLabel}`
+          : 'target tracks changed'
+      out.push({ opId, originalLabel, currentLabel, reason, text: formatDraftText(draft, d) })
+    }
+    return out
+  })
+
   function values(op: TagOp, trackId: number): string[] {
+    if (isConflicted(op.id)) return op.tracks.find((t) => t.track_id === trackId)?.values ?? []
     return drafts.value[op.id]?.tracks[trackId] ?? op.tracks.find((t) => t.track_id === trackId)?.values ?? []
   }
 
   function tracksOf(op: TagOp) {
+    if (isConflicted(op.id)) return op.tracks
     const dropped = drafts.value[op.id]?.dropped ?? []
     return op.tracks.filter((t) => !dropped.includes(t.track_id))
   }
 
   function everyTrack(op: CoverOp): boolean {
+    if (isConflicted(op.id)) return !!op.every_track
     return drafts.value[op.id]?.every_track ?? !!op.every_track
   }
 
   function draftFor(opId: string): Draft {
-    return drafts.value[opId] ?? { tracks: {}, dropped: [] }
+    const existing = drafts.value[opId]
+    if (existing) return existing
+    const op = headOp(opId)
+    return { target: op ? opTargetSnapshot(op) : undefined, label: op ? opLabel(op) : opId, tracks: {}, dropped: [] }
   }
 
   function setValues(opId: string, trackIds: number[], next: string[]) {
+    if (isConflicted(opId)) return
     const d = draftFor(opId)
     const tracks = { ...d.tracks }
     for (const t of trackIds) tracks[t] = [...next]
@@ -464,11 +730,13 @@ export const useInbox = defineStore('inbox', () => {
   }
 
   function dropTrack(opId: string, trackId: number) {
+    if (isConflicted(opId)) return
     const d = draftFor(opId)
     drafts.value = { ...drafts.value, [opId]: { ...d, dropped: [...new Set([...d.dropped, trackId])] } }
   }
 
   function setEveryTrack(opId: string, on: boolean) {
+    if (isConflicted(opId)) return
     drafts.value = { ...drafts.value, [opId]: { ...draftFor(opId), every_track: on } }
     prune(opId)
   }
@@ -487,7 +755,7 @@ export const useInbox = defineStore('inbox', () => {
     const out: RevisionOp[] = []
     for (const [opId, d] of Object.entries(drafts.value)) {
       const op = headOp(opId)
-      if (!op) continue
+      if (!op || isConflicted(opId)) continue
       if (op.type === 'cover') {
         if (d.every_track !== undefined && d.every_track !== !!op.every_track) out.push({ id: opId, every_track: d.every_track })
         continue
@@ -503,7 +771,7 @@ export const useInbox = defineStore('inbox', () => {
   function prune(opId: string) {
     const d = drafts.value[opId]
     const op = headOp(opId)
-    if (!d || !op) return
+    if (!d || !op || isConflicted(opId)) return
     const unchanged =
       op.type === 'cover'
         ? d.every_track === undefined || d.every_track === !!op.every_track
@@ -512,25 +780,53 @@ export const useInbox = defineStore('inbox', () => {
     if (unchanged && savingReview !== reviewSeq) discard(opId)
   }
 
-  const dirty = computed(() => revisionOps().length > 0)
+  const dirty = computed(() => revisionOps().length > 0 || draftConflicts.value.length > 0)
+  const hasValueDrafts = computed(() => Object.keys(drafts.value).length > 0)
+  const hasReplyDraft = computed(() => replyDraft.value.trim().length > 0)
+  const hasDeclineDraft = computed(() => declineReason.value.trim().length > 0)
+  const hasUnsaved = computed(() => hasValueDrafts.value || hasReplyDraft.value || hasDeclineDraft.value)
 
   async function saveValues(): Promise<boolean> {
     const d = detail.value
     const ops = revisionOps()
-    if (!d || ops.length === 0) return false
+    if (!d || ops.length === 0 || draftConflicts.value.length > 0) return false
     const seq = reviewSeq
     savingReview = seq
+    const parentRevision = headSeen.value || d.head
+    const savedRevision = parentRevision + 1
+    const submittedById = new Map(ops.map((op) => [op.id, op]))
+    const submittedTargets = new Map(ops.map((op) => [op.id, drafts.value[op.id]?.target]))
     const sent = Object.fromEntries(ops.map((op) => [op.id, JSON.stringify(drafts.value[op.id])]))
     busy.value = true
     error.value = ''
     notice.value = ''
     try {
-      const answer = await post<ProposalDetail>(`/api/inbox/proposals/${d.id}/revisions`, { parent_revision: headSeen.value || d.head, ops })
+      const answer = await post<ProposalDetail>(`/api/inbox/proposals/${d.id}/revisions`, { parent_revision: parentRevision, ops })
       if (seq !== reviewSeq) return true
-      drafts.value = Object.fromEntries(Object.entries(drafts.value).filter(([id, draft]) => sent[id] !== JSON.stringify(draft)))
-      headSeen.value = answer.head
-      take(answer)
-      notice.value = `Saved as revision ${answer.head}. Nothing in the library changed.`
+      const remaining: Record<string, Draft> = {}
+      for (const [id, draft] of Object.entries(drafts.value)) {
+        if (sent[id] === JSON.stringify(draft)) continue
+        const submitted = submittedById.get(id)
+        const submittedTarget = submittedTargets.get(id)
+        if (submitted?.tracks && draft.target?.type === 'tag' && submittedTarget && sameDraftTarget(draft.target, submittedTarget)) {
+          const savedTrackIds = submitted.tracks.map((t) => t.track_id).sort((a, b) => a - b)
+          const validIds = new Set(savedTrackIds)
+          remaining[id] = {
+            ...draft,
+            target: { ...draft.target, track_ids: savedTrackIds },
+            dropped: draft.dropped.filter((tid) => validIds.has(tid)),
+          }
+        } else {
+          remaining[id] = draft
+        }
+      }
+      drafts.value = remaining
+      headSeen.value = savedRevision
+      notice.value = `Saved as revision ${savedRevision}. Nothing in the library changed.`
+      if (!isStaleDetail(answer, detail.value)) {
+        ++detailSeq
+        take(answer, answer.head === savedRevision)
+      }
       return true
     } catch (err) {
       if (seq !== reviewSeq) return false
@@ -547,10 +843,12 @@ export const useInbox = defineStore('inbox', () => {
     }
   }
 
-  // After a stale save, the reviewer saves on top of the head they now see.
-  function rebase() {
-    if (detail.value) headSeen.value = detail.value.head
+  // After a stale save, the reviewer saves on top of the head they now see, only when every draft still targets the same op.
+  function rebase(): boolean {
+    if (!detail.value || draftConflicts.value.length > 0) return false
+    headSeen.value = detail.value.head
     notice.value = ''
+    return true
   }
 
   const current = computed(() => (detail.value ? keyOf(detail.value.head, selected.value) : ''))
@@ -564,7 +862,11 @@ export const useInbox = defineStore('inbox', () => {
   const warnings = computed<Warning[]>(() => preview.value?.warnings ?? [])
   const confirmed = computed(() => warnings.value.every((w) => confirm.value.includes(w.kind)))
   function reviewPreview(digest: string) {
-    if (!dirty.value && preview.value?.digest === digest) reviewRequired.value = false
+    if (!dirty.value && preview.value?.digest === digest) {
+      reviewedDigests.set(opsKeyOf(selected.value), digest)
+      lastDigest = digest
+      reviewRequired.value = false
+    }
   }
   const canAccept = computed(
     () =>
@@ -634,7 +936,7 @@ export const useInbox = defineStore('inbox', () => {
       }
       ++previewSeq
       previewing.value = false
-      setSelection({ preview: body.preview, refusal: null, missing: body.preview.warnings.map((w) => w.kind) }, submittedKey)
+      setSelection({ preview: body.preview, refusal: null, missing: body.preview.warnings.map((w) => w.kind) }, submittedKey, opsKeyOf(selected.value))
       reviewRequired.value = true
       confirm.value = []
       return
@@ -651,7 +953,7 @@ export const useInbox = defineStore('inbox', () => {
       if (submittedKey === current.value) {
         ++previewSeq
         previewing.value = false
-        setSelection({ preview: null, refusal: body?.refusal ?? { reason: code, error: err.message }, missing: [] }, submittedKey)
+        setSelection({ preview: null, refusal: body?.refusal ?? { reason: code, error: err.message }, missing: [] }, submittedKey, opsKeyOf(selected.value))
       }
       return
     }
@@ -710,14 +1012,27 @@ export const useInbox = defineStore('inbox', () => {
     if (!d || d.state === 'withdrawn') return []
     return d.ops.filter((o) => o.decision === 'pending' && d.current.ops.some((c) => c.id === o.id) && !selected.value.includes(o.id) && !held(d, o.id)).map((o) => o.id)
   })
-  const declineCount = computed(() => {
+  const declineTargets = computed(() => {
     const d = detail.value
-    return rest.value.length + (d && d.state !== 'withdrawn' && !shown.value.length ? d.ops.filter((o) => held(d, o.id)).length : 0)
+    if (!d || d.state === 'withdrawn') return []
+    const ids = [...rest.value]
+    if (shown.value.length === 0) {
+      for (const o of d.ops) {
+        if (held(d, o.id) && d.current.ops.some((c) => c.id === o.id) && !ids.includes(o.id)) ids.push(o.id)
+      }
+    }
+    return sorted(ids)
   })
+  const declineCount = computed(() => declineTargets.value.length)
 
-  function declineRest(reason: string) {
+  function declineRest(reason: string, snapshot?: DeclineSnapshot) {
     const d = detail.value
-    if (!d || declineCount.value === 0) return Promise.resolve(false)
+    if (!d) return Promise.resolve(false)
+    if (snapshot) {
+      if (snapshot.ops.length === 0) return Promise.resolve(false)
+      return act('decline', { revision: snapshot.revision, ops: sorted(snapshot.ops), reason }, 'Declined. Nothing in the library changed.')
+    }
+    if (declineCount.value === 0) return Promise.resolve(false)
     const body = shown.value.length === 0 ? { revision: d.head, remaining: true, reason } : { revision: d.head, ops: sorted(rest.value), reason }
     return act('decline', body, 'Declined. Nothing in the library changed.')
   }
@@ -752,28 +1067,39 @@ export const useInbox = defineStore('inbox', () => {
   // applyHub follows the inbox topic, so an open page shows another reviewer's or the agent's work.
   function applyHub(e: { proposal?: number }) {
     void detect()
-    if (listLoaded) void loadList()
+    if (listLoaded) void refreshList()
     if (e.proposal != null && e.proposal === detailId.value) void loadDetail()
     for (const a of Object.keys(byAlbum.value)) void loadAlbum(Number(a))
+  }
+
+  // applyLibraryChange refreshes an open proposal when a completed Library change touches its album.
+  function applyLibraryChange(c: LibraryChange) {
+    if (c.state !== 'done' && c.state !== 'partial') return
+    const d = detail.value
+    if (!d || detailId.value === null) return
+    const sameAlbum =
+      (c.album_id > 0 && (c.album_id === d.album.current_id || c.album_id === d.album.id)) ||
+      (!!c.folder && c.folder === d.album.folder)
+    if (sameAlbum || c.run) void loadDetail()
   }
 
   async function reload() {
     await detect()
     if (!enabled.value) return
-    if (listLoaded) void loadList()
+    if (listLoaded) void refreshList()
     if (detailId.value !== null) void loadDetail()
     for (const a of Object.keys(byAlbum.value)) void loadAlbum(Number(a))
   }
 
   return {
-    enabled, info, detect, reload,
-    filters, proposals, next, listLoading, listError, loadList, moreList, setFilters,
-    detailId, detail, detailLoading, detailRefreshing, detailError, selected, drafts, selection, previewing, confirm, cascade, error, notice, busy, headSeen, lastAccepted, writes,
+    enabled, info, detecting, detectError, detect, reload,
+    filters, proposals, next, listLoading, listError, loadList, moreList, refreshList, retryList, setFilters,
+    detailId, detail, detailLoading, detailRefreshing, detailError, detailMissing, selected, drafts, draftConflicts, droppedDrafts, dismissDroppedDraft, replyDraft, replyAsking, declining, declineSnap, declineReason, hasValueDrafts, hasReplyDraft, hasDeclineDraft, hasUnsaved, selection, previewing, confirm, cascade, error, notice, busy, headSeen, lastAccepted, writes,
     open, close, loadDetail, checkFiles, refreshPreview, toggle, selectAll, switchFields, toggleConfirm,
     currentSelection, preview, reviewRequired, reviewPreview,
     values, tracksOf, everyTrack, setValues, dropTrack, setEveryTrack, discard, revisionOps, dirty, saveValues, rebase,
-    warnings, confirmed, canAccept, shown, pendingSelected, accept, decline, rest, declineCount, declineRest, requestChanges, comment,
-    byAlbum, loadAlbum, applyHub,
+    warnings, confirmed, canAccept, shown, pendingSelected, accept, decline, rest, declineTargets, declineCount, declineRest, requestChanges, comment,
+    byAlbum, loadAlbum, applyHub, applyLibraryChange,
     headOp: (opId: string): Op | undefined => headOp(opId),
   }
 })

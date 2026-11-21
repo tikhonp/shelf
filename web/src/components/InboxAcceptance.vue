@@ -14,9 +14,9 @@ defineProps<{ acceptance: Acceptance; albumId: number; phone?: boolean }>()
       <template v-if="acceptance.outcome.files">{{ acceptance.outcome.written ?? 0 }} of {{ count(acceptance.outcome.files, 'file') }} written. </template>
       <template v-if="acceptance.outcome.error">{{ acceptance.outcome.error }} </template>
       <span v-if="acceptance.outcome.expired">Change {{ acceptance.change_id }} left the history.</span>
-      <RouterLink v-else-if="phone && albumId" :to="{ path: `/library/${albumId}`, query: { view: 'history' } }">Change {{ acceptance.change_id }} in History</RouterLink>
+      <RouterLink v-else-if="phone && albumId" :to="{ path: `/library/${albumId}`, query: { view: 'history', change: String(acceptance.change_id) } }">Change {{ acceptance.change_id }} in History</RouterLink>
       <span v-else-if="phone">Change {{ acceptance.change_id }} is in History on a desktop.</span>
-      <RouterLink v-else :to="{ path: '/library', query: { history: '1' } }">Change {{ acceptance.change_id }} in History</RouterLink>
+      <RouterLink v-else :to="{ path: '/library', query: { history: '1', change: String(acceptance.change_id) } }">Change {{ acceptance.change_id }} in History</RouterLink>
     </span>
   </div>
 </template>

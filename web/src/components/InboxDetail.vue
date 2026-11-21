@@ -26,8 +26,6 @@ const tip = (note: string) => (props.phone ? '' : note)
 const now = useNow()
 
 const d = computed(() => inbox.detail)
-const reply = ref('')
-const asking = ref(false)
 const tabs = [
   { id: 'fields', label: 'Fields' },
   { id: 'brief', label: 'Brief' },
@@ -38,8 +36,14 @@ type Tab = typeof tabs[number]['id']
 const tab = ref<Tab>('fields')
 const body = ref<HTMLElement>()
 const tabBar = ref<HTMLElement>()
+const heading = ref<HTMLElement>()
+const keepPinned = ref(false)
 const fileChoice = ref<number | 'planned'>()
 const folded = ref<Partial<Record<keyof typeof fieldGroups, boolean>>>({ ids: true })
+
+watch(() => d.value?.id, () => {
+  keepPinned.value = false
+})
 
 watch(tabBar, (el, _, onCleanup) => {
   if (!el) return
@@ -52,11 +56,16 @@ watch(tabBar, (el, _, onCleanup) => {
   }
 }, { flush: 'post' })
 
+function onBodyScroll() {
+  if (keepPinned.value && (body.value?.scrollTop ?? 0) <= 0) keepPinned.value = false
+}
+
 function chooseTab(next: Tab, focus = false) {
   const scroller = body.value
   const bar = tabBar.value
   const pinned = !!(scroller?.scrollTop && bar && bar.getBoundingClientRect().top <= scroller.getBoundingClientRect().top + 1)
   const changed = tab.value !== next
+  if (changed) keepPinned.value = pinned
   tab.value = next
   void nextTick(() => {
     if (changed && scroller && bar) {
@@ -79,7 +88,11 @@ function openFiles(acceptanceId?: number) {
   fileChoice.value = acceptanceId ?? 'planned'
   chooseTab('files', true)
 }
-defineExpose({ openFiles })
+function focusHeading(scroll = false) {
+  if (scroll) heading.value?.closest('.ib-detail')?.scrollIntoView?.({ block: 'start' })
+  heading.value?.focus({ preventScroll: scroll })
+}
+defineExpose({ openFiles, focusHeading })
 
 const albumId = computed(() => d.value?.album.current_id ?? 0)
 const cover = computed(() => (albumId.value ? `/api/library/albums/${albumId.value}/cover` : ''))
@@ -88,7 +101,7 @@ const hasPending = computed(() => (d.value?.summary.pending ?? 0) > 0 && d.value
 // A field the files already hold writes nothing, so the Inbox hides it.
 const ops = computed(() => (d.value ? ordered(d.value.current.ops).filter((o) => !held(d.value!, o.id)) : []))
 const hidden = computed(() => (d.value ? d.value.current.ops.filter((o) => held(d.value!, o.id)).length : 0))
-const name = (id: string) => opName(d.value?.current.ops ?? [], id)
+const name = (id: string) => opName(d.value?.current.ops ?? [], id, d.value?.ops)
 const superseded = computed(() => d.value?.ops.filter((o) => !d.value!.current.ops.some((c) => c.id === o.id)) ?? [])
 const groups = computed(() => Object.entries(fieldGroups).flatMap(([id, label]) => {
   const members = ops.value.filter((op) => fieldGroup(op) === id)
@@ -123,15 +136,21 @@ function toggleNote() {
   help.note = help.note ? null : { title: 'Review', text: reviewNote(d.value?.current.confidence, ops.value.some((op) => op.requires?.length)) }
 }
 
-const written = (a: Acceptance) => !!a.preview && (a.via_save || a.outcome.state === 'done')
-const records = computed(() => d.value?.acceptances.filter((a) => written(a) || a.id === fileChoice.value).slice().reverse() ?? [])
+const partialAcceptance = (a: Acceptance) => !!a.preview && !a.via_save && a.outcome.state === 'partial'
+const hasStoredPreview = (a: Acceptance) => !!a.preview && (a.via_save || a.outcome.state === 'done' || a.outcome.state === 'partial')
+const records = computed(() => d.value?.acceptances.filter((a) => hasStoredPreview(a) || a.id === fileChoice.value).slice().reverse() ?? [])
 const activeFileChoice = computed(() => {
   if (inbox.reviewRequired) return 'planned'
   return fileChoice.value ?? (eligible.value.length || !records.value.length ? 'planned' : records.value[0]!.id)
 })
 const record = computed(() => d.value?.acceptances.find((a) => a.id === activeFileChoice.value))
-const filePreview = computed(() => record.value ? (written(record.value) ? record.value.preview : null) : inbox.preview)
-const filesTitle = computed(() => record.value ? (record.value.via_save ? 'Proposal fields written by Save' : 'What Accept wrote') : 'What Accept would write')
+const filePreview = computed(() => record.value ? (hasStoredPreview(record.value) ? record.value.preview : null) : inbox.preview)
+const filesTitle = computed(() => {
+  if (!record.value) return 'What Accept would write'
+  if (record.value.via_save) return 'Proposal fields written by Save'
+  if (partialAcceptance(record.value)) return 'Planned for this acceptance'
+  return 'What Accept wrote'
+})
 const filesNote = computed(() => record.value ? `Revision ${record.value.revision} · ${ago(record.value.created_at, now.value)}` : `Saved revision ${d.value?.head}`)
 const acceptanceEvents = computed(() => new Map(d.value?.events.filter((e) => e.kind === 'accepted').map((e) => [e.acceptance_id ?? Number(e.data?.acceptance_id), e.id])))
 const thread = computed(() => (d.value?.events ?? []).map((event) => ({
@@ -151,13 +170,44 @@ const cascadeText = computed(() => {
 // Evidence is tape like a suggestion: the value, then where it came from. Only a web address opens.
 const kinds: Record<string, string> = { suggestion: 'Suggestion', memory: 'Memory', change: 'Change', event: 'Event', note: 'Note', link: 'Link' }
 // A field is named in the editor's words; a raw key stays as the file holds it.
-const tapeValue = (e: Evidence) => e.text || e.url || ([typeof e.field === 'string' && e.field ? fieldLabel(e.field) : '', e.key, e.anchor].filter((x) => typeof x === 'string' && x).join(' · ') || kinds[e.kind] || e.kind)
+const tapeValue = (e: Evidence) => {
+  if (e.text) return e.text
+  if (e.url) return e.url
+  const parts = [
+    typeof e.field === 'string' && e.field ? fieldLabel(e.field) : '',
+    typeof e.key === 'string' ? e.key : '',
+    typeof e.anchor === 'string' ? e.anchor : '',
+    typeof e.change === 'number' && e.change > 0 ? `Change ${e.change}` : '',
+    typeof e.event === 'number' && e.event > 0 ? `Event ${e.event}` : '',
+  ].filter(Boolean)
+  return parts.join(' · ') || kinds[e.kind] || e.kind
+}
 const tapeSource = (e: Evidence) => (typeof e.source === 'string' && e.source ? e.source : kinds[e.kind] ?? e.kind)
 const href = (e: Evidence) => (e.kind === 'link' && typeof e.url === 'string' && /^https?:\/\//i.test(e.url) ? e.url : '')
 
+const askBlocked = computed(() => inbox.replyAsking && !hasPending.value)
+watch(hasPending, (pending) => {
+  if (!pending && inbox.replyAsking && !inbox.replyDraft.trim()) inbox.replyAsking = false
+})
+
 async function send() {
-  const ok = hasPending.value && asking.value ? await inbox.requestChanges(reply.value) : await inbox.comment(reply.value)
-  if (ok) { reply.value = ''; asking.value = false }
+  const sent = inbox.replyDraft
+  const sentAsking = inbox.replyAsking
+  if (!sent.trim() || inbox.busy || askBlocked.value) return
+  const pid = d.value?.id
+  const ok = hasPending.value && sentAsking ? await inbox.requestChanges(sent) : await inbox.comment(sent)
+  if (!ok || d.value?.id !== pid) return
+  if (inbox.replyDraft === sent) {
+    inbox.replyDraft = ''
+    if (inbox.replyAsking === sentAsking) inbox.replyAsking = false
+  } else if (inbox.replyDraft.startsWith(sent)) {
+    inbox.replyDraft = inbox.replyDraft.slice(sent.length).trimStart()
+  }
+}
+
+async function sendAsComment() {
+  inbox.replyAsking = false
+  await send()
 }
 </script>
 
@@ -165,15 +215,20 @@ async function send() {
   <section class="win ib-detail" aria-labelledby="ibd-h">
     <div class="tb">
       <button v-if="phone" type="button" class="wbtn" aria-label="Back to the inbox" @click="$emit('close')"><Icon name="back" /></button>
-      <h2 id="ibd-h" class="ell">{{ d?.album.title ?? 'Proposal' }}</h2>
+      <h2 id="ibd-h" ref="heading" tabindex="-1" class="ell">{{ d?.album.title ?? 'Proposal' }}</h2>
       <span class="stripes"></span>
       <RouterLink v-if="albumId" class="wbtn txt" :to="`/library/${albumId}`"><LibTip title="Open album" :note="tip(inboxNotes.openAlbum)">Open album</LibTip></RouterLink>
       <button v-if="phone && d" type="button" class="wbtn q" aria-label="Note on this page" :aria-pressed="!!help.note" @click="toggleNote">?</button>
       <button v-if="!phone" type="button" class="wbtn" aria-label="Close the proposal" @click="$emit('close')"><Icon name="close" /></button>
     </div>
     <p v-if="inbox.detailLoading && !d" class="t2 pad" role="status">Loading the proposal...</p>
-    <p v-if="inbox.detailError" class="bad-text pad" role="alert">{{ inbox.detailError }}</p>
-    <div v-if="d" ref="body" class="vscroll ib-body">
+    <div v-if="inbox.detailError" class="pad col g8 ib-detail-err" role="alert">
+      <p :class="inbox.detailMissing ? 't2' : 'bad-text'">{{ inbox.detailError }}</p>
+      <div v-if="!inbox.detailMissing" class="line g8">
+        <button type="button" class="key sm" :disabled="inbox.detailRefreshing" @click="inbox.loadDetail()">Retry</button>
+      </div>
+    </div>
+    <div v-if="d" ref="body" class="vscroll ib-body" :class="{ 'ib-keep-pinned': keepPinned }" @scroll="onBodyScroll">
       <header class="ib-head pad">
         <Cover :url="cover" :size="phone ? 64 : 84" />
         <div class="col g4 grow">
@@ -186,12 +241,6 @@ async function send() {
           <span class="lcd-l">SURE</span><span class="lcd-big num"><LibTip title="Confidence" :note="tip(inboxNotes.confidence)">{{ d.current.confidence }}%</LibTip></span>
         </div>
       </header>
-
-      <div class="note ib-why col g8" v-if="tab !== 'brief'" role="note" aria-label="The agent's explanation">
-        <p class="ib-reason clamp2">{{ d.current.reason }}</p>
-        <p v-if="d.current.uncertainties" class="t2 clamp2"><strong>Not sure</strong> · {{ d.current.uncertainties }}</p>
-        <button type="button" class="link sm ib-self" @click="chooseTab('brief', true)">Read the brief<template v-if="d.current.evidence.length"> and {{ count(d.current.evidence.length, 'evidence item') }}</template></button>
-      </div>
 
       <div ref="tabBar" class="ib-sec ib-tabs">
         <div class="segk" :class="{ block: phone }" role="tablist" aria-label="Proposal">
@@ -207,6 +256,12 @@ async function send() {
         </div>
       </div>
 
+      <div v-if="tab !== 'brief'" class="note ib-why ib-why-summary col g8" role="note" aria-label="The agent's explanation">
+        <p class="ib-reason clamp2">{{ d.current.reason }}</p>
+        <p v-if="d.current.uncertainties" class="t2 clamp2"><strong>Not sure</strong> · {{ d.current.uncertainties }}</p>
+        <button type="button" class="link sm ib-self" @click="chooseTab('brief', true)">Read the brief<template v-if="d.current.evidence.length"> and {{ count(d.current.evidence.length, 'evidence item') }}</template></button>
+      </div>
+
       <div v-show="tab === 'fields'" id="panel-fields" role="tabpanel" aria-labelledby="tab-fields">
         <div v-if="phone && eligible.length" class="line g12 sm ib-phone-tools">
           <span class="t2 grow">{{ inbox.shown.length }} of {{ eligible.length }} on</span>
@@ -215,8 +270,8 @@ async function send() {
         </div>
         <p v-if="cascadeText" class="t2 sm pad ib-moved" role="status">{{ cascadeText }}</p>
         <InboxGroup v-for="group in groups" :key="group.id" v-bind="group" :phone="phone" :folded="!!folded[group.id]" @fold="folded[group.id] = !folded[group.id]" @reveal="reveal" />
-        <p v-if="hidden" class="t2 sm pad ib-held">{{ hidden === 1 ? '1 field the files already hold is hidden' : `${hidden} fields the files already hold are hidden` }}. Accept marks {{ hidden === 1 ? 'it' : 'them' }} accepted too.</p>
-        <p v-if="superseded.length" class="t2 sm pad">Earlier fields no longer in this revision include {{ superseded.map((o) => name(o.id)).join(', ') }}.</p>
+        <p v-if="hidden" class="t2 sm pad ib-held">{{ hidden === 1 ? '1 field the files already hold is hidden' : `${hidden} fields the files already hold are hidden` }}. <template v-if="eligible.length">Accept marks {{ hidden === 1 ? 'it' : 'them' }} accepted too.</template><template v-else>Nothing left to write; decline {{ hidden === 1 ? 'it' : 'them' }} to close the proposal without writing.</template></p>
+        <p v-if="superseded.length" class="t2 sm pad ib-superseded">Earlier fields no longer in this revision include {{ superseded.map((o) => name(o.id)).join(', ') }}.</p>
       </div>
 
       <div v-show="tab === 'brief'" id="panel-brief" role="tabpanel" aria-labelledby="tab-brief">
@@ -255,6 +310,9 @@ async function send() {
         </label>
         <p v-if="!record && inbox.dirty" class="t2 sm pad">Save your edited values to update this preview.</p>
         <template v-if="filePreview">
+          <div v-if="record && partialAcceptance(record)" class="pad">
+            <InboxAcceptance :acceptance="record" :album-id="albumId" :phone="phone" />
+          </div>
           <InboxDiff :key="activeFileChoice" :preview="filePreview" :title="filesTitle" :note="filesNote" :fields="record ? record.ops.length : inbox.shown.length" :phone="phone" :empty="record ? 'No file changes were recorded.' : 'The files already match the selected values.'" />
           <div v-if="inbox.reviewRequired && !record" class="pad">
             <button type="button" class="key sm" :disabled="inbox.dirty || inbox.busy" @click="inbox.reviewPreview(filePreview.digest)">I reviewed the updated changes</button>
@@ -274,7 +332,7 @@ async function send() {
         <div class="ib-sec"><h3><LibTip title="Talkback" :note="tip(inboxNotes.talkback)">Talkback</LibTip></h3></div>
         <ol class="ib-thread">
           <li v-for="{ event: e, acceptance } in thread" :key="e.id" class="ib-ev-row" :class="e.actor_kind">
-            <span class="sm"><span class="bold">{{ eventLine(e, d.current.ops) }}</span> <span class="t2">{{ ago(e.at, now) }}</span></span>
+            <span class="sm"><span class="bold">{{ eventLine(e, d.current.ops, d.ops) }}</span> <span class="t2">{{ ago(e.at, now) }}</span></span>
             <p v-if="e.body" class="ib-body-text">{{ e.body }}</p>
             <InboxAcceptance v-if="acceptance" :acceptance="acceptance" :album-id="albumId" :phone="phone" />
           </li>
@@ -284,13 +342,20 @@ async function send() {
           </li>
         </ol>
         <form class="col g8 pad" aria-label="Reply" @submit.prevent="send">
-          <label class="lbl-f">Reply<textarea v-model="reply" class="ib-text" rows="3" maxlength="4000"></textarea></label>
+          <div v-if="askBlocked" class="note ib-ask-blocked col g4 sm" role="alert">
+            <span>No pending fields remain, so this can no longer ask for changes. Your draft is kept.</span>
+            <div class="line g12 wrap">
+              <button type="button" class="link sm" :disabled="inbox.busy || !inbox.replyDraft.trim()" @click="sendAsComment">Send as comment</button>
+              <button type="button" class="link sm" @click="inbox.replyAsking = false">Keep editing as comment</button>
+            </div>
+          </div>
+          <label class="lbl-f">Reply<textarea v-model="inbox.replyDraft" class="ib-text" rows="3" maxlength="4000"></textarea></label>
           <div class="line g12 wrap">
             <span v-if="!phone" class="grow"></span>
-            <button v-if="hasPending" type="button" class="rocker" :class="{ flat: phone }" role="switch" :aria-checked="asking" @click="asking = !asking">
+            <button v-if="hasPending" type="button" class="rocker" :class="{ flat: phone }" role="switch" :aria-checked="inbox.replyAsking" @click="inbox.replyAsking = !inbox.replyAsking">
               <span class="rk" aria-hidden="true">ON<span class="rk-case"><span class="rk-paddle"></span></span>OFF</span><span class="rk-t"><span class="rk-name"><LibTip title="Ask for changes" :note="tip(inboxNotes.ask)">Ask for changes</LibTip></span></span>
             </button>
-            <button type="submit" class="key sm ib-send" :class="{ 'ib-send-row': phone }" data-wide="Ask for changes" :disabled="inbox.busy || !reply.trim()"><span>{{ hasPending && asking ? 'Ask for changes' : 'Send comment' }}</span></button>
+            <button type="submit" class="key sm ib-send" :class="{ 'ib-send-row': phone }" data-wide="Ask for changes" :disabled="inbox.busy || !inbox.replyDraft.trim() || askBlocked"><span>{{ inbox.replyAsking ? 'Ask for changes' : 'Send comment' }}</span></button>
           </div>
         </form>
       </div>
@@ -309,10 +374,12 @@ async function send() {
 .rs .ib-conf .lcd-big { font-size: 24px; }
 .rs .ib-conf .lcd-l { font-size: 11px; }
 .rs .ib-why { margin: 0 14px 12px; }
+.rs .ib-why-summary { margin-top: 12px; }
 .rs .ib-why .t2, .rs .ib-reason, .rs .ib-body-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .rs .clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .rs .ib-self { align-self: flex-start; }
 .rs .ib-tabs { position: sticky; top: 0; z-index: 3; align-items: center; background: var(--win); }
+.rs .ib-body.ib-keep-pinned > [role="tabpanel"] { min-height: calc(100% - var(--ib-tabs-height, 0px)); }
 .rs .ib-tabs .segk button { height: 36px; padding: 0 12px; font-size: 13px; }
 .rs .ib-phone-tools { padding: 0 12px; border-bottom: 1px solid var(--line); }
 .rs .ib-phone-tools button { min-height: 44px; }
@@ -328,6 +395,7 @@ async function send() {
 .rs .ib-ev-row { gap: 4px; padding: 10px 14px; overflow-wrap: anywhere; }
 .rs .ib-ev-row.user { box-shadow: inset 3px 0 0 var(--lamp); }
 .rs .ib-ev-row.system { color: var(--text-2); }
+.rs .ib-ask-blocked { padding: 8px 10px; border-color: var(--yellow); }
 .rs .key.ib-send { display: inline-grid; place-items: center; }
 .rs .key.ib-send > span, .rs .key.ib-send::after { grid-area: 1 / 1; }
 .rs .key.ib-send::after { content: attr(data-wide); visibility: hidden; }

@@ -133,6 +133,8 @@ export interface Evidence {
   field?: string
   anchor?: string
   key?: string
+  change?: number
+  event?: number
   [extra: string]: unknown
 }
 
@@ -146,6 +148,9 @@ export interface RevisionInfo {
 export interface OpDecision {
   id: string
   type: 'tag' | 'cover'
+  field?: string
+  tag_key?: string
+  action?: 'replace' | 'remove'
   decision: Decision
   decided_rev?: number | null
   acceptance?: number | null

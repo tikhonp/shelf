@@ -28,6 +28,7 @@
 .rs .lib-open::after { content: ""; position: absolute; inset: 0; }
 .rs .lib-open:focus-visible { outline: none; }
 .rs .lib-open:focus-visible::after { outline: 3px solid var(--focus); outline-offset: -3px; }
+.rs.day .lib-open:focus-visible::after { box-shadow: inset 0 0 0 5px var(--focus-edge); }
 .rs .row:has(> .lib-open) { position: relative; }
 .rs .row > .key, .rs .row > .lib-ck { position: relative; z-index: 1; }
 /* A hover note in a cell, such as a History time, sits above the stretched button, or the pointer never reaches it */
@@ -226,7 +227,7 @@
 /* Help. Nothing shows until it is asked for: a name gains a dotted underline under the pointer, and its note closes when
    the pointer leaves. The note uses the title-bar colours, dark in both themes, and lets clicks through. */
 .rs .has-tip { cursor: help; }
-.rs .has-tip:hover .tip-t { text-decoration: underline dotted; text-underline-offset: 3px; }
+.rs .has-tip:hover .tip-t, .rs .has-tip:focus-visible .tip-t { text-decoration: underline dotted; text-underline-offset: 3px; }
 .rs .tipbox { position: absolute; z-index: 60; display: flex; flex-direction: column; gap: 4px; width: 320px; padding: 10px 12px; background: var(--title); color: var(--title-text); border: 1px solid var(--ink); border-radius: 6px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 4px 8px 18px rgba(0, 0, 0, .5); font-size: 13px; line-height: 1.4; pointer-events: none; }
 .rs .tipbox.at { position: fixed; left: var(--x); top: var(--y); }
 .rs .tip-h { font-family: var(--label); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }

@@ -60,7 +60,12 @@ const undoChange = computed(() => {
   return c && undoSlot(c) ? c : undefined
 })
 const coverOpen = ref(false)
-// An outcome in the Inbox links here with ?history=1 to open History.
+// An outcome in the Inbox links here with ?history=1&change=N to open and select Change N in History.
+const historyChangeId = computed(() => {
+  const raw = Array.isArray(route.query.change) ? route.query.change[0] : route.query.change
+  const n = Number(raw)
+  return Number.isInteger(n) && n > 0 ? n : null
+})
 const historyOpen = ref(route.query.history === '1')
 watch(() => route.query.history, (h) => { if (h === '1') historyOpen.value = true })
 
@@ -241,7 +246,7 @@ watch(
       </div>
       <div class="vscroll"><LibGuide /></div>
     </section>
-    <LibPhoneHistory v-else-if="id && albumHistory" v-model:open="historyOpenId" :album-id="id" />
+    <LibPhoneHistory v-else-if="id && albumHistory" v-model:open="historyOpenId" :album-id="id" :change-id="historyChangeId" />
     <LibPhoneField v-else-if="field" :field="field" />
     <LibPhoneIssues v-else-if="issues" @cover="coverOpen = true" />
     <LibPhoneAlbum v-else @cover="coverOpen = true" />
@@ -271,11 +276,11 @@ watch(
     </template>
     <template v-else-if="historyOpen">
       <LibSplit label="album list" @move="moveList" />
-      <LibHistory class="editor" @close="historyOpen = false" />
+      <LibHistory class="editor" :change-id="historyChangeId" @close="historyOpen = false" />
     </template>
     <template v-else-if="id && albumHistory">
       <LibSplit label="album list" @move="moveList" />
-      <LibAlbumHistory class="editor" :album-id="id" @close="router.push({ name: 'library' })" @editor="router.push({ query: {} })" />
+      <LibAlbumHistory class="editor" :album-id="id" :change-id="historyChangeId" @close="router.push({ name: 'library' })" @editor="router.push({ query: {} })" />
     </template>
     <template v-else-if="id">
       <LibSplit label="album list" @move="moveList" />

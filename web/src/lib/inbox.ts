@@ -1,4 +1,4 @@
-import type { Acceptance, Decision, MemoryEvidence, Op, OpDecision, Preview, ProposalDetail, ProposalEvent, ProposalState, ProposalSummary } from '../api/agents'
+import type { Acceptance, Decision, MemoryEvidence, Op, OpDecision, OpName, Preview, ProposalDetail, ProposalEvent, ProposalState, ProposalSummary } from '../api/agents'
 import { fieldLabel } from './tags'
 
 const base = (path: string) => path.split('/').pop() || path
@@ -44,15 +44,18 @@ export function trackLabel(d: ProposalDetail, trackId: number): string {
 }
 
 // opLabel is the field an op changes, in the editor's words where it has them.
-export function opLabel(op: Op): string {
+export function opLabel(op: Pick<OpName, 'id' | 'type' | 'field' | 'tag_key' | 'action'>): string {
   if (op.type === 'cover') return op.action === 'remove' ? 'Remove cover' : 'Replace cover'
   if (op.field) return fieldLabel(op.field)
   return op.tag_key ?? op.id
 }
 
-export function opName(ops: Op[], id: string): string {
+export function opName(ops: Op[], id: string, decisions: OpDecision[] = []): string {
   const op = ops.find((item) => item.id === id)
-  return op ? opLabel(op) : fieldLabel(id)
+  if (op) return opLabel(op)
+  const decision = decisions.find((item) => item.id === id)
+  if (decision && (decision.type === 'cover' || decision.field || decision.tag_key)) return opLabel(decision)
+  return fieldLabel(id)
 }
 
 // wasLine says what the tracks hold now, under a proposed value. Nothing shows when Shelf couldn't read them.
@@ -129,11 +132,11 @@ const eventWords: Record<string, string> = {
 }
 
 // eventLine is one entry of the discussion, without its body.
-export function eventLine(e: ProposalEvent, ops: Op[] = []): string {
+export function eventLine(e: ProposalEvent, ops: Op[] = [], decisions: OpDecision[] = []): string {
   const actor = e.actor_kind === 'system' ? 'Shelf' : e.actor || (e.actor_kind === 'agent' ? 'Agent' : 'Unknown')
   const what = eventWords[e.kind] ?? e.kind.replace(/_/g, ' ')
   const data = e.data ?? {}
-  const names = Array.isArray(data.ops) ? ` ${(data.ops as string[]).map((id) => opName(ops, id)).join(', ')}` : ''
+  const names = Array.isArray(data.ops) ? ` ${(data.ops as string[]).map((id) => opName(ops, id, decisions)).join(', ')}` : ''
   if (e.kind === 'proposal_revised' || e.kind === 'proposal_edited') return `${actor} ${what}: revision ${String(data.from ?? '?')} to ${String(data.to ?? '?')}`
   if (e.kind === 'outcome') return `${actor}: change ${String(data.change_id ?? '')} ${String(data.state ?? '')}${data.undone ? ', undone' : ''}`
   return `${actor} ${what}${names}`

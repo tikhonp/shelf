@@ -85,6 +85,35 @@ func (m *Module) detail(ctx context.Context, id int64, base string, live bool) (
 	if err != nil {
 		return nil, err
 	}
+	opMeta := map[string]Op{}
+	for _, op := range r.ops() {
+		opMeta[op.ID] = op
+	}
+	missingMeta := 0
+	for id := range rows {
+		if _, ok := opMeta[id]; !ok {
+			missingMeta++
+		}
+	}
+	if missingMeta > 0 {
+		priorOps := []string{}
+		if err = m.db.R.SelectContext(ctx, &priorOps, `SELECT ops FROM agents_revisions WHERE proposal_id=? AND revision<? ORDER BY revision DESC`, id, p.Head); err != nil {
+			return nil, err
+		}
+		for _, raw := range priorOps {
+			for _, op := range decodeOps(raw) {
+				if _, wanted := rows[op.ID]; wanted {
+					if _, have := opMeta[op.ID]; !have {
+						opMeta[op.ID] = op
+						missingMeta--
+					}
+				}
+			}
+			if missingMeta == 0 {
+				break
+			}
+		}
+	}
 	ops := []map[string]any{}
 	counts := map[string]int{"pending": 0, "accepted": 0, "declined": 0, "superseded": 0}
 	pending := []string{}
@@ -99,7 +128,19 @@ func (m *Module) detail(ctx context.Context, id int64, base string, live bool) (
 		if o.Decision == "pending" {
 			pending = append(pending, id)
 		}
-		ops = append(ops, map[string]any{"id": o.OpID, "type": o.Type, "decision": o.Decision, "decided_rev": nullableInt(o.DecidedRev.Int64, o.DecidedRev.Valid), "acceptance": nullableInt(o.AcceptanceID.Int64, o.AcceptanceID.Valid), "decided_by": o.DecidedBy.String, "decided_at": optStamp(o.DecidedAt)})
+		entry := map[string]any{"id": o.OpID, "type": o.Type, "decision": o.Decision, "decided_rev": nullableInt(o.DecidedRev.Int64, o.DecidedRev.Valid), "acceptance": nullableInt(o.AcceptanceID.Int64, o.AcceptanceID.Valid), "decided_by": o.DecidedBy.String, "decided_at": optStamp(o.DecidedAt)}
+		if meta, ok := opMeta[o.OpID]; ok {
+			if meta.Field != "" {
+				entry["field"] = meta.Field
+			}
+			if meta.TagKey != "" {
+				entry["tag_key"] = meta.TagKey
+			}
+			if meta.Action != "" {
+				entry["action"] = meta.Action
+			}
+		}
+		ops = append(ops, entry)
 	}
 	revisions := []struct {
 		Revision   int    `db:"revision" json:"revision"`
@@ -255,7 +296,7 @@ func (m *Module) listProposals(c *echo.Context) error {
 		if kind != "tag" && kind != "cover" {
 			return invalid("kind is tag or cover")
 		}
-		q += ` AND EXISTS(SELECT 1 FROM agents_ops o WHERE o.proposal_id=agents_proposals.id AND type=?)`
+		q += ` AND EXISTS(SELECT 1 FROM agents_revisions r, json_each(r.ops) j WHERE r.proposal_id=agents_proposals.id AND r.revision=agents_proposals.head AND json_extract(j.value, '$.type')=?)`
 		args = append(args, kind)
 	}
 	machine := current(c).ID != 0

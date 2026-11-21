@@ -2,17 +2,28 @@ import { onScopeDispose, ref, type Ref } from 'vue'
 
 // The width where the phone layout starts, the same as the media query in the styles.
 const phoneQuery = '(max-width: 719px)'
+// The width where the desktop split stacks the detail below the list.
+const stackedQuery = '(max-width: 1100px)'
 
-// usePhone says whether the phone layout applies, and follows the window.
-export function usePhone(): Ref<boolean> {
-  const list = window.matchMedia?.(phoneQuery)
-  const phone = ref(list?.matches ?? false)
+function useMedia(query: string): Ref<boolean> {
+  const list = window.matchMedia?.(query)
+  const matches = ref(list?.matches ?? false)
   if (list) {
-    const change = (e: MediaQueryListEvent) => (phone.value = e.matches)
+    const change = (e: MediaQueryListEvent) => (matches.value = e.matches)
     list.addEventListener('change', change)
     onScopeDispose(() => list.removeEventListener('change', change))
   }
-  return phone
+  return matches
+}
+
+// usePhone says whether the phone layout applies, and follows the window.
+export function usePhone(): Ref<boolean> {
+  return useMedia(phoneQuery)
+}
+
+// useStacked says whether the split layout stacks vertically (tablet and phone widths).
+export function useStacked(): Ref<boolean> {
+  return useMedia(stackedQuery)
 }
 
 // useKeyboard gives the height the on-screen keyboard covers at the bottom of the window, or 0.

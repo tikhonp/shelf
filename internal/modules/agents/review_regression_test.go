@@ -273,3 +273,160 @@ func TestSubsetRetryKeepsPriorFailureAndRecordedPreview(t *testing.T) {
 		t.Fatalf("subset snapshot: %+v", files)
 	}
 }
+
+func TestSupersededOpMetadataFromPriorRevision(t *testing.T) {
+	r := rig(t, true, nil)
+	base := []BaseTrack{{TrackID: 1, Revision: "r1"}}
+	ops1 := []Op{
+		{ID: "op-1", Type: "tag", Field: "originaldate", Tracks: []OpTrack{{TrackID: 1, Values: []string{"1974"}}}},
+		{ID: "op-2", Type: "tag", Field: "genre", Tracks: []OpTrack{{TrackID: 1, Values: []string{"Jazz"}}}},
+	}
+	res := r.call(t, "POST", "/api/agent/v1/proposals", map[string]any{"run_id": r.run, "album_id": 1, "title": "Initial", "reason": "Test", "base": base, "ops": ops1}, true)
+	want(t, res, 201)
+	var p struct{ ID int64 }
+	_ = json.Unmarshal(res.Body.Bytes(), &p)
+
+	ops2 := []Op{{ID: "op-2", Type: "tag", Field: "genre", Tracks: []OpTrack{{TrackID: 1, Values: []string{"Jazz"}}}}}
+	want(t, r.call(t, "POST", fmt.Sprintf("/api/agent/v1/proposals/%d/revisions", p.ID), map[string]any{
+		"run_id": r.run, "parent_revision": 1, "title": "Revised", "reason": "Drop original date", "base": base, "ops": ops2,
+	}, true), 201)
+
+	res = r.call(t, "GET", fmt.Sprintf("/api/inbox/proposals/%d", p.ID), nil, false)
+	want(t, res, 200)
+	var detail struct {
+		Ops []struct {
+			ID       string `json:"id"`
+			Field    string `json:"field"`
+			Decision string `json:"decision"`
+		} `json:"ops"`
+	}
+	if err := json.Unmarshal(res.Body.Bytes(), &detail); err != nil {
+		t.Fatal(err)
+	}
+	var found bool
+	for _, op := range detail.Ops {
+		if op.ID == "op-1" {
+			found = true
+			if op.Decision != "superseded" || op.Field != "originaldate" {
+				t.Fatalf("superseded op metadata = %+v", op)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("op-1 not found in %+v", detail.Ops)
+	}
+}
+
+func TestListKindFilterExcludesSupersededOps(t *testing.T) {
+	r := rig(t, true, nil)
+	base := []BaseTrack{{TrackID: 1, Revision: "r1"}}
+	ops1 := []Op{
+		{ID: "cov", Type: "cover", Action: "remove"},
+		{ID: "genre", Type: "tag", Field: "genre", Tracks: []OpTrack{{TrackID: 1, Values: []string{"Jazz"}}}},
+	}
+	res := r.call(t, "POST", "/api/agent/v1/proposals", map[string]any{"run_id": r.run, "album_id": 1, "title": "With cover", "reason": "Test", "base": base, "ops": ops1}, true)
+	want(t, res, 201)
+	var p struct{ ID int64 }
+	_ = json.Unmarshal(res.Body.Bytes(), &p)
+
+	ops2 := []Op{{ID: "genre", Type: "tag", Field: "genre", Tracks: []OpTrack{{TrackID: 1, Values: []string{"Jazz"}}}}}
+	want(t, r.call(t, "POST", fmt.Sprintf("/api/agent/v1/proposals/%d/revisions", p.ID), map[string]any{
+		"run_id": r.run, "parent_revision": 1, "title": "Tag only", "reason": "Drop cover", "base": base, "ops": ops2,
+	}, true), 201)
+
+	res = r.call(t, "GET", "/api/inbox/proposals?kind=cover", nil, false)
+	want(t, res, 200)
+	var covers struct {
+		Proposals []struct{ ID int64 } `json:"proposals"`
+	}
+	if err := json.Unmarshal(res.Body.Bytes(), &covers); err != nil {
+		t.Fatal(err)
+	}
+	if len(covers.Proposals) != 0 {
+		t.Fatalf("superseded cover op matched kind=cover: %+v", covers.Proposals)
+	}
+
+	res = r.call(t, "GET", "/api/inbox/proposals?kind=tag", nil, false)
+	want(t, res, 200)
+	var tags struct {
+		Proposals []struct{ ID int64 } `json:"proposals"`
+	}
+	if err := json.Unmarshal(res.Body.Bytes(), &tags); err != nil {
+		t.Fatal(err)
+	}
+	if len(tags.Proposals) != 1 || tags.Proposals[0].ID != p.ID {
+		t.Fatalf("expected proposal %d for kind=tag, got %+v", p.ID, tags.Proposals)
+	}
+}
+
+func TestListKindFilterMatchesHeadOnWithdrawAndSameIDTypeChange(t *testing.T) {
+	r := rig(t, true, nil)
+	base := []BaseTrack{{TrackID: 1, Revision: "r1"}}
+
+	// 1. Withdrawn cover-only proposal still matches state=withdrawn&kind=cover.
+	res := r.call(t, "POST", "/api/agent/v1/proposals", map[string]any{
+		"run_id": r.run, "album_id": 1, "title": "Cover only", "reason": "Test",
+		"base": base, "ops": []Op{{ID: "cov", Type: "cover", Action: "remove"}},
+	}, true)
+	want(t, res, 201)
+	var withdrawn struct{ ID int64 }
+	_ = json.Unmarshal(res.Body.Bytes(), &withdrawn)
+
+	want(t, r.call(t, "POST", fmt.Sprintf("/api/agent/v1/proposals/%d/withdraw", withdrawn.ID), map[string]any{
+		"run_id": r.run, "revision": 1, "reason": "Never mind",
+	}, true), 200)
+
+	res = r.call(t, "GET", "/api/inbox/proposals?state=withdrawn&kind=cover", nil, false)
+	want(t, res, 200)
+	var list struct {
+		Proposals []struct{ ID int64 } `json:"proposals"`
+	}
+	if err := json.Unmarshal(res.Body.Bytes(), &list); err != nil {
+		t.Fatal(err)
+	}
+	if len(list.Proposals) != 1 || list.Proposals[0].ID != withdrawn.ID {
+		t.Fatalf("expected withdrawn cover proposal %d, got %+v", withdrawn.ID, list.Proposals)
+	}
+
+	// 2. Same-ID revision from cover to tag matches kind=tag, not kind=cover, and updates agents_ops.type.
+	res = r.call(t, "POST", "/api/agent/v1/proposals", map[string]any{
+		"run_id": r.run, "album_id": 1, "title": "Starts as cover", "reason": "Test",
+		"base": base, "ops": []Op{{ID: "slot", Type: "cover", Action: "remove"}},
+	}, true)
+	want(t, res, 201)
+	var changed struct{ ID int64 }
+	_ = json.Unmarshal(res.Body.Bytes(), &changed)
+
+	want(t, r.call(t, "POST", fmt.Sprintf("/api/agent/v1/proposals/%d/revisions", changed.ID), map[string]any{
+		"run_id": r.run, "parent_revision": 1, "title": "Now a tag", "reason": "Switched to tag",
+		"base": base, "ops": []Op{{ID: "slot", Type: "tag", Field: "genre", Tracks: []OpTrack{{TrackID: 1, Values: []string{"Jazz"}}}}},
+	}, true), 201)
+
+	var storedType string
+	if err := r.app.DB.R.Get(&storedType, `SELECT type FROM agents_ops WHERE proposal_id=? AND op_id='slot'`, changed.ID); err != nil {
+		t.Fatal(err)
+	}
+	if storedType != "tag" {
+		t.Fatalf("agents_ops.type = %q, want tag", storedType)
+	}
+
+	res = r.call(t, "GET", "/api/inbox/proposals?kind=cover", nil, false)
+	want(t, res, 200)
+	list.Proposals = nil
+	if err := json.Unmarshal(res.Body.Bytes(), &list); err != nil {
+		t.Fatal(err)
+	}
+	if len(list.Proposals) != 0 {
+		t.Fatalf("same-ID cover->tag proposal matched kind=cover: %+v", list.Proposals)
+	}
+
+	res = r.call(t, "GET", "/api/inbox/proposals?kind=tag", nil, false)
+	want(t, res, 200)
+	list.Proposals = nil
+	if err := json.Unmarshal(res.Body.Bytes(), &list); err != nil {
+		t.Fatal(err)
+	}
+	if len(list.Proposals) != 1 || list.Proposals[0].ID != changed.ID {
+		t.Fatalf("expected proposal %d for kind=tag, got %+v", changed.ID, list.Proposals)
+	}
+}

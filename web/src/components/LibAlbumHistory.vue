@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAlbumHistory } from '../lib/albumHistory'
 import { useNow } from '../lib/clock'
@@ -14,13 +15,14 @@ import LibTip from './LibTip.vue'
 import ScrollMore from './ScrollMore.vue'
 
 // One album's History, in place of the Editor and the Tracks window.
-const props = defineProps<{ albumId: number }>()
+const props = defineProps<{ albumId: number; changeId?: number | null }>()
 defineEmits<{ close: []; editor: [] }>()
 const history = useHistory()
 const editor = useEditor()
 const sources = useSources()
 const now = useNow()
-const { openId, downloads, toggle, downloadedAt } = useAlbumHistory(() => props.albumId)
+const scroller = ref<HTMLElement>()
+const { openId, downloads, missingChange, toggle, downloadedAt } = useAlbumHistory(() => props.albumId, undefined, () => props.changeId, scroller)
 </script>
 
 <template>
@@ -33,7 +35,8 @@ const { openId, downloads, toggle, downloadedAt } = useAlbumHistory(() => props.
       <button type="button" class="wbtn" aria-label="Close the album" @click="$emit('close')"><Icon name="close" /></button>
     </div>
     <p v-if="history.error" class="bad-text pad" role="alert">{{ history.error }}</p>
-    <div class="list">
+    <p v-else-if="missingChange" class="t2 sm pad" role="status">Change {{ missingChange }} is no longer in history.</p>
+    <div ref="scroller" class="list">
       <div v-if="!history.loading && history.changes.length === 0" class="pad"><div class="lcd lcd-state"><div class="lcd-big">NO SAVES</div></div></div>
       <div v-else class="rows" role="table" :aria-label="editor.album ? `History of ${editor.album.title}` : 'History'">
         <div class="row thead g-ah" role="row">
@@ -44,7 +47,7 @@ const { openId, downloads, toggle, downloadedAt } = useAlbumHistory(() => props.
           <span role="columnheader"><span class="sr">Actions</span></span>
         </div>
         <template v-for="c in history.changes" :key="c.id">
-          <div class="row g-ah" :class="{ cur: openId === c.id }" role="row">
+          <div class="row g-ah" :class="{ cur: openId === c.id }" :data-change="c.id" role="row">
             <span role="cell" class="t2 num sm"><LibTip :note="longDate(c.created_at)">{{ ago(c.created_at, now) }}</LibTip></span>
             <button type="button" class="lib-open two" :aria-expanded="openId === c.id" @click="toggle(c)">
               <span class="ttl"><span class="ell">{{ changeTitle(c) }}</span></span>

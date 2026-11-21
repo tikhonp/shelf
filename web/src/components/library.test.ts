@@ -1020,3 +1020,81 @@ test('on the phone a field page folds the rivals of a taken suggestion into one 
   expect(w.findAll('.sug').map((s) => s.text())).toEqual([expect.stringContaining('Blue (2022)')])
   w.unmount()
 })
+
+test('History deep link with ?history=1&change=N selects and opens change N on desktop', async () => {
+  const file = { track_id: 1, path: 'rock/x/1.flac', kind: 'audio', written: true, revision: 'r', cover_before: '', cover_after: '', keys: [{ key: 'GENRE', before: ['Rock'], after: ['Folk'] }] }
+  const c1 = change(31)
+  const c2 = change(30)
+  const { w, calls } = await at('/library?history=1&change=31', {
+    '/api/library/history': { changes: [c1, c2], next: null },
+    '/api/library/changes/31': { ...c1, files: [file] },
+  })
+  const row = w.get('[data-change="31"]')
+  expect(row.classes()).toContain('cur')
+  expect(row.text()).toContain('Change 31')
+  expect(row.find('button.lib-open').attributes('aria-expanded')).toBe('true')
+  expect(calls.some((c) => c.url === '/api/library/changes/31')).toBe(true)
+  w.unmount()
+})
+
+test('on the phone History deep link with ?view=history&change=N selects and opens change N', async () => {
+  const file = { track_id: 1, path: 'rock/x/1.flac', kind: 'audio', written: true, revision: 'r', cover_before: '', cover_after: '', keys: [{ key: 'GENRE', before: ['Rock'], after: ['Folk'] }] }
+  const c1 = change(31)
+  const c2 = change(30)
+  const { w, calls } = await phoneAt('/library/7?view=history&change=31', phoneRoutes({
+    '/api/library/history': { changes: [c1, c2], next: null },
+    '/api/library/changes/31': { ...c1, files: [file] },
+  }))
+  const row = w.get('[data-change="31"]')
+  expect(row.classes()).toContain('cur')
+  expect(row.attributes('aria-expanded')).toBe('true')
+  expect(calls.some((c) => c.url === '/api/library/changes/31?album=7')).toBe(true)
+  w.unmount()
+})
+
+test('History deep link pages past 10 extra pages and shows an unavailable status when the linked change is missing', async () => {
+  const file = { track_id: 1, path: 'rock/x/1.flac', kind: 'audio', written: true, revision: 'r', cover_before: '', cover_after: '', keys: [{ key: 'GENRE', before: ['Rock'], after: ['Folk'] }] }
+  // 13 pages (ids 13 down to 1); target change is 1 on page 13.
+  const { w, calls } = await at('/library?history=1&change=1', {
+    '/api/library/history': (url: string) => {
+      const m = /before=(\d+)/.exec(url)
+      const id = m ? Number(m[1]) - 1 : 13
+      return { changes: [change(id)], next: id > 1 ? id : null }
+    },
+    '/api/library/changes/1': { ...change(1), files: [file] },
+  })
+  const row = w.get('[data-change="1"]')
+  expect(row.classes()).toContain('cur')
+  expect(row.find('button.lib-open').attributes('aria-expanded')).toBe('true')
+  expect(calls.some((c) => c.url === '/api/library/changes/1')).toBe(true)
+  w.unmount()
+
+  // Missing change after exhausting history shows a status notice.
+  const { w: w2 } = await at('/library?history=1&change=999', {
+    '/api/library/history': { changes: [change(31)], next: null },
+  })
+  expect(w2.text()).toContain('Change 999 is no longer in history.')
+  w2.unmount()
+
+  // Concurrent history.more() calls for the same cursor share one request and never duplicate rows.
+  let pageCalls = 0
+  let resolvePage!: (v: unknown) => void
+  stubApi({
+    '/api/library/history': (url: string) => {
+      if (url.includes('before=31')) {
+        pageCalls++
+        return new Promise((r) => { resolvePage = r })
+      }
+      return { changes: [change(31)], next: 31 }
+    },
+  })
+  const { useHistory } = await import('../stores/history')
+  const h = useHistory()
+  await h.load(null)
+  const p1 = h.more()
+  const p2 = h.more()
+  resolvePage({ changes: [change(30)], next: null })
+  await Promise.all([p1, p2])
+  expect(pageCalls).toBe(1)
+  expect(h.changes.map((c) => c.id)).toEqual([31, 30])
+})

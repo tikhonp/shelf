@@ -62,6 +62,7 @@ export const useEvents = defineStore('events', () => {
       const c = read<LibraryChange>(m)
       useEditor().applyChange(c)
       useHistory().applyChange(c)
+      useInbox().applyLibraryChange(c)
     })
     stream.addEventListener('inbox', (m) => useInbox().applyHub(read<{ proposal?: number }>(m)))
     stream.addEventListener('run', (m) => useBulk().applyRun(read<RunProgress>(m)))

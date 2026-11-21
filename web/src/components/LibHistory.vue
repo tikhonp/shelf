@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { nextTick, onMounted, ref, watch } from 'vue'
+import { errorText } from '../api/client'
 import type { LibraryChange } from '../api/types'
 import { useNow } from '../lib/clock'
 import { finishedAt } from '../lib/format'
@@ -11,13 +12,50 @@ import LibChangeLines from './LibChangeLines.vue'
 import LibChangeNotes from './LibChangeNotes.vue'
 import ScrollMore from './ScrollMore.vue'
 
+const props = defineProps<{ changeId?: number | null }>()
 defineEmits<{ close: [] }>()
 const history = useHistory()
 const now = useNow()
 const openId = ref<number | null>(null)
 const asking = ref(false)
+const scroller = ref<HTMLElement>()
+const missingChange = ref<number | null>(null)
+let focusSeq = 0
 
-onMounted(() => void history.load(null))
+async function focusChange(target: number | null | undefined) {
+  const seq = ++focusSeq
+  missingChange.value = null
+  if (!target || history.error) return
+  while (!history.changes.some((c) => c.id === target) && history.next !== null) {
+    const prevNext = history.next
+    try {
+      await history.more()
+    } catch (err) {
+      if (seq === focusSeq) history.error = errorText(err)
+      return
+    }
+    if (seq !== focusSeq) return
+    if (history.next === prevNext) break
+  }
+  if (!history.changes.some((c) => c.id === target)) {
+    if (seq === focusSeq && !history.error) missingChange.value = target
+    return
+  }
+  openId.value = target
+  if (!history.details[target]) void history.open(target)
+  await nextTick()
+  if (seq !== focusSeq) return
+  scroller.value?.querySelector<HTMLElement>(`[data-change="${target}"]`)?.scrollIntoView?.({ block: 'center' })
+}
+
+onMounted(async () => {
+  await history.load(null)
+  await focusChange(props.changeId)
+})
+
+watch(() => props.changeId, (target) => {
+  if (target) void focusChange(target)
+})
 
 function toggle(c: LibraryChange) {
   openId.value = openId.value === c.id ? null : c.id
@@ -40,13 +78,14 @@ async function clear() {
       <button type="button" class="wbtn" aria-label="Close history" @click="$emit('close')"><Icon name="close" /></button>
     </div>
     <p v-if="history.error" class="bad-text pad" role="alert">{{ history.error }}</p>
+    <p v-else-if="missingChange" class="t2 sm pad" role="status">Change {{ missingChange }} is no longer in history.</p>
     <div v-if="asking" class="note ask" role="alertdialog" aria-label="Clear history">
       <div class="two grow"><span class="bold">Clear history?</span><span class="sub">Undo and redo go with it. No file changes.</span></div>
       <button type="button" class="key sm" @click="asking = false">Cancel</button>
       <button type="button" class="key sm sun" @click="clear">Clear</button>
     </div>
     <div v-if="!history.loading && history.changes.length === 0" class="pad"><div class="lcd lcd-state"><div class="lcd-big">NO SAVES</div></div></div>
-    <div v-else class="rows list" role="table" aria-label="History">
+    <div v-else ref="scroller" class="rows list" role="table" aria-label="History">
       <div class="row thead g-lh" role="row">
         <span role="columnheader">When</span>
         <span role="columnheader">Album or run</span>
@@ -55,9 +94,9 @@ async function clear() {
         <span role="columnheader"><span class="sr">Actions</span></span>
       </div>
       <template v-for="c in history.changes" :key="c.id">
-        <div class="row g-lh" :class="{ cur: openId === c.id }" role="row">
+        <div class="row g-lh" :class="{ cur: openId === c.id }" :data-change="c.id" role="row">
           <span role="cell" class="t2 num sm">{{ finishedAt(c.created_at, now) }}</span>
-          <button type="button" class="lib-open two" :aria-expanded="openId === c.id" @click="toggle(c)"><span class="ttl"><span class="ell">{{ c.run ? runTitle(c.run.fixes) : c.kind === 'delete' ? `Deleted: ${c.title}` : c.title }}</span></span><span class="sub ell">{{ [c.run ? runSub(c.run) : c.artist, `By ${c.author || 'Unknown'}`].filter(Boolean).join(' · ') }}</span></button>
+          <button type="button" class="lib-open two" :aria-expanded="openId === c.id" @click="toggle(c)"><span class="ttl"><span class="ell">{{ c.run ? runTitle(c.run.fixes) : c.kind === 'delete' ? `Deleted: ${c.title}` : c.title }}</span></span><span class="sub ell">{{ [`Change ${c.id}`, c.run ? runSub(c.run) : c.artist, `By ${c.author || 'Unknown'}`].filter(Boolean).join(' · ') }}</span></button>
           <span role="cell" class="num sm r">{{ what(c) }}</span>
           <span role="cell"><span class="pill" :class="stateClass(c)">{{ stateWord(c) }}</span></span>
           <button v-if="reversible(c)" type="button" class="key sm r" :disabled="history.busy(c)" @click="history.reverse(c)">{{ c.undone ? 'Redo' : 'Undo' }}</button>

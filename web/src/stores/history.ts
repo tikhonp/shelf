@@ -21,6 +21,7 @@ export const useHistory = defineStore('history', () => {
   const running = ref<Record<number, number>>({})
   const conflicts = ref<Record<number, ChangeConflict[]>>({})
   const album = ref<number | null>(null)
+  let moreInFlight: { key: string; promise: Promise<void> } | null = null
   // busy is a Save whose undo or redo is still to run.
   const busy = (c: LibraryChange) => Object.values(running.value).includes(c.id)
 
@@ -39,6 +40,7 @@ export const useHistory = defineStore('history', () => {
       changes.value = []
       next.value = null
       details.value = {}
+      moreInFlight = null
     }
     const asked = album.value
     loading.value = true
@@ -55,13 +57,25 @@ export const useHistory = defineStore('history', () => {
     }
   }
 
-  async function more() {
-    if (next.value === null) return
+  function more(): Promise<void> {
+    const cursor = next.value
+    if (cursor === null) return Promise.resolve()
     const asked = album.value
-    const page = await get<Page>(url('/api/library/history', `before=${next.value}`))
-    if (asked !== album.value) return
-    changes.value = [...changes.value, ...page.changes]
-    next.value = page.next
+    const key = `${asked ?? 'all'}:${cursor}`
+    if (moreInFlight?.key === key) return moreInFlight.promise
+    const promise = (async () => {
+      try {
+        const page = await get<Page>(url('/api/library/history', `before=${cursor}`))
+        if (asked !== album.value || next.value !== cursor) return
+        const seen = new Set(changes.value.map((c) => c.id))
+        changes.value = [...changes.value, ...page.changes.filter((c) => !seen.has(c.id))]
+        next.value = page.next
+      } finally {
+        if (moreInFlight?.key === key) moreInFlight = null
+      }
+    })()
+    moreInFlight = { key, promise }
+    return promise
   }
 
   async function open(id: number) {
@@ -116,6 +130,7 @@ export const useHistory = defineStore('history', () => {
     changes.value = []
     next.value = null
     details.value = {}
+    moreInFlight = null
   }
 
   return { changes, next, loading, error, details, running, conflicts, album, busy, load, more, open, reverse, applyChange, clear }

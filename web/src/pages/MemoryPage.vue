@@ -33,7 +33,7 @@ const resetting = ref(false)
 const resetLayers = ref<MemoryLayer[]>([])
 const resetError = ref('')
 
-watch(() => inbox.enabled, (on) => { if (on === false) void router.replace('/library') })
+watch(() => inbox.enabled, (on) => { if (on === false) void router.replace('/library') }, { immediate: true })
 onMounted(async () => {
   if (inbox.enabled === null) await inbox.detect()
   if (inbox.enabled) void memory.load()
