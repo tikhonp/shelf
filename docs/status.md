@@ -2,14 +2,14 @@
 
 shelf is finished and runs in production on blackberry. [vision.md](vision.md) says what it is for.
 
-- **Downloads.** The web UI at `shelf.music.tikhonnnnn.com` and the bot `@music_shelf_bot` search and download from Qobuz, through qobuz-dl-go `v0.1.2`, and from Apple Music, through amdl and shelf-wrapper. Navidrome scans after downloads. shelf imported the old bot's 169 downloads.
+- **Downloads.** The web UI at `shelf.music.tikhonnnnn.com` and the bot `@music_shelf_bot` search and download from Qobuz, through qobuz-dl-go `v0.1.4`, and from Apple Music, through amdl and shelf-wrapper. Navidrome scans after downloads. shelf imported the old bot's 169 downloads.
 - **Tags.** The Library tab edits every tag in the library, with suggestions, checks and fixes, covers, playback, history with undo, and bulk runs with ReplayGain and AcoustID. [tags.md](tags.md) describes it. `make contract` passes against Navidrome 0.64.2.
 - **Home.** The Library tab is the home screen and the first tab. Each album shows its source, from the downloads' records, `shelf.txt` or its source folder, and the filter menu filters by source. [tags.md](tags.md#album-sources) describes it.
 - **Delete.** The Library tab deletes an album's release folder and has Navidrome forget its tracks, as [tags.md](tags.md#deleting) describes. `make contract` covers it.
 
 Every check in [manual-checklist.md](manual-checklist.md) passed in production, as its Last run says.
 
-The next Shelf build uses qobuz-dl-go `v0.1.3` to give the Qobuz player script five minutes to download.
+The next Shelf build uses qobuz-dl-go `v0.1.4` to fetch the web player bundle once at startup and share the startup client across formats, lets download jobs wait for the first Qobuz start while keeping interactive lookups at 15 seconds, and stops startup retries after a 401 token expiry.
 
 Shelf reports missing Qobuz streaming access on failed downloads.
 

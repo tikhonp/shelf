@@ -33,10 +33,10 @@ const SourceTopic = "source"
 const (
 	// RetryEvery is how long a failed start waits before the next one.
 	RetryEvery = 5 * time.Minute
-	// StartWait bounds how long a call waits for the first start to end. A
-	// download resumed after a restart reaches the source before the start
-	// is over, and it must not fail for that.
-	StartWait = time.Minute
+	// StartWait bounds how long an interactive call waits for the first start
+	// to end. Background download jobs pass source.WaitForStart and wait until
+	// the first attempt ends or their context is canceled.
+	StartWait = 15 * time.Second
 )
 
 // Module is the Qobuz module. It registers its source switched off when
@@ -120,6 +120,10 @@ func (m *Module) Run(ctx context.Context) error {
 		if err == nil {
 			return nil
 		}
+		if isExpired(err) {
+			m.log.Error("qobuz: the token expired. Replace SHELF_QOBUZ_TOKEN and restart shelf.")
+			return nil
+		}
 		m.log.Warn("qobuz: start failed", "error", err)
 		select {
 		case <-ctx.Done():
@@ -158,12 +162,10 @@ type Source struct {
 	mu       sync.Mutex
 	phase    phase
 	api      *qobuzdl.Client
-	appID    string
-	secrets  []string
 	lastSent *SourceEvent
 
 	// dlMu covers dls. Only one Qobuz download runs at a time, so holding it
-	// across a login holds nobody up.
+	// across variant setup holds nobody up.
 	dlMu sync.Mutex
 	dls  map[variant]*qobuzdl.DL
 }
@@ -211,23 +213,33 @@ func (s *Source) start(ctx context.Context) error {
 	s.dls[v] = d
 	s.dlMu.Unlock()
 	s.mu.Lock()
-	s.api, s.appID, s.secrets = d.Client(), d.AppID(), d.Secrets()
+	s.api = d.Client()
 	s.mu.Unlock()
 	return nil
 }
 
 // ready waits for the first start and says whether Qobuz can be asked.
+// Interactive calls wait up to startWait; download jobs wrapped with
+// source.WaitForStart wait until the first start ends or ctx is canceled.
 func (s *Source) ready(ctx context.Context) error {
 	if s.off {
 		return &source.Unavailable{Reason: textOff}
 	}
-	wait := time.NewTimer(s.startWait)
-	defer wait.Stop()
-	select {
-	case <-s.started:
-	case <-wait.C:
-	case <-ctx.Done():
-		return ctx.Err()
+	if source.WaitsForStart(ctx) {
+		select {
+		case <-s.started:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	} else {
+		wait := time.NewTimer(s.startWait)
+		defer wait.Stop()
+		select {
+		case <-s.started:
+		case <-wait.C:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -248,7 +260,8 @@ func (s *Source) client(ctx context.Context) (*qobuzdl.Client, error) {
 }
 
 // downloader is the instance for a quality, with no database when force is
-// set. It logs in on first use, with the app ID and secrets of the start.
+// set. It shares the client from the start through Options.Client, so
+// switching formats does not fetch the bundle or log in again.
 func (s *Source) downloader(ctx context.Context, quality int, force bool) (*qobuzdl.DL, error) {
 	if err := s.ready(ctx); err != nil {
 		return nil, err
@@ -259,14 +272,13 @@ func (s *Source) downloader(ctx context.Context, quality int, force bool) (*qobu
 	if d, ok := s.dls[v]; ok {
 		return d, nil
 	}
-	d, err := qobuzdl.New(s.options(v))
-	if err != nil {
-		return nil, err
-	}
 	s.mu.Lock()
-	appID, secrets := s.appID, s.secrets
+	api := s.api
 	s.mu.Unlock()
-	if err := d.InitializeClient(ctx, "", "", appID, secrets); err != nil {
+	o := s.options(v)
+	o.Client = api
+	d, err := qobuzdl.New(o)
+	if err != nil {
 		return nil, err
 	}
 	s.dls[v] = d

@@ -93,7 +93,7 @@ func TestDownloadResult(t *testing.T) {
 			t.Errorf("%s is missing", f)
 		}
 	}
-	if res.Tool != "qobuz-dl-go v0.1.3 porting qobuz-dl 2.5.9" {
+	if res.Tool != "qobuz-dl-go v0.1.4 porting qobuz-dl 2.5.9" {
 		t.Errorf("tool %q", res.Tool)
 	}
 	if res.TrackNoun != "" {
@@ -157,13 +157,12 @@ func TestDownloadUsesItsFormat(t *testing.T) {
 	if q := rec.last(1).Quality; q != (source.Quality{Codec: "mp3"}) || q.Short() != "MP3" {
 		t.Errorf("delivered %+v", q)
 	}
-	// A format asked for twice logs in once.
-	logins := len(r.calls("user/get"))
+	// Switching formats reuses the startup login.
 	if _, _, err := r.download(source.KindAlbum, qobuzdltest.AlbumCD, "qobuz:6", false); err != nil {
 		t.Fatal(err)
 	}
-	if n := len(r.calls("user/get")); n != logins {
-		t.Errorf("%d logins after %d", n, logins)
+	if n := len(r.calls("user/get")); n != 1 {
+		t.Errorf("%d logins, want 1", n)
 	}
 }
 

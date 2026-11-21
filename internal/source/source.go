@@ -78,6 +78,22 @@ type Unavailable struct{ Reason string }
 
 func (e *Unavailable) Error() string { return e.Reason }
 
+type waitForStartKey struct{}
+
+// WaitForStart returns a context asking a source to wait until its first start
+// attempt ends instead of failing on its interactive startup timeout.
+// Background download jobs pass it so a slow startup after a restart does not
+// fail a resumed download.
+func WaitForStart(ctx context.Context) context.Context {
+	return context.WithValue(ctx, waitForStartKey{}, true)
+}
+
+// WaitsForStart reports whether ctx was wrapped by WaitForStart.
+func WaitsForStart(ctx context.Context) bool {
+	v, _ := ctx.Value(waitForStartKey{}).(bool)
+	return v
+}
+
 // Source is a music service shelf searches and downloads from. A source
 // implements Source and any of the interfaces below.
 type Source interface {

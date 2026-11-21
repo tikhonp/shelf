@@ -129,7 +129,7 @@ func (s *Service) resolve(ctx context.Context, r *jobs.Run) error {
 		return nil
 	}
 	r.Log().Info("Looking up %s in %s", d.Ref, src.Name())
-	item, err := res.Item(ctx, d.Ref)
+	item, err := res.Item(source.WaitForStart(ctx), d.Ref)
 	if err != nil {
 		if ctx.Err() != nil {
 			return err
@@ -283,7 +283,7 @@ func (s *Service) fetch(ctx context.Context, r *jobs.Run) error {
 	}
 	pr := newProgress(ctx, s, d, tracks, r.Log())
 	stop := pr.run(ctx, nil)
-	res, derr := dl.Download(ctx, source.DownloadRequest{
+	res, derr := dl.Download(source.WaitForStart(ctx), source.DownloadRequest{
 		DownloadID: d.ID, Ref: d.Ref, Format: d.Format, Force: d.Force, MusicDir: s.cfg.MusicDir,
 	}, pr)
 	s.workDone(d.ID)

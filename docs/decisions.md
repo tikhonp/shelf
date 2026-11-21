@@ -47,11 +47,11 @@ The decisions in force and why. When one changes, edit its row and the docs it t
 | Decision | Why |
 | --- | --- |
 | Qobuz goes through qobuz-dl-go, a Go port of qobuz-dl 2.5.9 with one Go file per Python file, in its own repo on GitHub. | Go can't import the Python library, and matching files turn each upstream release into a diff to port. |
-| One qobuz-dl-go instance per format, and one per format without a database for forced downloads. | Quality and `DownloadsDB` are fixed per instance, and `HandleID` can't override them. |
+| One qobuz-dl-go instance per format, and one per format without a database for forced downloads, all sharing the startup client through `Options.Client`. | Quality and `DownloadsDB` are fixed per instance, and `HandleID` can't override them; sharing the client avoids re-fetching the bundle and re-logging in on format switches. |
 | Album and track downloads pass `IgnoreDB`, so only a playlist's tracks reach `Has`, which ignores the quality. | `Queue` has checked already, and asking again would skip a resumed job with no tracks. |
 | Playlists go through `HandleID`. | Only `handle_url` writes the m3u8. |
 | The module's HTTP client has no `Timeout`, and qobuz-dl-go times each call. | A client timeout cuts long transfers. |
-| Search, lookups and downloads wait up to a minute for the first login attempt. | A download resumed after a restart would otherwise fail with "starting". |
+| Interactive catalog calls wait up to 15 seconds for the first login attempt; download jobs pass `source.WaitForStart` and wait until it ends or the job is canceled. | The player script has a five-minute download deadline; resumed downloads must not fail with "starting", while browser search requests must not hang behind startup. |
 | `ParseLink` also reads the site's `/interpreter/`, `/playlists/` and `/label/<slug>/download-streaming-albums/<id>` links, and refuses a link unless the ID is its whole last segment. | Without that the label form reads as the ID `download`. |
 | The import maps `/downloads/<folder>` to `<SHELF_QOBUZ_DIR>/<folder>`, keeps the highest quality per item, keeps the old artist and album, and stays offline. A skip asks the source for what it lacks. | The old container mounted `music/qobuz` at `/downloads`, and the old table has no covers. |
 | MP3 files differ byte for byte between runs. | `bogem/id3v2` keeps frames in a map. The audio and tags are the same, and FLAC isn't affected. |

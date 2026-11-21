@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -138,7 +139,7 @@ func TestHealthTokenExpired(t *testing.T) {
 			_, _, err := r.download(source.KindPlaylist, qobuzdltest.Playlist, formatMax, false)
 			return err
 		}},
-		// A format not used yet logs in, and user/get answers the 401.
+		// A format not used yet shares the client, and album/get answers the 401.
 		{"new format", func(r *rig) error {
 			_, _, err := r.download(source.KindAlbum, qobuzdltest.AlbumCD, "qobuz:6", false)
 			return err
@@ -201,12 +202,23 @@ func TestExpiredTrackDuringAPlaylist(t *testing.T) {
 }
 
 func TestTokenExpiredAtStart(t *testing.T) {
-	r := newRig(t)
+	r := newRig(t, func(r *rig) { r.m.RetryEvery = time.Millisecond })
 	r.srv.ExpireToken()
 	r.run()
 	r.waitHealth(func(h source.Health) bool { return h.Message == "token expired" })
+	// Run must stop retrying once authentication fails with 401.
+	select {
+	case <-r.done:
+	case <-time.After(testwait.For(5 * time.Second)):
+		t.Fatal("Run kept retrying after token expiry")
+	}
+	r.srv.Reset()
+	time.Sleep(10 * time.Millisecond)
 	_, err := r.s.Item(bg, ref(source.KindAlbum, qobuzdltest.AlbumCD))
 	expired(t, "item", err)
+	if n := len(r.srv.Requests()); n != 0 {
+		t.Errorf("%d requests after startup token expiry", n)
+	}
 }
 
 func TestStartRetries(t *testing.T) {
@@ -372,5 +384,70 @@ func TestTokenStaysOutOfLogs(t *testing.T) {
 	all := logs.String() + strings.Join(rec.lines, "\n") + err.Error()
 	if strings.Contains(all, qobuzdltest.Token) || strings.Contains(all, qobuzdltest.Secret) {
 		t.Fatal("a secret reached the logs")
+	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+// Live Qobuz still serves app ID 798273057 in bundle.js. Startup and format
+// switches must fetch the bundle, sign in, and probe secrets only once.
+func TestStartAndFormatSwitchFetchBundleOnce(t *testing.T) {
+	const (
+		liveLegacyID    = "798273057"
+		cfgSetupTrackID = "5966783"
+	)
+	var loginHits, bundleHits, userHits, probeHits atomic.Int32
+	r := newRig(t, func(r *rig) {
+		baseClient := r.srv.ClientOptions().HTTPClient
+		proxy := &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			cloned := req.Clone(req.Context())
+			if cloned.Header.Get("X-App-Id") == liveLegacyID {
+				cloned.Header.Set("X-App-Id", qobuzdltest.AppID)
+			}
+			switch {
+			case cloned.URL.Path == "/login":
+				loginHits.Add(1)
+			case strings.HasSuffix(cloned.URL.Path, "/bundle.js"):
+				bundleHits.Add(1)
+			case strings.HasSuffix(cloned.URL.Path, "/user/get"):
+				userHits.Add(1)
+			case strings.HasSuffix(cloned.URL.Path, "/track/getFileUrl") && cloned.URL.Query().Get("track_id") == cfgSetupTrackID:
+				probeHits.Add(1)
+			}
+			resp, err := baseClient.Do(cloned)
+			if err != nil || !strings.HasSuffix(cloned.URL.Path, "/bundle.js") {
+				return resp, err
+			}
+			b, err := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
+			if err != nil {
+				return nil, err
+			}
+			patched := strings.ReplaceAll(string(b), qobuzdltest.AppID, liveLegacyID)
+			resp.Body = io.NopCloser(strings.NewReader(patched))
+			resp.ContentLength = int64(len(patched))
+			return resp, nil
+		})}
+		r.m.Options = func(o *qobuzdl.Options) {
+			r.srv.Configure(o)
+			o.HTTPClient = proxy
+		}
+	}).up()
+
+	startupProbes := probeHits.Load()
+	if startupProbes == 0 {
+		t.Fatal("expected cfgSetup secret probes during startup")
+	}
+	if _, _, err := r.download(source.KindTrack, qobuzdltest.TrackSingle, "qobuz:6", false); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := r.download(source.KindTrack, qobuzdltest.TrackSingle, "qobuz:5", true); err != nil {
+		t.Fatal(err)
+	}
+	if loginHits.Load() != 1 || bundleHits.Load() != 1 || userHits.Load() != 1 || probeHits.Load() != startupProbes {
+		t.Fatalf("login=%d bundle=%d user/get=%d probes=%d (startup %d)",
+			loginHits.Load(), bundleHits.Load(), userHits.Load(), probeHits.Load(), startupProbes)
 	}
 }
