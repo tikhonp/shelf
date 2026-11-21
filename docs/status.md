@@ -9,7 +9,7 @@ shelf is finished and runs in production on blackberry. [vision.md](vision.md) s
 
 Every check in [manual-checklist.md](manual-checklist.md) passed in production, as its Last run says.
 
-The next Shelf build uses qobuz-dl-go `v0.1.4` to fetch the web player bundle once at startup and share the startup client across formats, lets download jobs wait for the first Qobuz start while keeping interactive lookups at 15 seconds, and stops startup retries after a 401 token expiry.
+Since `v1.2.3`, Shelf uses qobuz-dl-go `v0.1.4` to fetch the web player bundle once at startup and share the startup client across formats, lets download jobs wait for the first Qobuz start while keeping interactive lookups at 15 seconds, and stops startup retries after a 401 token expiry.
 
 Shelf reports missing Qobuz streaming access on failed downloads.
 
@@ -24,7 +24,7 @@ The 2026-11-19 dependency update brings go-telegram/bot v1.30.0, Echo v5.4.6 and
 
 ## Production
 
-Production runs `v1.2.1`, deployed on 2026-11-19. Long lists read their next page as their end scrolls into view, in place of Load more: the album list, search results, History, an album's History, Downloads, the Inbox and Memory. An album or track offers only the lowest lossless format that covers its quality, so a CD album no longer offers Max or 24/96, and its Download asks for CD. Both passed their checks in production on `v1.1.2`. Since `v1.1.3`, an album that Qobuz repeats on two pages of a search shows once. For "Bach cello", Qobuz returns 1,000 albums, and 22 of them repeat albums from earlier pages. shelf shows 978. Optional [library agents](agents.md) are off by default and on in production. Production signs in with Shelf accounts. [auth.md](auth.md) describes setup.
+Production runs `v1.2.3`, deployed on 2026-11-21. Long lists read their next page as their end scrolls into view, in place of Load more: the album list, search results, History, an album's History, Downloads, the Inbox and Memory. An album or track offers only the lowest lossless format that covers its quality, so a CD album no longer offers Max or 24/96, and its Download asks for CD. Both passed their checks in production on `v1.1.2`. Since `v1.1.3`, an album that Qobuz repeats on two pages of a search shows once. For "Bach cello", Qobuz returns 1,000 albums, and 22 of them repeat albums from earlier pages. shelf shows 978. Optional [library agents](agents.md) are off by default and on in production. Production signs in with Shelf accounts. [auth.md](auth.md) describes setup.
 
 shelf-wrapper builds from upstream's `ghcr.io/worldobservationlog/wrapper-lite` image pinned by digest. The index holds 11,461 tracks and 1,008 Navidrome album IDs, forming 1,013 albums because 5 Navidrome albums span two folders.
 
