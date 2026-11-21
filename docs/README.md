@@ -19,6 +19,7 @@ The [tag editor feedback](plans/tag-editor-feedback.md) plan turns a user's feed
 | [decisions.md](decisions.md) | The decisions in force and why. |
 | [architecture.md](architecture.md) | Containers, modules, source interfaces, downloads, events, the HTTP API, configuration. |
 | [agents.md](agents.md) | Optional agent connections, proposals, field review, feedback, and shared memory. |
+| [agent-personal-prompt.md](agent-personal-prompt.md) | The owner's personal tagging prompt, matching the active rules in production memory. |
 | [auth.md](auth.md) | Optional accounts, passkeys, sessions, CLI commands, and authors in existing history. |
 | [data-model.md](data-model.md) | Tables and their rules. |
 | [tags.md](tags.md) | Fields, formats, the rule every tag write follows, history, suggestions, Navidrome's view, the index and the checks. |

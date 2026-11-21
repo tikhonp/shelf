@@ -28,13 +28,14 @@ func TestSetupPromptFillsAddressesAndHoldsNoToken(t *testing.T) {
 	}
 	for _, s := range []string{"http://example.com/api/agent/v1", "http://example.com/inbox/<id>", "$SHELF_AGENT_TOKEN",
 		"https://www.navidrome.org/docs/usage/library/tagging/", "https://www.navidrome.org/docs/usage/customtags/",
-		// docs/agents.md promises the artist credit rules and the feedback loop.
-		"\"artists\" lists the track's individual artists", "Keep working until the user stops you", "every 10 minutes", "reset_at"} {
+		// docs/agents.md promises the Navidrome artist credit rules, rule learning, and the feedback loop.
+		"\"artists\" lists the track's individual artists", "GET /history", "Memory and rules",
+		"Keep working until the user's task is finished or the user stops you", "every 10 minutes", "reset_at"} {
 		if !strings.Contains(b.Prompt, s) {
 			t.Errorf("prompt lacks %q", s)
 		}
 	}
-	for _, s := range []string{"{base}", "{review}", r.token} {
+	for _, s := range []string{"{base}", "{review}", r.token, "RateYourMusic", "Confirm a genre", "even for a single artist"} {
 		if strings.Contains(b.Prompt, s) {
 			t.Errorf("prompt holds %q", s)
 		}

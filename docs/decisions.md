@@ -242,6 +242,7 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 | An agent that lost its token gets a new one for the same connection, and the old one stops working. | Agents forget their token. Storing it to show again would break the hash-only rule, and revoking and connecting again would split the agent's proposals across two connections. |
 | A new connection gets every permission, and its rockers stay closed until Choose. | The owner almost always grants everything and wants a short Connect form. |
 | `POST /runs` lists only the calling connection's outstanding work. | The prompt has an agent answer only its own proposals, and the lists stay short. |
+| The built-in agent setup prompt keeps only Shelf's API contract, Navidrome tagging rules, and rule-learning workflow. | Any self-hoster should develop their own tagging rules in memory instead of inheriting the owner's personal preferences. The owner's rules live in Memory and [agent-personal-prompt.md](agent-personal-prompt.md). |
 
 ## First account from the web UI
 
