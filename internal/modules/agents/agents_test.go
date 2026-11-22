@@ -58,6 +58,17 @@ func (l *testLibrary) AlbumsOf(_ context.Context, ps []string) (map[string]int64
 	}
 	return out, nil
 }
+func (l *testLibrary) PlanBatch(ctx context.Context, rs []libraryport.PlanRequest) ([]libraryport.Plan, error) {
+	out := make([]libraryport.Plan, len(rs))
+	for i, r := range rs {
+		p, err := l.Plan(ctx, r)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = p
+	}
+	return out, nil
+}
 func (l *testLibrary) Plan(_ context.Context, r libraryport.PlanRequest) (libraryport.Plan, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()

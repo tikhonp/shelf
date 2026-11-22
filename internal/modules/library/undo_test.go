@@ -249,3 +249,31 @@ func TestHistory(t *testing.T) {
 		t.Fatalf("after clear %+v", h)
 	}
 }
+
+func TestConcurrentUndoOnOneAlbumRefused(t *testing.T) {
+	r := newRig(t)
+	p1 := r.add("folk/Blue/01.flac", "track.flac", blue("1", nil))
+	r.walk()
+	r.startJobs()
+	id := r.albums("").Albums[0].ID
+
+	s1 := r.saved(id, saveBody{Tracks: everyTrack(r.open(id), editJSON{Key: "MOOD", Values: []string{"calm"}})})
+	s2 := r.saved(id, saveBody{Tracks: everyTrack(r.open(id), editJSON{Key: "GROUPING", Values: []string{"late"}})})
+
+	r.stopJobs()
+	if rec := r.post("/api/library/changes/"+itoa(s1.ID)+"/undo", nil); rec.Code != http.StatusAccepted {
+		t.Fatalf("first undo: %d %s", rec.Code, rec.Body)
+	}
+	if rec := r.post("/api/library/changes/"+itoa(s2.ID)+"/undo", nil); rec.Code != http.StatusConflict {
+		t.Fatalf("second undo on same album while first waits: %d %s", rec.Code, rec.Body)
+	}
+	r.startJobs()
+	r.drain()
+	if got := tagsOf(t, p1); got["MOOD"] != nil || !slices.Equal(got["GROUPING"], []string{"late"}) {
+		t.Fatalf("after first undo: %v", got)
+	}
+	r.reversed(KindUndo, s2.ID)
+	if got := tagsOf(t, p1); got["MOOD"] != nil || got["GROUPING"] != nil {
+		t.Fatalf("after second undo: %v", got)
+	}
+}

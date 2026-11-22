@@ -715,3 +715,43 @@ func TestSaveHistoryIncludesAllFilesAliasesAndRemovedTags(t *testing.T) {
 		t.Fatalf("tags %+v", tags)
 	}
 }
+
+func TestPortPlanBatchReadsEachFileOnce(t *testing.T) {
+	r := newRig(t)
+	r.add("folk/Blue/01.flac", "track.flac", blue("1", nil))
+	r.add("folk/Blue/02.flac", "track.flac", blue("2", nil))
+	r.walk()
+	tracks := portTrackIDs(t, r, r.albums("").Albums[0].ID)
+
+	reqs := []libraryport.PlanRequest{
+		{Files: []libraryport.PlanFile{
+			{TrackID: tracks[0], Edits: []libraryport.Edit{{Field: "genre", Values: []string{"Folk"}}, {Key: "MOOD", Values: []string{"calm"}}}},
+			{TrackID: tracks[1], Edits: []libraryport.Edit{{Field: "genre", Values: []string{"Folk"}}, {Key: "MOOD", Values: []string{"calm"}}}},
+		}},
+		{Files: []libraryport.PlanFile{genre(tracks[0], "Folk"), genre(tracks[1], "Folk")}},
+		{Files: []libraryport.PlanFile{
+			{TrackID: tracks[0], Edits: []libraryport.Edit{{Key: "MOOD", Values: []string{"calm"}}}},
+			{TrackID: tracks[1], Edits: []libraryport.Edit{{Key: "MOOD", Values: []string{"calm"}}}},
+		}},
+	}
+	cache := newPlanCache()
+	plans, err := (port{r.m}).planBatch(bg, reqs, cache)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plans) != len(reqs) {
+		t.Fatalf("got %d plans, want %d", len(plans), len(reqs))
+	}
+	if cache.reads.Reads() != len(tracks) {
+		t.Fatalf("PlanBatch read files %d times, want %d", cache.reads.Reads(), len(tracks))
+	}
+	for i, req := range reqs {
+		single, err := r.m.Port().Plan(bg, req)
+		if err != nil {
+			t.Fatalf("Plan %d: %v", i, err)
+		}
+		if plans[i].Preview.Digest != single.Preview.Digest {
+			t.Errorf("plan %d digest %q != single %q", i, plans[i].Preview.Digest, single.Preview.Digest)
+		}
+	}
+}

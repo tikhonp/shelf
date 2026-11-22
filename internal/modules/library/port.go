@@ -467,7 +467,48 @@ type portStored struct {
 	Change  storedChange `json:"change"`
 }
 
+type planCache struct {
+	reads      *tagio.ReadCache
+	files      map[int64]*file
+	albumOf    map[string]int64
+	albums     map[int64]albumRow
+	albumFiles map[int64][]*file
+}
+
+func newPlanCache() *planCache {
+	return &planCache{
+		reads:      tagio.NewReadCache(),
+		files:      map[int64]*file{},
+		albumOf:    map[string]int64{},
+		albums:     map[int64]albumRow{},
+		albumFiles: map[int64][]*file{},
+	}
+}
+
 func (p port) Plan(ctx context.Context, r libraryport.PlanRequest) (libraryport.Plan, error) {
+	return p.planOne(ctx, r, newPlanCache())
+}
+
+func (p port) PlanBatch(ctx context.Context, rs []libraryport.PlanRequest) ([]libraryport.Plan, error) {
+	return p.planBatch(ctx, rs, newPlanCache())
+}
+
+func (p port) planBatch(ctx context.Context, rs []libraryport.PlanRequest, cache *planCache) ([]libraryport.Plan, error) {
+	if len(rs) == 0 {
+		return nil, nil
+	}
+	out := make([]libraryport.Plan, len(rs))
+	for i, r := range rs {
+		pl, err := p.planOne(ctx, r, cache)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = pl
+	}
+	return out, nil
+}
+
+func (p port) planOne(ctx context.Context, r libraryport.PlanRequest, cache *planCache) (libraryport.Plan, error) {
 	m := p.m
 	stop := func(albumID int64, reason, msg string, track int64) (libraryport.Plan, error) {
 		return libraryport.Plan{AlbumID: albumID, Refusal: &libraryport.Refusal{Error: msg, Reason: reason, TrackID: track}}, nil
@@ -494,16 +535,26 @@ func (p port) Plan(ctx context.Context, r libraryport.PlanRequest) (libraryport.
 	}
 	albumID := int64(0)
 	for _, id := range order {
-		f, err := m.store.fileByID(ctx, id)
-		if errors.Is(err, errNotFound) {
-			return stop(0, "regrouped", fmt.Sprintf("track %d is gone from the library", id), id)
+		f, ok := cache.files[id]
+		if !ok {
+			var err error
+			f, err = m.store.fileByID(ctx, id)
+			if errors.Is(err, errNotFound) {
+				return stop(0, "regrouped", fmt.Sprintf("track %d is gone from the library", id), id)
+			}
+			if err != nil {
+				return libraryport.Plan{}, err
+			}
+			cache.files[id] = f
 		}
-		if err != nil {
-			return libraryport.Plan{}, err
-		}
-		a, err := m.store.albumOf(ctx, f.Path)
-		if err != nil {
-			return libraryport.Plan{}, err
+		a, ok := cache.albumOf[f.Path]
+		if !ok {
+			var err error
+			a, err = m.store.albumOf(ctx, f.Path)
+			if err != nil {
+				return libraryport.Plan{}, err
+			}
+			cache.albumOf[f.Path] = a
 		}
 		switch {
 		case a == 0:
@@ -513,16 +564,26 @@ func (p port) Plan(ctx context.Context, r libraryport.PlanRequest) (libraryport.
 		}
 		albumID = a
 	}
-	row, err := m.store.album(ctx, albumID)
-	if errors.Is(err, errNotFound) {
-		return stop(0, "regrouped", "the album is gone from the library", 0)
+	row, ok := cache.albums[albumID]
+	if !ok {
+		var err error
+		row, err = m.store.album(ctx, albumID)
+		if errors.Is(err, errNotFound) {
+			return stop(0, "regrouped", "the album is gone from the library", 0)
+		}
+		if err != nil {
+			return libraryport.Plan{}, err
+		}
+		cache.albums[albumID] = row
 	}
-	if err != nil {
-		return libraryport.Plan{}, err
-	}
-	files, err := m.store.albumFiles(ctx, albumID)
-	if err != nil {
-		return libraryport.Plan{}, err
+	files, ok := cache.albumFiles[albumID]
+	if !ok {
+		var err error
+		files, err = m.store.albumFiles(ctx, albumID)
+		if err != nil {
+			return libraryport.Plan{}, err
+		}
+		cache.albumFiles[albumID] = files
 	}
 	var b saveBody
 	if r.Cover != nil {
@@ -546,7 +607,7 @@ func (p port) Plan(ctx context.Context, r libraryport.PlanRequest) (libraryport.
 		// The revision is the file's now, so a Plan never conflicts with an
 		// unrelated write; Enqueue's job still checks it.
 		abs := m.abs(f.Path)
-		tf, err := tagio.Read(abs)
+		tf, err := cache.reads.Read(abs)
 		if err != nil {
 			_, st, err := m.stopFor(&tagio.FileError{Path: abs, Err: err}, map[string]int64{abs: id})
 			if err != nil {
@@ -556,7 +617,7 @@ func (p port) Plan(ctx context.Context, r libraryport.PlanRequest) (libraryport.
 		}
 		b.Tracks = append(b.Tracks, trackEdits{ID: id, Revision: tf.Revision(), Edits: edits[id]})
 	}
-	ps, st, err := m.planSave(ctx, row, files, b)
+	ps, st, err := m.planSaveWithCache(ctx, row, files, b, cache.reads)
 	if err != nil {
 		return libraryport.Plan{}, err
 	}
@@ -566,7 +627,7 @@ func (p port) Plan(ctx context.Context, r libraryport.PlanRequest) (libraryport.
 		}
 		return stop(row.ID, st.body.Reason, st.body.Error, st.body.Track)
 	}
-	preview, err := m.preview(ps, byID)
+	preview, err := m.preview(ps, byID, cache.reads)
 	if err != nil {
 		return libraryport.Plan{}, err
 	}
@@ -602,7 +663,7 @@ type previewDigest struct {
 
 // preview is what a planned Save does, as the inbox shows it. A file's
 // cover before and after are "" when the Save leaves its cover alone.
-func (m *Module) preview(ps plannedSave, byID map[int64]*file) (libraryport.Preview, error) {
+func (m *Module) preview(ps plannedSave, byID map[int64]*file, cache *tagio.ReadCache) (libraryport.Preview, error) {
 	trackOf := map[string]int64{}
 	for _, f := range byID {
 		trackOf[f.Path] = f.ID
@@ -623,7 +684,15 @@ func (m *Module) preview(ps plannedSave, byID map[int64]*file) (libraryport.Prev
 		rel := m.rel(pf.Path)
 		f := libraryport.PreviewFile{TrackID: trackOf[rel], Path: rel, Keys: portKeys(diffKeys(pf.Before, pf.After))}
 		if after, ok := covers[rel]; ok {
-			before, err := tagio.FrontCover(pf.Path)
+			var (
+				before []byte
+				err    error
+			)
+			if cache != nil {
+				before, err = cache.FrontCover(pf.Path)
+			} else {
+				before, err = tagio.FrontCover(pf.Path)
+			}
 			if err != nil {
 				return out, err
 			}

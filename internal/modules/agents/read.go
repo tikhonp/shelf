@@ -202,20 +202,17 @@ func (m *Module) detail(ctx context.Context, id int64, base string, live bool) (
 		} else if currentID == 0 {
 			refusal = &libraryport.Refusal{Reason: "regrouped", Error: "the proposal's files are no longer on one album"}
 		} else if len(pending) > 0 {
-			plan, e := lib.Plan(ctx, requestWithBase(pick(r.ops(), pending), nil, r.base()))
+			plans, e := planPending(ctx, lib, r.ops(), pending, r.base())
 			if e != nil {
 				return nil, e
 			}
-			if plan.Refusal != nil {
-				refusal = plan.Refusal
+			if plans[0].Refusal != nil {
+				refusal = plans[0].Refusal
 			} else {
-				pv = plan.Preview
+				pv = plans[0].Preview
 			}
-			for _, id := range pending {
-				digest, same, e := opDigest(ctx, lib, r.ops(), pending, id, r.base())
-				if e != nil {
-					return nil, e
-				}
+			for i, id := range pending {
+				digest, same := digestOf(plans[i+1])
 				// An op the files already hold isn't stale, even when it was a
 				// no-op when proposed and so has no digest to compare.
 				noop[id] = same

@@ -27,7 +27,10 @@ const HistoryLimit = 1000
 // RetentionJob trims the history every night.
 const RetentionJob = "library.retention"
 
-var errReversing = errors.New("an undo or redo of this save hasn't finished")
+var (
+	errReversing    = errors.New("an undo or redo of this save hasn't finished")
+	errAlbumWriting = errors.New("another change for this album hasn't finished")
+)
 
 // releaseGroup are the fields that name one MusicBrainz release. An undo
 // or redo restores all of them or none, so a file never ends with IDs from
@@ -237,7 +240,7 @@ func (m *Module) reverseSave(c *echo.Context, kind string) error {
 		cr.AlbumID = albums[0].row.ID
 	}
 	err = m.queueChange(ctx, &cr, "web")
-	if errors.Is(err, errReversing) {
+	if errors.Is(err, errReversing) || errors.Is(err, errAlbumWriting) {
 		return echo.NewHTTPError(http.StatusConflict, err.Error())
 	}
 	if err != nil {

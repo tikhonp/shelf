@@ -201,6 +201,10 @@ type saveStop struct {
 // follow one set of rules. It reads files and may store the embedded copy
 // of a new cover, so it never runs inside a transaction.
 func (m *Module) planSave(ctx context.Context, row albumRow, files []*file, b saveBody) (plannedSave, *saveStop, error) {
+	return m.planSaveWithCache(ctx, row, files, b, nil)
+}
+
+func (m *Module) planSaveWithCache(ctx context.Context, row albumRow, files []*file, b saveBody, cache *tagio.ReadCache) (plannedSave, *saveStop, error) {
 	anchor, msg := saveAnchor(b)
 	if msg != "" {
 		return plannedSave{}, &saveStop{status: http.StatusUnprocessableEntity, body: refusal{Error: msg, Reason: ReasonRefused}}, nil
@@ -228,11 +232,13 @@ func (m *Module) planSave(ctx context.Context, row albumRow, files []*file, b sa
 		trackOf[abs] = t.ID
 	}
 	if b.Cover != nil {
-		if err := m.planCover(ctx, row, files, b, &ch, &stored); err != nil {
+		if err := m.planCover(ctx, row, files, b, &ch, &stored, cache); err != nil {
 			return m.stopFor(err, trackOf)
 		}
 	}
-	planned, err := m.writer(nil).Check(ch)
+	w := m.writer(nil)
+	w.Cache = cache
+	planned, err := w.Check(ch)
 	if err != nil {
 		return m.stopFor(err, trackOf)
 	}
@@ -325,7 +331,7 @@ func (m *Module) otherRelease(files []*file, planned tagio.Result, anchor string
 // the ops on the cover files. The release folder keeps one cover file,
 // named after the image's format, because Navidrome shows the first it
 // finds.
-func (m *Module) planCover(ctx context.Context, row albumRow, files []*file, b saveBody, ch *tagio.Change, stored *storedChange) error {
+func (m *Module) planCover(ctx context.Context, row albumRow, files []*file, b saveBody, ch *tagio.Change, stored *storedChange, cache *tagio.ReadCache) error {
 	ce := b.Cover
 	refuse := func(msg string) error { return fmt.Errorf("%w: %s", tagio.ErrRefused, msg) }
 	if (ce.Upload == "") == !ce.Delete {
@@ -349,7 +355,15 @@ func (m *Module) planCover(ctx context.Context, row albumRow, files []*file, b s
 		}
 	}
 	for i := range ch.Files {
-		tf, err := tagio.Read(ch.Files[i].Path)
+		var (
+			tf  tagio.File
+			err error
+		)
+		if cache != nil {
+			tf, err = cache.Read(ch.Files[i].Path)
+		} else {
+			tf, err = tagio.Read(ch.Files[i].Path)
+		}
 		if err != nil {
 			return &tagio.FileError{Path: ch.Files[i].Path, Err: err}
 		}
@@ -459,6 +473,17 @@ func (m *Module) queueJobTx(ctx context.Context, tx *sqlx.Tx, cr *changeRow, by,
 		}
 		if n > 0 {
 			return errReversing
+		}
+		// Another queued or active write on the same album will change file
+		// revisions before this reversal runs.
+		if cr.AlbumID != 0 {
+			if err := tx.GetContext(ctx, &n, `SELECT count(*) FROM library_changes WHERE album_id = ? AND state IN (?, ?)`,
+				cr.AlbumID, StateQueued, StateWriting); err != nil {
+				return err
+			}
+			if n > 0 {
+				return errAlbumWriting
+			}
 		}
 	}
 	if cr.Kind == KindDelete {

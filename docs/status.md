@@ -9,7 +9,7 @@ Shelf runs in production on `blackberry` at `shelf.music.tikhonnnnn.com` with th
 - **Accounts.** Production signs in with Shelf accounts (`SHELF_AUTH_PROVIDER=simple`) and passkeys, with gateway basic auth removed.
 - **Agents.** Optional library agents (`SHELF_AGENT_ENABLED=true`) run in production. The built-in setup prompt stays general, while the owner's personal rules live in Memory and [agent-personal-prompt.md](agent-personal-prompt.md).
 - **Deploys.** Pushing a `v*` tag builds both images and deploys through `sh-blackberry` and `doco-cd` ([deployment.md](deployment.md#deploys)).
-- **Last recorded deploy.** `v1.2.3` on 2026-11-21. Newer tags on `main` (`v1.2.4` through `v1.2.6`) add Apple Music partial-run reconciliation, Inbox review hardening, and the generalized agent setup prompt.
+- **Last recorded deploy.** `v1.2.3` on 2026-11-21. Newer tags on `main` (`v1.2.4` through `v1.2.7`) add Apple Music partial-run reconciliation, Inbox review hardening, the generalized agent setup prompt, batched proposal planning, concurrent-undo protection, and dependency updates.
 
 Every check in [manual-checklist.md](manual-checklist.md) passed in production. Known unfixed bugs and dependency constraints live in [issues.md](issues.md).
 

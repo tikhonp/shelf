@@ -50,6 +50,8 @@ type Port interface {
 	// resolves the album, builds the stored change and the preview. A refusal
 	// is in Plan.Refusal, not err.
 	Plan(ctx context.Context, r PlanRequest) (Plan, error)
+	// PlanBatch plans several requests while reading each audio file once.
+	PlanBatch(ctx context.Context, rs []PlanRequest) ([]Plan, error)
 	// Enqueue inserts the change and its write job in tx. The author comes
 	// from identity.From(ctx). after kicks the jobs and publishes the change;
 	// call it after commit. ErrMissingConfirm if r.Confirm lacks a warning

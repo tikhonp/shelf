@@ -48,6 +48,69 @@ type Audio struct {
 	BitRate uint
 }
 
+// ReadCache holds audio files read during one planning pass so repeated checks
+// on the same tracks read each file from disk once. It is not safe for
+// concurrent use.
+type ReadCache struct {
+	files  map[string]cachedFile
+	covers map[string]cachedCover
+	reads  int
+}
+
+type cachedFile struct {
+	file File
+	err  error
+}
+
+type cachedCover struct {
+	data []byte
+	err  error
+}
+
+// NewReadCache returns an empty ReadCache.
+func NewReadCache() *ReadCache {
+	return &ReadCache{
+		files:  map[string]cachedFile{},
+		covers: map[string]cachedCover{},
+	}
+}
+
+// Read reads a file once and serves later calls for the same path from memory.
+func (c *ReadCache) Read(path string) (File, error) {
+	if hit, ok := c.files[path]; ok {
+		return hit.file, hit.err
+	}
+	c.reads++
+	f, err := Read(path)
+	c.files[path] = cachedFile{file: f, err: err}
+	return f, err
+}
+
+func (c *ReadCache) readAs(path string, ft *Format, st os.FileInfo) (File, error) {
+	if hit, ok := c.files[path]; ok {
+		if hit.err != nil || (hit.file.Size == st.Size() && hit.file.ModTime.Equal(st.ModTime())) {
+			return hit.file, hit.err
+		}
+	}
+	c.reads++
+	f, err := readAs(path, ft, st)
+	c.files[path] = cachedFile{file: f, err: err}
+	return f, err
+}
+
+// FrontCover reads a file's embedded front cover once per path.
+func (c *ReadCache) FrontCover(path string) ([]byte, error) {
+	if hit, ok := c.covers[path]; ok {
+		return hit.data, hit.err
+	}
+	b, err := FrontCover(path)
+	c.covers[path] = cachedCover{data: b, err: err}
+	return b, err
+}
+
+// Reads reports how many times the cache read a file from disk.
+func (c *ReadCache) Reads() int { return c.reads }
+
 // Read reads a file's tags, pictures and audio properties.
 func Read(path string) (File, error) {
 	ft := FormatOf(path)

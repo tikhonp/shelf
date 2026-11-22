@@ -217,10 +217,11 @@ func (m *Module) prepare(ctx context.Context, lib libraryport.Port, album librar
 		p.preview = emptyPreview()
 		return p, nil
 	}
-	plan, err := lib.Plan(ctx, requestWithBase(pendOps, nil, p.base))
+	plans, err := planPending(ctx, lib, ops, pending, p.base)
 	if err != nil {
 		return p, err
 	}
+	plan := plans[0]
 	if plan.Refusal != nil {
 		// When the whole plan changes nothing, every op in it changes nothing.
 		if plan.Refusal.Reason == libraryport.ReasonUnchanged && len(fresh) > 0 {
@@ -232,11 +233,8 @@ func (m *Module) prepare(ctx context.Context, lib libraryport.Port, album librar
 	p.images = append(p.images, previewImages(p.preview)...)
 
 	var same []string
-	for _, id := range pending {
-		d, u, err := opDigest(ctx, lib, ops, pending, id, p.base)
-		if err != nil {
-			return p, err
-		}
+	for i, id := range pending {
+		d, u := digestOf(plans[i+1])
 		if u && slices.Contains(fresh, id) {
 			same = append(same, id)
 		}
@@ -261,24 +259,30 @@ func quoted(ids []string) string {
 	return strings.Join(q, ", ")
 }
 
-// opDigest plans one op with the pending ops it requires. A refused op
-// alone has the digest "". same says the files already hold what the op
-// and the ops it requires would write.
-func opDigest(ctx context.Context, lib libraryport.Port, ops []Op, pending []string, id string, base []BaseTrack) (digest string, same bool, err error) {
-	set := []string{}
-	for _, r := range closure(ops, []string{id}) {
-		if slices.Contains(pending, r) {
-			set = append(set, r)
+// planPending plans the full pending set followed by each pending op's closure
+// in one PlanBatch call so every audio file is read once.
+func planPending(ctx context.Context, lib libraryport.Port, ops []Op, pending []string, base []BaseTrack) ([]libraryport.Plan, error) {
+	reqs := make([]libraryport.PlanRequest, 1+len(pending))
+	reqs[0] = requestWithBase(pick(ops, pending), nil, base)
+	for i, id := range pending {
+		set := []string{}
+		for _, r := range closure(ops, []string{id}) {
+			if slices.Contains(pending, r) {
+				set = append(set, r)
+			}
 		}
+		reqs[i+1] = requestWithBase(pick(ops, set), nil, base)
 	}
-	plan, err := lib.Plan(ctx, requestWithBase(pick(ops, set), nil, base))
-	if err != nil {
-		return "", false, err
-	}
+	return lib.PlanBatch(ctx, reqs)
+}
+
+// digestOf returns a single-op plan's digest and whether the files already
+// hold what the op would write. A refused op alone has the digest "".
+func digestOf(plan libraryport.Plan) (digest string, same bool) {
 	if plan.Refusal != nil {
-		return "", plan.Refusal.Reason == libraryport.ReasonUnchanged, nil
+		return "", plan.Refusal.Reason == libraryport.ReasonUnchanged
 	}
-	return plan.Preview.Digest, false, nil
+	return plan.Preview.Digest, false
 }
 
 // currentAlbum is the album the proposal's files are on now. Files spread

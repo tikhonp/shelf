@@ -126,6 +126,8 @@ type Writer struct {
 	// Busy reports a folder a download is working in. Nil means none is.
 	Busy    func(dir string) bool
 	Journal Journal
+	// Cache, when set, reuses file reads across Check calls.
+	Cache *ReadCache
 
 	// fault runs before each stage of each file, so tests can fail or
 	// damage one.
@@ -359,7 +361,12 @@ func (w *Writer) planFile(fc FileChange) (plan, bool, error) {
 	if w.Busy != nil && w.Busy(dir) {
 		return p, false, ErrBusy
 	}
-	f, err := readAs(fc.Path, ft, st)
+	var f File
+	if w.Cache != nil {
+		f, err = w.Cache.readAs(fc.Path, ft, st)
+	} else {
+		f, err = readAs(fc.Path, ft, st)
+	}
 	if err != nil {
 		return p, false, err
 	}
