@@ -1,7 +1,8 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { createMemoryHistory } from 'vue-router'
+import { afterEach, beforeEach, expect, onTestFinished, test, vi } from 'vitest'
+import { defineComponent, h, type VNode } from 'vue'
+import { createMemoryHistory, type RouteLocationNormalizedLoaded, type Router, RouterView } from 'vue-router'
 import type { Preview, ProposalDetail, ProposalSummary } from '../api/agents'
 import App from '../App.vue'
 import { setAuthHandling } from '../api/client'
@@ -45,6 +46,16 @@ beforeEach(() => {
   vi.stubGlobal('EventSource', FakeEventSource)
 })
 afterEach(() => vi.unstubAllGlobals())
+
+// InboxPage mounts through a RouterView, as in the app, so its route guards
+// find their route record. A redirect away from the inbox draws nothing.
+const InboxHost = defineComponent(() => () => h(RouterView, null, {
+  default: ({ Component, route }: { Component: VNode | undefined; route: RouteLocationNormalizedLoaded }) =>
+    route.name === 'inbox' || route.name === 'proposal' ? Component : null,
+}))
+function mountInboxPage(router: Router, options: { attachTo?: Element } = {}) {
+  return mount(InboxHost, { ...options, global: { plugins: [router] } })
+}
 
 async function openDetail(over: Record<string, unknown> = {}, phone = false) {
   stubApi({ '/api/inbox/proposals/4/preview': { preview: sameOnSix(), refusal: null, missing: [] }, '/api/inbox/proposals/4': detail(), ...over })
@@ -318,8 +329,7 @@ async function openOnPhone(over: Record<string, unknown> = {}) {
     '/api/agents': { connections: [] }, ...over,
   })
   const router = createAppRouter(createMemoryHistory()); await router.push('/inbox/4')
-  const { default: InboxPage } = await import('../pages/InboxPage.vue')
-  const w = mount(InboxPage, { global: { plugins: [router] } })
+  const w = mountInboxPage(router)
   await flushPromises()
   return w
 }
@@ -387,8 +397,7 @@ test('the desktop proposal divider resizes, clamps and remembers the list width'
     '/api/agents': { connections: [] },
   })
   const router = createAppRouter(createMemoryHistory()); await router.push('/inbox')
-  const { default: InboxPage } = await import('../pages/InboxPage.vue')
-  const w = mount(InboxPage, { global: { plugins: [router] } })
+  const w = mountInboxPage(router)
   await flushPromises()
   expect(w.find('.lib-split').exists()).toBe(false)
   await router.push('/inbox/4')
@@ -416,7 +425,7 @@ test('the desktop proposal divider resizes, clamps and remembers the list width'
   expect(width()).toBe('580px')
   await split.trigger('pointerup')
   w.unmount()
-  const restored = mount(InboxPage, { global: { plugins: [router] } })
+  const restored = mountInboxPage(router)
   await flushPromises()
   expect((restored.find('.ib-page').element as HTMLElement).style.getPropertyValue('--list-w')).toBe('580px')
   restored.unmount()
@@ -1168,8 +1177,7 @@ test('InboxPage shows Retry on transient startup failure and redirects immediate
   })
   const router = createAppRouter(createMemoryHistory())
   await router.push('/inbox')
-  const { default: InboxPage } = await import('../pages/InboxPage.vue')
-  const w = mount(InboxPage, { global: { plugins: [router] } })
+  const w = mountInboxPage(router)
   await flushPromises()
 
   expect(router.currentRoute.value.path).toBe('/inbox')
@@ -1186,7 +1194,7 @@ test('InboxPage shows Retry on transient startup failure and redirects immediate
   inbox.enabled = false
   const router2 = createAppRouter(createMemoryHistory())
   await router2.push('/inbox/4')
-  const w2 = mount(InboxPage, { global: { plugins: [router2] } })
+  const w2 = mountInboxPage(router2)
   await flushPromises()
   expect(router2.currentRoute.value.path).toBe('/library')
   w2.unmount()
@@ -1208,8 +1216,7 @@ test('stacked tablet layout focuses detail heading on open and restores focus to
   })
   const router = createAppRouter(createMemoryHistory())
   await router.push('/inbox')
-  const { default: InboxPage } = await import('../pages/InboxPage.vue')
-  const w = mount(InboxPage, { attachTo: document.body, global: { plugins: [router] } })
+  const w = mountInboxPage(router, { attachTo: document.body })
   await flushPromises()
 
   await router.push('/inbox/4')
@@ -1233,7 +1240,12 @@ test('focus moves into Decline on open, returns on Cancel, moves to new input on
   const router = createAppRouter(createMemoryHistory())
   await router.push('/inbox/4')
   await useInbox().open(4)
-  const w = mount(InboxDetail, { attachTo: document.body, global: { plugins: [router] } })
+  // LibTip teleports its notes into the app's .rs root.
+  const rs = document.createElement('div')
+  rs.className = 'rs'
+  document.body.appendChild(rs)
+  const w = mount(InboxDetail, { attachTo: rs, global: { plugins: [router] } })
+  onTestFinished(() => { w.unmount(); rs.remove() })
   await flushPromises()
 
   // Decline focus open & Cancel restore (switch field off so Decline is available).
@@ -1276,7 +1288,6 @@ test('focus moves into Decline on open, returns on Cancel, moves to new input on
   await leaveOutBtn.trigger('click')
   await flushPromises()
   expect(w.get('.ib-op-val').element.contains(document.activeElement)).toBe(true)
-  w.unmount()
 })
 
 test('clicking a cover thumbnail in InboxDiff or InboxOp opens the uncropped preview and Escape closes it', async () => {
