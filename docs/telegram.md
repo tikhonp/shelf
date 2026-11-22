@@ -1,6 +1,6 @@
 # Telegram
 
-The bot is the phone entry point: send a link or a few words, and watch the download in one message. It uses go-telegram/bot v1.28.0 with long polling. `bot.WithHTTPClient` carries the proxy transport when `SHELF_TELEGRAM_USE_PROXY` is on; with it off, the bot ignores the `HTTP_PROXY` variables too.
+The bot is the phone entry point. Send a link or a few words and watch the download in one message. It uses `go-telegram/bot` with long polling. `bot.WithHTTPClient` carries the proxy transport when `SHELF_TELEGRAM_USE_PROXY` is on; with it off, the bot ignores `HTTP_PROXY` variables too.
 
 The bot connects when serve starts, never in `manage`. When Telegram can't be reached, the bot tries again after 5 seconds, then after twice as long each time, up to 5 minutes. A token Telegram refuses turns the bot off until the next start, and the log says so.
 

@@ -1,8 +1,8 @@
 # Accounts and authors
 
-Shelf has optional account authentication. Set `SHELF_AUTH_PROVIDER=simple` and set `SHELF_PUBLIC_URL` to the public HTTPS origin, such as `https://shelf.music.tikhonnnnn.com`. The default provider is `none`. An empty or unknown provider stops startup.
+Shelf supports optional account authentication. Set `SHELF_AUTH_PROVIDER=simple` and set `SHELF_PUBLIC_URL` to the public HTTPS origin, such as `https://shelf.music.tikhonnnnn.com`. The default provider is `none`. An empty or unknown value stops startup.
 
-Every account has access to the same library, downloads, source accounts, history, and actions. Users can manage only their own passwords and passkeys. The CLI manages accounts. The web UI can create the first account. There are no roles, email addresses, or display names.
+Every account shares access to the library, downloads, source accounts, and history. Users manage only their own passwords and passkeys. There are no roles, email addresses, or display names.
 
 ## Account commands
 
@@ -17,68 +17,46 @@ shelf manage users reset-passkeys Alice
 shelf manage users delete Alice
 ```
 
-`add` and `set-password` prompt twice with terminal echo disabled. Passwords do not go in command arguments. In Docker, use `docker exec -it shelf shelf manage users add Alice`. `make manage ARGS="users add Alice"` also provides a terminal. A command without a terminal fails instead of reading a visible password.
+`add` and `set-password` prompt twice with terminal echo disabled. In Docker, use `docker exec -it shelf shelf manage users add Alice` or `make manage ARGS="users add Alice"`. Without a TTY, pass `--password-stdin` to read one password line from standard input (`docker exec -i shelf shelf manage users add Alice --password-stdin < password.txt`). Shelf strips one trailing `\n` or `\r\n` and rejects empty input, multi-line input, or input over 4 KiB.
 
-With `--password-stdin`, `add` and `set-password` read the password once from standard input instead. In Docker, `-i` without `-t` passes standard input, as in `docker exec -i shelf shelf manage users add Alice --password-stdin < password.txt`. Shelf drops one trailing `\n` or `\r\n` and keeps everything else, spaces included. Empty input, input with a second line, and input over 4 KiB fail and change nothing. The flag goes before or after the username. The other account commands reject it.
+Usernames are 1 to 32 ASCII letters, digits, dots, underscores, or hyphens, and are case-sensitive (`Alice` and `alice` are distinct). Passwords are 8 to 128 valid UTF-8 code points, hashed as exact bytes with salted Argon2id (64 MiB, 3 iterations, 1 lane). At most two HTTP password checks run concurrently (waiting up to 10 seconds before returning 429). Login throttling allows 5 attempts per username (tracking up to 1,024 names) then 1 every 12 seconds; passkey login allows 10 bursts then 1 per second. There is no permanent lockout.
 
-Usernames contain 1 to 32 ASCII letters, digits, dots, underscores, or hyphens. They are case-sensitive. `Alice` and `alice` are separate accounts. Creating an existing exact username fails without changing it.
+Account commands work in either provider mode and do not revoke sessions by running migrations. Password resets, passkey resets, and account deletion revoke that account's sessions. Deleting the last account re-enables first-account setup when `SHELF_AUTH_SETUP_UI=true`.
 
-Passwords contain 8 to 128 Unicode code points of valid UTF-8. Spaces count. There are no requirements for uppercase letters, digits, or symbols. Shelf hashes the exact password bytes without trimming or normalization. The database holds a salted Argon2id hash with 64 MiB of memory, three iterations, and one lane. At most two HTTP password checks run at once. Other checks wait up to ten seconds for a slot and stop waiting if the request ends. An overloaded queue returns 429. A username gets five attempts, then one more every twelve seconds. Limiter storage holds at most 1,024 names, including unknown names. Password limiter keys include a user prefix. Passkey login has a separate budget of ten requests at once, then one more per second. There is no permanent lockout.
+## Web access and first-account setup
 
-Account commands work with either provider and do not revoke sessions merely by opening the database or running migrations. Password resets, passkey resets, and account deletion revoke that account's sessions. A passkey reset removes all its passkeys. Deleting the last account allows first-account setup again when enabled.
+Before mounting the app shell or opening event streams, the UI calls `GET /api/auth`, returning `provider`, `account` (`id`, `username`, or null), `setup_needed`, and `setup_ui`.
 
-## Web access
+When no accounts exist and `SHELF_AUTH_SETUP_UI=true` (the default), the UI shows the first-account form (`POST /api/auth/setup`). Anyone reaching a fresh install first can create the account; creation and session issuance share one write transaction so concurrent requests cannot both succeed. Set `SHELF_AUTH_SETUP_UI=false` to disable the endpoint (404) and require `shelf manage users add`.
 
-The web app checks `GET /api/auth` before mounting its application shell or opening event streams. This endpoint returns `provider`, `account` with `id` and `username` or null, `setup_needed`, and `setup_ui`. The `setup_ui` field is true when the provider is simple and UI setup is enabled. A server without accounts shows the first-account form when `setup_ui` is true. Otherwise it shows `shelf manage users add`.
+While signed out, sign-in shows only its rack unit with a status display, username/password fields, a Sign in key, and a Passkey slide (plus a key switch on desktop). On phones, the unit centers vertically and scrolls above the keyboard when focused.
 
-Before the app opens, sign-in shows only its rack unit, with no menubar, title bar or dock. Its display reads MUSIC SHELF and then each step, such as CHECKING or WRONG USERNAME OR PASSWORD. A failure turns the display red and is an alert, and a canceled passkey turns it amber. Sign in is the only key. Sliding the Passkey slide to ON, by a press or a 24px drag, asks the browser for a passkey, and sliding it back cancels the request. It springs back to OFF when the passkey is canceled or fails. On the desktop a key switch picture sits above the slide, does what the slide does when pressed, and turns to ON when a passkey signs in. A browser without passkeys shows neither. After sign-in three lamps in the unit light 260 ms apart and its clock starts, then the app opens. With reduced motion it opens at once. On the phone the unit is centered, and moves to the top while the keyboard is open. When the keyboard leaves less room than the unit needs, the unit scrolls until Sign in sits above the keyboard.
+Status adds three units: Account (sign-out key switch, which asks before dropping staged Library edits), Passkeys (add, rename, remove), and Password. Password changes require the current password. Passkey changes require proof within the last 5 minutes (prompting inline for password or passkey confirmation if older). Password changes and passkey removal end all sessions and open "Sign in again".
 
-Status has three account units: Account, to sign out; Passkeys, to add, rename or remove named passkeys; and Password. Sign out is the key switch from sign-in, turned to ON. Pressing it turns the key to OFF and signs out. Rename opens the passkey's name in place. Password changes require the current password. Passkey changes require proof from the last five minutes, and a fresh login counts as proof. When the server refuses a passkey change for an old proof, a note opens beside the passkey. It names the change, such as "Remove iPhone?", and has a Password field, Cancel, "Confirm with a passkey" when the account has a passkey, and the change's key. That key stays disabled until the field has text. After the user confirms their password or signs in with a passkey there, Shelf sends the change again, once. If a sign-out fails, the key turns back to ON and the error shows in the Account unit.
-
-When the Library holds staged edits, the key stops halfway and asks first, such as "Sign out with 3 staged edits?", with Keep editing and Sign out.
-
-A passkey has a name, creation time, and last-use time. When the browser refuses a new passkey because the device already holds one for the account, the Passkeys unit says so and suggests another device, instead of showing the browser's message. Adding and renaming a passkey keep the session. Password changes and passkey removal end all sessions, including the current one, and show the "Sign in again" dialog.
-
-An expired session closes event streams and stops playback. The "Sign in again" dialog makes the mounted app inert and keeps staged edits in memory. Its amber display reads SESSION ENDED and the number of staged edits kept, and the username stays filled in, with a "Not <username>?" link to type another. The Passkey slide sits under Sign in. Signing back in as the same account reconnects events and refreshes shared data while preserving staged edits, without resending any action. Signing in as a different account or signing out reloads the page. Passwords and session tokens never go in browser storage.
+When a session expires, Shelf closes event streams, stops playback, and opens "Sign in again" over the inert app while keeping staged edits in memory. Signing back in as the same account reconnects and refreshes data without resending actions; signing in as a different account reloads the page.
 
 ## Sessions and requests
 
-Sessions expire 30 days after sign-in, without sliding renewal. They survive server restarts. Shelf stores only a hash of each random session token and sends the token in a host-only `__Host-shelf_session` cookie with Secure, HttpOnly, SameSite=Lax, and Path=/ attributes.
+Sessions last 30 days without sliding renewal and survive restarts. Shelf stores only the token hash and sets a host-only `__Host-shelf_session` cookie (`Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/`).
 
-Every protected request checks the session and account with an indexed query, then checks again after registering the request to close the revocation race. Neither check writes to the database. Password changes, operator resets, and passkey removal increment a credential generation and delete sessions in one transaction. An old password check or pending passkey response cannot finish after that generation changes.
+Every protected request validates the session and account via an indexed query, then checks again after registering the request to prevent revocation races. Password changes, operator resets, and passkey removal increment `credential_gen` and delete sessions atomically. Open authenticated requests are canceled directly on web revocation, and a 30-second background check (in `serve` only) closes streams after CLI revocations.
 
-The server registers open authenticated requests. Web revocations cancel them directly. Every 30 seconds it also checks active sessions in the database, so a reset from a separate CLI process closes existing streams too. Canceled response writers refuse further writes, including media writes, and expose `Unwrap` for streaming flushes. The checker runs only with `serve`.
+Public routes are UI assets, `/healthz`, `GET /api/auth`, password/passkey login, and `POST /api/auth/setup`. All other routes, including audio, covers, logs, and events, return JSON 401 without `WWW-Authenticate`. Auth responses send `Cache-Control: no-store`.
 
-The UI files, `/healthz`, `GET /api/auth`, password and passkey login endpoints, and `POST /api/auth/setup` are public. All other API routes require a session, including audio, covers, logs, and events. API refusals return JSON with status 401 and no `WWW-Authenticate` header. Existing cross-origin checks and body limits cover account endpoints. Auth responses use `no-store`. Protected media keeps its existing cache policy.
-
-Ordinary API routes do not accept API tokens. Scripts calling a protected ordinary HTTP API need a valid session. Optional [agent connections](agents.md) use scoped bearer tokens only under `/api/agent/v1/`. Those routes authenticate through the agents module in either account mode and ignore browser sessions. A bearer credential on any other API prefix is rejected, even in provider none. The Telegram bot keeps its separate allowlist and calls Shelf services without a web login.
+Ordinary API routes do not accept bearer tokens. Optional [agent connections](agents.md) use scoped bearer tokens only under `/api/agent/v1/` and ignore browser sessions; bearer tokens on any other API prefix are rejected even in `none` mode. The Telegram bot uses its own allowlist.
 
 ## Passkeys
 
-Shelf uses go-webauthn v0.18.2. Passkeys are discoverable credentials and require user verification. Shelf asks for no attestation. Both synced passkeys and compatible security keys can work.
+Shelf uses `go-webauthn` with discoverable credentials, user verification required, and no attestation. The relying party ID and accepted origin come strictly from `SHELF_PUBLIC_URL` (no credentials, query, fragment, or extra path). Changing the hostname requires registering new passkeys.
 
-The relying party ID comes from the hostname in `SHELF_PUBLIC_URL`, and the configured HTTPS origin is the accepted origin. Request headers cannot change either. The public URL must have no credentials, query, fragment, or path other than `/`. A new hostname requires users to add new passkeys for that hostname. Local HTTP development uses provider none.
-
-Pending passkey ceremonies live in memory for five minutes, with a limit of 256. Each browser cookie identifies one ceremony. Registration checks recent proof when it starts and binds the ceremony to the current account and session. The user can finish within the ceremony lifetime even if that proof expires while the browser prompt is open. Finishing consumes a ceremony once under a mutex. Restarting the server cancels unfinished ceremonies. Credential generation checks reject ceremonies invalidated by a reset. The protocol library verifies origin, relying party ID, challenge, user handle, signature, and user verification.
+Pending ceremonies live in memory for 5 minutes (limit 256), bound to a browser ceremony cookie and consumed once under a mutex. Server restarts cancel unfinished ceremonies.
 
 ## Provider none
 
-Provider none keeps access open, with no login screen or account units. It ignores session cookies and identity headers. Account credential endpoints are unavailable.
-
-Starting `serve` in none mode deletes saved sessions and logs the number removed. Accounts, passkeys, and history remain. CLI commands and migrations never perform this purge. Old sessions cannot regain access after a later switch back to simple mode.
+`none` mode keeps access open with no login screen or account units, ignoring session cookies and identity headers. Starting `serve` in `none` mode purges saved sessions (logging the count) while keeping accounts, passkeys, and history intact.
 
 ## Authors in existing records
 
-Downloads and library changes store `author_id` and `author`. The ID is `user:<id>`, `telegram:<id>`, `cli`, `system`, or `anonymous`. The author is the name at the time of the request. A web account's ID never gets reused. Deleting an account does not change its existing records.
+Downloads and library changes store `author_id` (`user:<id>`, `telegram:<id>`, `cli`, `system`, or `anonymous`) and `author` (captured at request time). Child downloads and bulk-run children inherit the parent's author. Undo and redo record the requesting user while preserving the original save's author. Deleting an account keeps its historical names. Older records without an author show Unknown (or the stored Telegram identity from `origin_ref`); new web records in `none` mode show Anonymous.
 
-New downloads record the web account, Telegram user, or CLI. Child downloads copy the parent's author. Library saves, undo, redo, deletes, and bulk-run heads record the requesting account. Run children copy the head's author. Bob undoing Alice's save creates an undo by Bob and preserves Alice on the save.
-
-Older records without an author show Unknown. Old Telegram downloads use the identity already stored in `origin_ref` when available. New web records in none mode use Anonymous. Disabling authentication keeps old authors visible.
-
-The UI shows authors beside existing history rows and download details. Existing HTTP request logs include the author's ID and name. Jobs keep their `created_by` and `cancel_requested_by` fields, with `user:<id>` for an authenticated web user. Download retries and cancellations use those existing job fields and leave the creator unchanged. Run cancellation keeps its existing flag, analysis-job cancellation, and resume-job attribution. Coalesced scans gain no author history.
-
-This feature adds no activity log, changes no retention rule, and creates no new history for actions that had none.
-
-`POST /api/auth/setup` accepts `username` and `password`, creates the first account, and signs it in with a session cookie. It returns the same status as login. Invalid input returns 400. If an account already exists, it returns 409. Concurrent setup requests can create only one account. Setup shares the password hashing concurrency limit and has an attempt limit.
-
-`SHELF_AUTH_SETUP_UI` defaults to `true`. Anyone who reaches a fresh install first can create the account. The owner accepted that risk on 2026-11-10. Set it to `false` to allow account creation only through `shelf manage users add`. The UI then shows that command. The setup endpoint returns 404 when UI setup is disabled or the provider is none.
+Request logs include the author. Jobs keep `created_by` and `cancel_requested_by`. No separate activity log is created.

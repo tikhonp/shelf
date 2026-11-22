@@ -6,7 +6,7 @@ On blackberry, in `sh-blackberry/shelf.yaml`:
 
 - `shelf` is the Go binary. It serves the web UI and the JSON API on port 8080, keeps its SQLite file and backups in `/data`, writes music into `/music`, runs the bot, and starts amdl and ffmpeg as child processes.
 - `shelf-wrapper` is wrapper-lite on port 12340 and its supervisor's control API on port 12341. It is privileged and amd64-only.
-- `ssht-shelf` tunnels port 8080 to the sh-main gateway, where nginx serves `shelf.music.tikhonnnnn.com` behind `auth_basic`.
+- `ssht-shelf` tunnels port 8080 to the sh-main gateway, where nginx serves `shelf.music.tikhonnnnn.com` (Shelf accounts guard access; there is no gateway basic auth).
 
 `navidrome`, in `music.yaml`, reads the music folder through a read-only mount. shelf asks it to scan over the Subsonic API.
 

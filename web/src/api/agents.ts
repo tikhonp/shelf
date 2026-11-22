@@ -1,4 +1,4 @@
-// The library agent's human API under /api/inbox, as docs/plans/library-agent-contracts.md fixes it.
+// The library agent's human API under /api/inbox, documented in docs/agents.md.
 // The agent's own API under /api/agent/v1 never runs in the browser.
 import type { LibraryChange } from './types'
 

@@ -8,7 +8,7 @@ State: shelf is finished and runs in production on blackberry. `docs/status.md` 
 
 ## Read first
 
-- `docs/status.md`, then `docs/README.md`, the map of the docs.
+- `docs/status.md`, `docs/issues.md`, then `docs/README.md`, the map of the docs.
 - `docs/architecture.md`, `docs/data-model.md`, and the doc of the part you touch.
 - `docs/decisions.md` before changing how something works.
 - For the UI: `docs/ui/design/README.md` and its screens.
