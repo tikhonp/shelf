@@ -95,7 +95,7 @@ func serve(c *echo.Context, fsys fs.FS, name, cacheControl string) error {
 	return c.Blob(http.StatusOK, ct, b)
 }
 
-// placeholder has no inline style, which the CSP would block.
+// placeholder keeps plain HTML with no inline style.
 const placeholder = `<!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><title>Music Shelf</title></head>

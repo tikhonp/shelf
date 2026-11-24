@@ -271,7 +271,7 @@ Help never shows on a screen at rest, and the design adds no helper text beside 
 
 - The screens outside the Library still show three tabs. The Library screens show all four, with 12px legends so Downloads clears its key.
 - `MS-desk-library-note` shows its note at a fixed place. The canvas and the app place a note under the name it explains.
-- The strict CSP forbids inline styles, and the screens use them for layout. The app moves them into scoped stylesheets and sets changing values, such as the knob angle `--a`, the progress `--p` and the size `--s`, as CSS variables from script.
+- The screens use inline styles for layout. The app keeps layout rules in scoped stylesheets and sets changing values, such as the knob angle `--a`, the progress `--p`, and the size `--s`, as CSS variables from script. The CSP still allows `'unsafe-inline'` in `style-src` for Vue style bindings and injected stylesheets.
 - The app switches to the phone layout with a media query at 720px, not with the `ph` class.
 - The app serves its own font files.
 - The covers are made-up CSS art (the `a-*` classes). The app shows the real artwork.

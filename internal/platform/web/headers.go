@@ -7,7 +7,7 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
-// CSP allows only shelf's own origin, plus the covers from the sources'
+// CSP allows shelf's own origin, inline styles, and covers from the sources'
 // image hosts, which are the only outside resources the UI shows.
 const CSP = "default-src 'self'; img-src 'self' https://static.qobuz.com https://*.mzstatic.com data:; " +
 	"style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; " +

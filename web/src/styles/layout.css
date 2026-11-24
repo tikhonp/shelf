@@ -1,4 +1,4 @@
-/* The app's own layout, in place of the inline styles of the design's screens, which the CSP refuses. */
+/* The app's own layout, in place of the inline styles of the design's screens. */
 .rs h4 { margin: 0; }
 .rs .col { display: flex; flex-direction: column; min-width: 0; }
 .rs .line { display: flex; align-items: center; min-width: 0; }

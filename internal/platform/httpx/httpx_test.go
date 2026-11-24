@@ -103,6 +103,7 @@ func TestSecurityHeaders(t *testing.T) {
 		})
 	}
 	for _, want := range []string{"default-src 'self'", "img-src 'self' https://static.qobuz.com https://*.mzstatic.com data:",
+		"style-src 'self' 'unsafe-inline'", "script-src 'self'",
 		"frame-ancestors 'none'", "base-uri 'none'", "form-action 'self'"} {
 		if !strings.Contains(web.CSP, want) {
 			t.Errorf("CSP misses %q", want)

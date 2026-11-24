@@ -1,7 +1,7 @@
 import type { Directive } from 'vue'
 
-// v-vars sets CSS variables from script. Through the CSSOM they pass the strict
-// CSP, which refuses style attributes in markup.
+// v-vars sets CSS variables from script through the CSSOM instead of style
+// attributes in markup.
 export const vVars: Directive<HTMLElement, Record<string, string>> = {
   mounted: apply,
   updated: apply,

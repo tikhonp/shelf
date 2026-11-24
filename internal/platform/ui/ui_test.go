@@ -83,7 +83,7 @@ func TestMissingUIBuildShowsPlaceholder(t *testing.T) {
 			t.Errorf("%s: %d %q", p, rec.Code, rec.Body)
 		}
 		if strings.Contains(rec.Body.String(), "style") {
-			t.Error("the placeholder has inline style, which the CSP blocks")
+			t.Error("the placeholder has inline style")
 		}
 		if rec.Header().Get("Cache-Control") != "no-store" {
 			t.Errorf("%s: the placeholder may be cached", p)
