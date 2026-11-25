@@ -270,3 +270,246 @@ test('an album of an artist shows no notice of its own', async () => {
   await flushPromises()
   expect(s.notice).toBeNull()
 })
+
+test('404 disables downloads cleanly and stops after one probe, while 500 keeps enabled unset', async () => {
+  const calls = stubApi({ '/api/downloads': new Reply(404, { error: 'Not Found' }) })
+  const s = useDownloads()
+  await s.detect()
+  expect(s.enabled).toBe(false)
+  expect(s.detectError).toBe('')
+  expect(calls).toHaveLength(1)
+
+  setActivePinia(createPinia())
+  stubApi({ '/api/downloads': new Reply(500, { error: 'boom' }) })
+  const s2 = useDownloads()
+  await s2.detect()
+  expect(s2.enabled).toBeNull()
+  expect(s2.detectError).toBe('boom')
+})
+
+test('a missing open download detail during reload does not disable downloads', async () => {
+  const detail = { ...download(9), tracks: [], children: [], provenance_path: '' }
+  stubApi({ ...lists([download(1)]), '/api/downloads/9': detail })
+  const s = useDownloads()
+  await s.load()
+  await s.loadDetail(9)
+  expect(s.details[9]).toBeDefined()
+
+  stubApi({ ...lists([download(1)]), '/api/downloads/9': new Reply(404, { error: 'no such download' }) })
+  await s.load()
+  expect(s.enabled).toBe(true)
+  expect(s.items[1]?.title).toBe('Album 1')
+  expect(s.details[9]).toBeUndefined()
+  expect(s.detailErrors[9]).toBe('no such download')
+  s.closeDetail(9)
+  expect(s.detailErrors[9]).toBeUndefined()
+})
+
+test('active list 200 followed by history 500 still marks downloads enabled, keeps active items, and separates loadError', async () => {
+  stubApi({
+    '/api/downloads?status=queued': list([download(1, { status: 'running', title: 'Live Album' })]),
+    '/api/downloads?status=done': new Reply(500, { error: 'history broken' }),
+    '/api/downloads?status=failed': list([]),
+  })
+  const s = useDownloads()
+  await s.detect()
+  expect(s.enabled).toBe(true)
+  expect(s.detectError).toBe('')
+  expect(s.loadError).toBe('history broken')
+  expect(s.items[1]?.title).toBe('Live Album')
+})
+
+test('stale loadDetail response cannot overwrite a newer reload or repopulate after disabling', async () => {
+  let resolveOld!: (v: unknown) => void
+  let detailCalls = 0
+  stubApi({
+    ...lists([download(9, { status: 'running', title: 'Old' })]),
+    '/api/downloads/9': () => {
+      detailCalls++
+      if (detailCalls === 1) {
+        return new Promise((r) => {
+          resolveOld = r
+        })
+      }
+      return { ...download(9, { status: 'done', title: 'New' }), tracks: [], children: [], provenance_path: '' }
+    },
+  })
+  const s = useDownloads()
+  await s.load()
+  const oldReq = s.loadDetail(9)
+  const newReq = s.loadDetail(9)
+  await newReq
+  expect(s.details[9]?.status).toBe('done')
+  expect(s.items[9]?.title).toBe('New')
+
+  resolveOld({ ...download(9, { status: 'running', title: 'Old' }), tracks: [], children: [], provenance_path: '' })
+  await oldReq
+  expect(s.details[9]?.status).toBe('done')
+  expect(s.items[9]?.title).toBe('New')
+
+  // Late detail response arriving after markDisabled must not repopulate state.
+  let resolveAfterDisable!: (v: unknown) => void
+  stubApi({
+    '/api/downloads/9': () =>
+      new Promise((r) => {
+        resolveAfterDisable = r
+      }),
+  })
+  const pending = s.loadDetail(9)
+  s.markDisabled()
+  resolveAfterDisable({ ...download(9, { status: 'done', title: 'Ghost' }), tracks: [], children: [], provenance_path: '' })
+  await pending
+  expect(s.enabled).toBe(false)
+  expect(s.details[9]).toBeUndefined()
+  expect(s.items[9]).toBeUndefined()
+})
+
+test('a reload while an initial loadDetail is pending refreshes the open download and stale 404s do not erase newer details', async () => {
+  let resolveInitial!: (v: unknown) => void
+  let detailCalls = 0
+  stubApi({
+    ...lists([download(9, { status: 'running', title: 'Initial' })]),
+    '/api/downloads/9': () => {
+      detailCalls++
+      if (detailCalls === 1) {
+        return new Promise((r) => {
+          resolveInitial = r
+        })
+      }
+      return { ...download(9, { status: 'done', title: 'Refreshed' }), tracks: [], children: [], provenance_path: '' }
+    },
+  })
+  const s = useDownloads()
+  await s.load()
+
+  // First open hangs while a reconnect reload runs; the reload must refresh open ID 9.
+  const initial = s.loadDetail(9)
+  await s.load()
+  expect(s.details[9]?.title).toBe('Refreshed')
+
+  resolveInitial({ ...download(9, { status: 'running', title: 'Initial' }), tracks: [], children: [], provenance_path: '' })
+  await initial
+  expect(s.details[9]?.title).toBe('Refreshed')
+
+  // A slow reload detail refresh returning 404 must not erase a newer successful loadDetail.
+  let resolveSlow404!: (v: unknown) => void
+  let refreshCalls = 0
+  stubApi({
+    ...lists([download(9, { status: 'done', title: 'Refreshed' })]),
+    '/api/downloads/9': () => {
+      refreshCalls++
+      if (refreshCalls === 1) {
+        return new Promise((r) => {
+          resolveSlow404 = r
+        })
+      }
+      return { ...download(9, { status: 'done', title: 'Latest' }), tracks: [], children: [], provenance_path: '' }
+    },
+  })
+  const slowReload = s.load()
+  await flushPromises()
+  await s.loadDetail(9)
+  expect(s.details[9]?.title).toBe('Latest')
+
+  resolveSlow404(new Reply(404, { error: 'no such download' }))
+  await slowReload
+  expect(s.details[9]?.title).toBe('Latest')
+  expect(s.detailErrors[9]).toBeUndefined()
+})
+
+test('a pending fetchUnknown from an event before disabling cannot repopulate items or publish a notice', async () => {
+  useSettings().notices = 'all'
+  let resolveUnknown!: (v: unknown) => void
+  stubApi({
+    ...lists([]),
+    '/api/downloads/42': () =>
+      new Promise((r) => {
+        resolveUnknown = r
+      }),
+  })
+  const s = useDownloads()
+  await s.load()
+  s.applyEvent(event(42, { status: 'done' }))
+  s.markDisabled()
+
+  resolveUnknown({ ...download(42, { status: 'done', title: 'Ghost Album' }), tracks: [], children: [], provenance_path: '' })
+  await flushPromises()
+  expect(s.enabled).toBe(false)
+  expect(s.items[42]).toBeUndefined()
+  expect(s.notice).toBeNull()
+})
+
+test('a completion event after reconnect still reads and announces while an older pending fetchUnknown is in flight', async () => {
+  useSettings().notices = 'all'
+  let resolveOld!: (v: unknown) => void
+  let detailCalls = 0
+  stubApi({
+    ...lists([]),
+    '/api/downloads/42': () => {
+      detailCalls++
+      if (detailCalls === 1) {
+        return new Promise((r) => {
+          resolveOld = r
+        })
+      }
+      return { ...download(42, { status: 'done', title: 'Fresh Album' }), tracks: [], children: [], provenance_path: '' }
+    },
+  })
+  const s = useDownloads()
+  await s.load()
+
+  // Initial running event for an unknown ID leaves an older fetchUnknown pending.
+  s.applyEvent(event(42, { status: 'running' }))
+  expect(detailCalls).toBe(1)
+
+  // Reconnect advances the load generation while the older read is still pending.
+  await s.load()
+
+  // A completion event in the new generation must still fetch and announce.
+  s.applyEvent(event(42, { status: 'done' }))
+  await flushPromises()
+  expect(detailCalls).toBe(2)
+  expect(s.items[42]?.title).toBe('Fresh Album')
+  expect(s.notice).toMatchObject({ title: 'Downloaded', text: 'Fresh Album' })
+
+  resolveOld({ ...download(42, { status: 'running', title: 'Stale Album' }), tracks: [], children: [], provenance_path: '' })
+  await flushPromises()
+  expect(s.items[42]?.title).toBe('Fresh Album')
+})
+
+test('concurrent detect calls share one in-flight probe and stale loads cannot clobber newer state', async () => {
+  let resolveFirst!: (value: unknown) => void
+  let activeCalls = 0
+  const calls = stubApi({
+    '/api/downloads?status=queued': () => {
+      activeCalls++
+      if (activeCalls === 1) {
+        return new Promise((r) => {
+          resolveFirst = r
+        })
+      }
+      return list([download(2, { title: 'Newer' })])
+    },
+    '/api/downloads?status=done': list([]),
+    '/api/downloads?status=failed': list([]),
+  })
+  const s = useDownloads()
+  const p1 = s.detect()
+  const p2 = s.detect()
+  expect(s.detecting).toBe(true)
+  expect(activeCalls).toBe(1)
+
+  // A forced reload supersedes the slow first probe.
+  const p3 = s.detect(true)
+  await p3
+  expect(s.enabled).toBe(true)
+  expect(s.items[2]?.title).toBe('Newer')
+  expect(s.detecting).toBe(false)
+
+  // Late 404 from the superseded probe must not flip enabled or wipe items.
+  resolveFirst(new Reply(404, { error: 'Not Found' }))
+  await Promise.all([p1, p2])
+  expect(s.enabled).toBe(true)
+  expect(s.items[2]?.title).toBe('Newer')
+  expect(calls.filter((c) => c.url.startsWith('/api/downloads?status=queued'))).toHaveLength(2)
+})

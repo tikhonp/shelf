@@ -22,8 +22,9 @@ export const useEvents = defineStore('events', () => {
     const status = useStatus()
     const library = useLibrary()
     const editor = useEditor()
+    const dl = downloads.detect(true).then(() => status.check({ retryDetect: false }))
     return Promise.allSettled([
-      downloads.load(), status.check(), editor.saving || editor.deleting ? editor.recheck() : editor.reload(true), useBulk().check(),
+      dl, editor.saving || editor.deleting ? editor.recheck() : editor.reload(true), useBulk().check(),
       library.loadIndex(), library.load(), library.loadFilters(), useHistory().load(), useInbox().reload(),
     ])
   }

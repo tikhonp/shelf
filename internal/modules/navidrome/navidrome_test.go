@@ -138,7 +138,7 @@ func newRig(t *testing.T) *rig {
 	fake := newFake(t)
 	h := jobstest.New(t, downloads.New())
 	r := &rig{t: t, h: h, fake: fake, hub: hub.New(), nav: New(), dl: downloads.New()}
-	cfg := &config.Config{MusicDir: t.TempDir(), TZ: time.UTC, Navidrome: config.Navidrome{
+	cfg := &config.Config{MusicDir: t.TempDir(), TZ: time.UTC, DownloadsEnabled: true, Navidrome: config.Navidrome{
 		URL: fake.url(t), User: user, Password: password, ScanDelay: 30 * time.Second,
 	}}
 	reg := source.NewRegistry()

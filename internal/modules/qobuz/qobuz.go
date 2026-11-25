@@ -40,7 +40,7 @@ const (
 )
 
 // Module is the Qobuz module. It registers its source switched off when
-// SHELF_QOBUZ_TOKEN is empty.
+// SHELF_DOWNLOADS_ENABLED is false or SHELF_QOBUZ_TOKEN is empty.
 type Module struct {
 	// RetryEvery and StartWait default to the constants. Options, when set,
 	// changes what each qobuz-dl-go instance starts with. Tests change them
@@ -77,7 +77,7 @@ func (m *Module) Init(d module.Deps) error {
 	s := m.src
 	s.log, s.hub, s.quality = d.Log, d.Hub, d.Cfg.Qobuz.Quality
 	s.folder = filepath.ToSlash(d.Cfg.Qobuz.Dir)
-	if !d.Cfg.Qobuz.Enabled() {
+	if !d.Cfg.DownloadsEnabled || !d.Cfg.Qobuz.Enabled() {
 		return nil
 	}
 	root, err := filepath.Abs(d.Cfg.MusicDir)

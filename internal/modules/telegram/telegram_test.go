@@ -9,11 +9,16 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-telegram/bot/models"
 	"github.com/labstack/echo/v5"
 	"github.com/tikhonp/shelf/internal/modules/downloads"
+	"github.com/tikhonp/shelf/internal/platform/config"
+	"github.com/tikhonp/shelf/internal/platform/db/dbtest"
+	"github.com/tikhonp/shelf/internal/platform/module"
 	"github.com/tikhonp/shelf/internal/platform/web"
+	"github.com/tikhonp/shelf/internal/source"
 )
 
 func TestUnknownUser(t *testing.T) {
@@ -207,5 +212,27 @@ func TestNotConnected(t *testing.T) {
 	}
 	if err := r.m.Notify(bg, downloads.Download{ID: 1}); !errors.Is(err, errNotConnected) {
 		t.Fatalf("Notify: %v", err)
+	}
+}
+
+func TestDownloadsDisabledKeepsTelegramOff(t *testing.T) {
+	m := New(nil)
+	cfg := &config.Config{TZ: time.UTC, DownloadsEnabled: false, Telegram: config.Telegram{Token: "123:abc", Users: []int64{owner}}}
+	if err := m.Init(module.Deps{Cfg: cfg, Log: dbtest.Discard, Sources: source.NewRegistry()}); err != nil {
+		t.Fatal(err)
+	}
+	if m.Enabled() {
+		t.Fatal("Enabled() = true with DownloadsEnabled false")
+	}
+	if err := m.Run(bg); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	e := echo.New()
+	e.HTTPErrorHandler = web.ErrorHandler
+	m.Routes(e.Group("/api"))
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/telegram", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("GET /api/telegram = %d, want 404", rec.Code)
 	}
 }

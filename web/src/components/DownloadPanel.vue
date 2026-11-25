@@ -44,7 +44,7 @@ async function load(id: number) {
   try {
     await downloads.loadDetail(id)
   } catch (err) {
-    error.value = errorText(err)
+    if (props.id === id) error.value = errorText(err)
   }
 }
 watch(
@@ -58,6 +58,10 @@ watch(
 onBeforeUnmount(() => downloads.closeDetail(props.id))
 
 const detail = computed(() => downloads.details[props.id])
+watch(detail, (d) => {
+  if (d) error.value = ''
+})
+const panelError = computed(() => error.value || downloads.detailErrors[props.id] || '')
 // The list has the newest counts between two reads of the detail.
 const d = computed(() => (detail.value ? { ...detail.value, ...downloads.items[props.id] } : undefined))
 const active = computed(() => d.value?.status === 'running' || d.value?.status === 'queued')
@@ -107,7 +111,7 @@ function trackState(t: DownloadTrack): { led: string; text: string } {
       <button v-if="!phone" type="button" class="wbtn" aria-label="Close" @click="emit('close')"><Icon name="close" /></button>
     </div>
     <div class="vscroll body">
-      <div v-if="error" class="note"><span class="led bad"></span><p>{{ error }}</p></div>
+      <div v-if="panelError" class="note"><span class="led bad"></span><p>{{ panelError }}</p></div>
       <template v-else-if="d">
         <div class="line g14">
           <Cover :url="d.cover_url" :size="64" />

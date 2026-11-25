@@ -494,6 +494,17 @@ func TestArtistWithoutAlbums(t *testing.T) {
 	}
 }
 
+func TestArtistResolveFailed(t *testing.T) {
+	r := newRig(t)
+	r.start()
+	d := r.queue(QueueRequest{Ref: artist("missing-artist")})
+	r.h.Drain()
+	det := r.get(d.ID)
+	if det.Status != Failed || det.Error != "Fake has no such item" || len(det.Children) != 0 || det.FinishedAt.IsZero() {
+		t.Fatalf("%+v", det)
+	}
+}
+
 type countingNotifier struct {
 	mu    sync.Mutex
 	calls []Download

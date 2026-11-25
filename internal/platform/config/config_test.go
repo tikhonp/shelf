@@ -40,10 +40,9 @@ func TestConfigDefaults(t *testing.T) {
 		t.Errorf("Qobuz = %+v", q)
 	}
 	a := c.Apple
-	if !a.Enabled() || a.AMDLConfig != "/config/amdl.yaml" || a.AMDLTimeout != 2*time.Hour || a.Dir != "apple-music" ||
-		a.WrapperURL.String() != "http://shelf-wrapper:12340" ||
-		a.WrapperControlURL.String() != "http://shelf-wrapper:12341" || a.WrapperToken != "" {
-		t.Errorf("Apple = %+v", a)
+	if a.Enabled() || a.AMDLConfig != "" || a.AMDLTimeout != 2*time.Hour || a.Dir != "apple-music" ||
+		a.WrapperURL != nil || a.WrapperControlURL != nil || a.WrapperToken != "" {
+		t.Errorf("Apple (downloads off) = %+v", a)
 	}
 	n := c.Navidrome
 	if !n.Enabled() || n.URL.String() != "http://navidrome:4533" || n.User != "" || n.Password != "" || n.ScanDelay != 30*time.Second {
@@ -56,18 +55,33 @@ func TestConfigDefaults(t *testing.T) {
 	if c.AgentEnabled {
 		t.Error("AgentEnabled is on by default")
 	}
+	if c.DownloadsEnabled {
+		t.Error("DownloadsEnabled is on by default")
+	}
 	if c.DevFakeSource || c.LogLevel != slog.LevelInfo {
 		t.Errorf("DevFakeSource %v, LogLevel %v", c.DevFakeSource, c.LogLevel)
+	}
+
+	on, err := Load(env(map[string]string{"SHELF_DOWNLOADS_ENABLED": "true"}))
+	if err != nil {
+		t.Fatalf("Load(downloads on): %v", err)
+	}
+	a = on.Apple
+	if !a.Enabled() || a.AMDLConfig != "/config/amdl.yaml" || a.AMDLTimeout != 2*time.Hour || a.Dir != "apple-music" ||
+		a.WrapperURL.String() != "http://shelf-wrapper:12340" ||
+		a.WrapperControlURL.String() != "http://shelf-wrapper:12341" || a.WrapperToken != "" {
+		t.Errorf("Apple (downloads on) = %+v", a)
 	}
 }
 
 func TestConfigReportsEveryProblem(t *testing.T) {
 	_, err := Load(env(map[string]string{
-		"SHELF_TIMEZONE":       "Mars/Olympus",
-		"SHELF_LOG_LEVEL":      "loud",
-		"SHELF_QOBUZ_WORKERS":  "0",
-		"SHELF_TELEGRAM_USERS": "1, bob",
-		"SHELF_HTTP_ADDR":      "",
+		"SHELF_DOWNLOADS_ENABLED": "true",
+		"SHELF_TIMEZONE":          "Mars/Olympus",
+		"SHELF_LOG_LEVEL":         "loud",
+		"SHELF_QOBUZ_WORKERS":     "0",
+		"SHELF_TELEGRAM_USERS":    "1, bob",
+		"SHELF_HTTP_ADDR":         "",
 	}))
 	if err == nil {
 		t.Fatal("expected an error")
@@ -90,6 +104,9 @@ func TestConfigRejectsBadValues(t *testing.T) {
 		{"SHELF_AGENT_ENABLED", "1"},
 		{"SHELF_AGENT_ENABLED", "TRUE"},
 		{"SHELF_AGENT_ENABLED", ""},
+		{"SHELF_DOWNLOADS_ENABLED", "1"},
+		{"SHELF_DOWNLOADS_ENABLED", "TRUE"},
+		{"SHELF_DOWNLOADS_ENABLED", ""},
 		{"SHELF_QOBUZ_WORKERS", "three"},
 		{"SHELF_QOBUZ_QUALITY", "28"},
 		{"SHELF_QOBUZ_QUALITY", "27.0"},
@@ -107,7 +124,8 @@ func TestConfigRejectsBadValues(t *testing.T) {
 		{"SHELF_DATA_DIR", " "},
 	} {
 		t.Run(tc.name+"="+tc.value, func(t *testing.T) {
-			_, err := Load(env(map[string]string{tc.name: tc.value}))
+			vars := map[string]string{"SHELF_DOWNLOADS_ENABLED": "true", tc.name: tc.value}
+			_, err := Load(env(vars))
 			if err == nil || !strings.Contains(err.Error(), tc.name) {
 				t.Fatalf("err = %v", err)
 			}
@@ -115,8 +133,47 @@ func TestConfigRejectsBadValues(t *testing.T) {
 	}
 }
 
+func TestConfigIgnoresDownloadSettingsWhenDisabled(t *testing.T) {
+	c, err := Load(env(map[string]string{
+		"SHELF_PROXY_URL":           "ftp://proxy:21",
+		"SHELF_QOBUZ_TOKEN":         "tok",
+		"SHELF_QOBUZ_WORKERS":       "0",
+		"SHELF_QOBUZ_USE_PROXY":     "true",
+		"SHELF_QOBUZ_DIR":           "../elsewhere",
+		"SHELF_AMDL_TIMEOUT":        "0s",
+		"SHELF_APPLE_DIR":           "/music/apple",
+		"SHELF_WRAPPER_URL":         "http://",
+		"SHELF_WRAPPER_CONTROL_URL": "",
+		"SHELF_TELEGRAM_TOKEN":      "123:abc",
+		"SHELF_TELEGRAM_USERS":      "not-an-id",
+		"SHELF_TELEGRAM_USE_PROXY":  "true",
+		"SHELF_DEV_FAKE_SOURCE":     "yes",
+	}))
+	if err != nil {
+		t.Fatalf("Load failed with downloads off: %v", err)
+	}
+	if c.DownloadsEnabled || c.Proxy != nil || c.Qobuz.Enabled() || c.Apple.Enabled() || c.Telegram.Enabled() || c.DevFakeSource {
+		t.Fatalf("download parts enabled while off: proxy=%v qobuz=%v apple=%v tg=%v fake=%v",
+			c.Proxy, c.Qobuz.Enabled(), c.Apple.Enabled(), c.Telegram.Enabled(), c.DevFakeSource)
+	}
+	if c.Qobuz.Dir != "qobuz" || c.Apple.Dir != "apple-music" {
+		t.Fatalf("invalid dirs did not fall back to defaults: qobuz=%q apple=%q", c.Qobuz.Dir, c.Apple.Dir)
+	}
+
+	custom, err := Load(env(map[string]string{
+		"SHELF_QOBUZ_DIR": "imports/qobuz/",
+		"SHELF_APPLE_DIR": "imports/apple/",
+	}))
+	if err != nil {
+		t.Fatalf("Load with custom dirs and downloads off: %v", err)
+	}
+	if custom.Qobuz.Dir != "imports/qobuz" || custom.Apple.Dir != "imports/apple" {
+		t.Fatalf("custom dirs not preserved when downloads off: qobuz=%q apple=%q", custom.Qobuz.Dir, custom.Apple.Dir)
+	}
+}
+
 func TestConfigEmptyTurnsPartsOff(t *testing.T) {
-	c, err := Load(env(map[string]string{"SHELF_AMDL_CONFIG": "", "SHELF_NAVIDROME_URL": " "}))
+	c, err := Load(env(map[string]string{"SHELF_DOWNLOADS_ENABLED": "true", "SHELF_AMDL_CONFIG": "", "SHELF_NAVIDROME_URL": " "}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,6 +184,7 @@ func TestConfigEmptyTurnsPartsOff(t *testing.T) {
 
 func TestConfigParsesValues(t *testing.T) {
 	c, err := Load(env(map[string]string{
+		"SHELF_DOWNLOADS_ENABLED":  "true",
 		"SHELF_PUBLIC_URL":         "https://shelf.example.com",
 		"SHELF_PROXY_URL":          "socks5h://proxy:1080",
 		"SHELF_QOBUZ_TOKEN":        "tok",
@@ -159,7 +217,7 @@ func TestConfigParsesValues(t *testing.T) {
 }
 
 func TestConfigUseProxyNeedsAProxy(t *testing.T) {
-	_, err := Load(env(map[string]string{"SHELF_QOBUZ_USE_PROXY": "true", "SHELF_TELEGRAM_USE_PROXY": "true"}))
+	_, err := Load(env(map[string]string{"SHELF_DOWNLOADS_ENABLED": "true", "SHELF_QOBUZ_USE_PROXY": "true", "SHELF_TELEGRAM_USE_PROXY": "true"}))
 	if err == nil {
 		t.Fatal("expected an error")
 	}
@@ -175,11 +233,19 @@ func TestConfigWarnsTelegramWithoutUsers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if slices.ContainsFunc(c.Warnings(), func(w string) bool { return strings.Contains(w, "SHELF_TELEGRAM_USERS") }) {
+		t.Errorf("warns with downloads off: %q", c.Warnings())
+	}
+
+	c, err = Load(env(map[string]string{"SHELF_DOWNLOADS_ENABLED": "true", "SHELF_TELEGRAM_TOKEN": "123:abc"}))
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !slices.ContainsFunc(c.Warnings(), func(w string) bool { return strings.Contains(w, "SHELF_TELEGRAM_USERS") }) {
 		t.Errorf("warnings = %q", c.Warnings())
 	}
 
-	c, err = Load(env(map[string]string{"SHELF_TELEGRAM_TOKEN": "123:abc", "SHELF_TELEGRAM_USERS": "42"}))
+	c, err = Load(env(map[string]string{"SHELF_DOWNLOADS_ENABLED": "true", "SHELF_TELEGRAM_TOKEN": "123:abc", "SHELF_TELEGRAM_USERS": "42"}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,13 +260,25 @@ func TestConfigWarnsMissingCredentials(t *testing.T) {
 		t.Fatal(err)
 	}
 	w := strings.Join(c.Warnings(), "\n")
+	if !strings.Contains(w, "SHELF_NAVIDROME_PASSWORD") {
+		t.Errorf("warnings miss SHELF_NAVIDROME_PASSWORD:\n%s", w)
+	}
+	if strings.Contains(w, "SHELF_WRAPPER_TOKEN") {
+		t.Errorf("warns about wrapper with downloads off:\n%s", w)
+	}
+
+	c, err = Load(env(map[string]string{"SHELF_DOWNLOADS_ENABLED": "true"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	w = strings.Join(c.Warnings(), "\n")
 	for _, want := range []string{"SHELF_NAVIDROME_PASSWORD", "SHELF_WRAPPER_TOKEN"} {
 		if !strings.Contains(w, want) {
 			t.Errorf("warnings miss %s:\n%s", want, w)
 		}
 	}
 
-	c, err = Load(env(map[string]string{"SHELF_AMDL_CONFIG": "", "SHELF_NAVIDROME_URL": ""}))
+	c, err = Load(env(map[string]string{"SHELF_DOWNLOADS_ENABLED": "true", "SHELF_AMDL_CONFIG": "", "SHELF_NAVIDROME_URL": ""}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,6 +289,7 @@ func TestConfigWarnsMissingCredentials(t *testing.T) {
 
 func TestConfigHidesSecrets(t *testing.T) {
 	secrets := map[string]string{
+		"SHELF_DOWNLOADS_ENABLED":  "true",
 		"SHELF_QOBUZ_TOKEN":        "qobuz-s3cret",
 		"SHELF_TELEGRAM_TOKEN":     "telegram-s3cret",
 		"SHELF_NAVIDROME_PASSWORD": "navidrome-s3cret",
@@ -239,6 +318,9 @@ func TestConfigHidesSecrets(t *testing.T) {
 	out.Write(b)
 
 	for name, v := range secrets {
+		if name == "SHELF_DOWNLOADS_ENABLED" {
+			continue
+		}
 		secret := v
 		if name == "SHELF_PROXY_URL" {
 			secret = "proxy-s3cret"
@@ -253,7 +335,7 @@ func TestConfigHidesSecrets(t *testing.T) {
 }
 
 func TestConfigErrorsHideTheProxyURL(t *testing.T) {
-	_, err := Load(env(map[string]string{"SHELF_PROXY_URL": "ftp://user:proxy-s3cret@proxy:21"}))
+	_, err := Load(env(map[string]string{"SHELF_DOWNLOADS_ENABLED": "true", "SHELF_PROXY_URL": "ftp://user:proxy-s3cret@proxy:21"}))
 	if err == nil || strings.Contains(err.Error(), "proxy-s3cret") {
 		t.Fatalf("err = %v", err)
 	}
@@ -286,6 +368,15 @@ func TestAgentEnabled(t *testing.T) {
 	for v, want := range map[string]bool{"true": true, "false": false} {
 		c, err := Load(env(map[string]string{"SHELF_AGENT_ENABLED": v}))
 		if err != nil || c.AgentEnabled != want {
+			t.Fatalf("%s: %v %v", v, c, err)
+		}
+	}
+}
+
+func TestDownloadsEnabled(t *testing.T) {
+	for v, want := range map[string]bool{"true": true, "false": false} {
+		c, err := Load(env(map[string]string{"SHELF_DOWNLOADS_ENABLED": v}))
+		if err != nil || c.DownloadsEnabled != want {
 			t.Fatalf("%s: %v %v", v, c, err)
 		}
 	}

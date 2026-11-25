@@ -1,6 +1,7 @@
 package platform_test
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -408,4 +409,65 @@ func TestDepsCarryTheAccountsPort(t *testing.T) {
 		t.Fatal(ok, err)
 	}
 	_ = a
+}
+
+func TestEventsStream(t *testing.T) {
+	a := open(t)
+	a.EventKeepAlive = 20 * time.Millisecond
+	srv := httptest.NewServer(a.HTTP())
+	defer srv.Close()
+	client := &http.Client{Transport: &http.Transport{DisableKeepAlives: true}, Timeout: 30 * time.Second}
+	resp, err := client.Get(srv.URL + "/api/events")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	h := resp.Header
+	if h.Get("Content-Type") != "text/event-stream" || h.Get("Cache-Control") != "no-store" || h.Get("X-Accel-Buffering") != "no" {
+		t.Fatalf("headers %v", h)
+	}
+	sc := bufio.NewScanner(resp.Body)
+	type sseEvent struct {
+		event, data string
+		comment     bool
+	}
+	next := func() sseEvent {
+		t.Helper()
+		var e sseEvent
+		for sc.Scan() {
+			line := sc.Text()
+			switch {
+			case line == "":
+				if e.event != "" || e.data != "" || e.comment {
+					return e
+				}
+			case strings.HasPrefix(line, ":"):
+				e.comment = true
+			case strings.HasPrefix(line, "event: "):
+				e.event = strings.TrimPrefix(line, "event: ")
+			case strings.HasPrefix(line, "data: "):
+				e.data = strings.TrimPrefix(line, "data: ")
+			}
+		}
+		t.Fatalf("stream ended: %v", sc.Err())
+		return e
+	}
+	if e := next(); !e.comment {
+		t.Fatalf("first %+v", e)
+	}
+	a.Hub.Publish("scan", map[string]bool{"scanning": true})
+	a.Hub.Publish("other", 1) // not a stream topic
+	a.Hub.Publish("run", map[string]int{"id": 1})
+	a.Hub.Publish("suggestions", map[string]int{"album": 2})
+	var got []sseEvent
+	for len(got) < 3 {
+		if e := next(); !e.comment {
+			got = append(got, e)
+		}
+	}
+	if got[0].event != "scan" || got[0].data != `{"scanning":true}` ||
+		got[1].event != "run" || got[1].data != `{"id":1}` ||
+		got[2].event != "suggestions" || got[2].data != `{"album":2}` {
+		t.Fatalf("%+v", got)
+	}
 }

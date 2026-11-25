@@ -24,12 +24,15 @@ var migrationFiles embed.FS
 const Name = "downloads"
 
 // Module is the downloads module. Its Service exists from New, so main can
-// wire the ports before Init; it works after Init.
+// wire the ports before Init; it works after Init. The module is always
+// registered so migrations run and records survive toggling the feature off;
+// SHELF_DOWNLOADS_ENABLED decides whether its routes and downloads run.
 type Module struct {
-	// KeepAlive is how often the event and log streams send a comment while
-	// idle. Tests make it short.
+	// KeepAlive is how often the log stream sends a comment while idle.
+	// Tests make it short.
 	KeepAlive time.Duration
 
+	enabled bool
 	svc     *Service
 	closing <-chan struct{}
 }
@@ -46,22 +49,33 @@ func (*Module) Migrations() fs.FS {
 
 // Init gives the service the platform.
 func (m *Module) Init(d module.Deps) error {
+	m.enabled = d.Cfg.DownloadsEnabled
 	m.svc.init(d)
 	m.closing = d.Closing
 	return nil
 }
 
+// Enabled reports whether SHELF_DOWNLOADS_ENABLED is on.
+func (m *Module) Enabled() bool { return m.enabled }
+
 // Service is the module's service, for the modules that queue downloads.
 func (m *Module) Service() *Service { return m.svc }
 
-// JobTypes are the download job and the notify job.
+// JobTypes are the download job and the notify job. The module registers them
+// in every mode so queued jobs settle as failed after downloads are switched off.
 func (m *Module) JobTypes() []jobs.Type { return m.svc.jobTypes() }
 
 // Schedules: none.
 func (*Module) Schedules() []jobs.Schedule { return nil }
 
-// Routes serves /api/downloads and /api/events.
-func (m *Module) Routes(api *echo.Group) { m.routes(api) }
+// Routes serves /api/downloads when the feature is on. With it off nothing is
+// registered, so those paths answer the platform's 404.
+func (m *Module) Routes(api *echo.Group) {
+	if !m.enabled {
+		return
+	}
+	m.routes(api)
+}
 
 // Statuses is the catalog's port: what shelf knows of each item's downloads.
 func (m *Module) Statuses(ctx context.Context, refs []source.Ref) (map[source.Ref]source.Status, error) {

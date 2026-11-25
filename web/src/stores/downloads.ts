@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { errorText, get, post } from '../api/client'
+import { ApiError, errorText, get, post } from '../api/client'
 import type { Download, DownloadDetail, DownloadEvent, DownloadList, ItemStatus, Ref } from '../api/types'
 import { useSettings } from './settings'
 import { useSources } from './sources'
@@ -27,69 +27,196 @@ export interface Notice {
 const refKey = (source: string, kind: string, id: string) => `${source}:${kind}:${id}`
 
 export const useDownloads = defineStore('downloads', () => {
+  // enabled is null until GET /api/downloads answers. A 404 means the feature is off, and nothing shows.
+  const enabled = ref<boolean | null>(null)
+  const detecting = ref(false)
+  const detectError = ref('')
+  const loadError = ref('')
   // items holds every download this page knows, by ID.
   const items = ref<Record<number, Download>>({})
   // currents holds the track each running download is fetching, which only events carry.
   const currents = ref<Record<number, string>>({})
   const details = ref<Record<number, DownloadDetail>>({})
+  const detailErrors = ref<Record<number, string>>({})
   const historyNext = ref<number | null>(null)
   // historyFloor is the oldest ID of the pages read so far. Failed downloads
   // older than that are loaded for the counter and stay out of the history.
   const historyFloor = ref(0)
   const loaded = ref(false)
   const notice = ref<Notice | null>(null)
-  const pending = new Set<number>()
+  const pending = new Map<number, number>()
+  let loadSeq = 0
+  let inFlight: Promise<void> | null = null
+  const openDetails = new Set<number>()
+  const detailSeq = new Map<number, number>()
 
   function put(list: Download[]) {
     for (const d of list) items.value[d.id] = d
   }
 
-  async function load() {
-    const [active, history, failed] = await Promise.all([
-      get<DownloadList>(`/api/downloads?status=queued,running&limit=${activeLimit}`),
-      get<DownloadList>(`/api/downloads?status=done,partial,failed,canceled,skipped&limit=${historyLimit}`),
-      get<DownloadList>(`/api/downloads?status=failed&limit=${activeLimit}`),
-    ])
+  function clear() {
+    for (const id of detailSeq.keys()) detailSeq.set(id, (detailSeq.get(id) ?? 0) + 1)
+    openDetails.clear()
     items.value = {}
-    put(active.downloads)
-    put(failed.downloads)
-    put(history.downloads)
-    historyNext.value = history.next
-    historyFloor.value = history.next ?? 0
-    loaded.value = true
-    await Promise.all(Object.keys(details.value).map((id) => loadDetail(Number(id))))
+    currents.value = {}
+    details.value = {}
+    detailErrors.value = {}
+    historyNext.value = null
+    historyFloor.value = 0
+    loaded.value = false
+    loadError.value = ''
+    notice.value = null
+  }
+
+  function loadGeneration() {
+    return loadSeq
+  }
+
+  function markDisabled(expectedGen?: number): boolean {
+    if (expectedGen !== undefined && expectedGen !== loadSeq) return false
+    loadSeq++
+    inFlight = null
+    enabled.value = false
+    detectError.value = ''
+    detecting.value = false
+    clear()
+    return true
+  }
+
+  async function load() {
+    const seq = ++loadSeq
+    detecting.value = true
+    const run = (async () => {
+      try {
+        const active = await get<DownloadList>(`/api/downloads?status=queued,running&limit=${activeLimit}`)
+        if (seq !== loadSeq) return
+        // The first successful response proves downloads are on, even if history fails below.
+        enabled.value = true
+        detectError.value = ''
+        for (const [id, d] of Object.entries(items.value)) {
+          if (d.status === 'queued' || d.status === 'running') delete items.value[Number(id)]
+        }
+        put(active.downloads)
+        const [history, failed] = await Promise.all([
+          get<DownloadList>(`/api/downloads?status=done,partial,failed,canceled,skipped&limit=${historyLimit}`),
+          get<DownloadList>(`/api/downloads?status=failed&limit=${activeLimit}`),
+        ])
+        if (seq !== loadSeq) return
+        loadError.value = ''
+        items.value = {}
+        put(active.downloads)
+        put(failed.downloads)
+        put(history.downloads)
+        historyNext.value = history.next
+        historyFloor.value = history.next ?? 0
+        loaded.value = true
+      } catch (err) {
+        if (seq !== loadSeq) return
+        if (err instanceof ApiError && err.status === 404) {
+          enabled.value = false
+          detectError.value = ''
+          clear()
+          return
+        }
+        if (enabled.value !== true) {
+          detectError.value = errorText(err)
+        } else {
+          loadError.value = errorText(err)
+        }
+        throw err
+      } finally {
+        if (seq === loadSeq) detecting.value = false
+      }
+      // Detail refreshes stay outside feature detection so one missing download
+      // row, such as after restoring an older database, never hides downloads.
+      await Promise.allSettled([...openDetails].map((id) => fetchDetail(id, true).catch(() => {})))
+    })()
+    inFlight = run
+    try {
+      return await run
+    } finally {
+      if (inFlight === run) inFlight = null
+    }
+  }
+
+  async function detect(force = false) {
+    let run = !force && inFlight ? inFlight : load()
+    while (true) {
+      try {
+        await run
+      } catch {
+        // detectError or loadError holds the reason; transient failures leave enabled untouched.
+      }
+      if (!inFlight || inFlight === run) return
+      run = inFlight
+    }
   }
 
   async function loadMore() {
     if (historyNext.value === null) return
+    const gen = loadSeq
     const page = await get<DownloadList>(
       `/api/downloads?status=done,partial,failed,canceled,skipped&limit=${historyLimit}&before=${historyNext.value}`,
     )
+    if (gen !== loadSeq || enabled.value === false) return
     put(page.downloads)
     historyNext.value = page.next
     historyFloor.value = page.next ?? 0
   }
 
-  async function loadDetail(id: number) {
-    const d = await get<DownloadDetail>(`/api/downloads/${id}`)
-    details.value[id] = d
-    if (d.parent_id === null) items.value[id] = stripDetail(d)
-    return d
+  async function fetchDetail(id: number, recordMissing: boolean): Promise<DownloadDetail | undefined> {
+    openDetails.add(id)
+    const seq = (detailSeq.get(id) ?? 0) + 1
+    detailSeq.set(id, seq)
+    try {
+      const d = await get<DownloadDetail>(`/api/downloads/${id}`)
+      if (detailSeq.get(id) !== seq || !openDetails.has(id) || enabled.value === false) return d
+      delete detailErrors.value[id]
+      details.value[id] = d
+      if (d.parent_id === null) items.value[id] = stripDetail(d)
+      return d
+    } catch (err) {
+      if (detailSeq.get(id) !== seq || !openDetails.has(id) || enabled.value === false) return undefined
+      if (recordMissing) {
+        if (err instanceof ApiError && err.status === 404) {
+          delete details.value[id]
+          detailErrors.value[id] = errorText(err)
+          return undefined
+        }
+        if (!details.value[id]) {
+          detailErrors.value[id] = errorText(err)
+          return undefined
+        }
+      }
+      throw err
+    }
+  }
+
+  async function loadDetail(id: number): Promise<DownloadDetail | undefined> {
+    return fetchDetail(id, false)
   }
 
   function closeDetail(id: number) {
+    openDetails.delete(id)
+    detailSeq.set(id, (detailSeq.get(id) ?? 0) + 1)
     delete details.value[id]
+    delete detailErrors.value[id]
   }
 
-  async function fetchUnknown(id: number) {
-    if (pending.has(id)) return
-    pending.add(id)
+  async function fetchUnknown(id: number): Promise<boolean> {
+    const gen = loadSeq
+    if (pending.get(id) === gen) return false
+    pending.set(id, gen)
     try {
-      items.value[id] = stripDetail(await get<DownloadDetail>(`/api/downloads/${id}`))
+      const d = await get<DownloadDetail>(`/api/downloads/${id}`)
+      if (gen !== loadSeq || enabled.value === false) return false
+      items.value[id] = stripDetail(d)
+      return true
     } catch {
       // The next event or reconnect reads it again.
+      return false
     } finally {
-      pending.delete(id)
+      if (pending.get(id) === gen) pending.delete(id)
     }
   }
 
@@ -105,6 +232,7 @@ export const useDownloads = defineStore('downloads', () => {
   }
 
   function applyEvent(e: DownloadEvent) {
+    if (enabled.value === false) return
     if (e.current) currents.value[e.id] = e.current
     else if (e.status !== 'running') delete currents.value[e.id]
 
@@ -112,7 +240,7 @@ export const useDownloads = defineStore('downloads', () => {
     const known = items.value[e.id]
     const ended = e.status !== 'queued' && e.status !== 'running'
     // Events are live, so a download this page never saw ended just now too.
-    const justEnded = ended && e.parent_id === null && !pending.has(e.id) && (!known || known.status === 'queued' || known.status === 'running')
+    const justEnded = ended && e.parent_id === null && pending.get(e.id) !== loadSeq && (!known || known.status === 'queued' || known.status === 'running')
     if (known) {
       items.value[e.id] = {
         ...known,
@@ -124,7 +252,7 @@ export const useDownloads = defineStore('downloads', () => {
     // A title, cover and final times arrive with the job, not the event.
     if (e.parent_id === null && (ended || !known)) {
       const read = fetchUnknown(e.id)
-      if (justEnded) void read.then(() => announce(e.id))
+      if (justEnded) void read.then((ok) => { if (ok && enabled.value !== false) announce(e.id) })
     }
 
     if (details.value[e.id]) refreshDetail(e.id)
@@ -226,14 +354,22 @@ export const useDownloads = defineStore('downloads', () => {
   }
 
   return {
+    enabled,
+    detecting,
+    detectError,
+    loadError,
     items,
     currents,
     details,
+    detailErrors,
     historyNext,
     loaded,
     notice,
     deskNotice,
     load,
+    detect,
+    loadGeneration,
+    markDisabled,
     loadMore,
     loadDetail,
     closeDetail,

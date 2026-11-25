@@ -451,3 +451,16 @@ func TestStartAndFormatSwitchFetchBundleOnce(t *testing.T) {
 			loginHits.Load(), bundleHits.Load(), userHits.Load(), probeHits.Load(), startupProbes)
 	}
 }
+
+func TestDownloadsDisabledKeepsQobuzOff(t *testing.T) {
+	r := newRig(t, func(r *rig) { r.cfg.DownloadsEnabled = false })
+	if r.s.Enabled() {
+		t.Fatal("Enabled() = true with DownloadsEnabled false")
+	}
+	if err := r.m.Run(bg); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if n := len(r.srv.Requests()); n != 0 {
+		t.Fatalf("made %d requests with DownloadsEnabled false", n)
+	}
+}

@@ -27,10 +27,12 @@ const groups = computed(() => {
     { name: 'Guide', entries: [...kinds(true), { label: 'No MusicBrainz ID', filter: 'no_mbid', count: f.no_mbid }] },
     {
       name: 'Sources',
-      entries: [
-        ...f.sources.map<Entry>((s) => ({ label: s.name, filter: 'all', source: s.id, count: s.albums })),
-        ...(f.no_source > 0 ? [{ label: 'No known source', filter: 'all', source: 'none', count: f.no_source }] : []),
-      ],
+      entries: f.sources.length > 0
+        ? [
+            ...f.sources.map<Entry>((s) => ({ label: s.name, filter: 'all', source: s.id, count: s.albums })),
+            ...(f.no_source > 0 ? [{ label: 'No known source', filter: 'all', source: 'none', count: f.no_source }] : []),
+          ]
+        : [],
     },
     { name: 'Release type', entries: f.types.map<Entry>((t) => ({ label: releaseTypeName(t.name), filter: 'all', type: t.name, count: t.albums })) },
     { name: 'Folders', entries: f.folders.map<Entry>((d) => ({ label: d.name, filter: 'all', folder: d.name, count: d.albums })) },

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import Counters from '../components/Counters.vue'
 import CurrentDownload from '../components/CurrentDownload.vue'
@@ -34,7 +34,22 @@ const scanWords = computed(() => {
   return s.last_scan ? `Last scan ${ago(s.last_scan, now.value)}` : 'No scan yet'
 })
 
+// With downloads off the page doesn't exist, so its addresses lead back to the library.
+watch(
+  () => downloads.enabled,
+  (on) => {
+    if (on === false) void router.replace('/library')
+  },
+  { immediate: true },
+)
+
+async function retryDetect() {
+  await downloads.detect()
+  if (downloads.enabled) void status.check()
+}
+
 function key(e: KeyboardEvent) {
+  if (downloads.enabled !== true) return
   if (e.key === 'Escape' && id.value) return close()
   if (isTyping(e)) return
   const next = moved(e.key, cursor.value, downloads.history.length)
@@ -46,11 +61,30 @@ function key(e: KeyboardEvent) {
     if (d) void router.push(`/downloads/${d.id}`)
   }
 }
-onMounted(() => document.addEventListener('keydown', key))
+onMounted(() => {
+  document.addEventListener('keydown', key)
+  if (downloads.enabled === null) void downloads.detect()
+})
 onBeforeUnmount(() => document.removeEventListener('keydown', key))
 </script>
 
 <template>
+  <div v-if="downloads.enabled === null && downloads.detectError" :class="phone ? 'stack' : 'page'">
+    <section class="win dl-detect-err" aria-labelledby="dl-err-h">
+      <div class="tb">
+        <RouterLink v-if="phone" class="wbtn" to="/library" aria-label="Back to the library" title="Library"><Icon name="back" /></RouterLink>
+        <h1 id="dl-err-h">Downloads</h1>
+        <span class="stripes"></span>
+      </div>
+      <div class="pad col g8" role="alert">
+        <p class="bad-text">{{ downloads.detectError }}</p>
+        <div class="line g8">
+          <button type="button" class="key sm" :disabled="downloads.detecting" @click="retryDetect">Retry</button>
+        </div>
+      </div>
+    </section>
+  </div>
+  <template v-else-if="downloads.enabled">
   <div v-if="phone" class="stack">
     <DownloadPanel v-if="id" :id="id" @close="close" />
     <section v-else class="win" aria-label="Downloads">
@@ -73,6 +107,11 @@ onBeforeUnmount(() => document.removeEventListener('keydown', key))
         </section>
         <section class="col">
           <h2 class="px sec under">History</h2>
+          <div v-if="downloads.loadError" class="note dl-load-err" role="alert">
+            <span class="led bad"></span>
+            <p>{{ downloads.loadError }}</p>
+            <button type="button" class="key sm" :disabled="downloads.detecting" @click="downloads.detect(true)">Retry</button>
+          </div>
           <HistoryList v-model:cursor="cursor" />
           <ScrollMore v-if="downloads.historyNext !== null" class="more" :load="downloads.loadMore" :count="downloads.history.length" />
         </section>
@@ -91,6 +130,11 @@ onBeforeUnmount(() => document.removeEventListener('keydown', key))
       </section>
       <section class="win" aria-label="History">
         <div class="tb"><h2>History</h2><span class="stripes"></span></div>
+        <div v-if="downloads.loadError" class="note dl-load-err" role="alert">
+          <span class="led bad"></span>
+          <p>{{ downloads.loadError }}</p>
+          <button type="button" class="key sm" :disabled="downloads.detecting" @click="downloads.detect(true)">Retry</button>
+        </div>
         <HistoryList v-model:cursor="cursor" :selected="id" />
         <div v-if="downloads.historyNext !== null" class="more-row"><ScrollMore :load="downloads.loadMore" :count="downloads.history.length" /></div>
       </section>
@@ -104,9 +148,14 @@ onBeforeUnmount(() => document.removeEventListener('keydown', key))
       </section>
     </aside>
   </div>
+  </template>
 </template>
 
 <style scoped>
+.rs .page > .dl-detect-err { flex: 1; max-width: 640px; }
+.rs .dl-detect-err .pad { padding: 14px; }
+.rs .dl-load-err { margin: 12px 14px 0; align-items: center; }
+.rs .dl-load-err p { flex: 1; }
 .rs .deck { display: flex; flex-direction: column; gap: 12px; padding: 14px; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .03) 0 1px, transparent 1px 3px), linear-gradient(160deg, color-mix(in srgb, var(--deck) 80%, #fff), var(--deck) 45%); border: 1px solid var(--ink); border-radius: 7px; box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .14), 2px 4px 10px rgba(0, 0, 0, .3); }
 .rs .deck-top { display: flex; align-items: center; gap: 10px; color: var(--text-2); }
 .rs .deck-top .px, .rs .deck-top > span:not(.led):not(.stripes) { font-family: var(--label); font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }

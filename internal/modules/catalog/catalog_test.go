@@ -42,6 +42,8 @@ func newApp(t *testing.T) *app {
 			return filepath.Join(dir, "data"), true
 		case "SHELF_MUSIC_DIR":
 			return filepath.Join(dir, "music"), true
+		case "SHELF_DOWNLOADS_ENABLED":
+			return "true", true
 		}
 		return "", false
 	})
@@ -209,6 +211,44 @@ func TestItemsCarryStatus(t *testing.T) {
 		{http.MethodGet, "/api/items/nope/album/1", nil, http.StatusNotFound},
 	} {
 		if rec := x.do(tc.method, tc.path, tc.body); rec.Code != tc.want {
+			t.Errorf("%s %s: %d %s", tc.method, tc.path, rec.Code, rec.Body)
+		}
+	}
+}
+
+func TestCatalogDisabled(t *testing.T) {
+	dir := t.TempDir()
+	cfg, err := config.Load(func(k string) (string, bool) {
+		switch k {
+		case "SHELF_DATA_DIR":
+			return filepath.Join(dir, "data"), true
+		case "SHELF_MUSIC_DIR":
+			return filepath.Join(dir, "music"), true
+		}
+		return "", false
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dl, src := downloads.New(), fakesource.New()
+	a, err := platform.Open(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), dl, catalog.New(dl), src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = a.Close() })
+	if err := a.Migrate(bg); err != nil {
+		t.Fatal(err)
+	}
+	h := a.HTTP()
+	for _, tc := range []struct{ method, path string }{
+		{http.MethodGet, "/api/sources"},
+		{http.MethodGet, "/api/search?source=fake&type=album&q=a"},
+		{http.MethodPost, "/api/resolve"},
+		{http.MethodGet, "/api/items/fake/album/album-1"},
+	} {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(tc.method, tc.path, nil))
+		if rec.Code != http.StatusNotFound {
 			t.Errorf("%s %s: %d %s", tc.method, tc.path, rec.Code, rec.Body)
 		}
 	}

@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Music Shelf, short name shelf, manages a Navidrome music library. It downloads releases from Qobuz and Apple Music into the library, searches both catalogs, keeps a record of every download, and edits the library's tags. One Go binary with one SQLite file and a Vue web UI, deployed on blackberry next to Navidrome behind the sh-main gateway. Docs, code, logs and UI are in English.
+Music Shelf, short name shelf, manages a Navidrome music library. Library tagging is always on. Downloads, enabled with `SHELF_DOWNLOADS_ENABLED=true`, add Qobuz, Apple Music, catalog search, the Telegram bot and download history. External library agents are opt-in with `SHELF_AGENT_ENABLED=true`. One Go binary with one SQLite file and a Vue web UI, deployed on blackberry next to Navidrome behind the sh-main gateway. Docs, code, logs and UI are in English.
 
 State: shelf is finished and runs in production on blackberry. `docs/status.md` says what runs in production.
 
@@ -43,8 +43,8 @@ make lint         # golangci-lint and govulncheck in Docker
 make web-check    # npm ci, vue-tsc, Vitest and the Vite build
 make dev          # docker compose with air hot reload on :8080
 make manage ARGS="migrate status"   # shelf manage inside the dev container
-make manage ARGS="download https://fake.test/album/album-1"   # with SHELF_DEV_FAKE_SOURCE=true
-make manage ARGS="import-qobuz-db /path/to/qobuz_dl.db"   # the old bot's history
+make manage ARGS="download https://fake.test/album/album-1"   # with SHELF_DOWNLOADS_ENABLED=true and SHELF_DEV_FAKE_SOURCE=true
+make manage ARGS="import-qobuz-db /path/to/qobuz_dl.db"   # the old bot's history, with SHELF_DOWNLOADS_ENABLED=true
 make manage ARGS="tags /music/qobuz/Album/01.flac"   # one file's tags as Navidrome reads them
 make contract     # shelf's writes against a scratch Navidrome, in Linux containers
 make build-image  # code.tikhonnnnn.com/tikhon/shelf:local

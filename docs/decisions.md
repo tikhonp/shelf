@@ -30,6 +30,7 @@ The decisions in force and why. When one changes, edit its row and the docs it t
 
 | Decision | Why |
 | --- | --- |
+| Library tagging is always on. Downloads, catalog search, sources, and the Telegram bot require `SHELF_DOWNLOADS_ENABLED=true`. Their modules stay registered so migrations and records survive toggling off, and `/api/events` lives in the platform. | Downloads should be opt-in like agents, so a tagging-only install needs no source or bot setup and exposes no download routes or tabs. |
 | A job request may name its queue. `downloads.download` runs on the queue named after its source, or on `system`. | One job type with its steps, and still one download per source at a time. |
 | A source's error in `resolve` or `fetch` is recorded on the download, and the job goes on to `finish` and `notify`. Only shelf's own errors fail the job. | One path ends every download, and the bot's final message always comes from `notify`. |
 | A download that is canceled, or whose job fails, gets a `downloads.notify` job. | Those never reach their own `notify` step. |

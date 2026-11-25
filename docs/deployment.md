@@ -129,6 +129,10 @@ The CLI can reset a password or all passkeys without the server running. Both re
 [auth.md](auth.md) lists commands, cookie behavior, and the effect of changing the hostname. Local HTTP development keeps provider none.
 
 
+## Optional downloads
+
+Downloads, catalog search, Qobuz, Apple Music, and the Telegram bot are off unless `SHELF_DOWNLOADS_ENABLED=true`. Add `SHELF_DOWNLOADS_ENABLED=true` to `sh-blackberry/shelf.yaml` before deploying a release with this change so production keeps downloads enabled. Without it, Shelf runs as a Navidrome library tagger and ignores `SHELF_PROXY_URL`, Qobuz, Apple Music, Telegram, and fake-source settings, including the default `SHELF_AMDL_CONFIG`, while valid `SHELF_QOBUZ_DIR` and `SHELF_APPLE_DIR` values still control library folder attribution.
+
 ## Optional agent API
 
 Agent support is off unless `SHELF_AGENT_ENABLED=true`. Production sets it in `sh-blackberry/shelf.yaml`. [agents.md](agents.md) describes credentials and review.

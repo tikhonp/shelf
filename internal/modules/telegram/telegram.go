@@ -64,7 +64,8 @@ const (
 	connectWaitMax = 5 * time.Minute
 )
 
-// Module is the bot. With SHELF_TELEGRAM_TOKEN empty it is off.
+// Module is the bot. It stays off when SHELF_DOWNLOADS_ENABLED is false or
+// SHELF_TELEGRAM_TOKEN is empty.
 type Module struct {
 	// Limits, EditEvery and SearchWait are the defaults unless a test
 	// changes them before Init.
@@ -110,8 +111,8 @@ func (m *Module) Init(d module.Deps) error {
 	return nil
 }
 
-// Enabled reports whether a token was given.
-func (m *Module) Enabled() bool { return m.cfg.Telegram.Enabled() }
+// Enabled reports whether downloads are on and a token was given.
+func (m *Module) Enabled() bool { return m.cfg.DownloadsEnabled && m.cfg.Telegram.Enabled() }
 
 // Run connects to Telegram and long-polls until ctx ends. Telegram that
 // can't be reached is tried again with a growing pause; a token Telegram
@@ -195,8 +196,13 @@ func (m *Module) dispatch(ctx context.Context, _ *tgbot.Bot, u *models.Update) {
 // message its final text.
 func (m *Module) Notify(ctx context.Context, d downloads.Download) error { return m.b.notify(ctx, d) }
 
-// Routes serves /api/telegram for the Status page.
-func (m *Module) Routes(api *echo.Group) { api.GET("/telegram", m.status) }
+// Routes serves /api/telegram for the Status page when downloads are on.
+func (m *Module) Routes(api *echo.Group) {
+	if !m.cfg.DownloadsEnabled {
+		return
+	}
+	api.GET("/telegram", m.status)
+}
 
 // StatusJSON is the answer of GET /api/telegram.
 type StatusJSON struct {

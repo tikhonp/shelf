@@ -16,6 +16,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/labstack/echo/v5"
 	"github.com/tikhonp/shelf/internal/platform/auth"
@@ -29,6 +30,7 @@ import (
 	"github.com/tikhonp/shelf/internal/platform/module"
 	"github.com/tikhonp/shelf/internal/platform/obs"
 	"github.com/tikhonp/shelf/internal/platform/ui"
+	"github.com/tikhonp/shelf/internal/platform/web"
 	"github.com/tikhonp/shelf/internal/source"
 )
 
@@ -50,6 +52,9 @@ type App struct {
 	Backup  *backup.Service
 	// UI is the Vue build that GET and HEAD paths outside /api serve.
 	UI fs.FS
+	// EventKeepAlive is how often /api/events sends a keepalive comment while
+	// idle. Tests make it short.
+	EventKeepAlive time.Duration
 	// Modules are the platform followed by the registered modules, in the
 	// order their migrations run.
 	Modules []module.Module
@@ -81,7 +86,7 @@ func Open(cfg *config.Config, log *slog.Logger, modules ...module.Module) (*App,
 	if err != nil {
 		return nil, err
 	}
-	a := &App{Cfg: cfg, Log: log, DB: d, UI: ui.Dist, Modules: all,
+	a := &App{Cfg: cfg, Log: log, DB: d, UI: ui.Dist, EventKeepAlive: web.KeepAlive, Modules: all,
 		Jobs: jobs.New(d, cfg.TZ, log), Hub: hub.New(), Sources: source.NewRegistry(), closing: make(chan struct{})}
 	origin := ""
 	if cfg.PublicURL != nil {
@@ -190,6 +195,7 @@ func (a *App) HTTP() *echo.Echo {
 	api := e.Group("/api")
 	a.Auth.Routes(api)
 	api.GET("/version", version)
+	api.GET("/events", a.events)
 	owners := map[string]string{}
 	claim := func(owner string) {
 		for _, r := range e.Router().Routes() {

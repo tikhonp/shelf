@@ -1098,3 +1098,62 @@ test('History deep link pages past 10 extra pages and shows an unavailable statu
   expect(pageCalls).toBe(1)
   expect(h.changes.map((c) => c.id)).toEqual([31, 30])
 })
+
+test('with downloads disabled, Library hides empty Source column, download links, and folder download lookups', async () => {
+  const noDownloads = {
+    '/api/downloads': new Reply(404, { error: 'Not Found' }),
+    '/api/sources': new Reply(404, { error: 'Not Found' }),
+    '/api/library/filters': { albums: 1, issues: 0, no_mbid: 0, kinds: [], folders: [{ name: 'rock', albums: 1 }], sources: [], no_source: 1, types: [] },
+    '/api/library/albums': { albums: [row({ source: { id: '', name: '' } })], total: 1, limit: 100, offset: 0 },
+  }
+  const { w } = await at('/library', noDownloads)
+  expect(w.find('.lib-src').exists()).toBe(false)
+  expect(w.find('.g-lib.no-src').exists()).toBe(true)
+  await w.find('button[aria-haspopup="menu"]').trigger('click')
+  expect(w.find('[role=menu]').text()).not.toContain('No known source')
+  w.unmount()
+
+  // Existing album provenance stays visible, without dead /downloads links or folder download requests.
+  const { w: w2, calls } = await at('/library/7?view=history', {
+    '/api/downloads': new Reply(404, { error: 'Not Found' }),
+    '/api/sources': new Reply(404, { error: 'Not Found' }),
+    '/api/library/history': { changes: [change(9)], next: null },
+  })
+  expect(calls.some((c) => c.url.includes('folder='))).toBe(false)
+  expect(w2.find('a[href="/downloads/418"]').exists()).toBe(false)
+  w2.unmount()
+
+  const { w: w3 } = await at('/library/7', {
+    '/api/downloads': new Reply(404, { error: 'Not Found' }),
+    '/api/sources': new Reply(404, { error: 'Not Found' }),
+    '/api/library/albums/7': detail({ source: { ...row().source, link: 'https://play.qobuz.com/album/abc' } }),
+  })
+  expect(w3.find('.lib-from').text()).toContain('Downloaded from Qobuz')
+  expect(w3.find('a[href="/downloads/418"]').exists()).toBe(false)
+  expect(w3.find('a[href="https://play.qobuz.com/album/abc"]').exists()).toBe(true)
+  w3.unmount()
+})
+
+test('a stale album history download error does not clear the current album downloads', async () => {
+  let rejectFirst!: (v: unknown) => void
+  const albumA = detail({ id: 7, folder: 'qobuz/Album A', title: 'Album A' })
+  const albumB = detail({ id: 8, folder: 'qobuz/Album B', title: 'Album B' })
+  const { w, router } = await at('/library/7?view=history', {
+    '/api/library/albums/7': albumA,
+    '/api/library/albums/8': albumB,
+    '/api/library/history': { changes: [], next: null },
+    '/api/downloads?folder=qobuz%2FAlbum%20A': () =>
+      new Promise((resolve) => {
+        rejectFirst = resolve
+      }),
+    '/api/downloads?folder=qobuz%2FAlbum%20B': { downloads: [download(99, { title: 'Album B Download', status: 'done', folder: 'qobuz/Album B' })], next: null },
+  })
+  await router.push('/library/8?view=history')
+  await flushPromises()
+  expect(w.text()).toContain('Downloaded')
+
+  rejectFirst(new Reply(500, { error: 'boom' }))
+  await flushPromises()
+  expect(w.text()).toContain('Downloaded')
+  w.unmount()
+})

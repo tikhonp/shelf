@@ -231,3 +231,21 @@ func TestHealthFollowsWrapper(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 	}
 }
+
+func TestDownloadsDisabledKeepsAppleMusicOff(t *testing.T) {
+	r := newRig(t, "SHELF_DOWNLOADS_ENABLED=false", "SHELF_AMDL_CONFIG=/nonexistent/amdl.yaml")
+	if r.s.Enabled() {
+		t.Fatal("Enabled() = true with DownloadsEnabled false")
+	}
+	if err := r.m.Run(bg); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	e := echo.New()
+	e.HTTPErrorHandler = web.ErrorHandler
+	r.m.Routes(e.Group("/api"))
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/applemusic/wrapper", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("GET /api/applemusic/wrapper = %d, want 404", rec.Code)
+	}
+}

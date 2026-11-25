@@ -85,7 +85,7 @@ Rules:
 
 - A download's `status` moves from `queued` to `running` to one of `done`, `partial`, `failed` or `canceled`. `skipped` is set at creation and never changes. Retry moves `failed`, `partial` and `canceled` back to `queued`, clears `error`, the counts, the times and `notified`, and points `job_id` at a new job.
 - `partial` means some tracks failed. The release folder stays where the source left it; for Qobuz that is an `[INCOMPLETE]` folder.
-- `error` says why a download failed. A running download with an error has failed in `resolve` or `fetch` and will end at `finish`. An artist or label without albums ends `done` with "nothing to download" there.
+- `error` says why a download failed. A running download with an error has failed in `resolve` or `fetch` and will end at `finish`. An artist or label without albums ends `failed` if `resolve` recorded an error, and otherwise ends `done` with "nothing to download" there.
 - `finish` marks a track that never ended, because the source stopped or skipped it, `failed` with "not downloaded".
 - A track a cancel or a shutdown cut off goes back to `pending`, even when the source ends it as failed or never reports it, as a killed amdl does. So `tracks_failed` of a `canceled` download counts only tracks that failed before the cancel.
 - An artist or label download has children and no tracks. Its counts are the sums of its children's counts. Children share their parent's origin, format and force flag, with an empty `origin_ref`.

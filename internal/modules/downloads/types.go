@@ -142,6 +142,7 @@ type Event struct {
 const Topic = "download"
 
 var (
+	ErrDisabled      = errors.New("downloads: downloads are not enabled in Shelf")
 	ErrUnknownLink   = errors.New("downloads: link not from a known source")
 	ErrRefusedLink   = errors.New("downloads: refused link")
 	ErrUnknownSource = errors.New("downloads: unknown or disabled source")

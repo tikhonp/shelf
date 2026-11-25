@@ -9,6 +9,7 @@ import { sourceWords } from '../lib/source'
 import { isGuide, issueName, releaseTypeName } from '../lib/tags'
 import { usePhone } from '../lib/viewport'
 import { useBulk } from '../stores/bulk'
+import { useDownloads } from '../stores/downloads'
 import { useLibrary, type LibrarySort } from '../stores/library'
 import Cover from './Cover.vue'
 import Icon from './Icon.vue'
@@ -20,6 +21,8 @@ const props = defineProps<{ current?: number }>()
 const phone = usePhone()
 const library = useLibrary()
 const bulk = useBulk()
+const downloads = useDownloads()
+const showSource = computed(() => !!downloads.enabled || (library.filters?.sources.length ?? 0) > 0 || library.albums.some((a) => !!a.source.id))
 const route = useRoute()
 const router = useRouter()
 const menu = ref(false)
@@ -150,7 +153,7 @@ onMounted(() => {
         <span class="num">{{ bulk.selecting ? `${bulk.count.toLocaleString('en')} selected` : count(library.total, 'album') }}</span>
         <label v-if="bulk.selecting" class="low pick-all"><input class="lib-ck" type="checkbox" :checked="bulk.all" @change="bulk.toggleAll()" />Select all {{ library.total.toLocaleString('en') }}</label>
       </div>
-      <div class="row thead g-lib" :class="{ pick: bulk.selecting }" role="row">
+      <div class="row thead g-lib" :class="{ pick: bulk.selecting, 'no-src': !showSource }" role="row">
         <span v-if="bulk.selecting"></span>
         <span role="columnheader"><span class="sr">Cover</span></span>
         <span role="columnheader">Album</span>
@@ -158,10 +161,10 @@ onMounted(() => {
         <span role="columnheader" class="lib-w">Year</span>
         <span role="columnheader" class="r lib-w">Tracks</span>
         <span role="columnheader">Quality</span>
-        <span role="columnheader" class="lib-w">Source</span>
+        <span v-if="showSource" role="columnheader" class="lib-w">Source</span>
         <span role="columnheader"><span class="sr">Issues</span></span>
       </div>
-      <div v-for="(a, n) in library.albums" :key="a.id" class="row g-lib" :class="{ cur: a.id === current, kc: n === row, pick: bulk.selecting }" role="row">
+      <div v-for="(a, n) in library.albums" :key="a.id" class="row g-lib" :class="{ cur: a.id === current, kc: n === row, pick: bulk.selecting, 'no-src': !showSource }" role="row">
         <input v-if="bulk.selecting" class="lib-ck" type="checkbox" :checked="bulk.has(a.id)" :aria-label="`Select ${a.title}`" @change="bulk.toggle(a.id)" />
         <Cover :url="cover(a)" :size="46" />
         <button type="button" class="lib-open two" @click="open(a)">
@@ -172,7 +175,7 @@ onMounted(() => {
         <span class="t2 num sm lib-w">{{ a.year || '' }}</span>
         <span class="t2 num sm r lib-w">{{ a.tracks }}</span>
         <span class="lib-q"><span class="stk" :class="libraryTape(a.quality).cls">{{ libraryTape(a.quality).text }}</span><span class="sub num lib-n">{{ [a.source.name, count(a.tracks, 'track')].filter(Boolean).join(' · ') }}</span></span>
-        <span class="sub ell lib-w lib-src" :title="sourceTitle(a)">{{ a.source.name || '—' }}</span>
+        <span v-if="showSource" class="sub ell lib-w lib-src" :title="sourceTitle(a)">{{ a.source.name || '—' }}</span>
         <span v-if="lit(a)" class="led iss" role="img" aria-label="Has issues"></span>
       </div>
       <div v-if="library.hasMore" class="more"><ScrollMore :load="library.more" :count="library.albums.length" :busy="library.loading" /></div>

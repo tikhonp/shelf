@@ -72,7 +72,7 @@ func newPortBot(t *testing.T, port *fakePort) (*Module, *fakeTG) {
 	}
 	m := New(port)
 	m.Limits = unlimited()
-	cfg := &config.Config{TZ: time.UTC, Telegram: config.Telegram{Token: "123:abc", Users: []int64{owner}}}
+	cfg := &config.Config{TZ: time.UTC, DownloadsEnabled: true, Telegram: config.Telegram{Token: "123:abc", Users: []int64{owner}}}
 	if err := m.Init(module.Deps{Cfg: cfg, Log: dbtest.Discard, Sources: reg}); err != nil {
 		t.Fatal(err)
 	}

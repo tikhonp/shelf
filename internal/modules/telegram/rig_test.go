@@ -208,7 +208,7 @@ func newRig(t *testing.T, extra ...source.Source) *rig {
 	public, _ := url.Parse("https://shelf.test")
 	r := &rig{t: t, h: jobstest.New(t, downloads.New()), tg: newFakeTG(), reg: source.NewRegistry(), hub: hub.New(),
 		src: fakesource.NewSource("fake", "Fake"), other: fakesource.NewSource("other", "Other"),
-		cfg: &config.Config{MusicDir: t.TempDir(), TZ: moscow, PublicURL: public,
+		cfg: &config.Config{MusicDir: t.TempDir(), TZ: moscow, PublicURL: public, DownloadsEnabled: true,
 			Telegram: config.Telegram{Token: "123:abc", Users: []int64{owner}}}}
 	for _, s := range append([]source.Source{r.src, r.other}, extra...) {
 		if err := r.reg.Add(s); err != nil {

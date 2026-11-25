@@ -26,6 +26,7 @@ type Statuses interface {
 
 // Module is the catalog module.
 type Module struct {
+	on       bool
 	statuses Statuses
 	sources  *source.Registry
 	log      *slog.Logger
@@ -39,12 +40,18 @@ func (*Module) Migrations() fs.FS { return nil }
 
 // Init keeps the registry and the logger.
 func (m *Module) Init(d module.Deps) error {
+	m.on = d.Cfg.DownloadsEnabled
 	m.sources, m.log = d.Sources, d.Log
 	return nil
 }
 
-// Routes serves /api/sources, /api/search, /api/resolve and /api/items.
+// Routes serves /api/sources, /api/search, /api/resolve and /api/items when
+// downloads are on. With them off nothing is registered, so those paths answer
+// the platform's 404.
 func (m *Module) Routes(api *echo.Group) {
+	if !m.on {
+		return
+	}
 	api.GET("/sources", m.listSources)
 	api.GET("/search", m.search)
 	api.POST("/resolve", m.resolve)

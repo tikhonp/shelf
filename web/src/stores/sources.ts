@@ -7,10 +7,20 @@ import { defaultFormat } from '../lib/formats'
 export const useSources = defineStore('sources', () => {
   const list = ref<Source[]>([])
   const loaded = ref(false)
+  let loadSeq = 0
 
   async function load() {
-    list.value = await get<Source[]>('/api/sources')
+    const seq = ++loadSeq
+    const next = await get<Source[]>('/api/sources')
+    if (seq !== loadSeq) return
+    list.value = next
     loaded.value = true
+  }
+
+  function clear() {
+    loadSeq++
+    list.value = []
+    loaded.value = false
   }
 
   function applyEvent(e: SourceEvent) {
@@ -38,5 +48,5 @@ export const useSources = defineStore('sources', () => {
   const failing = computed(() => enabled.value.filter((s) => !s.health.ok))
   const noneReady = computed(() => loaded.value && ready.value.length === 0)
 
-  return { list, loaded, load, applyEvent, byId, name, formats, defaultOf, formatLabel, enabled, ready, failing, noneReady }
+  return { list, loaded, load, clear, applyEvent, byId, name, formats, defaultOf, formatLabel, enabled, ready, failing, noneReady }
 })

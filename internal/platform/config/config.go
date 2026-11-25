@@ -43,6 +43,9 @@ type Config struct {
 	// AgentEnabled turns on the library agent's API, the review inbox and
 	// the agents runner.
 	AgentEnabled bool
+	// DownloadsEnabled turns on downloads, catalog search, sources and the
+	// Telegram bot.
+	DownloadsEnabled bool
 
 	DevFakeSource bool
 	LogLevel      slog.Level
@@ -112,9 +115,13 @@ func LoadFromEnv() (*Config, error) { return Load(os.LookupEnv) }
 // Load parses the variables that lookup returns. An unset variable takes its
 // default. A variable set to an empty value is empty. That is how
 // SHELF_AMDL_CONFIG and SHELF_NAVIDROME_URL turn a part off despite their
-// defaults, and it is an error for a variable that needs a value.
+// defaults, and it is an error for a variable that needs a value. While
+// SHELF_DOWNLOADS_ENABLED is false, Load ignores proxy, Qobuz, Apple Music,
+// Telegram, and fake-source settings, but still reads valid SHELF_QOBUZ_DIR
+// and SHELF_APPLE_DIR values for library folder attribution.
 func Load(lookup func(string) (string, bool)) (*Config, error) {
 	p := &parser{lookup: lookup}
+	downloadsOn := p.strictBoolean("SHELF_DOWNLOADS_ENABLED", false)
 	c := &Config{
 		AuthProvider: p.required("SHELF_AUTH_PROVIDER", "none"),
 		AuthSetupUI:  p.strictBoolean("SHELF_AUTH_SETUP_UI", true),
@@ -123,23 +130,15 @@ func Load(lookup func(string) (string, bool)) (*Config, error) {
 		HTTPAddr:     p.required("SHELF_HTTP_ADDR", ":8080"),
 		PublicURL:    p.url("SHELF_PUBLIC_URL", "", false, "http", "https"),
 		TZ:           p.timeZone("SHELF_TIMEZONE", "Europe/Moscow"),
-		Proxy:        p.url("SHELF_PROXY_URL", "", true, "http", "https", "socks5", "socks5h"),
 		Qobuz: Qobuz{
-			Token:    Secret(p.str("SHELF_QOBUZ_TOKEN", "")),
-			Dir:      p.folder("SHELF_QOBUZ_DIR", "qobuz"),
-			Quality:  p.oneOf("SHELF_QOBUZ_QUALITY", 27, 5, 6, 7, 27),
-			Fallback: p.boolean("SHELF_QOBUZ_FALLBACK", true),
-			Workers:  p.positive("SHELF_QOBUZ_WORKERS", 3),
-			Delay:    p.duration("SHELF_QOBUZ_DELAY", 0, false),
-			UseProxy: p.boolean("SHELF_QOBUZ_USE_PROXY", false),
+			Dir:      p.optionalFolder("SHELF_QOBUZ_DIR", "qobuz"),
+			Quality:  27,
+			Fallback: true,
+			Workers:  3,
 		},
 		Apple: Apple{
-			AMDLConfig:        p.str("SHELF_AMDL_CONFIG", "/config/amdl.yaml"),
-			AMDLTimeout:       p.duration("SHELF_AMDL_TIMEOUT", 2*time.Hour, true),
-			Dir:               p.folder("SHELF_APPLE_DIR", "apple-music"),
-			WrapperURL:        p.requiredURL("SHELF_WRAPPER_URL", "http://shelf-wrapper:12340"),
-			WrapperControlURL: p.requiredURL("SHELF_WRAPPER_CONTROL_URL", "http://shelf-wrapper:12341"),
-			WrapperToken:      Secret(p.str("SHELF_WRAPPER_TOKEN", "")),
+			AMDLTimeout: 2 * time.Hour,
+			Dir:         p.optionalFolder("SHELF_APPLE_DIR", "apple-music"),
 		},
 		Navidrome: Navidrome{
 			URL:       p.url("SHELF_NAVIDROME_URL", "http://navidrome:4533", false, "http", "https"),
@@ -147,15 +146,36 @@ func Load(lookup func(string) (string, bool)) (*Config, error) {
 			Password:  Secret(p.str("SHELF_NAVIDROME_PASSWORD", "")),
 			ScanDelay: p.duration("SHELF_NAVIDROME_SCAN_DELAY", 30*time.Second, false),
 		},
-		Telegram: Telegram{
+		AcoustIDKey:      Secret(p.str("SHELF_ACOUSTID_KEY", "")),
+		AgentEnabled:     p.strictBoolean("SHELF_AGENT_ENABLED", false),
+		DownloadsEnabled: downloadsOn,
+		LogLevel:         p.level("SHELF_LOG_LEVEL", "info"),
+	}
+	if downloadsOn {
+		c.Proxy = p.url("SHELF_PROXY_URL", "", true, "http", "https", "socks5", "socks5h")
+		c.Qobuz = Qobuz{
+			Token:    Secret(p.str("SHELF_QOBUZ_TOKEN", "")),
+			Dir:      p.folder("SHELF_QOBUZ_DIR", "qobuz"),
+			Quality:  p.oneOf("SHELF_QOBUZ_QUALITY", 27, 5, 6, 7, 27),
+			Fallback: p.boolean("SHELF_QOBUZ_FALLBACK", true),
+			Workers:  p.positive("SHELF_QOBUZ_WORKERS", 3),
+			Delay:    p.duration("SHELF_QOBUZ_DELAY", 0, false),
+			UseProxy: p.boolean("SHELF_QOBUZ_USE_PROXY", false),
+		}
+		c.Apple = Apple{
+			AMDLConfig:        p.str("SHELF_AMDL_CONFIG", "/config/amdl.yaml"),
+			AMDLTimeout:       p.duration("SHELF_AMDL_TIMEOUT", 2*time.Hour, true),
+			Dir:               p.folder("SHELF_APPLE_DIR", "apple-music"),
+			WrapperURL:        p.requiredURL("SHELF_WRAPPER_URL", "http://shelf-wrapper:12340"),
+			WrapperControlURL: p.requiredURL("SHELF_WRAPPER_CONTROL_URL", "http://shelf-wrapper:12341"),
+			WrapperToken:      Secret(p.str("SHELF_WRAPPER_TOKEN", "")),
+		}
+		c.Telegram = Telegram{
 			Token:    Secret(p.str("SHELF_TELEGRAM_TOKEN", "")),
 			Users:    p.userIDs("SHELF_TELEGRAM_USERS"),
 			UseProxy: p.boolean("SHELF_TELEGRAM_USE_PROXY", false),
-		},
-		AcoustIDKey:   Secret(p.str("SHELF_ACOUSTID_KEY", "")),
-		AgentEnabled:  p.strictBoolean("SHELF_AGENT_ENABLED", false),
-		DevFakeSource: p.boolean("SHELF_DEV_FAKE_SOURCE", false),
-		LogLevel:      p.level("SHELF_LOG_LEVEL", "info"),
+		}
+		c.DevFakeSource = p.boolean("SHELF_DEV_FAKE_SOURCE", false)
 	}
 	if c.AuthProvider != "none" && c.AuthProvider != "simple" {
 		p.fail("SHELF_AUTH_PROVIDER must be none or simple")
@@ -163,7 +183,7 @@ func Load(lookup func(string) (string, bool)) (*Config, error) {
 	if c.AuthProvider == "simple" && (c.PublicURL == nil || c.PublicURL.Scheme != "https" || c.PublicURL.User != nil || c.PublicURL.RawQuery != "" || c.PublicURL.Fragment != "" || c.PublicURL.Path != "" && c.PublicURL.Path != "/") {
 		p.fail("SHELF_PUBLIC_URL must be an HTTPS origin when authentication is simple")
 	}
-	if c.Proxy == nil {
+	if downloadsOn && c.Proxy == nil {
 		if c.Qobuz.UseProxy {
 			p.fail("SHELF_QOBUZ_USE_PROXY is true but SHELF_PROXY_URL is empty")
 		}
@@ -180,13 +200,13 @@ func Load(lookup func(string) (string, bool)) (*Config, error) {
 // Warnings lists settings that are valid but leave a part unable to work.
 func (c *Config) Warnings() []string {
 	var w []string
-	if c.Telegram.Enabled() && len(c.Telegram.Users) == 0 {
+	if c.DownloadsEnabled && c.Telegram.Enabled() && len(c.Telegram.Users) == 0 {
 		w = append(w, "SHELF_TELEGRAM_TOKEN is set but SHELF_TELEGRAM_USERS is empty: the bot answers nobody")
 	}
 	if c.Navidrome.Enabled() && (c.Navidrome.User == "" || c.Navidrome.Password == "") {
 		w = append(w, "SHELF_NAVIDROME_USER or SHELF_NAVIDROME_PASSWORD is empty: Navidrome will refuse scans")
 	}
-	if c.Apple.Enabled() && c.Apple.WrapperToken == "" {
+	if c.DownloadsEnabled && c.Apple.Enabled() && c.Apple.WrapperToken == "" {
 		w = append(w, "SHELF_WRAPPER_TOKEN is empty: the wrapper's control API will refuse sign-in and restart")
 	}
 	return w
@@ -304,6 +324,16 @@ func (p *parser) folder(name, def string) string {
 	v := p.required(name, def)
 	if v != "" && !filepath.IsLocal(v) {
 		p.fail("%s: %q must be a relative path inside the music folder", name, v)
+	}
+	return filepath.Clean(v)
+}
+
+// optionalFolder reads a local folder path for provenance matching while
+// downloads are off, falling back to def on empty or invalid values.
+func (p *parser) optionalFolder(name, def string) string {
+	v := p.str(name, def)
+	if v == "" || !filepath.IsLocal(v) {
+		return def
 	}
 	return filepath.Clean(v)
 }

@@ -132,7 +132,6 @@ func (m *Module) routes(api *echo.Group) {
 	api.POST("/downloads/:id/cancel", m.cancel)
 	api.POST("/downloads/:id/retry", m.retry)
 	api.GET("/downloads/:id/log", m.logStream)
-	api.GET("/events", m.events)
 }
 
 func idParam(c *echo.Context) (int64, error) {
@@ -252,40 +251,6 @@ func (m *Module) retry(c *echo.Context) error {
 		return apiError(err)
 	}
 	return c.JSON(http.StatusOK, toJSON(d))
-}
-
-// eventTopics are the hub topics the web app hears. A module that publishes on
-// a new topic adds it here, or the event goes nowhere.
-var eventTopics = []string{Topic, "scan", "source", "library", "change", "run", "suggestions", "inbox"}
-
-// events streams the hub's events to the web app. A client that reconnects
-// reloads what it shows, so nothing is replayed.
-func (m *Module) events(c *echo.Context) error {
-	ch, stop := m.svc.hub.Subscribe(eventTopics...)
-	defer stop()
-	st, err := web.OpenStream(c)
-	if err != nil {
-		return nil
-	}
-	keep := time.NewTicker(m.KeepAlive)
-	defer keep.Stop()
-	ctx := c.Request().Context()
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-m.closing:
-			return nil
-		case e, ok := <-ch:
-			if !ok || st.Send(e.Topic, "", e.Data) != nil {
-				return nil
-			}
-		case <-keep.C:
-			if st.Ping() != nil {
-				return nil
-			}
-		}
-	}
 }
 
 // LogLine is one line of the log stream.

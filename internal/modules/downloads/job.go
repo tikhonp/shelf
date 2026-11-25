@@ -117,6 +117,9 @@ func (s *Service) resolve(ctx context.Context, r *jobs.Run) error {
 	d.Status = Running
 	s.publish(d, "")
 
+	if !s.enabled {
+		return s.fail(ctx, r, &d, "Downloads are not enabled in Shelf")
+	}
 	src, ok := s.sources.Enabled(d.Ref.Source)
 	if !ok {
 		return s.fail(ctx, r, &d, fmt.Sprintf("The source %q is not set up in Shelf", d.Ref.Source))
@@ -268,6 +271,9 @@ func (s *Service) fetch(ctx context.Context, r *jobs.Run) error {
 	}
 	if d.Status.Final() || d.Error != "" || d.Ref.Kind.Collection() {
 		return nil
+	}
+	if !s.enabled {
+		return s.fail(ctx, r, &d, "Downloads are not enabled in Shelf")
 	}
 	src, ok := s.sources.Enabled(d.Ref.Source)
 	if !ok {
@@ -442,6 +448,9 @@ func delivered(tracks []Track) source.Quality {
 // keeps a restart from sending it twice. The bot's send queue retries on its
 // own, so a failure here is logged and not retried.
 func (s *Service) notifyStep(ctx context.Context, r *jobs.Run) error {
+	if !s.enabled {
+		return nil
+	}
 	_, d, err := s.runDownload(r)
 	if err != nil {
 		return err
@@ -518,9 +527,10 @@ func (s *Service) queueNotify(ctx context.Context, tx *sqlx.Tx, d Download, by s
 // its children's and its status from theirs: running while any is queued
 // or running, then done when all are done or skipped, failed when all
 // failed, canceled when all were canceled, and partial otherwise. A parent
-// without children is done, with nothing to download. ownJob is set when
-// the parent's own job calls, whose notify step follows; otherwise a parent
-// that just ended gets a notify job.
+// without children ends failed if it already recorded an error, and otherwise
+// ends done with "nothing to download". ownJob is set when the parent's own
+// job calls, whose notify step follows; otherwise a parent that just ended
+// gets a notify job.
 func (s *Service) refreshParent(ctx context.Context, tx *sqlx.Tx, id int64, ownJob bool) (Download, error) {
 	p, err := loadWith(ctx, tx, id)
 	if err != nil {
@@ -547,7 +557,11 @@ func (s *Service) refreshParent(ctx context.Context, tx *sqlx.Tx, id int64, ownJ
 	status, msg := Partial, p.Error
 	switch {
 	case n == 0:
-		status, msg = Done, "nothing to download"
+		if p.Error != "" {
+			status = Failed
+		} else {
+			status, msg = Done, "nothing to download"
+		}
 	case count[Queued]+count[Running] > 0:
 		status = Running
 	case count[Done]+count[Skipped] == n:

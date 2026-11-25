@@ -10,6 +10,10 @@ End-to-end checks that need the real deployment on `blackberry`: real accounts, 
 
 ## Core checks
 
+With `SHELF_DOWNLOADS_ENABLED=false`, the default, check that the Search and Downloads tabs and the source, Telegram, and Notices cards on Status stay hidden, and that download, catalog, Telegram, and wrapper API routes answer 404. Check that Library tagging, Navidrome scans, and `/api/events` still work while downloads are off. Then turn `SHELF_DOWNLOADS_ENABLED=true` back on and check that existing download history is intact.
+
+With `SHELF_DOWNLOADS_ENABLED=true`:
+
 1. **Status.** Every part is healthy and Apple Music shows the storefront.
 2. **Apple Music sign-in.** Sign in from Status. The 2FA step appears, the right code signs in, and no code times out after 60 seconds.
 3. **Search.** Search Qobuz and Apple Music for albums, tracks, artists, and playlists. Open album, artist, and playlist panels.

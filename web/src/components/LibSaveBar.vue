@@ -2,10 +2,12 @@
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { count } from '../lib/format'
+import { useDownloads } from '../stores/downloads'
 import { useEditor } from '../stores/editor'
 import { useStatus } from '../stores/status'
 import Icon from './Icon.vue'
 
+const downloads = useDownloads()
 const editor = useEditor()
 const status = useStatus()
 const out = computed(() => editor.outcome)
@@ -64,7 +66,7 @@ const close = () => (editor.outcome = null)
       <div v-if="!['conflict', 'locked', 'busy'].includes(reason) && out.message" class="term">{{ out.message }}</div>
       <p v-else-if="out.message && reason !== 'conflict'" class="t2 sm">{{ out.message }}</p>
       <p class="t2">{{ words }}</p>
-      <RouterLink v-if="reason === 'busy'" class="key block" to="/downloads">Open the download</RouterLink>
+      <RouterLink v-if="reason === 'busy' && downloads.enabled" class="key block" to="/downloads">Open the download</RouterLink>
       <template v-else-if="deleting"></template>
       <button v-else-if="reason === 'conflict'" type="button" class="key sun block" @click="editor.reload()">Reload album</button>
       <button v-else-if="reason !== 'locked'" type="button" class="key sun block" @click="editor.save()">Try again</button>

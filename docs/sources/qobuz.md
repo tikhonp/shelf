@@ -4,6 +4,8 @@ The `qobuz` module is an adapter over [qobuz-dl-go](https://github.com/tikhonp/q
 
 ## Settings
 
+The module requires `SHELF_DOWNLOADS_ENABLED=true`. While downloads are off, Qobuz stays switched off, though a valid `SHELF_QOBUZ_DIR` still controls library folder attribution.
+
 | Variable | Maps to |
 | --- | --- |
 | `SHELF_QOBUZ_TOKEN` | the user auth token. Empty disables the module. |

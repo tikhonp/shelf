@@ -48,7 +48,7 @@ func newRig(t *testing.T) *rig {
 	}
 	r := &rig{t: t, h: h, reg: source.NewRegistry(), hub: hub.New(), closing: make(chan struct{}),
 		src: fakesource.NewSource("fake", "Fake"),
-		cfg: &config.Config{MusicDir: t.TempDir(), TZ: moscow}}
+		cfg: &config.Config{MusicDir: t.TempDir(), TZ: moscow, DownloadsEnabled: true}}
 	if err := r.reg.Add(r.src); err != nil {
 		t.Fatal(err)
 	}

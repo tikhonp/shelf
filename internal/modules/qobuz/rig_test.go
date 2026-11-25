@@ -78,7 +78,7 @@ type rig struct {
 func newRig(t *testing.T, change ...func(*rig)) *rig {
 	t.Helper()
 	r := &rig{t: t, srv: qobuzdltest.New(t), history: newMemHistory(), hub: hub.New(),
-		cfg: &config.Config{MusicDir: t.TempDir(), Qobuz: config.Qobuz{
+		cfg: &config.Config{MusicDir: t.TempDir(), DownloadsEnabled: true, Qobuz: config.Qobuz{
 			Token: "from-the-fake", Dir: "qobuz", Quality: 27, Fallback: true, Workers: 3,
 		}}}
 	r.m = New(r.history)

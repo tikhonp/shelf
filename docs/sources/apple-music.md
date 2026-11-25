@@ -8,7 +8,7 @@ Three pieces make up Apple Music in shelf:
 
 amdl's repository has no licence, so shelf copies none of its code. The catalog client makes the same requests amdl makes, written from scratch.
 
-The module is on when `SHELF_AMDL_CONFIG` names a readable amdl config. An empty value, a missing file or a broken one registers the source switched off, and a broken file is logged at start with the reason. The wrapper routes work whenever `SHELF_AMDL_CONFIG` is set, so the Status page can still sign in.
+The module requires `SHELF_DOWNLOADS_ENABLED=true`. When downloads are off, the source stays switched off and `/api/applemusic/wrapper*` answers 404. When downloads are on, the module turns on if `SHELF_AMDL_CONFIG` names a readable amdl config. An empty value, a missing file or a broken one registers the source switched off, and a broken file is logged at start with the reason. While downloads are on, the wrapper routes work whenever `SHELF_AMDL_CONFIG` is set, so the Status page can still sign in.
 
 ## Catalog client
 

@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import type { LibrarySource } from '../api/types'
 import { sourceWords } from '../lib/source'
+import { useDownloads } from '../stores/downloads'
 
 defineProps<{ source: LibrarySource }>()
+const downloads = useDownloads()
 </script>
 
 <template>
-  <p class="sub lib-from">
+  <p v-if="source.id || downloads.enabled" class="sub lib-from">
     <span>{{ sourceWords(source) }}</span>
     <span v-if="source.recorded" class="ell" :title="source.recorded">Recorded in {{ source.recorded }}</span>
-    <RouterLink v-if="source.by === 'download' && source.download_id" :to="`/downloads/${source.download_id}`">Download {{ source.download_id }}</RouterLink>
+    <RouterLink v-if="downloads.enabled && source.by === 'download' && source.download_id" :to="`/downloads/${source.download_id}`">Download {{ source.download_id }}</RouterLink>
     <a v-if="source.link" :href="source.link" target="_blank" rel="noreferrer">Open on {{ source.name }}</a>
   </p>
 </template>

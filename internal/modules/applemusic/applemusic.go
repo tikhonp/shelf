@@ -51,7 +51,8 @@ const (
 )
 
 // Module is the Apple Music module. It registers its source switched off
-// when SHELF_AMDL_CONFIG is empty or the file is unusable.
+// when SHELF_DOWNLOADS_ENABLED is false, or when SHELF_AMDL_CONFIG is empty
+// or unusable.
 type Module struct {
 	// AMDL is the amdl binary, from PATH by default. HTTP is the catalog's
 	// client. PollEvery and PollBusy default to the constants. Tests change
@@ -61,6 +62,7 @@ type Module struct {
 	PollEvery time.Duration
 	PollBusy  time.Duration
 
+	enabled bool
 	src     *Source
 	log     *slog.Logger
 	hub     *hub.Hub
@@ -86,10 +88,11 @@ func (m *Module) Source() *Source { return m.src }
 // Init reads the base amdl config and builds the clients. It reaches no
 // network: manage runs Init too.
 func (m *Module) Init(d module.Deps) error {
+	m.enabled = d.Cfg.DownloadsEnabled
 	m.log, m.hub = d.Log, d.Hub
 	cfg := d.Cfg.Apple
 	m.src.folder = filepath.ToSlash(cfg.Dir)
-	if !cfg.Enabled() {
+	if !m.enabled || !cfg.Enabled() {
 		return nil
 	}
 	m.wrapper = wrapper.New(cfg.WrapperControlURL, cfg.WrapperURL, cfg.WrapperToken, &http.Client{Timeout: wrapperTimeout})
@@ -284,8 +287,11 @@ func (m *Module) record(st wrapperapi.Status, err error) {
 	}
 }
 
-// Routes serves /api/applemusic/wrapper.
+// Routes serves /api/applemusic/wrapper when downloads are on.
 func (m *Module) Routes(api *echo.Group) {
+	if !m.enabled {
+		return
+	}
 	g := api.Group("/applemusic/wrapper")
 	g.GET("", m.getState)
 	g.POST("/login", m.postLogin)

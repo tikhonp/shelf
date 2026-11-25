@@ -49,6 +49,7 @@ type Service struct {
 	// Now is the clock; tests replace it.
 	Now func() time.Time
 
+	enabled bool
 	cfg     *config.Config
 	db      *db.DB
 	jobs    *jobs.System
@@ -66,6 +67,7 @@ type Service struct {
 }
 
 func (s *Service) init(d module.Deps) {
+	s.enabled = d.Cfg.DownloadsEnabled
 	s.cfg, s.db, s.jobs, s.hub, s.sources, s.log = d.Cfg, d.DB, d.Jobs, d.Hub, d.Sources, d.Log
 	s.lookupWait = defaultLookupWait
 }
@@ -150,6 +152,9 @@ const defaultLookupWait = 5 * time.Second
 // Queue creates a download and its job. An album, playlist or track that is
 // already in downloaded_items gives a skipped download unless r.Force.
 func (s *Service) Queue(ctx context.Context, r QueueRequest) (Download, error) {
+	if !s.enabled {
+		return Download{}, ErrDisabled
+	}
 	switch r.Origin {
 	case OriginWeb, OriginTelegram, OriginCLI:
 	default:
@@ -484,6 +489,9 @@ func (s *Service) Cancel(ctx context.Context, id int64, by string) error {
 // The old job and its log stay. An artist or label retries its albums that
 // did not end done.
 func (s *Service) Retry(ctx context.Context, id int64, by string) (Download, error) {
+	if !s.enabled {
+		return Download{}, ErrDisabled
+	}
 	var touched []int64
 	err := s.db.Write(ctx, func(tx *sqlx.Tx) error {
 		d, err := loadWith(ctx, tx, id)

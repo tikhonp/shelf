@@ -56,9 +56,11 @@ func modules(cfg *config.Config) []module.Module {
 		lib.SetHistoryReader(agent)
 	}
 	bot := telegram.New(dl.Service())
-	dl.Service().SetScanner(scanners{nav, lib})
-	dl.Service().SetNotifier(bot)
-	lib.SetBusy(dl.Service().Busy)
+	if cfg.DownloadsEnabled {
+		dl.Service().SetScanner(scanners{nav, lib})
+		dl.Service().SetNotifier(bot)
+		lib.SetBusy(dl.Service().Busy)
+	}
 	lib.SetForget(dl.Service().Forget)
 	lib.SetRecords(downloadRecords(dl.Service()))
 	if cfg.Navidrome.Enabled() {
@@ -76,7 +78,7 @@ func modules(cfg *config.Config) []module.Module {
 		})
 	}
 	ms := []module.Module{dl, catalog.New(dl), nav, bot, qobuz.New(dl.Service()), applemusic.New(), lib, agent}
-	if cfg.DevFakeSource {
+	if cfg.DownloadsEnabled && cfg.DevFakeSource {
 		ms = append(ms, fakesource.New())
 	}
 	return ms
@@ -395,7 +397,11 @@ func (c cli) download(ctx context.Context, app *platform.App, r downloads.QueueR
 	if !ok {
 		return errors.New("the downloads module is not enabled")
 	}
-	d, err := m.(*downloads.Module).Service().Queue(ctx, r)
+	dm := m.(*downloads.Module)
+	if !dm.Enabled() {
+		return errors.New("downloads are not enabled; set SHELF_DOWNLOADS_ENABLED=true")
+	}
+	d, err := dm.Service().Queue(ctx, r)
 	if err != nil {
 		return err
 	}

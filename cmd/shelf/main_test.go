@@ -265,9 +265,68 @@ func TestManageMigrate(t *testing.T) {
 		}
 	}
 
-	vars["SHELF_QOBUZ_WORKERS"] = "0"
-	if code, out := manage("migrate", "status"); code != 1 || !strings.Contains(out, "SHELF_QOBUZ_WORKERS") {
+	vars["SHELF_TIMEZONE"] = "Mars/Olympus"
+	if code, out := manage("migrate", "status"); code != 1 || !strings.Contains(out, "SHELF_TIMEZONE") {
 		t.Errorf("bad config: exit %d\n%s", code, out)
+	}
+}
+
+func TestServeDefaultModules(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var out syncBuffer
+	addrs := make(chan net.Addr, 1)
+	vars := local(t, map[string]string{"SHELF_MUSIC_DIR": t.TempDir(), "SHELF_NAVIDROME_URL": ""})
+	c := cli{lookup: env(vars), stdout: &out, stderr: &out, modules: modules, listening: func(a net.Addr) { addrs <- a }}
+	done := make(chan int, 1)
+	go func() { done <- c.run(ctx, []string{"serve"}) }()
+
+	var addr net.Addr
+	select {
+	case addr = <-addrs:
+	case code := <-done:
+		t.Fatalf("serve exited %d:\n%s", code, out.String())
+	case <-time.After(10 * time.Second):
+		t.Fatalf("serve did not start:\n%s", out.String())
+	}
+
+	client := &http.Client{Transport: &http.Transport{DisableKeepAlives: true}}
+	for _, p := range []string{"/healthz", "/api/version", "/api/library/index", "/api/library/filters", "/api/library/albums", "/api/library/scan"} {
+		resp, err := client.Get("http://" + addr.String() + p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("GET %s: %s", p, resp.Status)
+		}
+	}
+	for _, p := range []string{"/api/downloads", "/api/sources", "/api/search", "/api/telegram", "/api/applemusic/wrapper", "/api/inbox"} {
+		resp, err := client.Get("http://" + addr.String() + p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusNotFound {
+			t.Errorf("GET %s = %s, want 404", p, resp.Status)
+		}
+	}
+	// /api/events still works with downloads and agents disabled, and reaches EOF when serve stops.
+	resp, err := client.Get("http://" + addr.String() + "/api/events")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK || resp.Header.Get("Content-Type") != "text/event-stream" {
+		t.Errorf("GET /api/events: %s %s", resp.Status, resp.Header.Get("Content-Type"))
+	}
+
+	cancel()
+	if _, err := io.ReadAll(resp.Body); err != nil {
+		t.Errorf("read /api/events to EOF on shutdown: %v", err)
+	}
+	if code := <-done; code != 0 {
+		t.Errorf("exit %d:\n%s", code, out.String())
 	}
 }
 

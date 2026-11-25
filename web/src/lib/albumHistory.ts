@@ -1,6 +1,7 @@
 import { nextTick, onMounted, ref, watch, type Ref } from 'vue'
 import { errorText, get } from '../api/client'
 import type { Download, DownloadList, LibraryChange } from '../api/types'
+import { useDownloads } from '../stores/downloads'
 import { useEditor } from '../stores/editor'
 import { useHistory } from '../stores/history'
 
@@ -16,6 +17,7 @@ export function useAlbumHistory(
 ) {
   const history = useHistory()
   const editor = useEditor()
+  const downloadsStore = useDownloads()
   const downloads = ref<Download[]>([])
   const missingChange = ref<number | null>(null)
   let focusSeq = 0
@@ -61,18 +63,18 @@ export function useAlbumHistory(
     })
   }
 
-  // The downloads come last. Without any, or when the call fails, History
-  // leaves that part out.
+  // The downloads come last. When downloads are off, without any, or when the
+  // call fails, History leaves that part out.
   watch(
-    () => editor.album?.folder,
-    async (folder) => {
+    [() => editor.album?.folder, () => downloadsStore.enabled],
+    async ([folder, on]) => {
       downloads.value = []
-      if (!folder) return
+      if (!folder || on !== true) return
       try {
         const page = await get<DownloadList>(`/api/downloads?folder=${encodeURIComponent(folder)}`)
-        if (editor.album?.folder === folder) downloads.value = page.downloads
+        if (editor.album?.folder === folder && downloadsStore.enabled === true) downloads.value = page.downloads
       } catch {
-        downloads.value = []
+        // The watcher already cleared downloads before starting this request.
       }
     },
     { immediate: true },

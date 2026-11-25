@@ -16,6 +16,7 @@ import { useNow } from '../lib/clock'
 import { ago, count } from '../lib/format'
 import { sourceLamp } from '../lib/lamps'
 import { usePhone } from '../lib/viewport'
+import { useDownloads } from '../stores/downloads'
 import { useSources } from '../stores/sources'
 import { useLibrary } from '../stores/library'
 import { useStatus } from '../stores/status'
@@ -25,6 +26,7 @@ const route = useRoute()
 const router = useRouter()
 const phone = usePhone()
 const now = useNow()
+const downloads = useDownloads()
 const sources = useSources()
 const status = useStatus()
 const library = useLibrary()
@@ -32,7 +34,7 @@ const theme = useTheme()
 
 onMounted(() => void status.check())
 
-const signingIn = computed(() => route.query.signin === '1')
+const signingIn = computed(() => !!downloads.enabled && route.query.signin === '1')
 const openSignIn = () => void router.push({ query: { signin: '1' } })
 const closeSignIn = () => void router.replace({ query: {} })
 
@@ -118,33 +120,35 @@ const lines = (s: Source) => [s.enabled ? (s.health.ok ? 'WORKS' : (s.health.mes
         <button type="button" class="wbtn" aria-label="Check again" title="Check again" @click="status.check()"><Icon name="scan" /></button>
       </div>
       <div class="vscroll">
-        <PartCard v-if="apple" name="Apple Music" :lamp="sourceLamp(apple)" note="The wrapper" :lines="appleLines">
-          <template v-if="canSignIn" #text><p class="t2">{{ apple.health.message }}</p></template>
-          <template v-if="apple.enabled" #keys>
-            <button v-if="canSignIn" type="button" class="key sun" @click="openSignIn"><Icon name="user" />Sign in</button>
-            <button type="button" class="key" @click="status.restart().then(status.applyWrapper)">Restart</button>
-          </template>
-          <WrapperLog v-if="apple.enabled" />
-        </PartCard>
-        <PartCard v-if="qobuz" name="Qobuz" :lamp="sourceLamp(qobuz)" :note="qobuzNote" :lines="qobuzLines">
-          <template v-if="!qobuz.health.ok" #text>
-            <ol class="steps">
-              <li>Sign in at play.qobuz.com in a browser.</li>
-              <li>Copy the user auth token from the web player's local storage.</li>
-              <li>Put it in <code class="mono">SHELF_QOBUZ_TOKEN</code> and restart shelf.</li>
-            </ol>
-          </template>
-        </PartCard>
-        <PartCard v-for="s in others" :key="s.id" :name="s.name" :lamp="sourceLamp(s)" :lines="lines(s)" />
+        <template v-if="downloads.enabled">
+          <PartCard v-if="apple" name="Apple Music" :lamp="sourceLamp(apple)" note="The wrapper" :lines="appleLines">
+            <template v-if="canSignIn" #text><p class="t2">{{ apple.health.message }}</p></template>
+            <template v-if="apple.enabled" #keys>
+              <button v-if="canSignIn" type="button" class="key sun" @click="openSignIn"><Icon name="user" />Sign in</button>
+              <button type="button" class="key" @click="status.restart().then(status.applyWrapper)">Restart</button>
+            </template>
+            <WrapperLog v-if="apple.enabled" />
+          </PartCard>
+          <PartCard v-if="qobuz" name="Qobuz" :lamp="sourceLamp(qobuz)" :note="qobuzNote" :lines="qobuzLines">
+            <template v-if="!qobuz.health.ok" #text>
+              <ol class="steps">
+                <li>Sign in at play.qobuz.com in a browser.</li>
+                <li>Copy the user auth token from the web player's local storage.</li>
+                <li>Put it in <code class="mono">SHELF_QOBUZ_TOKEN</code> and restart shelf.</li>
+              </ol>
+            </template>
+          </PartCard>
+          <PartCard v-for="s in others" :key="s.id" :name="s.name" :lamp="sourceLamp(s)" :lines="lines(s)" />
+        </template>
         <PartCard name="Navidrome" :lamp="navidromeLamp" :note="status.scan?.address" :lines="navidromeLines">
           <template v-if="status.scan?.enabled" #keys><button type="button" class="key" :disabled="status.scan.scanning" @click="status.startScan()">Scan now</button></template>
         </PartCard>
-        <PartCard name="Telegram" :lamp="telegramLamp" :note="status.telegram?.username ? `@${status.telegram.username}` : ''" :lines="telegramLines" />
+        <PartCard v-if="downloads.enabled" name="Telegram" :lamp="telegramLamp" :note="status.telegram?.username ? `@${status.telegram.username}` : ''" :lines="telegramLines" />
         <PartCard v-if="library.index" name="Library" :lamp="libraryLamp" :lines="libraryLines">
           <template v-if="mbDown" #text><p class="t2">Editing and saving still work. Suggestions from MusicBrainz are missing until it answers.</p></template>
         </PartCard>
         <AgentsPanel />
-        <NoticeChoice />
+        <NoticeChoice v-if="downloads.enabled" />
         <AccountSettings />
         <section class="smod" aria-label="Theme">
           <div class="smod-h"><h2>Theme</h2></div>
@@ -156,43 +160,45 @@ const lines = (s: Source) => [s.enabled ? (s.health.ok ? 'WORKS' : (s.health.mes
         <BuildInfo last />
       </div>
     </section>
-    <NoticeSlot />
+    <NoticeSlot v-if="downloads.enabled" />
   </div>
   <div v-else class="col g16 desk-col">
-    <NoticeSlot />
-    <PartCard v-if="qobuz" name="Qobuz" :lamp="sourceLamp(qobuz)" :note="qobuzNote" :lines="qobuzLines">
-      <template v-if="!qobuz.health.ok" #text>
-        <div class="note replace">
-          <div class="col g4">
-            <strong class="px small-h">Replace the token</strong>
-            <ol class="sub steps">
-              <li>Sign in at play.qobuz.com in a browser.</li>
-              <li>Copy the user auth token from the web player's local storage.</li>
-              <li>Put it in <code class="mono">SHELF_QOBUZ_TOKEN</code> and restart shelf.</li>
-            </ol>
+    <NoticeSlot v-if="downloads.enabled" />
+    <template v-if="downloads.enabled">
+      <PartCard v-if="qobuz" name="Qobuz" :lamp="sourceLamp(qobuz)" :note="qobuzNote" :lines="qobuzLines">
+        <template v-if="!qobuz.health.ok" #text>
+          <div class="note replace">
+            <div class="col g4">
+              <strong class="px small-h">Replace the token</strong>
+              <ol class="sub steps">
+                <li>Sign in at play.qobuz.com in a browser.</li>
+                <li>Copy the user auth token from the web player's local storage.</li>
+                <li>Put it in <code class="mono">SHELF_QOBUZ_TOKEN</code> and restart shelf.</li>
+              </ol>
+            </div>
           </div>
-        </div>
-      </template>
-    </PartCard>
-    <PartCard v-if="apple" name="Apple Music" :lamp="sourceLamp(apple)" note="The wrapper, for decryption" :lines="appleLines">
-      <template v-if="apple.enabled" #keys>
-        <button v-if="canSignIn" type="button" class="key sun" @click="openSignIn"><Icon name="user" />Sign in</button>
-        <button type="button" class="key" @click="status.restart().then(status.applyWrapper)">Restart</button>
-      </template>
-      <WrapperLog v-if="apple.enabled" />
-    </PartCard>
-    <PartCard v-for="s in others" :key="s.id" :name="s.name" :lamp="sourceLamp(s)" :lines="lines(s)" />
+        </template>
+      </PartCard>
+      <PartCard v-if="apple" name="Apple Music" :lamp="sourceLamp(apple)" note="The wrapper, for decryption" :lines="appleLines">
+        <template v-if="apple.enabled" #keys>
+          <button v-if="canSignIn" type="button" class="key sun" @click="openSignIn"><Icon name="user" />Sign in</button>
+          <button type="button" class="key" @click="status.restart().then(status.applyWrapper)">Restart</button>
+        </template>
+        <WrapperLog v-if="apple.enabled" />
+      </PartCard>
+      <PartCard v-for="s in others" :key="s.id" :name="s.name" :lamp="sourceLamp(s)" :lines="lines(s)" />
+    </template>
     <div class="pair">
       <PartCard name="Navidrome" :lamp="navidromeLamp" :note="status.scan?.address" :lines="navidromeLines">
         <template v-if="status.scan?.enabled" #keys><button type="button" class="key" :disabled="status.scan.scanning" @click="status.startScan()">Scan now</button></template>
       </PartCard>
-      <PartCard name="Telegram" :lamp="telegramLamp" :note="status.telegram?.username ? `@${status.telegram.username}` : ''" :lines="telegramLines" />
+      <PartCard v-if="downloads.enabled" name="Telegram" :lamp="telegramLamp" :note="status.telegram?.username ? `@${status.telegram.username}` : ''" :lines="telegramLines" />
       <PartCard v-if="library.index" name="Library" :lamp="libraryLamp" :lines="libraryLines">
         <template v-if="mbDown" #text><p class="t2">Editing and saving still work. Suggestions from MusicBrainz are missing until it answers.</p></template>
       </PartCard>
     </div>
     <AgentsPanel />
-    <NoticeChoice />
+    <NoticeChoice v-if="downloads.enabled" />
     <DensityChoice />
     <AccountSettings />
     <BuildInfo />

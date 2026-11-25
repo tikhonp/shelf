@@ -29,12 +29,16 @@ const help = useHelp()
 const bulk = useBulk()
 const inbox = useInbox()
 
-// Inbox shows only while the library agent is on, which GET /api/inbox answering says. The phone keeps four tabs and opens the Inbox from the Library's title bar.
+// Search and Downloads show only while downloads are on, and Inbox only while the library agent is on. The phone opens the Inbox from the Library's title bar.
 const tabs = computed<{ to: string; label: string; icon: IconName }[]>(() => [
   { to: '/library', label: 'Library', icon: 'library' },
   ...(inbox.enabled && !phone.value ? [{ to: '/inbox', label: 'Inbox', icon: 'inbox' as IconName }] : []),
-  { to: '/search', label: 'Search', icon: 'search' },
-  { to: '/downloads', label: 'Downloads', icon: 'download' },
+  ...(downloads.enabled
+    ? [
+        { to: '/search', label: 'Search', icon: 'search' as IconName },
+        { to: '/downloads', label: 'Downloads', icon: 'download' as IconName },
+      ]
+    : []),
   { to: '/status', label: 'Status', icon: 'status' },
 ])
 // On the phone the Inbox opens from the Library, so the Library tab stays lit there.
@@ -64,7 +68,7 @@ const lastScan = computed(() => {
 const checked = computed(() => (status.checkedAt ? `Checked ${Math.max(0, Math.round((now.value - status.checkedAt) / 1000))} s ago` : ''))
 
 const lamps = computed(() => [
-  ...sources.list.map((s) => ({ id: s.id, cls: sourceLamp(s), title: s.health.ok ? `${s.name} works` : s.health.message || s.name })),
+  ...(downloads.enabled ? sources.list.map((s) => ({ id: s.id, cls: sourceLamp(s), title: s.health.ok ? `${s.name} works` : s.health.message || s.name })) : []),
   ...(status.scan?.enabled
     ? [{ id: 'navidrome', cls: status.scan.ok ? 'ok' : 'bad', title: status.scan.ok ? 'Navidrome answers' : "Navidrome doesn't answer" }]
     : []),
@@ -73,7 +77,7 @@ const lampWords = computed(() => lamps.value.map((l) => l.title).join(', '))
 
 onMounted(() => {
   events.connect()
-  void Promise.allSettled([downloads.load(), status.check(), bulk.check(), inbox.detect()])
+  void Promise.allSettled([downloads.detect(), status.check(), bulk.check(), inbox.detect()])
 })
 </script>
 
@@ -96,7 +100,7 @@ onMounted(() => {
           <span class="checked sm">{{ checked }}</span>
           <button type="button" class="key sm" @click="status.check()">Check again</button>
         </template>
-        <span class="leds" role="img" :aria-label="lampWords"><span v-for="l in lamps" :key="l.id" class="led" :class="l.cls" :title="l.title"></span></span>
+        <span v-if="lamps.length" class="leds" role="img" :aria-label="lampWords"><span v-for="l in lamps" :key="l.id" class="led" :class="l.cls" :title="l.title"></span></span>
         <button v-if="section === '/library'" type="button" class="key sm icon" aria-label="Help" title="Help" @click="help.sheet = 'guide'">?</button>
         <button type="button" class="key sm icon" :aria-label="theme.day ? 'Switch to Night' : 'Switch to Day'" :title="theme.day ? 'Switch to Night' : 'Switch to Day'" @click="theme.day = !theme.day"><Icon :name="theme.day ? 'moon' : 'sun'" /></button>
         <span class="vfd num">{{ clock(now) }}</span>

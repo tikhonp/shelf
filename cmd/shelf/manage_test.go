@@ -42,6 +42,12 @@ func TestManageImportQobuzDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	code, _, e := manage("import-qobuz-db", file)
+	if code != 1 || !strings.Contains(e, "SHELF_DOWNLOADS_ENABLED=true") {
+		t.Fatalf("disabled import: %d %s", code, e)
+	}
+
+	vars["SHELF_DOWNLOADS_ENABLED"] = "true"
 	code, out, e := manage("import-qobuz-db", file)
 	if code != 0 || out != "Read 3 rows: 2 added, 0 already on record, 1 of another kind, 1 with a path outside the music folder.\n" {
 		t.Fatalf("%d %q %s", code, out, e)
@@ -70,7 +76,7 @@ func TestManageImportQobuzDB(t *testing.T) {
 }
 
 func TestManageDownload(t *testing.T) {
-	vars := local(t, map[string]string{"SHELF_DEV_FAKE_SOURCE": "true", "SHELF_MUSIC_DIR": t.TempDir()})
+	vars := local(t, map[string]string{"SHELF_DOWNLOADS_ENABLED": "true", "SHELF_DEV_FAKE_SOURCE": "true", "SHELF_MUSIC_DIR": t.TempDir()})
 	manage := func(args ...string) (int, string, string) {
 		var out, errs bytes.Buffer
 		c := cli{lookup: env(vars), stdout: &out, stderr: &errs, modules: modules}
@@ -120,5 +126,10 @@ func TestManageDownload(t *testing.T) {
 	}
 	if code, _, e := manage("download", "https://fake.test/album/album-1", "--format", "ogg"); code != 1 || !strings.Contains(e, "no such format") {
 		t.Errorf("unknown format: %d %s", code, e)
+	}
+
+	vars["SHELF_DOWNLOADS_ENABLED"] = "false"
+	if code, _, e := manage("download", "https://fake.test/album/album-1"); code != 1 || !strings.Contains(e, "SHELF_DOWNLOADS_ENABLED=true") {
+		t.Errorf("disabled downloads: %d %s", code, e)
 	}
 }

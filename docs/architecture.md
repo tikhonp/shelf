@@ -29,17 +29,17 @@ Outside services: the Qobuz API and CDN, the Apple Music catalog API at `amp-api
 | `httpx`, `web` | Echo v5, middleware, JSON helpers, server-sent events. |
 | `ui` | The embedded Vue build. |
 
-Modules:
+Modules. `downloads`, `catalog`, `qobuz`, `applemusic` and `telegram` require `SHELF_DOWNLOADS_ENABLED=true`, and `fakesource` also requires `SHELF_DEV_FAKE_SOURCE=true`:
 
 | Module | Job |
 | --- | --- |
-| `downloads` | Downloads, their tracks and the downloaded-items registry; the download job type; `shelf.txt`; `/api/downloads` and `/api/events`. |
-| `catalog` | `/api/sources`, `/api/search`, `/api/resolve`, `/api/items` over every registered source. |
+| `downloads` | Always registered so migrations run and records survive toggling off. Owns downloads, their tracks and the downloaded-items registry, the download job types, `shelf.txt`, and `/api/downloads`. |
+| `catalog` | Serves `/api/sources`, `/api/search`, `/api/resolve`, and `/api/items` over every registered source. |
 | `qobuz` | The Qobuz source, an adapter over qobuz-dl-go. |
-| `applemusic` | The Apple Music source: catalog client, amdl runner, wrapper control client. |
+| `applemusic` | The Apple Music source: catalog client, amdl runner, wrapper control client, and `/api/applemusic/wrapper`. |
 | `navidrome` | The library port: scans and their state. It also reads Navidrome's tag settings for the library module, and has Navidrome forget the tracks of a deleted folder. |
-| `telegram` | The bot. It implements the downloads module's notifier port. |
-| `fakesource` | A source with canned data for tests, and for UI work when `SHELF_DEV_FAKE_SOURCE` is on. |
+| `telegram` | The bot and `/api/telegram`. Implements the downloads module's notifier port. |
+| `fakesource` | A source with canned data for tests and UI work. |
 | `library` | The tag editor. Its `tagio` package reads tags as Navidrome does and writes them through verified temp copies. The module sweeps leftover temp files at start, keeps an index of the music folder with its albums, their sources and their checks, saves edits through the `library.write` job, deletes release folders through the `library.delete` job, suggests values from names, `shelf.txt`, MusicBrainz, the catalogs, LRCLIB and AcoustID, runs fixes and ReplayGain over many albums, and serves `/api/library` and the audio for the player. Its `musicbrainz` package also reads the Cover Art Archive, `lrclib` reads lyrics, `loudness` measures tracks with ffmpeg, and `acoustid` fingerprints audio. [tags.md](tags.md) describes it. |
 
 A module implements `Name()` and `Migrations()` and declares the rest through optional interfaces, found by type assertion, as in `proxier/internal/platform/module/module.go`: `Initializer`, `Migrated`, `RouteDeclarer`, `BodyLimiter`, `JobDeclarer`, `SourceDeclarer` and `Runner`. Only serve calls a `Runner`'s `Run`, which holds work that lasts as long as the server, such as the bot's long polling. `manage` opens the platform too, so `Init` never logs in or reaches the network. The platform logs a `Run` that fails, and the server goes on without it. `module.Deps` gives a module the config, the logger, the database, the jobs system, the hub, the source registry, and a `Closing` channel that long-lived responses end on. The platform registers job types, schedules and sources after every `Init`. Adding a source means one new module and one line in `main`.
@@ -128,6 +128,8 @@ type Library interface {
 
 ## Downloads
 
+Downloads, catalog search, sources, and the Telegram bot are off by default unless `SHELF_DOWNLOADS_ENABLED=true`. Their modules stay registered so migrations run and existing records survive toggling off. While downloads are off, `/api/downloads*`, `/api/sources`, `/api/search`, `/api/resolve`, `/api/items/*`, `/api/telegram`, and `/api/applemusic/wrapper*` answer 404. Source and Telegram runners stay idle, `shelf manage download` and `shelf manage import-qobuz-db` refuse to run, and leftover downloads run no new resolve, fetch, or Telegram notify steps. Queued downloads settle as `failed`, while interrupted downloads with already-written tracks settle in `finish` as `partial` or `done`.
+
 - `POST /api/downloads`, the bot and `manage` commands all go through `downloads.Service.Queue`. A format without the source's prefix, such as `27`, is the source's; no format is the source's default.
 - Before queuing, the service looks up `downloaded_items`. A hit creates a `skipped` download unless the request has `force`. It has no job, and takes its title and cover from the item's last download, then its title and artist from the `downloaded_items` row. For anything still missing, `Queue` asks the source after the transaction, for up to 5 seconds. When that fails, the download stays `skipped` without it, and the next skip asks again.
 - `force` passes this check and nothing more. The sources still skip complete files, so a forced download fetches what is missing, and on a complete folder it ends `done` with every track `skipped`. `bytes` counts the files it skipped.
@@ -142,7 +144,7 @@ type Library interface {
 - Cancel ends the running step's context. A queued download ends `canceled` at once, a running one when the source returns. A download that ends canceled, or whose job fails, never reaches its `notify` step, so a `downloads.notify` job on `system` sends the final message instead. Canceling an artist or label cancels its albums.
 - Retry accepts `failed`, `partial` and `canceled` downloads. It starts a new job from `resolve` and keeps the old job and its log. Retry of an artist or label retries its albums that did not end done. To retry an album of an artist, retry the artist.
 - At shutdown the jobs platform gives running steps 3 seconds, then marks them `interrupted`. At start they resume from their first unfinished step; sources skip files that are already complete.
-- A parent's status follows its children: running while any child is queued or running, then `done` when all are done or skipped, `failed` when all failed, `canceled` when all were canceled, and `partial` otherwise. A parent without children ends `done` with the note "nothing to download" in `error`. Its counts are the sums of its children's.
+- A parent's status follows its children: running while any child is queued or running, then `done` when all are done or skipped, `failed` when all failed, `canceled` when all were canceled, and `partial` otherwise. A parent without children ends `failed` if it already recorded an error, and otherwise ends `done` with the note "nothing to download" in `error`. Its counts are the sums of its children's.
 
 ## Library
 
@@ -158,7 +160,7 @@ The navidrome module's `navidrome.Client` is the `Library`. It calls Navidrome's
 
 ## Events
 
-The hub carries seven kinds of event. `GET /api/events` streams them as server-sent events, and the bot subscribes to `download`.
+The platform serves `GET /api/events` as server-sent events for the hub's eight topics, whether optional modules are on or off, and the bot subscribes to `download`.
 
 | Event | Fields |
 | --- | --- |
@@ -169,6 +171,7 @@ The hub carries seven kinds of event. `GET /api/events` streams them as server-s
 | `change` | A tag write or a delete as `GET /api/library/changes/{id}` answers it, without `files`, when it is queued and when it ends. A run's albums send none, and the run sends one when it ends. A delete sends one more when Navidrome has forgotten its tracks. |
 | `run` | A bulk run as `GET /api/library/runs/{id}` answers it, as each album starts and ends |
 | `suggestions` | `{"album"}`, when a fingerprint job has found something to ask for |
+| `inbox` | `{"proposal", "state", "pending"}`, when a proposal changes in the Inbox |
 
 Streams send `Cache-Control: no-store`, `X-Accel-Buffering: no` and a keepalive comment every 15 seconds, and end when serve stops. A client that reconnects reloads the lists, so the stream needs no replay. The per-download log stream, `GET /api/downloads/{id}/log`, sends the latest job's lines as `line` events with `time`, `level`, `step` and `text`, and the line's row ID as the event ID. It resumes after `Last-Event-ID`, or after `?after=` on a fresh connection, as proxier's job log does. When the job has ended and every line is sent, it sends a `done` event with the job's `state`, and the client closes the stream, or `EventSource` would reconnect.
 
@@ -244,9 +247,9 @@ The API answers a download as `{"id", "parent_id", "source", "kind", "item_id", 
 
 `config.Load` parses the variables by hand, as proxier does. It reports every problem at once and never logs a value.
 
-An unset variable takes its default. A variable set to an empty value is empty. An empty `SHELF_AMDL_CONFIG` or `SHELF_NAVIDROME_URL` turns Apple Music or scans off despite the default, and an empty value is an error for a variable that needs one, such as `SHELF_TIMEZONE`. `Load` trims every value.
+An unset variable takes its default. A variable set to an empty value is empty. An empty `SHELF_AMDL_CONFIG` or `SHELF_NAVIDROME_URL` turns Apple Music or scans off despite the default, and an empty value is an error for a variable that needs one, such as `SHELF_TIMEZONE`. While `SHELF_DOWNLOADS_ENABLED` is `false`, `Load` ignores download-only settings except `SHELF_QOBUZ_DIR` and `SHELF_APPLE_DIR`, and never fails startup on them: `SHELF_PROXY_URL`, `SHELF_QOBUZ_*`, `SHELF_AMDL_*`, `SHELF_WRAPPER_*`, `SHELF_TELEGRAM_*`, and `SHELF_DEV_FAKE_SOURCE`. Valid `SHELF_QOBUZ_DIR` and `SHELF_APPLE_DIR` values still apply so library folder attribution matches existing downloads, while empty or invalid folder values fall back to their defaults. `Load` trims every value.
 
-Tokens and passwords are `config.Secret`, which prints, logs and marshals as `[redacted]`. `Reveal()` gives the value to the one place that sends it. `Config` prints and logs as a placeholder whatever the verb, because `SHELF_PROXY_URL` may hold a password. `Warnings()` names valid settings that leave a part unable to work: a Telegram token without users, Navidrome without a user or password, and Apple Music without `SHELF_WRAPPER_TOKEN`.
+Tokens and passwords are `config.Secret`, which prints, logs and marshals as `[redacted]`. `Reveal()` gives the value to the one place that sends it. `Config` prints and logs as a placeholder whatever the verb, because `SHELF_PROXY_URL` may hold a password. `Warnings()` names valid settings that leave a part unable to work: Navidrome without a user or password, and, while `SHELF_DOWNLOADS_ENABLED` is `true`, a Telegram token without users and Apple Music without `SHELF_WRAPPER_TOKEN`.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
@@ -257,6 +260,7 @@ Tokens and passwords are `config.Secret`, which prints, logs and marshals as `[r
 | `SHELF_TIMEZONE` | `Europe/Moscow` | Display time zone for `shelf.txt`, the UI and the backup schedule. |
 | `SHELF_PROXY_URL` | | Proxy for modules that opt in. |
 | `SHELF_AGENT_ENABLED` | `false` | Enables external agent connections and the review inbox. Accepts only `true` or `false`. |
+| `SHELF_DOWNLOADS_ENABLED` | `false` | Enables downloads, catalog search, the Qobuz, Apple Music, and fake sources, and the Telegram bot. Accepts only `true` or `false`. |
 | `SHELF_AUTH_SETUP_UI` | `true` | Allow the web UI to create the first account. Set false to use only `shelf manage users add`. |
 | `SHELF_AUTH_PROVIDER` | `none` | `simple` enables accounts and requires an HTTPS `SHELF_PUBLIC_URL` origin. Empty or unknown values fail startup. |
 | `SHELF_QOBUZ_TOKEN` | | Qobuz `user_auth_token`. Empty disables Qobuz. |

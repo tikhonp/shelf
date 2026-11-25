@@ -17,7 +17,11 @@ func (c cli) importQobuzDB(ctx context.Context, app *platform.App, cfg *config.C
 	if !ok {
 		return errors.New("the downloads module is not enabled")
 	}
-	r, err := qobuz.Import(ctx, file, cfg, m.(*downloads.Module).Service(), log)
+	dm := m.(*downloads.Module)
+	if !dm.Enabled() {
+		return errors.New("downloads are not enabled; set SHELF_DOWNLOADS_ENABLED=true")
+	}
+	r, err := qobuz.Import(ctx, file, cfg, dm.Service(), log)
 	if err != nil {
 		return err
 	}

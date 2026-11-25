@@ -301,6 +301,7 @@ func newRig(t *testing.T, env ...string) *rig {
 		"SHELF_DATA_DIR": r.data, "SHELF_MUSIC_DIR": r.music, "SHELF_AMDL_CONFIG": r.cfgPath,
 		"SHELF_WRAPPER_URL": r.wrap.srv.URL, "SHELF_WRAPPER_CONTROL_URL": r.wrap.srv.URL,
 		"SHELF_WRAPPER_TOKEN": wrapperToken, "SHELF_AMDL_TIMEOUT": "1m",
+		"SHELF_DOWNLOADS_ENABLED": "true",
 	}
 	for _, kv := range env {
 		k, v, _ := strings.Cut(kv, "=")

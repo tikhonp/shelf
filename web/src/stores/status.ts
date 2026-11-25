@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { ApiError, get, post } from '../api/client'
 import type { MusicBrainzState, ScanEvent, ScanState, Telegram, Wrapper, WrapperLogLine } from '../api/types'
+import { useDownloads } from './downloads'
 import { useLibrary } from './library'
 import { useSources } from './sources'
 
@@ -14,13 +15,39 @@ export const useStatus = defineStore('status', () => {
   // wrapperAnswers is false while the wrapper's container doesn't answer.
   const wrapperAnswers = ref(true)
   const checkedAt = ref(0)
+  let checkSeq = 0
+  let telegramSeq = 0
+  let wrapperSeq = 0
+
+  function clearDownloadParts() {
+    telegramSeq++
+    wrapperSeq++
+    useSources().clear()
+    telegram.value = null
+    wrapper.value = null
+    wrapperAnswers.value = true
+  }
 
   async function loadScan() {
     scan.value = await get<ScanState>('/api/library/scan')
   }
 
   async function loadTelegram() {
-    telegram.value = await get<Telegram>('/api/telegram')
+    const seq = ++telegramSeq
+    const downloads = useDownloads()
+    const gen = downloads.loadGeneration()
+    try {
+      const next = await get<Telegram>('/api/telegram')
+      if (seq !== telegramSeq || downloads.loadGeneration() !== gen || downloads.enabled === false) return
+      telegram.value = next
+    } catch (err) {
+      if (seq !== telegramSeq || downloads.loadGeneration() !== gen || downloads.enabled === false) return
+      if (err instanceof ApiError && err.status === 404) {
+        telegram.value = null
+        return
+      }
+      throw err
+    }
   }
 
   async function loadMusicBrainz() {
@@ -28,24 +55,56 @@ export const useStatus = defineStore('status', () => {
   }
 
   async function loadWrapper() {
+    const seq = ++wrapperSeq
+    const downloads = useDownloads()
+    const gen = downloads.loadGeneration()
     try {
-      wrapper.value = await get<Wrapper>('/api/applemusic/wrapper')
+      const next = await get<Wrapper>('/api/applemusic/wrapper')
+      if (seq !== wrapperSeq || downloads.loadGeneration() !== gen || downloads.enabled === false) return
+      wrapper.value = next
       wrapperAnswers.value = true
     } catch (err) {
+      if (seq !== wrapperSeq || downloads.loadGeneration() !== gen || downloads.enabled === false) return
       wrapper.value = null
       wrapperAnswers.value = !(err instanceof ApiError && err.status === 503)
     }
   }
 
   // check reloads every part. A part that fails keeps what it showed.
-  async function check() {
+  async function check(opts?: { retryDetect?: boolean }) {
+    const seq = ++checkSeq
     const sources = useSources()
-    // Whether to read the wrapper depends on the sources, so they go first.
-    const others = Promise.allSettled([loadScan(), loadTelegram(), loadMusicBrainz(), useLibrary().loadIndex()])
-    await sources.load().catch(() => {})
-    if (sources.byId('applemusic')?.enabled) await loadWrapper()
-    await others
-    checkedAt.value = Date.now()
+    const downloads = useDownloads()
+    const base = Promise.allSettled([loadScan(), loadMusicBrainz(), useLibrary().loadIndex()])
+    const retryDetect = opts?.retryDetect ?? true
+    if (downloads.enabled === null || (retryDetect && downloads.detectError)) {
+      await downloads.detect()
+    }
+    if (seq !== checkSeq) {
+      await base
+      return
+    }
+    if (downloads.enabled === false) {
+      clearDownloadParts()
+    } else if (downloads.enabled === true) {
+      const gen = downloads.loadGeneration()
+      let downloadsOff = false
+      await sources.load().catch((err) => {
+        if (err instanceof ApiError && err.status === 404) {
+          downloadsOff = true
+          if (seq === checkSeq && downloads.markDisabled(gen)) {
+            clearDownloadParts()
+          }
+        }
+      })
+      if (!downloadsOff && seq === checkSeq && downloads.loadGeneration() === gen) {
+        const extra: Promise<unknown>[] = [loadTelegram()]
+        if (sources.byId('applemusic')?.enabled) extra.push(loadWrapper())
+        await Promise.allSettled(extra)
+      }
+    }
+    await base
+    if (seq === checkSeq) checkedAt.value = Date.now()
   }
 
   function applyScan(e: ScanEvent) {
@@ -71,11 +130,14 @@ export const useStatus = defineStore('status', () => {
 
   // attention names what the Status tab's lamp is lit for, and nothing when all works.
   const attention = computed(() => {
-    const sources = useSources()
-    const out = sources.failing.map((s) => s.health.message || `${s.name} doesn't work`)
-    if (sources.noneReady && out.length === 0) out.push('No source is ready')
+    const out: string[] = []
+    if (useDownloads().enabled) {
+      const sources = useSources()
+      out.push(...sources.failing.map((s) => s.health.message || `${s.name} doesn't work`))
+      if (sources.noneReady && out.length === 0) out.push('No source is ready')
+      if (telegramFails.value) out.push("The Telegram bot isn't connected")
+    }
     if (scanFails.value) out.push("Navidrome doesn't answer")
-    if (telegramFails.value) out.push("The Telegram bot isn't connected")
     return out
   })
 

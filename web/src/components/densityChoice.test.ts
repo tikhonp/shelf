@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, expect, test } from 'vitest'
+import { useDownloads } from '../stores/downloads'
 import { useSettings } from '../stores/settings'
 import DensityChoice from './DensityChoice.vue'
 
@@ -37,9 +38,17 @@ test('an unknown stored value falls back to the default', () => {
   expect(fresh().density).toBe('comfortable')
 })
 
-test('the preview offers nothing to press', () => {
-  const preview = open().find('.preview')
+test('the preview offers nothing to press and follows whether downloads are on', async () => {
+  const w = open()
+  const preview = w.find('.preview')
   expect(preview.attributes('inert')).toBeDefined()
   expect(preview.find('button').exists()).toBe(false)
-  expect(preview.text()).toContain('Retry')
+  expect(preview.text()).toContain('Undo')
+  expect(preview.text()).not.toContain('Qobuz')
+  expect(preview.text()).not.toContain('Apple Music')
+
+  useDownloads().enabled = true
+  await flushPromises()
+  expect(w.find('.preview button').exists()).toBe(false)
+  expect(w.find('.preview').text()).toContain('Retry')
 })

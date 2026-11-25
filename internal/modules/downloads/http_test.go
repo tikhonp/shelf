@@ -2,6 +2,7 @@ package downloads
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tikhonp/shelf/internal/platform/jobs"
 	"github.com/tikhonp/shelf/internal/source"
 )
 
@@ -67,57 +69,6 @@ func (r *rig) stream(path string, header map[string]string) (*http.Response, *ss
 	}
 	r.t.Cleanup(func() { _ = resp.Body.Close() })
 	return resp, &sse{t: r.t, sc: bufio.NewScanner(resp.Body)}
-}
-
-func TestEventsStream(t *testing.T) {
-	r := newRig(t)
-	resp, s := r.stream("/api/events", nil)
-	h := resp.Header
-	if h.Get("Content-Type") != "text/event-stream" || h.Get("Cache-Control") != "no-store" || h.Get("X-Accel-Buffering") != "no" {
-		t.Fatalf("headers %v", h)
-	}
-	if e := s.next(); !e.comment { // nothing has happened: a keepalive
-		t.Fatalf("first %+v", e)
-	}
-	d := r.queue(QueueRequest{Ref: album("album-1")})
-	r.hub.Publish("scan", map[string]bool{"scanning": true})
-	r.hub.Publish("other", 1) // not a stream topic
-	var got []sseEvent
-	for len(got) < 2 {
-		if e := s.next(); !e.comment {
-			got = append(got, e)
-		}
-	}
-	var ev Event
-	if got[0].event != "download" || json.Unmarshal([]byte(got[0].data), &ev) != nil || ev.ID != d.ID || ev.Status != Queued || ev.ParentID != nil {
-		t.Fatalf("%+v", got[0])
-	}
-	if got[1].event != "scan" || got[1].data != `{"scanning":true}` {
-		t.Fatalf("%+v", got[1])
-	}
-	// The stream ends when serve stops, not only when the client leaves.
-	close(r.closing)
-	for s.sc.Scan() {
-	}
-}
-
-func TestEventsStreamCarriesARun(t *testing.T) {
-	r := newRig(t)
-	_, s := r.stream("/api/events", nil)
-	if e := s.next(); !e.comment {
-		t.Fatalf("first %+v", e)
-	}
-	r.hub.Publish("run", map[string]int{"id": 1})
-	r.hub.Publish("suggestions", map[string]int{"album": 2})
-	var got []sseEvent
-	for len(got) < 2 {
-		if e := s.next(); !e.comment {
-			got = append(got, e)
-		}
-	}
-	if got[0].event != "run" || got[1].event != "suggestions" || got[1].data != `{"album":2}` {
-		t.Fatalf("%+v", got)
-	}
 }
 
 func TestLogStreamResumes(t *testing.T) {
@@ -281,5 +232,70 @@ func TestStatusesMarkItems(t *testing.T) {
 	got, _ = r.svc.Statuses(bg, []source.Ref{album("album-1")})
 	if got[album("album-1")] != (source.Status{State: "in_library", DownloadID: done.ID}) {
 		t.Fatalf("%+v", got)
+	}
+}
+
+func TestDisabledDownloads(t *testing.T) {
+	r := newRig(t)
+	// Interrupt one album during fetch so the disabled restart exercises the
+	// fetch guard as well as the resolve guard for queued jobs.
+	reached := make(chan struct{}, 1)
+	r.src.Hook = func(ctx context.Context, ref source.Ref, pos int) error {
+		if ref.ID == "album-2" && pos == 1 {
+			select {
+			case reached <- struct{}{}:
+			default:
+			}
+			<-ctx.Done()
+			return ctx.Err()
+		}
+		return nil
+	}
+	r.start()
+	resumingFetch := r.queue(QueueRequest{Ref: album("album-2")})
+	<-reached
+	r.stop()
+	r.src.Hook = nil
+
+	// Queue an album, an unexpanded artist, and a leftover notify job while
+	// enabled, then restart with downloads disabled.
+	queuedAlbum := r.queue(QueueRequest{Ref: album("album-1")})
+	queuedArtist := r.queue(QueueRequest{Ref: artist("artist-1")})
+	if _, err := r.h.Sys.EnqueueNow(bg, jobs.Request{Type: NotifyJobType, Payload: payload{DownloadID: queuedAlbum.ID}, CreatedBy: "cli"}); err != nil {
+		t.Fatal(err)
+	}
+	r.cfg.DownloadsEnabled = false
+	sys := r.h.NewSystem()
+	r.m = r.module(sys)
+	r.svc = r.m.svc
+	r.h.Sys = sys
+	notifier := &countingNotifier{}
+	r.svc.SetNotifier(notifier)
+
+	if r.m.Enabled() {
+		t.Fatal("Enabled() = true when DownloadsEnabled is false")
+	}
+	if _, err := r.svc.Queue(bg, QueueRequest{Ref: album("album-3"), Origin: OriginWeb}); err != ErrDisabled {
+		t.Fatalf("Queue err = %v, want ErrDisabled", err)
+	}
+	for _, path := range []string{"/api/downloads", "/api/downloads/1", "/api/downloads/1/log"} {
+		if rec := r.do(http.MethodGet, path, nil); rec.Code != http.StatusNotFound {
+			t.Errorf("GET %s: %d", path, rec.Code)
+		}
+	}
+	// Leftover queued album, resumed fetch, and unexpanded collection downloads
+	// settle as failed instead of downloading or marking done.
+	r.start()
+	r.h.Drain()
+	for _, id := range []int64{resumingFetch.ID, queuedAlbum.ID, queuedArtist.ID} {
+		if d := r.get(id); d.Status != Failed || !strings.Contains(d.Error, "not enabled") {
+			t.Fatalf("leftover download %d: status=%s error=%q", id, d.Status, d.Error)
+		}
+	}
+	if notifier.count() != 0 {
+		t.Fatalf("notifier called %d times while disabled", notifier.count())
+	}
+	if _, err := r.svc.Retry(bg, queuedAlbum.ID, "web"); err != ErrDisabled {
+		t.Fatalf("Retry err = %v, want ErrDisabled", err)
 	}
 }

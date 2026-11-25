@@ -4,7 +4,7 @@ Shelf runs in production on `blackberry` at `shelf.music.tikhonnnnn.com` with th
 
 ## What runs in production
 
-- **Downloads.** Web UI and Telegram bot search and download from Qobuz (`qobuz-dl-go` `v0.1.4`) and Apple Music (`amdl` and `shelf-wrapper`, built from `ghcr.io/worldobservationlog/wrapper-lite` pinned by digest). Navidrome scans after downloads finish. The old bot's 169 downloads are imported.
+- **Downloads.** Web UI and Telegram bot search and download from Qobuz (`qobuz-dl-go` `v0.1.4`) and Apple Music (`amdl` and `shelf-wrapper`, built from `ghcr.io/worldobservationlog/wrapper-lite` pinned by digest). Navidrome scans after downloads finish. The old bot's 169 downloads are imported. Downloads are opt-in behind `SHELF_DOWNLOADS_ENABLED=true`.
 - **Library and tags.** The Library tab is the home screen. It edits tags and covers, plays tracks, shows album sources and release types, runs checks and bulk ReplayGain fixes, and keeps undoable history per album and globally. `make contract` passes against Navidrome `0.64.2`.
 - **Accounts.** Production signs in with Shelf accounts (`SHELF_AUTH_PROVIDER=simple`) and passkeys, with gateway basic auth removed.
 - **Agents.** Optional library agents (`SHELF_AGENT_ENABLED=true`) run in production. The built-in setup prompt stays general, while the owner's personal rules live in Memory and [agent-personal-prompt.md](agent-personal-prompt.md).
