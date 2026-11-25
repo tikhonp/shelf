@@ -1,5 +1,7 @@
 # <branch>-<sha7>, as CI sets it
 APP_VERSION := $(shell b=$$(git rev-parse --abbrev-ref HEAD 2>/dev/null) && c=$$(git rev-parse --short=7 HEAD 2>/dev/null) && echo "$$b-$$c" || echo dev)
+IMAGE ?= ghcr.io/tikhonp/shelf
+WRAPPER_IMAGE ?= ghcr.io/tikhonp/shelf-wrapper
 
 .PHONY: check test lint web-check contract dev manage build-image build-wrapper-image icons
 
@@ -32,7 +34,7 @@ web-check:
 
 # The Navidrome contract test: shelf's writes against a scratch Navidrome,
 # judged by what Navidrome shows. SHELF_CONTRACT_IMAGE picks the image,
-# deluan/navidrome:latest by default, as production runs.
+# deluan/navidrome:latest by default.
 contract:
 	./scripts/contract.sh
 
@@ -46,12 +48,12 @@ manage:
 	docker exec -it shelf shelf manage $(ARGS)
 
 build-image:
-	docker buildx build --build-arg APP_VERSION=$(APP_VERSION) -t code.tikhonnnnn.com/tikhon/shelf:local --load .
+	docker buildx build --build-arg APP_VERSION=$(APP_VERSION) -t $(IMAGE):local --load .
 
 # wrapper-lite is amd64 only, so on an arm64 machine this builds under
 # emulation.
 build-wrapper-image:
-	docker buildx build --platform linux/amd64 --target wrapper --build-arg APP_VERSION=$(APP_VERSION) -t code.tikhonnnnn.com/tikhon/shelf-wrapper:local --load .
+	docker buildx build --platform linux/amd64 --target wrapper --build-arg APP_VERSION=$(APP_VERSION) -t $(WRAPPER_IMAGE):local --load .
 
 # The raster icons in web/public, from web/public/favicon.svg and the
 # full-bleed web/icons/icon.svg. Needs ImageMagick. Commit the output.

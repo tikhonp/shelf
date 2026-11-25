@@ -1,5 +1,5 @@
 # Development stack: air rebuilds and restarts shelf on every change.
-# Production runs code.tikhonnnnn.com/tikhon/shelf from sh-blackberry/shelf.yaml.
+# For production deployments, see compose.example.yaml and docs/deployment.md.
 services:
   shelf:
     build:

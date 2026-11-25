@@ -81,13 +81,12 @@ ARG BUILD_DATE=
 ARG VCS_REF=
 LABEL org.opencontainers.image.title="Music Shelf wrapper" \
       org.opencontainers.image.description="wrapper-lite for Music Shelf, with a supervisor that signs it in" \
-      org.opencontainers.image.source="https://code.tikhonnnnn.com/tikhon/shelf" \
+      org.opencontainers.image.source="https://github.com/tikhonp/shelf" \
       org.opencontainers.image.licenses="AGPL-3.0-only" \
       org.opencontainers.image.version="${APP_VERSION}" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.created="${BUILD_DATE}"
-# Dozzle shows this icon for the container: shelf's record with a rose label,
-# so the two look related in Dozzle but are easy to tell apart.
+# Container icon (record with a rose label), used by log viewers such as Dozzle.
 LABEL dev.dozzle.icon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHJ4PSI4IiBmaWxsPSIjM2Q0YTU3Ii8+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMjEiIGZpbGw9IiMxNTE3MWEiLz48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIxNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMmEyZTMzIiBzdHJva2Utd2lkdGg9IjEuNSIvPjxjaXJjbGUgY3g9IjMwIiBjeT0iMzAiIHI9IjciIGZpbGw9IiNlNTU2NmIiLz48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIxLjYiIGZpbGw9IiMxNTE3MWEiLz48L3N2Zz4="
 WORKDIR /app
 EXPOSE 12340 12341
@@ -97,8 +96,8 @@ CMD []
 
 # prod: the runtime image, and the last stage, so `docker build .` builds it.
 # amdl and the Qobuz segmented fallback call ffmpeg. amdl is the upstream
-# static binary, the one that runs in production today. chromaprint ships
-# fpcalc, which the library's AcoustID lookups call.
+# static binary. chromaprint ships fpcalc, which the library's AcoustID
+# lookups call.
 FROM alpine:3.24 AS prod
 RUN apk add --no-cache ca-certificates chromaprint ffmpeg tzdata
 COPY --from=ghcr.io/zhaarey/apple-music-downloader:0.1.4 /usr/local/bin/amdl /usr/local/bin/amdl
@@ -109,17 +108,16 @@ ARG APP_VERSION=dev
 ARG BUILD_DATE=
 ARG VCS_REF=
 LABEL org.opencontainers.image.title="Music Shelf" \
-      org.opencontainers.image.description="Downloads from Qobuz and Apple Music into a Navidrome library" \
-      org.opencontainers.image.source="https://code.tikhonnnnn.com/tikhon/shelf" \
+      org.opencontainers.image.description="Manages a Navidrome music library: tag editor, optional downloads, and agent review" \
+      org.opencontainers.image.source="https://github.com/tikhonp/shelf" \
       org.opencontainers.image.licenses="AGPL-3.0-only" \
       org.opencontainers.image.version="${APP_VERSION}" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.created="${BUILD_DATE}"
-# Dozzle shows this icon for the container: a record with an amber label on
-# a blue-grey panel, as a base64 SVG.
+# Container icon (record with an amber label), used by log viewers such as Dozzle.
 LABEL dev.dozzle.icon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHJ4PSI4IiBmaWxsPSIjM2Q0YTU3Ii8+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMjEiIGZpbGw9IiMxNTE3MWEiLz48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIxNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMmEyZTMzIiBzdHJva2Utd2lkdGg9IjEuNSIvPjxjaXJjbGUgY3g9IjMwIiBjeT0iMzAiIHI9IjciIGZpbGw9IiNlOGEzM2QiLz48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIxLjYiIGZpbGw9IiMxNTE3MWEiLz48L3N2Zz4="
 
-# UID 10001 owns the music folder; see docs/deployment.md.
+# Runs as non-root UID 10001; see docs/deployment.md for music folder permissions.
 USER 10001:10001
 VOLUME /data
 EXPOSE 8080

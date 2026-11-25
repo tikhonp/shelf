@@ -29,7 +29,7 @@ func SecurityHeaders() echo.MiddlewareFunc {
 
 // CrossOrigin refuses cross-site requests with unsafe methods, using
 // Sec-Fetch-Site and Origin. It also trusts the public URL's origin,
-// because the gateway may rewrite Host.
+// because a reverse proxy may rewrite Host.
 func CrossOrigin(publicURL *url.URL) echo.MiddlewareFunc {
 	cop := http.NewCrossOriginProtection()
 	if publicURL != nil {

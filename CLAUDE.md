@@ -2,13 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Music Shelf, short name shelf, manages a Navidrome music library. Library tagging is always on. Downloads, enabled with `SHELF_DOWNLOADS_ENABLED=true`, add Qobuz, Apple Music, catalog search, the Telegram bot and download history. External library agents are opt-in with `SHELF_AGENT_ENABLED=true`. One Go binary with one SQLite file and a Vue web UI, deployed on blackberry next to Navidrome behind the sh-main gateway. Docs, code, logs and UI are in English.
-
-State: shelf is finished and runs in production on blackberry. `docs/status.md` says what runs in production.
+Music Shelf, short name shelf, manages a Navidrome music library. Library tagging is always on. Downloads, enabled with `SHELF_DOWNLOADS_ENABLED=true`, add Qobuz, Apple Music, catalog search, the Telegram bot, and download history. External library agents are opt-in with `SHELF_AGENT_ENABLED=true`. One Go binary with one SQLite file and a Vue web UI. Docs, code, logs, and UI are in English.
 
 ## Read first
 
-- `docs/status.md`, `docs/issues.md`, then `docs/README.md`, the map of the docs.
+- `docs/README.md`, the map of the docs, and `docs/issues.md`.
 - `docs/architecture.md`, `docs/data-model.md`, and the doc of the part you touch.
 - `docs/decisions.md` before changing how something works.
 - For the UI: `docs/ui/design/README.md` and its screens.
@@ -21,19 +19,17 @@ State: shelf is finished and runs in production on blackberry. `docs/status.md` 
 - A source is a module that implements the interfaces in `internal/source`. Code outside that module never knows which source it talks to.
 - Nothing slow or remote happens inside a database transaction. Read, act, then write.
 - Schema changes go only into new goose migrations. Tables are STRICT. Stored times are UTC text.
-- The music folder belongs to UID 10001. shelf runs as that user with umask 022, never changes the owner or mode of a file it did not create, and deletes only its own temp files, a folder's `cover.*` when the owner replaces or deletes a cover, and a release folder the owner deletes, when shelf's UID owns everything in it.
-- Secrets never reach logs, job logs, `shelf.txt` or API answers. That covers the Qobuz token, the Telegram token, the Navidrome password, the wrapper token, the AcoustID key, and Apple ID passwords and codes.
+- The runtime container runs as UID `10001` with umask `022`. shelf never changes the owner or mode of a file it did not create, and deletes only its own temp files, a folder's `cover.*` when the user replaces or deletes a cover, and a release folder the user deletes when shelf's UID owns everything in it.
+- Secrets never reach logs, job logs, `shelf.txt`, or API answers. That covers the Qobuz token, the Telegram token, the Navidrome password, the wrapper token, the AcoustID key, and Apple ID passwords and codes.
 - Comments say why, not what. Match the surrounding code.
 - There is no error reporting service. Errors are logged with slog.
 
 ## How to work
 
-- Run `/tikhon:unslop` on all prose before committing: docs, this file, READMEs, code comments, UI texts and bot texts.
-- Commit messages are one short line, such as `Add Qobuz search`, with no body and no `Co-Authored-By` or other trailer. Commit on `main` and create no branches.
-- When work finishes, update `docs/status.md`, and `docs/decisions.md` if a decision changed.
-- When tests, lint, a build or a subagent's work fails, fix it and go on. Ask only when it can't be solved, and mention the fix in the summary.
-- Never run `caffeinate` or `pkill caffeinate`.
-- Changes to `~/projects/sh-blackberry`, `~/projects/sh-main` and sh-secrets are drafted for the user to commit.
+- Keep docs, comments, UI copy, and bot texts in plain, direct English without decorative emoji or filler.
+- Commit messages are one short line, such as `Add Qobuz search`, with no body and no `Co-Authored-By` or other trailer.
+- When a design decision changes, update `docs/decisions.md` in the same commit.
+- When tests, lint, or a build fails, fix it and go on. Ask only when it can't be solved, and mention the fix in the summary.
 
 ## Commands
 
@@ -44,12 +40,12 @@ make web-check    # npm ci, vue-tsc, Vitest and the Vite build
 make dev          # docker compose with air hot reload on :8080
 make manage ARGS="migrate status"   # shelf manage inside the dev container
 make manage ARGS="download https://fake.test/album/album-1"   # with SHELF_DOWNLOADS_ENABLED=true and SHELF_DEV_FAKE_SOURCE=true
-make manage ARGS="import-qobuz-db /path/to/qobuz_dl.db"   # the old bot's history, with SHELF_DOWNLOADS_ENABLED=true
+make manage ARGS="import-qobuz-db /path/to/qobuz_dl.db"   # import legacy qobuz-dl history, with SHELF_DOWNLOADS_ENABLED=true
 make manage ARGS="tags /music/qobuz/Album/01.flac"   # one file's tags as Navidrome reads them
 make contract     # shelf's writes against a scratch Navidrome, in Linux containers
-make build-image  # code.tikhonnnnn.com/tikhon/shelf:local
-make build-wrapper-image  # code.tikhonnnnn.com/tikhon/shelf-wrapper:local, amd64 under emulation on a Mac
-SHELF_DATA_DIR=./data go run ./cmd/shelf serve   # /data can't be created on macOS; the shell's SHELF_QOBUZ_TOKEN reaches it
+make build-image  # ghcr.io/tikhonp/shelf:local
+make build-wrapper-image  # ghcr.io/tikhonp/shelf-wrapper:local, amd64 under emulation on arm64
+SHELF_DATA_DIR=./data go run ./cmd/shelf serve   # run locally without Docker
 npm --prefix web run dev   # Vite on :5173, with /api sent to :8080
 ```
 
@@ -65,25 +61,19 @@ cmd/shelf-wrapper/      supervisor for the wrapper-lite image: runs it, signs it
 internal/platform/      config, obs, db, migrations, httpx, module, web, ui, jobs, backup, hub, testwait
 internal/source/        catalog types, the source interfaces and the registry
 internal/wrapperapi/    the control API's types, shared by shelf and shelf-wrapper
-internal/modules/       downloads, catalog, fakesource, navidrome, telegram, qobuz, applemusic, library
+internal/modules/       downloads, catalog, fakesource, navidrome, telegram, qobuz, applemusic, library, agents
 web/                    the Vue app
 scripts/                contract.sh, which make contract runs
 docs/                   all project information
 ```
 
-## Related repositories
-
-- `~/projects/qobuz-dl-go`: the Go port of qobuz-dl that the Qobuz module imports.
-- `~/projects/proxier`: where the platform packages and most conventions come from.
-- `~/projects/sh-blackberry` and `~/projects/sh-main`: the production compose files and the gateway.
-
 ## Glossary
 
-Use these words in code, UI, docs and conversation.
+Use these words in code, UI, docs, and conversation.
 
 **Source.** A music service shelf searches and downloads from: Qobuz or Apple Music. _Avoid_: provider, service, backend.
 
-**Item.** A track, album, playlist, artist or label in a source's catalog, named by a ref made of the source, the kind and the ID. _Avoid_: entity, object.
+**Item.** A track, album, playlist, artist, or label in a source's catalog, named by a ref made of the source, the kind, and the ID. _Avoid_: entity, object.
 
 **Download.** One request to fetch an item, with its progress and result. A job is the background work behind a download. _Avoid_: task.
 
@@ -101,9 +91,9 @@ Use these words in code, UI, docs and conversation.
 
 **Apple ID sign-in.** Logging the wrapper into an Apple ID, including the 2FA code step. Keep its SignIn.vue and signin helpers separate from account authentication.
 
-**Account.** A Shelf username, password and optional passkeys. A user is the person using an account. The CLI uses `manage users`. The account UI says "Sign in to Shelf".
+**Account.** A Shelf username, password, and optional passkeys. A user is the person using an account. The CLI uses `manage users`. The account UI says "Sign in to Shelf".
 
-**Author.** The user, Telegram user, CLI or System recorded on an existing action or history row. Names are captured when the action starts.
+**Author.** The user, Telegram user, CLI, or System recorded on an existing action or history row. Names are captured when the action starts.
 
 **Scan.** The Navidrome library scan that shelf starts after downloads.
 
@@ -111,7 +101,7 @@ Use these words in code, UI, docs and conversation.
 
 **Check.** A test of an album against Navidrome's tagging guide. What a check finds is an issue.
 
-**Suggestion.** A value for a tag field from a file or folder name, other tracks, `shelf.txt`, MusicBrainz, a source, LRCLIB or an agent proposal, shown beside the field with its source and confidence. _Avoid_: hint, recommendation.
+**Suggestion.** A value for a tag field from a file or folder name, other tracks, `shelf.txt`, MusicBrainz, a source, LRCLIB, or an agent proposal, shown beside the field with its source and confidence. _Avoid_: hint, recommendation.
 
 **Proposal.** An agent's persistent set of exact tag or artwork operations for human review. A proposal can cite Suggestions but never applies itself.
 

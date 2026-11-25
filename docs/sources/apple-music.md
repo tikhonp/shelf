@@ -61,18 +61,18 @@ amdl gets `https://music.apple.com/<account storefront>/album/<id>`, `/song/<id>
 
 ### Config
 
-Before each run the runner checks the base config from `SHELF_AMDL_CONFIG`. In production that is `secrets/blackberry/apple-music-config.yaml`, mounted read-only. When the file changed since the last write, or the rendered config is missing, the runner sets these keys and writes the result to `/data/amdl/config.yaml` with mode 0600, through a temporary file:
+Before each run the runner checks the base config from `SHELF_AMDL_CONFIG` (default `/config/amdl.yaml`, mounted read-only). When the file changed since the last write, or the rendered config is missing, the runner sets these keys and writes the result to `/data/amdl/config.yaml` with mode 0600, through a temporary file:
 
 | Key | Value | Why |
 | --- | --- | --- |
 | `general.lite-server` | `SHELF_WRAPPER_URL` | The wrapper's address on the compose network. |
 | `general.exit-on-error` | `true` | Otherwise amdl reads stdin after a pass in which a song failed, and runs the whole queue again. With stdin empty it would repeat that until the timeout. |
 | `general.proxy` | empty | A proxy here would also carry the wrapper traffic. |
-| `paths.alac`, `paths.atmos`, `paths.aac`, `paths.mv` | `/music/<SHELF_APPLE_DIR>` | The folder the old setup wrote to. |
+| `paths.alac`, `paths.atmos`, `paths.aac`, `paths.mv` | `/music/<SHELF_APPLE_DIR>` | Keeps Apple Music downloads under the configured source folder. |
 
-Every other key keeps its value, its place and its comments, and the renderer adds a missing `general` or `paths` section. Init only reads and checks the file, since `manage` runs Init too. The production config, without its secrets:
+Every other key keeps its value, its place and its comments, and the renderer adds a missing `general` or `paths` section. Init only reads and checks the file, since `manage` runs Init too. An example base config:
 
-- `general`: `language: en-GB`, `storefront: ru`, `max-memory-limit: 1024`, `exit-on-error: true`, empty `proxy` and `authorization-token`, and a `media-user-token` that only stations need.
+- `general`: `language: en-GB`, `storefront: us`, `max-memory-limit: 1024`, `exit-on-error: true`, empty `proxy` and `authorization-token`, and an optional `media-user-token` (only stations need it).
 - `media`: `get-m3u8-mode: hires`, `aac-type: aac-lc`, `alac-fix: true`, `alac-max: 192000`, `atmos-max: 2768`, music videos `atmos` audio up to 2160p.
 - `paths`: `album-folder: "{ArtistName} - {AlbumName} ({ReleaseYear})[{Quality}]"`, `playlist-folder: "{PlaylistName}"`, `artist-folder: ""`, `song-file: "{SongNumer}. {SongName}"`, `limit-max: 200`, markers `[E]`, `[C]` and `[M]`.
 - `metadata`: lyrics saved as `.lrc` files and embedded; artwork embedded at `5000x5000` in the original format; animated artwork saved; playlist tracks get their own album covers; sort tags and iTunes IDs written.
@@ -170,5 +170,5 @@ The shelf UI drives this through `/api/applemusic/wrapper/*`. Neither shelf nor 
 - The code window is 60 seconds. That limit is in wrapper-lite, not shelf.
 - wrapper-lite serves `/key` and `/m3u8` one request at a time.
 - Its Android libraries use the DNS servers 223.5.5.5 and 223.6.6.6, so the container needs outbound DNS to them.
-- wrapper-lite derives its device ID from the Apple ID, so a second wrapper signed in to the same account looks like the same device, and its sign-in may disturb the other's session. Every wrapper on one account needs its own data folder and its own ID: `SHELF_WRAPPER_LITE_ARGS='--device-info "Music/5.0.2/Android/10/Pixel 8/7663314/en-US/en-US/<16 hex digits>"'`, wrapper-lite's default device info with another last part. In production shelf-wrapper has both.
-- shelf-wrapper's data volume is `${SWINGMUSIC_DATA}/shelf-wrapper`, mounted at `/app/rootfs/data`.
+- wrapper-lite derives its device ID from the Apple ID, so a second wrapper signed in to the same account looks like the same device, and its sign-in may disturb the other's session. Give every wrapper on one account its own data folder and its own ID: `SHELF_WRAPPER_LITE_ARGS='--device-info "Music/5.0.2/Android/10/Pixel 8/7663314/en-US/en-US/<16 hex digits>"'`, wrapper-lite's default device info with a unique last part.
+- Mount persistent storage for `shelf-wrapper` at `/app/rootfs/data`.

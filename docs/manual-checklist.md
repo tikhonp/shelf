@@ -1,12 +1,12 @@
 # Manual checklist
 
-End-to-end checks that need the real deployment on `blackberry`: real accounts, `shelf-wrapper`, Navidrome, and a phone. Run after big changes and record results under Last run.
+End-to-end checks that need a live deployment: real accounts, `shelf-wrapper`, Navidrome, and a phone.
 
 ## Setup
 
 - Deploy `shelf` and `shelf-wrapper` as in [deployment.md](deployment.md).
-- Check 2 re-signs `shelf-wrapper` in, so run it when a 2FA code can reach the owner's phone.
-- Delete test downloads afterwards from inside the `shelf` container (files belong to UID `10001`).
+- Check 2 re-signs `shelf-wrapper` in, so run it when a 2FA code can reach your phone.
+- Delete test downloads afterwards from inside the `shelf` container (files belong to shelf's UID, `10001` in the default image).
 
 ## Core checks
 
@@ -25,7 +25,7 @@ With `SHELF_DOWNLOADS_ENABLED=true`:
 9. **Telegram.** Links send an edited status message with cover, Cancel, Retry, and Fetch missing. Artist links confirm first. Plain text searches albums. `/queue` lists active items. Unlisted users are refused. Container restarts keep status messages updating.
 10. **Provenance.** Every finished release folder gets a `shelf.txt`, and a second download appends a new block.
 11. **Permissions.** New folders are `0755`, files `0644`, owned by `10001`, and visible in Navidrome.
-12. **Backups.** Daily DB backup appears in `${SWINGMUSIC_DATA}/shelf/backups` and reaches the HDD the next night.
+12. **Backups.** Daily DB backup appears in `/data/backups`.
 13. **Library index.** `GET /api/library/index` shows `ready`, `rules: navidrome`, no `error`, and counts matching Navidrome's songs and albums. No files are modified by a walk. Tracks play in the browser.
 14. **Tag editing and covers.** `locked: 0` and all top folders `writable`. Star an album in Navidrome, rename it via API/UI, verify star and play count move to the new ID, then undo. Replace and undo a cover. No `.shelf-tmp-` files remain.
 15. **Editor UI (desktop and phone).** Apply Fix on `no_releasedate` and verify Navidrome keeps the year. Rename album artist with confirmation. Save cover alone while keeping staged tag edits. Edit from suggestions on phone and play a track.
@@ -63,13 +63,3 @@ With `SHELF_DOWNLOADS_ENABLED=true`:
 - **Multi-value fields and Release type.** Artists, Album artists, and Release type appear in main rows on desktop and phone. MusicBrainz credits replace artist/type lists while Genre adds. Filter menu counts Release types.
 - **Rivals and split suggestions.** Taking one suggestion on a single-value field folds rivals into one chip before and after Save. Split `ARTIST` without `ARTISTS` shows "Navidrome's split" at 50%.
 - **Infinite scroll and formats.** Long lists load pages on scroll without duplicates. Albums offer only the lowest lossless format covering their quality.
-
-## Last run
-
-Every section passed in production on `blackberry` (desktop, Playwright, and real Android phone):
-
-- Core checks 1 to 18: 2026-11-04 to 2026-11-05.
-- Accounts and gateway cutover: before 2026-11-10.
-- Agents, sign-in redesign, and second pass: 2026-11-10 to 2026-11-11. Concurrent undo race noted in [issues.md](issues.md).
-- Album History (`v1.0.4` to `v1.0.6`): 2026-11-12.
-- Tag editor feedback, phone title bar, scroll paging, and format filtering (`v1.1.0` to `v1.1.3`): 2026-11-16.

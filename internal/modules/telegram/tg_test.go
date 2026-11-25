@@ -81,7 +81,7 @@ func newFakeAPI(t *testing.T) *fakeAPI {
 			http.NotFound(w, r)
 			return
 		}
-		_, _ = w.Write([]byte(`{"ok":true,"result":{"id":1,"is_bot":true,"first_name":"Shelf","username":"music_shelf_bot"}}`))
+		_, _ = w.Write([]byte(`{"ok":true,"result":{"id":1,"is_bot":true,"first_name":"Shelf","username":"my_shelf_bot"}}`))
 	}))
 	t.Cleanup(f.srv.Close)
 	return f
@@ -105,7 +105,7 @@ func TestProxyOptIn(t *testing.T) {
 		t.Fatal(err)
 	}
 	me, err := client.GetMe(bg)
-	if err != nil || me.Username != "music_shelf_bot" {
+	if err != nil || me.Username != "my_shelf_bot" {
 		t.Fatalf("getMe through the proxy: %v %+v", err, me)
 	}
 	if got := proxy.seen(); len(got) != 1 || got[0] != "telegram.invalid" {

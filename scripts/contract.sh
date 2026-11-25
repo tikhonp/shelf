@@ -2,7 +2,7 @@
 # Runs the Navidrome contract test in Linux containers: a scratch Navidrome
 # and the test binary share a Docker volume, so Navidrome sees each write
 # as a Linux bind mount would show it. The test's container installs the
-# ffmpeg production has, because a run reads that ffmpeg's output.
+# same Alpine ffmpeg as the runtime image, because a run reads its output.
 set -eu
 image=${SHELF_CONTRACT_IMAGE:-deluan/navidrome:latest}
 name=shelf-contract-$$

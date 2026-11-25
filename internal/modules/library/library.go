@@ -172,9 +172,9 @@ func (m *Module) Init(d module.Deps) error {
 }
 
 // userAgent names shelf to MusicBrainz and LRCLIB, as both ask, with the
-// address the owner set or the code's.
+// configured public URL or the project repository.
 func userAgent(public *url.URL) string {
-	contact := "https://code.tikhonnnnn.com/tikhon/shelf"
+	contact := "https://github.com/tikhonp/shelf"
 	if public != nil {
 		contact = public.String()
 	}

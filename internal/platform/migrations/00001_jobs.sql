@@ -1,7 +1,6 @@
 -- +goose Up
 
--- Jobs, their steps, their logs and the schedules' state: proxier's job
--- tables without the vault column and the event cursors.
+-- Jobs, their steps, their logs and the schedules' state.
 CREATE TABLE jobs (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
     queue               TEXT NOT NULL,

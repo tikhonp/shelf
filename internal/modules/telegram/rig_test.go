@@ -241,7 +241,7 @@ func (r *rig) build(sys *jobs.System) {
 		r.t.Fatal(err)
 	}
 	ctx, cancel := context.WithCancel(bg)
-	wait := r.m.serve(ctx, r.tg, &models.User{ID: 1, Username: "music_shelf_bot", IsBot: true})
+	wait := r.m.serve(ctx, r.tg, &models.User{ID: 1, Username: "my_shelf_bot", IsBot: true})
 	var once sync.Once
 	r.stop = func() { once.Do(func() { cancel(); wait() }) }
 	r.t.Cleanup(r.stop)

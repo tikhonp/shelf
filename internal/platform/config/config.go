@@ -129,7 +129,7 @@ func Load(lookup func(string) (string, bool)) (*Config, error) {
 		MusicDir:     p.required("SHELF_MUSIC_DIR", "/music"),
 		HTTPAddr:     p.required("SHELF_HTTP_ADDR", ":8080"),
 		PublicURL:    p.url("SHELF_PUBLIC_URL", "", false, "http", "https"),
-		TZ:           p.timeZone("SHELF_TIMEZONE", "Europe/Moscow"),
+		TZ:           p.timeZone("SHELF_TIMEZONE", "UTC"),
 		Qobuz: Qobuz{
 			Dir:      p.optionalFolder("SHELF_QOBUZ_DIR", "qobuz"),
 			Quality:  27,

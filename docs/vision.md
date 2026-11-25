@@ -26,4 +26,4 @@ Enabled with `SHELF_DOWNLOADS_ENABLED=true`:
 - Trigger a Navidrome scan when downloads finish.
 - Sign the Apple Music wrapper in from the UI, including the 2FA code step.
 
-Files keep the folder and file names of `music-download-bot` and `apple-music-api`, so Navidrome, Picard, and AudioMuse see no layout change.
+Files keep the folder and file names of `qobuz-dl` and `amdl`, so Navidrome and existing taggers see no layout change.

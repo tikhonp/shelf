@@ -1,6 +1,6 @@
 # Design
 
-The screens and styles, exported from the Studio redesign and Library pages of the Claude Design canvas at https://claude.ai/artifact/Hkb6TNxr1Lr9Augzgk1XXn. The app's CSS is the source of record. A small visual change goes straight into the app, and a bigger one goes through the canvas first.
+The screens and styles for the Studio redesign and Library pages. The app's CSS is the source of record. A small visual change goes straight into the app, and a bigger one goes through the design screens first.
 
 ## Files
 
@@ -88,7 +88,7 @@ The two CSS files are the canvas stylesheet `project/retro.css`, cut in two. Eac
 
 ### Account sign-in and agent review
 
-These screens come from the second canvas (https://claude.ai/artifact/LRhUtun1bSeK87kTh6Q7To) and its second-pass review, and run in production. [auth.md](../../auth.md) and [agents.md](../../agents.md) describe their behavior.
+These screens cover account sign-in and agent review. [auth.md](../../auth.md) and [agents.md](../../agents.md) describe their behavior.
 
 | Screen | Shows | Route |
 | --- | --- | --- |
@@ -108,7 +108,7 @@ The second-pass screens also load `slide.css`, `gear.css` and `tips.css`, and tw
 
 ### Album History
 
-These screens come from a third canvas (https://claude.ai/artifact/QQxnFV1qCfFVoKjvqnULqw) and run in production. [tags.md](../../tags.md#the-editor) describes the behavior.
+These screens cover album history. [tags.md](../../tags.md#the-editor) describes the behavior.
 
 | Screen | Shows | Route |
 | --- | --- | --- |

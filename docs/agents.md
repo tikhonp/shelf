@@ -27,7 +27,7 @@ Deleting the account that created a connection revokes that connection on its ne
 
 Set `SHELF_PUBLIC_URL` so generated prompts and review links use the public HTTPS origin.
 
-The built-in setup prompt stays general for any self-hoster. It instructs the agent to follow Navidrome's tagging guides, active Memory rules, and user feedback, and to learn conventions from `GET /history`. The owner's personal tagging rules live in Memory and [agent-personal-prompt.md](agent-personal-prompt.md).
+The built-in setup prompt stays general for any self-hoster. It instructs the agent to follow Navidrome's tagging guides, active Memory rules, and user feedback, and to learn conventions from `GET /history`.
 
 The machine API lives under `/api/agent/v1/`. Its root endpoint documents all routes, allowed Navidrome fields, and request bodies. Every request requires a bearer token (`shelf_agent_` followed by 43 characters, 55 total). Invalid or missing headers return 401 explaining what failed (missing header, wrong scheme, missing prefix, invalid character, or wrong total length) without echoing the token. Browser cookies do not authenticate agent routes, and agent bearer tokens are rejected on every other API prefix.
 
@@ -35,7 +35,7 @@ Permissions cover library reads, external lookups, history reads, image uploads,
 
 ## Gateway setup
 
-Production uses Shelf accounts with no gateway basic auth, so nginx needs no agent rule. Shelf rejects ambiguous API paths (dot segments, empty segments, unusual escaping) before routing.
+When you use Shelf accounts (`SHELF_AUTH_PROVIDER=simple`) without reverse-proxy basic auth, your proxy needs no agent rule. Shelf rejects ambiguous API paths (dot segments, empty segments, unusual escaping) before routing.
 
 If you run behind gateway basic auth, exempt only `/api/agent/` and validate the raw request URI as well as the normalized path. Never give an agent the gateway password, because it also opens ordinary write routes when account sign-in is off.
 

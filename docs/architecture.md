@@ -2,19 +2,17 @@
 
 ## Containers
 
-On blackberry, in `sh-blackberry/shelf.yaml`:
+A typical deployment runs beside Navidrome behind a TLS reverse proxy (see [compose.example.yaml](../compose.example.yaml)):
 
-- `shelf` is the Go binary. It serves the web UI and the JSON API on port 8080, keeps its SQLite file and backups in `/data`, writes music into `/music`, runs the bot, and starts amdl and ffmpeg as child processes.
-- `shelf-wrapper` is wrapper-lite on port 12340 and its supervisor's control API on port 12341. It is privileged and amd64-only.
-- `ssht-shelf` tunnels port 8080 to the sh-main gateway, where nginx serves `shelf.music.tikhonnnnn.com` (Shelf accounts guard access; there is no gateway basic auth).
-
-`navidrome`, in `music.yaml`, reads the music folder through a read-only mount. shelf asks it to scan over the Subsonic API.
+- `shelf` is the Go binary. It serves the web UI and the JSON API on port 8080, keeps its SQLite file and backups in `/data`, writes music into `/music`, and, when downloads are enabled, runs the Telegram bot and starts `amdl` and `ffmpeg` as child processes.
+- `shelf-wrapper` (optional, required only for Apple Music downloads) runs `wrapper-lite` on port 12340 and its supervisor's control API on port 12341. It is privileged and `linux/amd64`-only.
+- `navidrome` reads the music folder through a read-only mount. shelf asks it to scan over the Subsonic API and reads its tag settings over its admin API.
 
 Outside services: the Qobuz API and CDN, the Apple Music catalog API at `amp-api.music.apple.com`, and the Telegram Bot API. Each source can send its traffic through `SHELF_PROXY_URL`. The tag editor's suggestions also reach MusicBrainz, the Cover Art Archive, LRCLIB and the hosts of the covers they offer, without the proxy.
 
 ## Inside shelf
 
-`cmd/shelf/main.go` builds the platform and the list of modules. The platform packages are proxier's, trimmed to what shelf uses:
+`cmd/shelf/main.go` builds the platform and the list of modules. The platform packages are:
 
 | Package | Job |
 | --- | --- |
@@ -42,7 +40,7 @@ Modules. `downloads`, `catalog`, `qobuz`, `applemusic` and `telegram` require `S
 | `fakesource` | A source with canned data for tests and UI work. |
 | `library` | The tag editor. Its `tagio` package reads tags as Navidrome does and writes them through verified temp copies. The module sweeps leftover temp files at start, keeps an index of the music folder with its albums, their sources and their checks, saves edits through the `library.write` job, deletes release folders through the `library.delete` job, suggests values from names, `shelf.txt`, MusicBrainz, the catalogs, LRCLIB and AcoustID, runs fixes and ReplayGain over many albums, and serves `/api/library` and the audio for the player. Its `musicbrainz` package also reads the Cover Art Archive, `lrclib` reads lyrics, `loudness` measures tracks with ffmpeg, and `acoustid` fingerprints audio. [tags.md](tags.md) describes it. |
 
-A module implements `Name()` and `Migrations()` and declares the rest through optional interfaces, found by type assertion, as in `proxier/internal/platform/module/module.go`: `Initializer`, `Migrated`, `RouteDeclarer`, `BodyLimiter`, `JobDeclarer`, `SourceDeclarer` and `Runner`. Only serve calls a `Runner`'s `Run`, which holds work that lasts as long as the server, such as the bot's long polling. `manage` opens the platform too, so `Init` never logs in or reaches the network. The platform logs a `Run` that fails, and the server goes on without it. `module.Deps` gives a module the config, the logger, the database, the jobs system, the hub, the source registry, and a `Closing` channel that long-lived responses end on. The platform registers job types, schedules and sources after every `Init`. Adding a source means one new module and one line in `main`.
+A module implements `Name()` and `Migrations()` and declares the rest through optional interfaces in `internal/platform/module`, found by type assertion: `Initializer`, `Migrated`, `RouteDeclarer`, `BodyLimiter`, `JobDeclarer`, `SourceDeclarer` and `Runner`. Only serve calls a `Runner`'s `Run`, which holds work that lasts as long as the server, such as the bot's long polling. `manage` opens the platform too, so `Init` never logs in or reaches the network. The platform logs a `Run` that fails, and the server goes on without it. `module.Deps` gives a module the config, the logger, the database, the jobs system, the hub, the source registry, and a `Closing` channel that long-lived responses end on. The platform registers job types, schedules and sources after every `Init`. Adding a source means one new module and one line in `main`.
 
 Modules reach each other through ports that `main` wires. The catalog module's `Statuses` port is the downloads module. The downloads module's `Notifier` port is the bot, and its `Scanner` port is the navidrome module and the library module together, so a finished download asks for a scan and a walk of the index. The library module reads the source registry for suggestions, as the catalog module does. Its `ConfigReader` port is the navidrome module's `Config`, converted in `main` to `tagio`'s types. Its busy port is the downloads service's `Busy`, its records port the downloads service's `Records`, which tells each album's source, and its scan port is the navidrome module's `RequestScanFor` with the label `library`. A delete reaches the downloads service's `Forget` and the navidrome module's `ScanNow` and `RemoveMissing`. The bot reaches the downloads module through its own `Downloads` port, which the downloads service implements. The downloads service exists from `downloads.New`, so `main` wires these before `Init`.
 
@@ -173,7 +171,7 @@ The platform serves `GET /api/events` as server-sent events for the hub's eight 
 | `suggestions` | `{"album"}`, when a fingerprint job has found something to ask for |
 | `inbox` | `{"proposal", "state", "pending"}`, when a proposal changes in the Inbox |
 
-Streams send `Cache-Control: no-store`, `X-Accel-Buffering: no` and a keepalive comment every 15 seconds, and end when serve stops. A client that reconnects reloads the lists, so the stream needs no replay. The per-download log stream, `GET /api/downloads/{id}/log`, sends the latest job's lines as `line` events with `time`, `level`, `step` and `text`, and the line's row ID as the event ID. It resumes after `Last-Event-ID`, or after `?after=` on a fresh connection, as proxier's job log does. When the job has ended and every line is sent, it sends a `done` event with the job's `state`, and the client closes the stream, or `EventSource` would reconnect.
+Streams send `Cache-Control: no-store`, `X-Accel-Buffering: no` and a keepalive comment every 15 seconds, and end when serve stops. A client that reconnects reloads the lists, so the stream needs no replay. The per-download log stream, `GET /api/downloads/{id}/log`, sends the latest job's lines as `line` events with `time`, `level`, `step` and `text`, and the line's row ID as the event ID. It resumes after `Last-Event-ID`, or after `?after=` on a fresh connection. When the job has ended and every line is sent, it sends a `done` event with the job's `state`, and the client closes the stream, or `EventSource` would reconnect.
 
 ## HTTP API
 
@@ -238,14 +236,14 @@ The API answers a download as `{"id", "parent_id", "source", "kind", "item_id", 
 
 ## Security
 
-- Production uses Shelf accounts, with `SHELF_AUTH_PROVIDER=simple`, and the gateway has no basic auth. [auth.md](auth.md) describes protected routes and sessions.
-- shelf checks unsafe methods with `http.NewCrossOriginProtection` and also trusts `SHELF_PUBLIC_URL`'s origin, because the gateway may rewrite `Host`. It limits request bodies to 1 MiB, except where a module's `BodyLimits` raises the limit of a route: 32 MiB for a cover upload and 8 MiB for a Save. It sends a CSP that allows `'self'`, inline styles (`style-src 'self' 'unsafe-inline'`), and images from `static.qobuz.com`, `*.mzstatic.com`, and `data:` URLs, with `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`.
+- Enable built-in accounts with `SHELF_AUTH_PROVIDER=simple` (and an HTTPS `SHELF_PUBLIC_URL`), or place Shelf behind reverse-proxy authentication with `SHELF_AUTH_PROVIDER=none`. [auth.md](auth.md) describes protected routes and sessions.
+- shelf checks unsafe methods with `http.NewCrossOriginProtection` and also trusts `SHELF_PUBLIC_URL`'s origin, because a reverse proxy may rewrite `Host`. It limits request bodies to 1 MiB, except where a module's `BodyLimits` raises the limit of a route: 32 MiB for a cover upload and 8 MiB for a Save. It sends a CSP that allows `'self'`, inline styles (`style-src 'self' 'unsafe-inline'`), and images from `static.qobuz.com`, `*.mzstatic.com`, and `data:` URLs, with `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`.
 - Tokens and passwords live only in environment variables, never in the database, logs or `shelf.txt`. The Apple ID password passes through shelf to the supervisor, and neither stores it.
-- The supervisor's control API requires `SHELF_WRAPPER_TOKEN` and is reachable only on the compose network.
+- The supervisor's control API requires `SHELF_WRAPPER_TOKEN` and should stay reachable only on the internal container network.
 
 ## Configuration
 
-`config.Load` parses the variables by hand, as proxier does. It reports every problem at once and never logs a value.
+`config.Load` parses environment variables directly. It reports every problem at once and never logs a value.
 
 An unset variable takes its default. A variable set to an empty value is empty. An empty `SHELF_AMDL_CONFIG` or `SHELF_NAVIDROME_URL` turns Apple Music or scans off despite the default, and an empty value is an error for a variable that needs one, such as `SHELF_TIMEZONE`. While `SHELF_DOWNLOADS_ENABLED` is `false`, `Load` ignores download-only settings except `SHELF_QOBUZ_DIR` and `SHELF_APPLE_DIR`, and never fails startup on them: `SHELF_PROXY_URL`, `SHELF_QOBUZ_*`, `SHELF_AMDL_*`, `SHELF_WRAPPER_*`, `SHELF_TELEGRAM_*`, and `SHELF_DEV_FAKE_SOURCE`. Valid `SHELF_QOBUZ_DIR` and `SHELF_APPLE_DIR` values still apply so library folder attribution matches existing downloads, while empty or invalid folder values fall back to their defaults. `Load` trims every value.
 
@@ -257,7 +255,7 @@ Tokens and passwords are `config.Secret`, which prints, logs and marshals as `[r
 | `SHELF_MUSIC_DIR` | `/music` | The music library root. |
 | `SHELF_HTTP_ADDR` | `:8080` | Listen address. |
 | `SHELF_PUBLIC_URL` | | Base URL for links in Telegram messages and in `shelf.txt`. |
-| `SHELF_TIMEZONE` | `Europe/Moscow` | Display time zone for `shelf.txt`, the UI and the backup schedule. |
+| `SHELF_TIMEZONE` | `UTC` | Display time zone for `shelf.txt`, the UI and the backup schedule. |
 | `SHELF_PROXY_URL` | | Proxy for modules that opt in. |
 | `SHELF_AGENT_ENABLED` | `false` | Enables external agent connections and the review inbox. Accepts only `true` or `false`. |
 | `SHELF_DOWNLOADS_ENABLED` | `false` | Enables downloads, catalog search, the Qobuz, Apple Music, and fake sources, and the Telegram bot. Accepts only `true` or `false`. |

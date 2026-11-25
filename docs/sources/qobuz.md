@@ -15,7 +15,7 @@ The module requires `SHELF_DOWNLOADS_ENABLED=true`. While downloads are off, Qob
 | `SHELF_QOBUZ_DIR` | folder under the music root, default `qobuz` |
 | `SHELF_QOBUZ_USE_PROXY` | send the module's HTTP client through `SHELF_PROXY_URL` |
 
-The rest are qobuz-dl's defaults, as the old bot ran them: `cover.jpg` at original size and not embedded, the tracklist file, a playlist m3u8, no lyrics, smart discography off, the folder template `{artist} - {album} ({year}) [{bit_depth}B-{sampling_rate}kHz]` and the track template `{track_number} - {track_title}`. Files land in `/music/qobuz`, which is `${SWINGMUSIC_DATA}/music/qobuz` on blackberry.
+The rest are qobuz-dl's defaults: `cover.jpg` at original size and not embedded, the tracklist file, a playlist m3u8, no lyrics, smart discography off, the folder template `{artist} - {album} ({year}) [{bit_depth}B-{sampling_rate}kHz]` and the track template `{track_number} - {track_title}`. Files land in `/music/<SHELF_QOBUZ_DIR>` (`/music/qobuz` by default).
 
 The module's `*http.Client` has no `Timeout`, because it would cut long transfers. qobuz-dl-go sets its own per call through `Options.Timeouts`: 30 seconds per API call, 10 seconds to connect, and 60 seconds without a byte during a transfer. Every request, covers and booklets included, goes through that one client.
 
@@ -109,11 +109,11 @@ Python matches the ID and quality only. The port also passes the media type, `al
 
 A playlist track that `Has` skips writes no file, as in Python. That also covers a playlist resumed after a restart: the tracks of the first run come back `skipped`, without a file name or format in `shelf.txt`. Their files stay in the folder, and the m3u8 lists them.
 
-## Import of the old bot's history
+## Importing legacy qobuz-dl history
 
-`shelf manage import-qobuz-db <path>` reads the old bot's `qobuz_dl.db`, which was `/data/qobuz_dl.db` in the old container. Production has imported it, and the host no longer keeps the file. The command opens the file read only, so a read-only mount works. Each album and track row of its `downloads` table becomes a `downloaded_items` row with `source = 'qobuz'`, `kind` from `media_type`, `item_id` from `id`, `quality` from `file_format`, `bit_depth` and `sampling_rate`, `path` from `saved_path`, and `imported = 1`. `at` is the time of the import, because the old table has no time.
+`shelf manage import-qobuz-db <path>` reads a `qobuz-dl` SQLite database (`qobuz_dl.db`). The command opens the file read only, so a read-only mount works. Each album and track row of its `downloads` table becomes a `downloaded_items` row with `source = 'qobuz'`, `kind` from `media_type`, `item_id` from `id`, `quality` from `file_format`, `bit_depth` and `sampling_rate`, `path` from `saved_path`, and `imported = 1`. `at` is the time of the import, because the old table has no time.
 
-- The old container mounted `music/qobuz` at `/downloads`, so `/downloads/<folder>` becomes `<SHELF_QOBUZ_DIR>/<folder>`. A path under the music root becomes relative to it. Any other path stays as it is and is logged.
+- Paths starting with `/downloads/<folder>` map to `<SHELF_QOBUZ_DIR>/<folder>`. A path under the music root becomes relative to it. Any other path stays as it is and is logged.
 - Rows of other kinds are skipped and counted.
 - qobuz-dl keeps a row per ID and quality, and `downloaded_items` one per item. The row of the highest quality wins.
 - Existing rows are kept, so a second run changes nothing.

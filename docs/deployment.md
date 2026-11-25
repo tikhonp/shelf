@@ -1,140 +1,119 @@
 # Deployment
 
-shelf runs on blackberry from `shelf.yaml` in `~/projects/sh-blackberry`. The sh-main gateway serves it at `shelf.music.tikhonnnnn.com`, and the bot is `@music_shelf_bot`. Changes to sh-blackberry, sh-main and sh-secrets are drafted for the user to commit.
+Music Shelf runs as a Docker container next to Navidrome, or as a standalone binary. [compose.example.yaml](../compose.example.yaml) provides a starting Docker Compose file.
 
-## Images
+## Images and packages
 
-| Image | Built from | Runs as |
-| --- | --- | --- |
-| `code.tikhonnnnn.com/tikhon/shelf` | `Dockerfile`, target `prod`: `alpine:3.24` with `ca-certificates`, `chromaprint` for `fpcalc`, `ffmpeg`, `tzdata`, amdl copied from `ghcr.io/zhaarey/apple-music-downloader:0.1.4`, and the shelf binary | `10001:10001` |
-| `code.tikhonnnnn.com/tikhon/shelf-wrapper` | `Dockerfile`, target `wrapper`: the pinned `ghcr.io/worldobservationlog/wrapper-lite` image plus tini and `shelf-wrapper`, amd64 only | root, privileged |
+| Package | Built from | Platforms | Runs as |
+| --- | --- | --- | --- |
+| `ghcr.io/tikhonp/shelf` | `Dockerfile`, target `prod`: `alpine:3.24` with `ca-certificates`, `chromaprint` (`fpcalc`), `ffmpeg`, `tzdata`, `amdl` from `ghcr.io/zhaarey/apple-music-downloader:0.1.4`, and the `shelf` binary | `linux/amd64`, `linux/arm64` | `10001:10001` |
+| `ghcr.io/tikhonp/shelf-wrapper` | `Dockerfile`, target `wrapper`: pinned `ghcr.io/worldobservationlog/wrapper-lite` plus `tini` and `shelf-wrapper` | `linux/amd64` only | `root`, privileged |
 
-Forgejo CI builds both on every push to `main`, tags them with the SHA, `main` and `latest`, and sets the version to `main-<sha7>`. A pushed `v*` git tag, such as `v1.0.0`, builds both as `:v1.0.0`, sets the version to `v1.0.0`, leaves `latest` alone, and deploys it, as [Deploys](#deploys) describes. To release:
+Pushes to `main` publish `:main` and `:<sha>`. Pushing a `vX.Y.Z` tag such as `v1.3.0` publishes `:<tag>` (and advances `:v<major>.<minor>`, `:v<major>`, and `:latest` when it is the highest stable release in that scope) and creates a GitHub Release with prebuilt static `shelf` binaries for Linux and macOS plus `checksums.txt`. The GitHub workflow also supports `workflow_dispatch` to rebuild a branch or tag manually.
+
+When deploying `shelf-wrapper` alongside `shelf`, keep both images on the same version tag because they share the control API types.
+
+> **Maintainer note:** On the first push to a new GitHub account, GHCR packages default to private; switch both `shelf` and `shelf-wrapper` to Public in GitHub Package settings, and push (or dispatch) a `vX.Y.Z` tag so `:latest` exists. `.forgejo/workflows/ci.yaml` is the maintainer's separate private deploy pipeline kept temporarily alongside `.github/workflows/ci.yaml`.
+
+### Running the standalone binary
+
+Download the archive for your OS and architecture from GitHub Releases and verify `checksums.txt`. On macOS, remove the quarantine attribute on the unsigned binary before running it (`xattr -d com.apple.quarantine ./shelf`). Set `SHELF_DATA_DIR` and `SHELF_MUSIC_DIR` to writable directories, then run `shelf serve`.
+
+Install `ffmpeg` on `PATH` for ReplayGain, browser transcoding, and cover checks. Install `fpcalc` (from Chromaprint) if you configure `SHELF_ACOUSTID_KEY`. For Apple Music downloads, `amdl` must also be on `PATH`.
+
+## Docker Compose
+
+Copy [compose.example.yaml](../compose.example.yaml) to `compose.yaml` and adjust:
+
+- Mount persistent storage at `/data` for `shelf.db`, daily backups, and cover history.
+- Mount your Navidrome music library at `/music` (read-write for Shelf; Navidrome can keep a read-only mount).
+- Put `shelf` and `navidrome` on a shared Docker network, or point `SHELF_NAVIDROME_URL` at Navidrome's address. Set `SHELF_NAVIDROME_USER` and `SHELF_NAVIDROME_PASSWORD` to a Navidrome admin account so Shelf can read Navidrome's tag settings and trigger scans.
+- Set `SHELF_TIMEZONE` to an IANA time zone (default `UTC`) for displayed dates, `shelf.txt`, and the 03:30 daily backup schedule.
+- Hardening options (`read_only: true`, `cap_drop: [ALL]`, `no-new-privileges:true`, `/tmp` tmpfs) work out of the box. Use `shelf healthcheck` as the container healthcheck and a 30-second stop grace period.
+
+Create the host data folder before starting Docker so it is not created as `root`:
 
 ```sh
-git tag v1.0.0 && git push origin v1.0.0
+sudo install -d -o 10001 -g 10001 -m 755 ./data
 ```
 
-## sh-blackberry
+If your host already uses a different UID and GID for the music library, set `user: "<uid>:<gid>"` on the `shelf` service in `compose.yaml` instead of changing file ownership.
 
-`shelf.yaml` is in `compose.yaml`'s `include:` list and holds three services, in the Dozzle group `shelf`:
+## Reverse proxy
 
-| Service | What | Notes |
-| --- | --- | --- |
-| `shelf` | the app | `10001:10001`, read-only root, no capabilities, `/tmp` on tmpfs. Mounts `${SWINGMUSIC_DATA}/shelf` at `/data`, `${SWINGMUSIC_DATA}/music` at `/music`, and `apple-music-config.yaml` at `/config/amdl.yaml`. Sets `SHELF_PUBLIC_URL` and points `SHELF_WRAPPER_URL` and `SHELF_WRAPPER_CONTROL_URL` at `shelf-wrapper`. Healthcheck `shelf healthcheck`, 30 seconds of stop grace. |
-| `shelf-wrapper` | wrapper-lite under the supervisor | Privileged. Its own data folder, `${SWINGMUSIC_DATA}/shelf-wrapper`, and its own `--device-info` in `SHELF_WRAPPER_LITE_ARGS`. The Status page signs it in. |
-| `ssht-shelf` | the tunnel | Port 10013 to `shelf:8080`, with the pinned host key and the healthcheck every `ssht-*` has. |
+Put Shelf behind a TLS-terminating reverse proxy such as nginx, Caddy, or Traefik:
 
-Both images use the tag in `SHELF_V` from sh-blackberry's `.env`. They share the control API's types, so they always move together, and neither has the `dev.dozzle.update` label.
-
-## Deploys
-
-A pushed `v*` tag deploys. After both images are in the registry, CI's `deploy` job clones sh-blackberry's `main`, sets `SHELF_V` to the tag, and pushes the commit `Deploy shelf v1.0.0`. doco-cd on blackberry watches that branch. It pulls both images, recreates `shelf` and `shelf-wrapper`, and waits for shelf's healthcheck. A push to `main` builds images and deploys nothing.
-
-The job runs one at a time across releases. A tag that `SHELF_V` already holds commits nothing. When sh-blackberry's `main` moved during the job, it rebases and retries the push up to 3 times. It checks Forgejo's RSA host key strictly, and the `known_hosts` line is in the workflow.
-
-To roll back, revert the bump commit in sh-blackberry, or push a new tag.
-
-The job signs in with a deploy key that can write to sh-blackberry and nothing else. To set it up once:
-
-1. `ssh-keygen -t ed25519 -N '' -C shelf-ci -f shelf-ci-deploy-key`
-2. In `tikhon/sh-blackberry`, Settings → Deploy keys: add `shelf-ci-deploy-key.pub` with write access.
-3. In `tikhon/shelf`, Settings → Actions → Secrets: add `SH_BLACKBERRY_DEPLOY_KEY` with the contents of `shelf-ci-deploy-key`.
-4. Delete both key files.
-
-sh-secrets holds `blackberry/shelf.env`:
-
-```
-SHELF_QOBUZ_TOKEN=          the Qobuz user auth token
-SHELF_WRAPPER_TOKEN=        openssl rand -base64 32
-SHELF_NAVIDROME_USER=       a Navidrome admin
-SHELF_NAVIDROME_PASSWORD=
-SHELF_TELEGRAM_TOKEN=       the token of `@music_shelf_bot`
-SHELF_TELEGRAM_USERS=       the user IDs the bot answers
-SHELF_ACOUSTID_KEY=         an application key from acoustid.org, optional
-```
-
-and `blackberry/shelf-wrapper.env` with the same `SHELF_WRAPPER_TOKEN`. Commit changes in sh-secrets first, then bump the submodule pointer.
-
-## sh-main
-
-- `nginx/conf.d/shelf.music.conf`: upstream `ssh-server:10013`, no basic auth, because Shelf's accounts guard it, `proxy_buffering off` and `proxy_read_timeout 1h` for the event streams, `robots-disallow.conf`, and no CSP header, because shelf sends its own.
-- Port 10013 in the `ssh-server` `expose` list in `compose.yaml` and on the `PermitListen` line of `ssh-server/sshd_config.d/tunnel-restrict.conf`.
-- `shelf.music.tikhonnnnn.com` has its own DNS record, since `*.music` has no wildcard, and its own certificate from `DOMAINS` in the `Makefile`.
-- A Music Shelf line in `nginx-contents/contents.html` and `contents-ru.html`.
+- Forward to `shelf:8080` (or `127.0.0.1:8080`).
+- Disable response buffering and raise the read timeout for Server-Sent Events (`/api/events` and `/api/downloads/{id}/log`). In nginx, set `proxy_buffering off;` and `proxy_read_timeout 1h;`.
+- Do not overwrite `Content-Security-Policy`; Shelf sends its own.
+- Raise the proxy's request body limit to at least 32 MiB if you upload large cover art.
+- Set `SHELF_PUBLIC_URL` to the public HTTPS origin, such as `https://shelf.example.com`.
 
 ## Music folder permissions
 
-- shelf runs as `10001:10001` with umask 022, so new folders are 0755 and new files 0644. amdl and ffmpeg inherit the umask, and qobuz-dl-go passes the modes explicitly.
-- Downloads write only into `qobuz/` and `apple-music/`. The tag editor writes in the whole library, so after the chown below every file and folder belongs to 10001. shelf refuses a Save of a file another UID or group owns as locked, and writes nothing. The login user and Picard keep writing in the genre folders, because no file of UID 1000 there lacks world-write. The login user needs sudo to write into the two source folders.
-- shelf never changes the owner or mode of a file it did not create. Besides its own temp files, it deletes a release folder's `cover.*` when the owner replaces or deletes a cover, keeping a copy under `/data/library/covers` for undo, and a whole release folder the owner deletes from the Library tab, when 10001 owns everything in it. A deleted folder has no copy, so only the backups can bring it back.
-- Navidrome has a read-only mount and reads the files because they are world-readable.
-- At startup shelf creates and removes a probe file in each top folder of the music folder, and each walk of the index counts the files another UID owns. `GET /api/library/index` reports a folder shelf can't write to and its locked files.
+- By default `shelf` runs as `10001:10001` with umask `022`, creating folders with `0755` and files with `0644`. `amdl` and `ffmpeg` inherit the umask, and `qobuz-dl-go` passes modes explicitly.
+- Shelf refuses to write or delete any file owned by another UID, or with a group Shelf does not belong to, reporting it as locked without touching disk.
+- Shelf never changes the owner or mode of a file it did not create. Besides its own temp files (`.shelf-tmp-*`), it deletes a release folder's `cover.*` when you replace or delete a cover (keeping a copy under `/data/library/covers` for undo), and deletes a release folder only when you confirm Delete in the Library tab and Shelf's UID owns every file inside it.
+- Navidrome can keep a read-only mount because new files are world-readable.
+- At startup Shelf runs a write probe in each top folder of `/music`, and every index walk counts locked files. `GET /api/library/index` reports folder writability and the `locked` count.
 
-This command prints nothing while the source folders are right:
+The easiest option is to set `user: "<uid>:<gid>"` on the `shelf` service in `compose.yaml` to match both the UID and GID of your existing library and data folders.
 
-```sh
-M=~/.local/share/swingmusic/music
-find "$M/qobuz" "$M/apple-music" \( ! -uid 10001 -o -type d ! -perm -0555 -o -type f ! -perm -0444 \) -print | head
-```
-
-To fix them:
+Alternatively, if you keep the default `10001:10001` container user, check ownership and read permissions on your library:
 
 ```sh
-sudo chown -R 10001:10001 "$M/qobuz" "$M/apple-music"
-sudo chmod -R u+rwX,go+rX,go-w "$M/qobuz" "$M/apple-music"
+M=/path/to/music
+find "$M" \( ! -uid 10001 -o ! -gid 10001 -o -type d ! -perm -0555 -o -type f ! -perm -0444 \) -print | head
 ```
 
-The tag editor needs the genre folders too, the top folders other than `qobuz` and `apple-music`. This prints them, then anything in them that UID 1000 owns without world-write, which the chown would take from the login user. The second list should be empty:
+> **Warning:** Running `chown -R 10001:10001` transfers ownership of every file in your library to UID/GID `10001`. Your host login user and desktop tools such as MusicBrainz Picard will lose write access unless the files are group- or world-writable. If you edit files locally on the host, prefer setting `user: "<uid>:<gid>"` in `compose.yaml` instead.
+
+To transfer the library to `10001:10001` while keeping world-read access for Navidrome:
 
 ```sh
-find "$M" -mindepth 1 -maxdepth 1 -type d ! -name qobuz ! -name apple-music ! -name '.*'
-find "$M" -mindepth 1 -maxdepth 1 -type d ! -name qobuz ! -name apple-music ! -name '.*' -exec find {} -uid 1000 ! -perm -0002 \; | head
+sudo chown -R 10001:10001 "$M"
+sudo chmod -R u+rwX,go+rX "$M"
 ```
 
-The chown gives them owner and group 10001. A write keeps a file's group, and shelf can give a file only a group it is in, so a file of group 1000 or root is locked. Modes stay, and the login user keeps access through world-write:
-
-```sh
-sudo find "$M" -mindepth 1 -maxdepth 1 -type d ! -name qobuz ! -name apple-music ! -name '.*' -exec chown -R 10001:10001 {} +
-```
-
-Afterwards `GET /api/library/index` shows `locked: 0` and every folder `writable` once shelf restarts.
+After restarting Shelf, `GET /api/library/index` should report `locked: 0` and every folder writable.
 
 ## Backups
 
-- shelf's `backup` job runs at 03:30 in the display time zone. It writes `VACUUM INTO` to a temp file on its own read-only connection, syncs it, and renames it to `/data/backups/shelf-YYYY-MM-DD.db`. It keeps 14.
-- `backup.yaml`'s swingmusic task copies all of `${SWINGMUSIC_DATA}` to the HDD at 02:45, shelf's live database and the wrapper's data included. rsync can catch the live database mid-write, so a restore starts from a daily copy. The task runs before shelf's copy, so each copy reaches the HDD the next night. The HDD then goes to the remote node with the rest.
+Shelf's `platform.backup` job runs at 03:30 in `SHELF_TIMEZONE`. It uses `VACUUM INTO` on a read-only connection, syncs the temp file, and renames it to `/data/backups/shelf-YYYY-MM-DD.db`, keeping the 14 newest copies.
 
-## Setting up from scratch
-
-1. Give the music folder to 10001 as above: `qobuz/` and `apple-music/`, then the genre folders.
-2. Create shelf's data folder for UID 10001, or Docker creates it as root and shelf can't write: `sudo install -d -o 10001 -g 10001 -m 755 ~/.local/share/swingmusic/shelf`.
-3. Deploy sh-main and start `shelf.yaml`.
-4. Sign `shelf-wrapper` in from the Status page.
-5. To bring in the old bot's history, mount a folder holding `qobuz_dl.db` at `/import` and run `docker exec shelf shelf manage import-qobuz-db /import/qobuz_dl.db`. A second run changes nothing. Remove the mount afterwards. Production has imported it, and the host no longer keeps the file.
-6. Run [manual-checklist.md](manual-checklist.md).
+Always restore from a file in `/data/backups/`, not from an rsync copy of the live WAL database. Because `shelf.db` stores account credentials and sessions when authentication is enabled, treat backups as secrets.
 
 ## Optional account authentication
 
-Production made this cutover and no longer has gateway basic auth. The steps stay for a new deployment. The default provider none keeps a deployment behind gateway basic auth working.
+Account authentication is off by default (`SHELF_AUTH_PROVIDER=none`) so local setups and deployments behind reverse-proxy authentication work out of the box.
 
-1. Back up `shelf.db` and deploy the new image with provider none. Starting the server applies migrations. If creating accounts before the first start, run `shelf manage migrate up`.
-2. Run `docker exec -it shelf shelf manage users add <username>` and enter the password twice. Create another account if needed.
-3. Set `SHELF_AUTH_PROVIDER=simple` and the public HTTPS origin in `SHELF_PUBLIC_URL`, then restart Shelf. Keep gateway basic auth during the check.
-4. Verify password access through the public address, add a passkey on Status, sign out, and verify passkey access. Verify logged-out audio, covers, logs, and events return 401.
-5. Remove `auth_basic` from the Shelf gateway once those checks pass. Keep TLS, streaming proxy settings, and the existing security headers. Gateway repository changes remain a draft for the owner to commit.
+To enable Shelf accounts and passkeys:
 
-The CLI can reset a password or all passkeys without the server running. Both revoke sessions. Switching serve back to none opens app access and clears sessions, so keep gateway protection if using that rollback. A database restore restores credentials and sessions from that backup. Treat backups as secrets.
+1. Start Shelf once (or run `shelf manage migrate up`) so migrations are applied.
+2. Set `SHELF_AUTH_PROVIDER=simple` and an HTTPS `SHELF_PUBLIC_URL`, then restart Shelf. Keep `SHELF_AUTH_SETUP_UI=false` on public URLs so nobody else can claim the first account before you do (`SHELF_AUTH_SETUP_UI=true` is the binary default and lets whoever reaches a fresh install first create an account).
+3. Create your first account from the CLI (or open Shelf in your browser on a private/local URL if `SHELF_AUTH_SETUP_UI=true`):
+   ```sh
+   docker exec -it shelf shelf manage users add <username>
+   ```
+4. Sign in through the public HTTPS URL, optionally register a passkey on Status, and verify that logged-out requests to `/api/library/albums`, audio, covers, logs, and `/api/events` return `401`.
+5. If you previously used proxy basic auth, remove it once sign-in works.
 
-[auth.md](auth.md) lists commands, cookie behavior, and the effect of changing the hostname. Local HTTP development keeps provider none.
-
+The CLI can reset passwords or passkeys while the server is stopped; both revoke existing sessions. Switching `SHELF_AUTH_PROVIDER` back to `none` opens access and purges saved sessions, so restore reverse-proxy auth before rolling back. See [auth.md](auth.md) for all commands and cookie rules.
 
 ## Optional downloads
 
-Downloads, catalog search, Qobuz, Apple Music, and the Telegram bot are off unless `SHELF_DOWNLOADS_ENABLED=true`. Add `SHELF_DOWNLOADS_ENABLED=true` to `sh-blackberry/shelf.yaml` before deploying a release with this change so production keeps downloads enabled. Without it, Shelf runs as a Navidrome library tagger and ignores `SHELF_PROXY_URL`, Qobuz, Apple Music, Telegram, and fake-source settings, including the default `SHELF_AMDL_CONFIG`, while valid `SHELF_QOBUZ_DIR` and `SHELF_APPLE_DIR` values still control library folder attribution.
+Downloads, catalog search, Qobuz, Apple Music, and the Telegram bot are off by default. Without `SHELF_DOWNLOADS_ENABLED=true`, Shelf runs as a Navidrome library tagger and ignores `SHELF_PROXY_URL`, Qobuz, Apple Music, Telegram, and fake-source settings (while valid `SHELF_QOBUZ_DIR` and `SHELF_APPLE_DIR` values still control library folder attribution).
+
+To enable downloads:
+
+1. Set `SHELF_DOWNLOADS_ENABLED=true`.
+2. **Qobuz:** set `SHELF_QOBUZ_TOKEN` to your Qobuz user auth token. See [sources/qobuz.md](sources/qobuz.md).
+3. **Apple Music:** mount your base `amdl` YAML config read-only at `/config/amdl.yaml` (or set `SHELF_AMDL_CONFIG`), generate a shared secret (`openssl rand -base64 32`) for `SHELF_WRAPPER_TOKEN`, uncomment `shelf-wrapper` in `compose.yaml`, and sign the wrapper in from the Status page. See [sources/apple-music.md](sources/apple-music.md).
+4. **Telegram bot:** set `SHELF_TELEGRAM_TOKEN` and comma-separated numeric IDs in `SHELF_TELEGRAM_USERS`. See [telegram.md](telegram.md).
+5. **Legacy Qobuz history import (optional):** mount a directory containing `qobuz_dl.db` at `/import:ro` and run `docker exec shelf shelf manage import-qobuz-db /import/qobuz_dl.db`. Running it twice is safe. Remove the mount afterwards.
 
 ## Optional agent API
 
-Agent support is off unless `SHELF_AGENT_ENABLED=true`. Production sets it in `sh-blackberry/shelf.yaml`. [agents.md](agents.md) describes credentials and review.
+External agent support is off unless `SHELF_AGENT_ENABLED=true`. See [agents.md](agents.md) for scoped tokens, permissions, shared memory, and the Inbox review flow.
 
-Turn it on only with `SHELF_AUTH_PROVIDER=simple` or behind gateway basic auth. The gateway needs no rule for agents once Shelf's accounts guard it: Shelf checks a scoped bearer token on `/api/agent/` and a session on every other route. A deployment that keeps gateway basic auth must exempt `/api/agent/` from it and check the raw request URI too, because nginx matches the normalized path. Never give an agent a gateway password.
+Enable it only with `SHELF_AUTH_PROVIDER=simple` or behind reverse-proxy authentication. With Shelf accounts enabled, your reverse proxy needs no special rule for agents: Shelf validates scoped bearer tokens under `/api/agent/v1/` and sessions everywhere else. If you use proxy basic auth instead, exempt only `/api/agent/` and validate the raw request URI in addition to the normalized path. Never give an agent a gateway password.

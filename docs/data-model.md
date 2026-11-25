@@ -4,7 +4,7 @@ One SQLite file, `/data/shelf.db`, in WAL mode with foreign keys on. Each module
 
 ## Platform
 
-`internal/platform/migrations/00001_jobs.sql`, proxier's jobs tables trimmed:
+`internal/platform/migrations/00001_jobs.sql`:
 
 - `jobs`: one row per job, with its queue, type, resource and coalescing keys, a state of `queued`, `running`, `succeeded`, `failed`, `cancelled` or `interrupted`, payload JSON, attempt counters, lease, timestamps, error and log counters.
 - `job_steps`: each job's named steps and their state.

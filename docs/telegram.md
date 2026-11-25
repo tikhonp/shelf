@@ -106,4 +106,4 @@ A source that was switched off since the message was sent answers "Qobuz is not 
 
 ## Texts
 
-Plain English without decorative emoji, following the unslop rules. The texts live in `internal/modules/telegram/texts.go` so they can be reviewed together.
+Plain English without decorative emoji or filler. The texts live in `internal/modules/telegram/texts.go` so they can be reviewed together.

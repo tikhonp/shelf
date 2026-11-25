@@ -9,7 +9,7 @@ Every download writes `shelf.txt` into its release folder: the album folder, the
 - A block whose first line names the same download ID is not written again, so a resumed `finish` step adds no duplicate.
 - An artist or label download writes nothing itself. Each of its album downloads writes into its own folder.
 - A `partial` download writes its block too, with the failed tracks marked. A `failed` download with no files writes nothing.
-- UTF-8 with LF line endings, mode 0644, owned by UID 10001 like the audio files.
+- UTF-8 with LF line endings, mode 0644, owned by shelf's UID like the audio files.
 
 ## Format
 
@@ -17,7 +17,7 @@ Blocks are separated by one empty line. Each block starts with `Music Shelf down
 
 ```
 Music Shelf download 418
-Shelf link: https://shelf.music.tikhonnnnn.com/downloads/418
+Shelf link: https://shelf.example.com/downloads/418
 Source: Qobuz
 Kind: album
 Source ID: 123456789
@@ -30,8 +30,8 @@ UPC: 0000000000000
 Requested format: Qobuz 27, FLAC up to 24-bit 192 kHz
 Delivered: FLAC 24-bit 96 kHz
 Requested by: Telegram @name, user 123456
-Started: 2026-11-03T14:01:52+03:00
-Finished: 2026-11-03T14:05:11+03:00
+Started: 2026-11-03T14:01:52Z
+Finished: 2026-11-03T14:05:11Z
 Tools: shelf v0.1.0, qobuz-dl-go v0.1.1 porting qobuz-dl 2.5.9
 Tracks:
   1  01 - Shoreline.flac  track 11111111  ISRC XX0000000001  FLAC 24/96  done
@@ -42,11 +42,11 @@ An Apple Music block:
 
 ```
 Music Shelf download 419
-Shelf link: https://shelf.music.tikhonnnnn.com/downloads/419
+Shelf link: https://shelf.example.com/downloads/419
 Source: Apple Music
 Kind: album
 Source ID: 1440000000
-Source link: https://music.apple.com/ru/album/example/1440000000
+Source link: https://music.apple.com/us/album/example/1440000000
 Title: Low Tide Hymns
 Artist: Northern Static
 Label: Example Label
@@ -55,9 +55,9 @@ UPC: 0000000000000
 Requested format: Apple Music ALAC, converted to FLAC by the amdl config
 Delivered: FLAC 24-bit 48 kHz
 Requested by: Web
-Started: 2026-11-03T15:10:02+03:00
-Finished: 2026-11-03T15:12:40+03:00
-Tools: shelf v0.1.0, amdl 0.1.4, wrapper-lite storefront ru
+Started: 2026-11-03T15:10:02Z
+Finished: 2026-11-03T15:12:40Z
+Tools: shelf v0.1.0, amdl 0.1.4, wrapper-lite storefront us
 Tracks:
   1  01. Shoreline.flac  song 1440000001  ISRC XX0000000001  FLAC 24/48  done
 ```
@@ -77,7 +77,7 @@ Tracks:
 | `Requested format` | The format asked for, in words. |
 | `Delivered` | The highest quality among the files written. |
 | `Requested by` | `Web`, `CLI`, or `Telegram @username, user <id>`. |
-| `Started`, `Finished` | RFC 3339 in the display time zone, `Europe/Moscow`. |
+| `Started`, `Finished` | RFC 3339 in the configured display time zone (`SHELF_TIMEZONE`, default `UTC`). |
 | `Tools` | shelf's version and the tool that wrote the files. |
 | `Tracks` | Position, file name, the track's catalog ID after the word the source uses for a track, ISRC, format, and `done`, `skipped` or `failed`. A failed track without a file shows its title and no format. shelf leaves out empty columns. |
 

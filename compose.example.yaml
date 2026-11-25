@@ -1,0 +1,92 @@
+# Example production stack for Music Shelf.
+#
+# 1. Copy to compose.yaml and copy .env.example to .env for secret values
+#    (${SHELF_*} variables below are read from .env beside compose.yaml).
+# 2. Create the data folder owned by Shelf's UID:GID so Docker does not create
+#    it as root:
+#      sudo install -d -o 10001 -g 10001 -m 755 ./data
+# 3. Adjust the /music mount, user (if your library uses another UID:GID), and
+#    Navidrome address/network, then run:
+#      docker compose up -d
+# 4. With SHELF_AUTH_PROVIDER=simple, create your first account via CLI:
+#      docker exec -it shelf shelf manage users add <username>
+#
+# See docs/deployment.md for reverse proxy, permissions, and optional features.
+
+services:
+  shelf:
+    image: ghcr.io/tikhonp/shelf:latest
+    container_name: shelf
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    stop_grace_period: 30s
+    # Runs as UID:GID 10001:10001 by default. Match this to both the UID and GID
+    # of your data and music folders, or chown those folders to 10001:10001.
+    # user: "1000:1000"
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      # Required for SHELF_AUTH_PROVIDER=simple (session cookies require HTTPS
+      # behind a reverse proxy). For a local HTTP trial without a proxy, set
+      # SHELF_AUTH_PROVIDER: none and leave SHELF_PUBLIC_URL empty.
+      SHELF_PUBLIC_URL: https://shelf.example.com
+      SHELF_AUTH_PROVIDER: simple
+      # Disabled so nobody can claim the first account on a public URL before
+      # you do. Create accounts with `docker exec -it shelf shelf manage users add <user>`.
+      SHELF_AUTH_SETUP_UI: "false"
+      SHELF_TIMEZONE: UTC
+      # Point at Navidrome on a shared Docker network (see networks below) or
+      # at Navidrome's host/LAN URL.
+      SHELF_NAVIDROME_URL: http://navidrome:4533
+      SHELF_NAVIDROME_USER: ${SHELF_NAVIDROME_USER:-}
+      SHELF_NAVIDROME_PASSWORD: ${SHELF_NAVIDROME_PASSWORD:-}
+      # Optional: AcoustID fingerprinting for tag suggestions.
+      # SHELF_ACOUSTID_KEY: ${SHELF_ACOUSTID_KEY:-}
+      # Optional: enable external library agents and the review inbox.
+      # SHELF_AGENT_ENABLED: "true"
+      # Optional: enable Qobuz, Apple Music, catalog search, and Telegram bot.
+      # SHELF_DOWNLOADS_ENABLED: "true"
+      # SHELF_QOBUZ_TOKEN: ${SHELF_QOBUZ_TOKEN:-}
+      # SHELF_WRAPPER_TOKEN: ${SHELF_WRAPPER_TOKEN:-}
+      # SHELF_TELEGRAM_TOKEN: ${SHELF_TELEGRAM_TOKEN:-}
+      # SHELF_TELEGRAM_USERS: ${SHELF_TELEGRAM_USERS:-}
+    volumes:
+      - ./data:/data
+      - /path/to/music:/music
+      # Required only for Apple Music downloads (see docs/sources/apple-music.md):
+      # - ./amdl.yaml:/config/amdl.yaml:ro
+    # Uncomment to join an existing Navidrome Compose network:
+    # networks:
+    #   - default
+    #   - navidrome
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/shelf", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Optional: required only for Apple Music downloads (linux/amd64 only).
+  # shelf-wrapper:
+  #   image: ghcr.io/tikhonp/shelf-wrapper:latest
+  #   container_name: shelf-wrapper
+  #   restart: unless-stopped
+  #   privileged: true
+  #   environment:
+  #     SHELF_WRAPPER_TOKEN: ${SHELF_WRAPPER_TOKEN}
+  #     # Give each instance on the same Apple ID its own device ID:
+  #     # SHELF_WRAPPER_LITE_ARGS: '--device-info "Music/5.0.2/Android/10/Pixel 8/7663314/en-US/en-US/0123456789abcdef"'
+  #   volumes:
+  #     - ./wrapper-data:/app/rootfs/data
+
+# Uncomment if Navidrome runs in another Docker Compose project:
+# networks:
+#   navidrome:
+#     external: true
+#     name: navidrome_default

@@ -35,11 +35,11 @@ func fixture() (Download, payload, []Track) {
 
 func TestProvenanceFormat(t *testing.T) {
 	r := newRig(t)
-	r.cfg.PublicURL = mustURL(t, "https://shelf.music.tikhonnnnn.com/")
+	r.cfg.PublicURL = mustURL(t, "https://shelf.example.com/")
 	d, p, tracks := fixture()
 	got := r.svc.provenance(d, p, tracks)
 	want := `Music Shelf download 418
-Shelf link: https://shelf.music.tikhonnnnn.com/downloads/418
+Shelf link: https://shelf.example.com/downloads/418
 Source: Fake
 Kind: album
 Source ID: 123456789

@@ -1,8 +1,7 @@
 // Package jobs is the platform's job system: every long or remote piece of
 // work is a stored job that runs in a worker pool of its queue, step by step,
 // with a live log. Jobs survive a restart, can be cancelled and retried, and
-// never overlap on one resource key. It is proxier's job system without the
-// vault, the settings overrides and the events catalog.
+// never overlap on one resource key.
 package jobs
 
 import (

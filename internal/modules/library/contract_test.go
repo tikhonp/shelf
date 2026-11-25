@@ -3,7 +3,7 @@
 package library
 
 // The Navidrome contract test: shelf's writes against a real Navidrome, in
-// Docker, judged by what Navidrome shows. Production runs
+// Docker, judged by what Navidrome shows. Many deployments track
 // deluan/navidrome:latest, so its rules can change under shelf, and this
 // run shows when they do. `make contract` runs it in Linux containers that
 // share a volume. Docker Desktop's file sharing on macOS can show Navidrome

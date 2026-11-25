@@ -77,7 +77,7 @@ func newPortBot(t *testing.T, port *fakePort) (*Module, *fakeTG) {
 		t.Fatal(err)
 	}
 	tg := newFakeTG()
-	m.b.setClient(tg, &models.User{ID: 1, Username: "music_shelf_bot"})
+	m.b.setClient(tg, &models.User{ID: 1, Username: "my_shelf_bot"})
 	return m, tg
 }
 

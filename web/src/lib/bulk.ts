@@ -23,9 +23,9 @@ export function lineText(l: RunLine): string {
   return l.fixes > 0 ? `${l.album}: ${fixCount(l.fixes)}, ${count(l.files, 'file')}` : `${l.album}: ${count(l.files, 'file')}`
 }
 
-// backupWords says what the nightly backups do with a run's files.
+// backupWords warns how much data a bulk run rewrites on disk.
 export function backupWords(size: string): string {
-  return `The nightly HDD backup copies these ${size} again. The remote backup keeps the overwritten files for 30 days, so it grows by up to ${size}.`
+  return `This run rewrites up to ${size}. Incremental backups will copy these files again.`
 }
 
 const maxCells = 40

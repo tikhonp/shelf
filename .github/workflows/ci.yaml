@@ -1,0 +1,307 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate release tag
+        if: github.ref_type == 'tag'
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if ! printf '%s' "$REF_NAME" | grep -Eqx 'v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?'; then
+            echo "::error::invalid release tag format (expected vX.Y.Z or vX.Y.Z-prerelease): $REF_NAME"
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+        timeout-minutes: 10
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: gofmt
+        run: |
+          out=$(gofmt -l cmd internal)
+          if [ -n "$out" ]; then echo "::error::unformatted files:"; echo "$out"; exit 1; fi
+
+      - name: Vet
+        run: |
+          go vet ./...
+          go vet -tags contract ./internal/modules/library
+
+      - name: Test
+        run: make test GOTESTFLAGS=-timeout=30m
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+        timeout-minutes: 10
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # Keep the version equal to the Dockerfile's lint stage.
+      - name: golangci-lint
+        timeout-minutes: 20
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
+        with:
+          version: v2.15.0
+
+      - name: govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.10.0 ./...
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # Match the Node version in the Dockerfile's web stage.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        timeout-minutes: 10
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Typecheck, test, and build web UI
+        timeout-minutes: 15
+        run: make web-check
+
+  # Publishes container images to GHCR after all checks pass.
+  # Branch runs publish :<branch> and :<sha>.
+  # vX.Y.Z tags publish :<tag> and advance :vX.Y, :vX, and :latest only when
+  # the tag is the highest stable semver in that scope.
+  image:
+    needs: [test, lint, web]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: image-publish
+      cancel-in-progress: false
+    env:
+      REGISTRY: ghcr.io
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve image tags
+        id: version
+        env:
+          REPO: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          set -eu
+          REPO_LOWER=$(printf '%s' "$REPO" | tr '[:upper:]' '[:lower:]')
+          IMAGE="${REGISTRY}/${REPO_LOWER}"
+          WRAPPER="${IMAGE}-wrapper"
+
+          if [ "$REF_TYPE" = "tag" ]; then
+            if ! printf '%s' "$REF_NAME" | grep -Eqx 'v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?'; then
+              echo "::error::invalid release tag format: $REF_NAME"
+              exit 1
+            fi
+            TAGS="${IMAGE}:${REF_NAME}"
+            WRAPPER_TAGS="${WRAPPER}:${REF_NAME}"
+            if printf '%s' "$REF_NAME" | grep -Eqx 'v[0-9]+\.[0-9]+\.[0-9]+'; then
+              MAJOR=$(printf '%s' "$REF_NAME" | cut -d. -f1)
+              MINOR=$(printf '%s' "$REF_NAME" | cut -d. -f1-2)
+              HIGHEST_MINOR=$(git tag --list "${MINOR}.*" --sort=-v:refname | grep -Ex 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n 1 || true)
+              HIGHEST_MAJOR=$(git tag --list "${MAJOR}.*" --sort=-v:refname | grep -Ex 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n 1 || true)
+              HIGHEST_ALL=$(git tag --list 'v*' --sort=-v:refname | grep -Ex 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n 1 || true)
+              if [ "$REF_NAME" = "$HIGHEST_MINOR" ]; then
+                TAGS="${TAGS},${IMAGE}:${MINOR}"
+                WRAPPER_TAGS="${WRAPPER_TAGS},${WRAPPER}:${MINOR}"
+              fi
+              if [ "$REF_NAME" = "$HIGHEST_MAJOR" ]; then
+                TAGS="${TAGS},${IMAGE}:${MAJOR}"
+                WRAPPER_TAGS="${WRAPPER_TAGS},${WRAPPER}:${MAJOR}"
+              fi
+              if [ "$REF_NAME" = "$HIGHEST_ALL" ]; then
+                TAGS="${TAGS},${IMAGE}:latest"
+                WRAPPER_TAGS="${WRAPPER_TAGS},${WRAPPER}:latest"
+              fi
+            fi
+            echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+            echo "wrapper_tags=${WRAPPER_TAGS}" >> "$GITHUB_OUTPUT"
+            echo "version=${REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            BRANCH_TAG=$(printf '%s' "$REF_NAME" | tr '/ ' '--' | tr -cd 'A-Za-z0-9._-')
+            echo "tags=${IMAGE}:${GITHUB_SHA},${IMAGE}:${BRANCH_TAG}" >> "$GITHUB_OUTPUT"
+            echo "wrapper_tags=${WRAPPER}:${GITHUB_SHA},${WRAPPER}:${BRANCH_TAG}" >> "$GITHUB_OUTPUT"
+            echo "version=${BRANCH_TAG}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "date=$(git log -1 --format=%cI)" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push shelf
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          target: prod
+          push: true
+          provenance: false
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha,scope=shelf
+          cache-to: type=gha,mode=max,scope=shelf
+          build-args: |
+            APP_VERSION=${{ steps.version.outputs.version }}
+            BUILD_DATE=${{ steps.version.outputs.date }}
+            VCS_REF=${{ github.sha }}
+          tags: ${{ steps.version.outputs.tags }}
+
+      # wrapper-lite is amd64 only.
+      - name: Build and push shelf-wrapper
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          target: wrapper
+          push: true
+          provenance: false
+          platforms: linux/amd64
+          cache-from: type=gha,scope=wrapper
+          cache-to: type=gha,mode=max,scope=wrapper
+          build-args: |
+            APP_VERSION=${{ steps.version.outputs.version }}
+            BUILD_DATE=${{ steps.version.outputs.date }}
+            VCS_REF=${{ github.sha }}
+          tags: ${{ steps.version.outputs.wrapper_tags }}
+
+  # Creates a GitHub Release on v* tags with prebuilt static binaries and checksums.
+  release:
+    needs: [test, lint, web, image]
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: release-publish
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+        timeout-minutes: 10
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        timeout-minutes: 10
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build embedded web UI
+        run: |
+          npm --prefix web ci
+          npm --prefix web run build
+
+      - name: Build release archives
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -eu
+          if ! printf '%s' "$TAG" | grep -Eqx 'v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?'; then
+            echo "::error::invalid release tag format: $TAG"
+            exit 1
+          fi
+          mkdir -p dist
+
+          build_shelf() {
+            goos="$1"
+            goarch="$2"
+            stage=$(mktemp -d)
+            CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go build -trimpath \
+              -ldflags "-s -w -X github.com/tikhonp/shelf/internal/platform/obs.AppVersion=${TAG}" \
+              -o "$stage/shelf" ./cmd/shelf
+            cp README.md LICENSE.md "$stage/"
+            tar -C "$stage" -czf "dist/shelf_${TAG}_${goos}_${goarch}.tar.gz" shelf README.md LICENSE.md
+            rm -rf "$stage"
+          }
+
+          build_shelf linux amd64
+          build_shelf linux arm64
+          build_shelf darwin amd64
+          build_shelf darwin arm64
+
+          (cd dist && sha256sum *.tar.gz > checksums.txt)
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -eu
+          REPO_LOWER=$(printf '%s' "$REPO" | tr '[:upper:]' '[:lower:]')
+          NOTES=$(cat <<EOF
+          ### Container images
+
+          \`\`\`sh
+          docker pull ghcr.io/${REPO_LOWER}:${TAG}
+          docker pull ghcr.io/${REPO_LOWER}-wrapper:${TAG}
+          \`\`\`
+          EOF
+          )
+          EXTRA_FLAGS=""
+          case "$TAG" in
+            *-*)
+              EXTRA_FLAGS="--prerelease"
+              ;;
+            *)
+              HIGHEST_ALL=$(git tag --list 'v*' --sort=-v:refname | grep -Ex 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n 1 || true)
+              if [ "$TAG" = "$HIGHEST_ALL" ]; then
+                EXTRA_FLAGS="--latest=true"
+              else
+                EXTRA_FLAGS="--latest=false"
+              fi
+              ;;
+          esac
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            # shellcheck disable=SC2086
+            gh release create "$TAG" dist/* \
+              --verify-tag \
+              --title "$TAG" \
+              --notes "$NOTES" \
+              --generate-notes \
+              $EXTRA_FLAGS
+          fi

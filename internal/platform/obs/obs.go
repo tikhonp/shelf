@@ -16,7 +16,7 @@ import (
 var AppVersion = "dev"
 
 // SetupLogging installs a JSON slog handler on w as the process-wide default
-// and routes the stdlib log package through it, so Dozzle reads one
+// and routes the stdlib log package through it, so log collectors read one
 // machine-readable stream.
 func SetupLogging(w io.Writer, level slog.Level) *slog.Logger {
 	logger := slog.New(slog.NewJSONHandler(w, &slog.HandlerOptions{Level: level}))

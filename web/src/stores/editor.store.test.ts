@@ -223,7 +223,7 @@ test('a Delete shelf refuses or that fails keeps the album and says why', async 
   expect(again.e.gone).toBeNull()
 })
 
-// The owner's friend added ARTISTS by hand and said it read as Artist. Navidrome
+// A user added ARTISTS by hand and expected it to read as Artist. Navidrome
 // shows ARTIST as the display name while ARTISTS is set, and so does the editor's
 // Artist row, before Save and after.
 test('ARTISTS added by hand leaves the Artist row as it was, before and after Save', async () => {

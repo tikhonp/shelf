@@ -148,7 +148,7 @@ func TestQueueCommand(t *testing.T) {
 	r.say("https://fake.test/album/album-1")
 	g.waitReached(t)
 	r.say("https://fake.test/album/album-2")
-	r.say("/queue@music_shelf_bot")
+	r.say("/queue@my_shelf_bot")
 	sent := r.tg.of("sendMessage")
 	want := "Low Tide Hymns, Northern Static: Downloading, 0 of 3 tracks\nhttps://fake.test/album/album-2: Queued"
 	if got := sent[len(sent)-1].text; got != want {
@@ -187,7 +187,7 @@ func TestStatusRoute(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 		t.Fatal(err)
 	}
-	if want := (StatusJSON{Enabled: true, Connected: true, Username: "music_shelf_bot", Users: 1}); got != want {
+	if want := (StatusJSON{Enabled: true, Connected: true, Username: "my_shelf_bot", Users: 1}); got != want {
 		t.Fatalf("%+v", got)
 	}
 	if strings.Contains(rec.Body.String(), "123:abc") {

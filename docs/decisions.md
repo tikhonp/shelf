@@ -6,23 +6,23 @@ The decisions in force and why. When one changes, edit its row and the docs it t
 
 | Decision | Why |
 | --- | --- |
-| The name is shelf, shown as Music Shelf: Go module `github.com/tikhonp/shelf`, image `code.tikhonnnnn.com/tikhon/shelf`, env prefix `SHELF_`, host `shelf.music.tikhonnnnn.com`. | The owner's choice. |
-| Qobuz writes to `music/qobuz` and Apple Music to `music/apple-music`, with the old tools' folder and file names. | Navidrome, Picard and AudioMuse see no change. |
-| Every download writes `shelf.txt` into its release folder. | The owner asked for it, and the Library tab can tell an album's source from it without the database. |
-| `SHELF_AUTH_PROVIDER` selects `none` by default or `simple` for CLI-managed accounts, passwords, and optional passkeys. All accounts share access. [auth.md](auth.md) describes sessions and recovery. | Opt-in authentication for deployments that replace gateway basic auth. Production made the cutover and the gateway dropped basic auth. |
-| Account passwords contain 8 to 128 Unicode code points, with spaces allowed and no character-class rules. | The owner chose an eight-character minimum. |
-| shelf is AGPL-3.0 like proxier, and qobuz-dl-go GPL-3.0 like qobuz-dl. | GPL-3.0 code can be combined with AGPL-3.0 code. |
+| The name is shelf, shown as Music Shelf: Go module `github.com/tikhonp/shelf`, image `ghcr.io/tikhonp/shelf`, env prefix `SHELF_`. | Consistent naming across Go module, container packages, and environment variables. |
+| Qobuz writes to `music/qobuz` and Apple Music to `music/apple-music`, keeping `qobuz-dl` and `amdl` folder and file names. | Navidrome and existing taggers see no layout change. |
+| Every download writes `shelf.txt` into its release folder. | Makes a release's origin readable on disk, and lets the Library tab identify an album's source without the database. |
+| `SHELF_AUTH_PROVIDER` selects `none` by default or `simple` for CLI-managed accounts, passwords, and optional passkeys. All accounts share access. [auth.md](auth.md) describes sessions and recovery. | Opt-in authentication for self-hosted deployments that do not rely on reverse-proxy basic auth. |
+| Account passwords contain 8 to 128 Unicode code points, with spaces allowed and no character-class rules. | Eight-character minimum without arbitrary composition rules. |
+| shelf is AGPL-3.0, and qobuz-dl-go is GPL-3.0 like qobuz-dl. | GPL-3.0 code can be combined with AGPL-3.0 code. |
 
 ## Stack
 
 | Decision | Why |
 | --- | --- |
-| proxier's stack, copied and trimmed: Echo v5, modernc SQLite through sqlx, goose migrations per module, env config parsed by hand, slog JSON, the module pattern and the jobs platform. | The conventions of the owner's other Go apps. |
+| Echo v5, modernc SQLite through sqlx, goose migrations per module, env config parsed by hand, slog JSON, the module pattern and the jobs platform. | Single static binary with zero CGO dependencies and minimal runtime surface. |
 | `config.Load` takes a lookup function with `os.LookupEnv`'s signature. Unset takes the default, and empty is empty. | `SHELF_AMDL_CONFIG` and `SHELF_NAVIDROME_URL` have defaults, and an empty value must turn their part off. |
 | A module with work that lasts as long as the server implements `module.Runner`. Only serve calls `Run`, and one that fails is logged while the server goes on. | `manage` opens the platform too, and a bot that can't reach Telegram must not stop downloads. |
-| The jobs table has no subject columns. A download points at its job. | They served proxier's events and Jobs page. |
+| The jobs table has no subject columns. A download points at its job. | Keeps the platform job table independent of module schemas. |
 | Vue 3, Vite and TypeScript, embedded with `embed.FS`, under a CSP with `script-src 'self'` and `style-src 'self' 'unsafe-inline'`. | htmx would fall short for the library table, and Vue style bindings and browser-injected stylesheets need inline styles allowed. |
-| The runtime image is `alpine:3.24` with ffmpeg, running as UID 10001 with umask 022. Existing files keep their owner and mode. | amdl's FLAC conversion and Qobuz's segmented fallback call ffmpeg, and 10001 owns the source folders. |
+| The runtime image is `alpine:3.24` with ffmpeg, running as UID 10001 with umask 022. Existing files keep their owner and mode. | amdl's FLAC conversion and Qobuz's segmented fallback call ffmpeg, and running as UID 10001 avoids root while keeping consistent file ownership. |
 | A `fakesource` module with canned data, on with `SHELF_DEV_FAKE_SOURCE`. | Tests and UI work without real accounts. |
 | A request the client left is logged as info. | A search aborts the one before it, and each abort logged an error for a failure that wasn't shelf's. |
 
@@ -80,7 +80,6 @@ The decisions in force and why. When one changes, edit its row and the docs it t
 | One status message per download that the bot edits, with Cancel, Retry and Fetch missing, a confirmation before artist and label downloads, and album search by plain text. | One edited message replaces two separate replies per link. |
 | The bot sends the status message before it queues the download. | A download that ends at once would reach `notify` before the message existed. |
 | The editor keeps one edit per message in the send queue, and the edit reads the download's state when its turn comes. | A message never goes back to an older state. |
-| shelf has its own bot, `@music_shelf_bot`. | Two processes can't poll one token, and the old bot ran beside shelf at first. |
 
 ## Web UI
 
@@ -107,12 +106,12 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 | Suggestions are hints beside tag fields, with no album card, Apply step or release picker. | The owner asked for a radically simple interface. |
 | MusicBrainz IDs and other hidden tags are plain fields behind an All fields switch. Nothing is written unless accepted. | The owner's choice. |
 | The server picks one anchor release per album. Release-scoped fields show only its values, and Save refuses suggestions from two anchors. | Accepting fields one at a time could otherwise mix IDs from two releases. |
-| shelf edits the whole library, after one chown of the five genre folders to 10001:10001 that keeps their modes. | shelf can't write 184 album folders there, which are root's with mode 0755, or 73 files, which are root's with mode 0644. No file owned by UID 1000 lacks world-write, so nobody loses access. |
-| Nothing changes after a download on its own. | The owner's choice. |
-| Delete removes the album's whole release folder, with every file in it, after a confirmation. When other albums share the folder, the confirmation names them and they go too. | The owner's choice. A release folder holds the cover, `shelf.txt` and lyrics beside the audio, and a folder left half empty would still show in Navidrome. |
+| shelf edits the whole library as long as shelf's UID owns the files and shares their group. | A write preserves each file's mode and group, and a non-root user can assign a file only to a group it belongs to. |
+| Nothing changes after a download on its own. | Tag writes happen only when explicitly requested. |
+| Delete removes the album's whole release folder, with every file in it, after a confirmation. When other albums share the folder, the confirmation names them and they go too. | A release folder holds the cover, `shelf.txt` and lyrics beside the audio, and a folder left half empty would still show in Navidrome. |
 | Delete refuses a top folder, a folder with anything another UID owns or shelf can't write, and a folder a download works in. | A top folder holds a whole source's downloads. shelf never removes what isn't its own, and a download would write into the folder again. |
-| A delete is a row in History, of kind `delete`, and nothing undoes it. Retention counts it as a save. | The owner wanted a record of what went. The files are gone, so there is nothing to put back. |
-| An album's source comes from the downloads' records by folder, then by folder name, then `shelf.txt`, then the source folder it sits in. The walk stores it on the album. | In production only 13 folders had a `shelf.txt`, while the records named 179 folders, 33 of them moved to `jazz/` under the same name. The source folders account for the albums the tools before shelf wrote with no history. Stored on the album, it lets the list filter in SQL. |
+| A delete is a row in History, of kind `delete`, and nothing undoes it. Retention counts it as a save. | Keeps a record of what was removed; the files are gone so there is nothing to put back. |
+| An album's source comes from the downloads' records by folder, then by folder name, then `shelf.txt`, then the source folder it sits in. The walk stores it on the album. | Finds albums that were moved between folders under the same name or downloaded before shelf tracked them. Stored on the album, it lets the list filter in SQL. |
 | A source names its folder through the optional `source.Folderer`. | The library never knows which source it talks to, and a switched-off source still names its folder. |
 | `00007_deletes.sql` builds `library_changes` again with foreign keys off, in one transaction on the write connection. | SQLite can't change a CHECK in place. With foreign keys on, dropping the old table would delete every change's files, runs and undos. |
 | After a delete, shelf asks Navidrome for a scan and removes the folder's missing tracks through `/api/missing`, looking every 30 seconds up to ten times. It leaves them when `Scanner.PurgeMissing` is `always`. | Navidrome keeps a missing track, with its star and plays, until an admin removes it, and its API removes only tracks its scan marked missing. Navidrome then drops the empty album, as the contract test shows. |
@@ -191,7 +190,7 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 | A track keeps its loudness blocks as a histogram in 0.1 LU bins. | Whole blocks take 12 KB a track. Bins move a result by under 0.01 LU, and the album's gain still needs the blocks. |
 | AcoustID runs as a job when the text lookups found nothing, and the editor asks again when it ends. | `fpcalc` takes seconds a track, and an album must open at once. It stays off without `SHELF_ACOUSTID_KEY`. |
 | A deferred job takes in a follow-up that coalesced while it ran. | Defer puts a job back to never having started, and only one such job may hold a coalescing key. The requeue failed on the index, and left the job `running` with nothing behind it. |
-| A bulk run has no nightly limit. Its preview shows the files and GB touched, and the owner sizes each run. | Nothing runs by itself. The HDD backup recopies each changed file and keeps no history, and the remote one keeps overwritten files for 30 days. |
+| A bulk run has no nightly limit. Its preview shows the files and GB touched, and the user sizes each run. | Nothing runs automatically, and users can size each batch to fit their backup bandwidth and storage. |
 | A pasted release ID is the anchor ahead of the one in the files, then barcode, ISRC and search. | Pasting an ID is how the owner moves the album to another release, and the files still name the old one until the Save. |
 | A release named by ID, pasted or in the files, stays the anchor when it fails the threshold, and then suggests nothing. A release found by barcode, ISRC or search must pass. | The owner or the files chose the first. Searching for another release would offer IDs the files don't name. |
 | A release passes with the album's number of tracks, each within 10 seconds of the release's length and 3 seconds on average. | Editions differ by tracks or by seconds of silence, and a remaster within a second or two is still the same tracklist. |
@@ -211,13 +210,10 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 
 | Decision | Why |
 | --- | --- |
-| shelf, shelf-wrapper and `ssht-shelf` live in sh-blackberry's `shelf.yaml`, apart from `music.yaml`. | shelf could be checked while the old tools still worked. They were removed once it passed the checklist. |
-| shelf-wrapper has its own data folder and `--device-info`. | wrapper-lite derives the device ID from the Apple ID, and `apple-music-wrapper` used the same account. |
-| Neither `shelf` nor `shelf-wrapper` updates nightly. Both follow `SHELF_V` in sh-blackberry's `.env`. | They share the control API's types. |
-| A `v*` tag deploys: CI commits the tag to `SHELF_V` in sh-blackberry with a deploy key, and doco-cd on blackberry rolls it out. | The deploy is a commit in sh-blackberry, so its history records every release and a revert rolls one back. The deploy key can write only to sh-blackberry, and CI never reaches the host. |
-| A `v*` git tag publishes both images as `:<tag>` and never moves `latest`. | Releases get stable names to deploy and roll back to, while `main` builds as before. proxier's CI does the same. |
-| shelf's data lives in `${SWINGMUSIC_DATA}/shelf` and `${SWINGMUSIC_DATA}/shelf-wrapper`, and the swingmusic backup copies all of it. A restore starts from a daily copy. | The owner's choice, like the other music services. One task that copies everything is easier to keep right. |
-| `qobuz/` and `apple-music/` belong to 10001:10001, and the genre folders too after one chown that keeps their modes. Downloads write only into the two source folders. | The tag editor writes in the whole library. A write keeps each file's group, and shelf can give a file only one of its own groups: the first real Save failed on group 1000. Nothing in the genre folders relies on group-write without world-write, so the chown takes no access from the login user or Picard. |
+| `shelf-wrapper` runs in a separate optional container with its own data folder and optional `--device-info`. | `wrapper-lite` is amd64-only, needs privileges, and derives the device ID from the Apple ID, so running another instance on the same account requires a separate folder and device ID. |
+| `shelf` and `shelf-wrapper` release on the same version tags. | They share the control API's types. |
+| Pushing a `vX.Y.Z` git tag publishes `ghcr.io/tikhonp/shelf` (`linux/amd64`, `linux/arm64`), `ghcr.io/tikhonp/shelf-wrapper` (`linux/amd64`), and a GitHub Release with prebuilt static `shelf` binaries and checksums. | Gives self-hosters versioned container images and standalone binaries without needing to build from source. Stable semver tags advance `:v<major>.<minor>`, `:v<major>`, and `:latest` only when highest in that scope, while branch pushes publish `:<branch>` and `:<sha>`. |
+| The container runs as UID `10001:10001` with umask `022` by default, and users can override `user:` in Compose. | Avoids running as root while keeping created files world-readable for a read-only Navidrome mount. |
 
 
 ## Library agents
@@ -238,17 +234,17 @@ The design's own decisions are in [ui/design/README.md](ui/design/README.md): th
 | Memory and learning progress are shared by the library. Inferred preferences can guide proposals immediately; users can correct or delete them. | The owner wants useful context across fresh runs and replacement agents. No memory rule bypasses acceptance. |
 | Manual-tag learning reads existing history. Proposal feedback has its own durable feed. | The agent can learn tagging behavior without recording general UI activity. |
 | Proposal artwork uses validated bytes or existing offers, with cover-store pins. | Arbitrary agent URLs must not trigger server fetches, and pending reviews must outlive upload cleanup. |
-| The gateway has no agent rule. Shelf checks scoped tokens on the agent prefix, sessions everywhere else, and rejects ambiguous paths. | Production dropped gateway basic auth after the account cutover, so the planned exemption for the agent prefix was never applied. A gateway password would also open ordinary writes, so an agent never gets one. |
-| A new connection's setup prompt holds its token, and Shelf shows it once. | The owner wants one paste to start an agent. Shelf keeps only the hash, so the UI never shows the prompt again. The setup endpoint's copy names `SHELF_AGENT_TOKEN`. |
-| An agent that lost its token gets a new one for the same connection, and the old one stops working. | Agents forget their token. Storing it to show again would break the hash-only rule, and revoking and connecting again would split the agent's proposals across two connections. |
-| A new connection gets every permission, and its rockers stay closed until Choose. | The owner almost always grants everything and wants a short Connect form. |
+| With Shelf accounts enabled, a reverse proxy needs no agent rule. Shelf checks scoped tokens on the agent prefix, sessions everywhere else, and rejects ambiguous paths. | Deployments using reverse-proxy basic auth instead must exempt only `/api/agent/` and never give an agent a gateway password, which would also open ordinary writes. |
+| A new connection's setup prompt holds its token, and Shelf shows it once. | One paste starts an agent. Shelf keeps only the hash, so the UI never shows the prompt again. The setup endpoint's copy names `SHELF_AGENT_TOKEN`. |
+| An agent that lost its token gets a new one for the same connection, and the old one stops working. | Storing the token to show again would break the hash-only rule, and revoking and connecting again would split the agent's proposals across two connections. |
+| A new connection gets every permission, and its rockers stay closed until Choose. | Keeps the Connect form short while still allowing restricted scopes. |
 | `POST /runs` lists only the calling connection's outstanding work. | The prompt has an agent answer only its own proposals, and the lists stay short. |
-| The built-in agent setup prompt keeps only Shelf's API contract, Navidrome tagging rules, and rule-learning workflow. | Any self-hoster should develop their own tagging rules in memory instead of inheriting the owner's personal preferences. The owner's rules live in Memory and [agent-personal-prompt.md](agent-personal-prompt.md). |
+| The built-in agent setup prompt keeps only Shelf's API contract, Navidrome tagging rules, and rule-learning workflow. | Each self-hoster develops their own tagging rules in Memory instead of inheriting fixed preferences. |
 
 ## First account from the web UI
 
-UI setup is enabled by default while no accounts exist. The owner accepts that anyone who reaches a fresh install first can create its account. `SHELF_AUTH_SETUP_UI=false` leaves account creation to `shelf manage users add`. Account creation and its session share one write transaction so concurrent requests cannot both succeed.
+UI setup is enabled by default while no accounts exist. Anyone who reaches a fresh install first can create its account. `SHELF_AUTH_SETUP_UI=false` leaves account creation to `shelf manage users add`. Account creation and its session share one write transaction so concurrent requests cannot both succeed.
 
 ## Passwords from standard input
 
-`shelf manage users add` and `set-password` take `--password-stdin` and read one line from standard input. Before, they read a password only from a terminal, so a production check needed `expect` or `script` to make a temporary account. A second read of piped input would catch no typo, so the command reads it once. Input with a second line fails, because Shelf would otherwise store the second line as part of the password without a warning. A password still never goes in the arguments.
+`shelf manage users add` and `set-password` take `--password-stdin` and read one line from standard input. Before, they read a password only from a terminal, so automated setups and scripts needed `expect` or `script` to create an account. A second read of piped input would catch no typo, so the command reads it once. Input with a second line fails, because Shelf would otherwise store the second line as part of the password without a warning. A password still never goes in the arguments.

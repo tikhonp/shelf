@@ -11,7 +11,7 @@ import (
 )
 
 // KeepAlive is how often a stream sends a comment while it has nothing to
-// say, so the gateway and the browser keep an idle connection open.
+// say, so reverse proxies and browsers keep an idle connection open.
 const KeepAlive = 15 * time.Second
 
 // Stream writes server-sent events to one client.
@@ -20,8 +20,8 @@ type Stream struct {
 	rc *http.ResponseController
 }
 
-// OpenStream answers c with an event stream. X-Accel-Buffering keeps the
-// gateway's nginx from holding events back.
+// OpenStream answers c with an event stream. X-Accel-Buffering keeps
+// nginx reverse proxies from holding events back.
 func OpenStream(c *echo.Context) (*Stream, error) {
 	w := c.Response()
 	h := w.Header()

@@ -1,7 +1,7 @@
 // Package backup writes the daily snapshot of the database: a consistent copy
 // made with VACUUM INTO into <data dir>/backups, keeping the newest 14.
-// backup.yaml copies only that folder to the HDD, so rsync never reads the
-// live file.
+// External backup tools can copy that folder safely without reading the live
+// WAL database mid-write.
 package backup
 
 import (

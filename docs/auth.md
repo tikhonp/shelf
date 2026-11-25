@@ -1,6 +1,6 @@
 # Accounts and authors
 
-Shelf supports optional account authentication. Set `SHELF_AUTH_PROVIDER=simple` and set `SHELF_PUBLIC_URL` to the public HTTPS origin, such as `https://shelf.music.tikhonnnnn.com`. The default provider is `none`. An empty or unknown value stops startup.
+Shelf supports optional account authentication. Set `SHELF_AUTH_PROVIDER=simple` and set `SHELF_PUBLIC_URL` to the public HTTPS origin, such as `https://shelf.example.com`. The default provider is `none`. An empty or unknown value stops startup.
 
 Every account shares access to the library, downloads, source accounts, and history. Users manage only their own passwords and passkeys. There are no roles, email addresses, or display names.
 

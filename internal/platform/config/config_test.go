@@ -32,7 +32,7 @@ func TestConfigDefaults(t *testing.T) {
 	if c.PublicURL != nil || c.Proxy != nil {
 		t.Errorf("PublicURL %v, Proxy %v", c.PublicURL, c.Proxy)
 	}
-	if c.TZ.String() != "Europe/Moscow" {
+	if c.TZ.String() != "UTC" {
 		t.Errorf("TZ = %s", c.TZ)
 	}
 	q := c.Qobuz

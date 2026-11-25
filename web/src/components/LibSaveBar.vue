@@ -21,7 +21,7 @@ const deleteWords = computed(() => {
     case 'conflict':
       return 'The folder changed or went away after the album opened, so shelf deleted nothing.'
     case 'locked':
-      return "shelf can't delete files or folders that belong to another user, so it deleted nothing. Give the folder to UID 10001, then press Delete again."
+      return "shelf can't delete files or folders that belong to another user or group, so it deleted nothing. Match the folder's UID and GID to shelf's user (10001:10001 by default in Docker), then press Delete again."
     case 'busy':
       return 'A download is writing into this folder, so shelf deleted nothing. Press Delete again when it ends.'
     case 'partial':
@@ -36,7 +36,7 @@ const words = computed(() => {
     case 'conflict':
       return 'Another tool changed these files after the album opened. shelf wrote nothing. Reload reads the files again and keeps your staged changes.'
     case 'locked':
-      return "shelf can't write files that belong to another user, so it wrote nothing. Your staged changes stay. Give the folder to UID 10001, then press Save again."
+      return "shelf can't write files that belong to another user or group, so it wrote nothing. Your staged changes stay. Match the folder's UID and GID to shelf's user (10001:10001 by default in Docker), then press Save again."
     case 'busy':
       return 'A download is writing into this folder. Your staged changes stay. Press Save again when it ends.'
     default:
