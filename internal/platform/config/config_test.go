@@ -23,8 +23,8 @@ func TestConfigDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if c.DataDir != "/data" || c.MusicDir != "/music" || c.HTTPAddr != ":8080" {
-		t.Errorf("paths and address: %q %q %q", c.DataDir, c.MusicDir, c.HTTPAddr)
+	if c.DataDir != "/data" || c.MusicDir != "/music" || c.HTTPAddr != ":8080" || c.IPHeader != IPHeaderXFF {
+		t.Errorf("paths and address: %q %q %q %q", c.DataDir, c.MusicDir, c.HTTPAddr, c.IPHeader)
 	}
 	if c.DatabasePath() != "/data/shelf.db" {
 		t.Errorf("DatabasePath = %s", c.DatabasePath())
@@ -122,6 +122,8 @@ func TestConfigRejectsBadValues(t *testing.T) {
 		{"SHELF_QOBUZ_DIR", "../elsewhere"},
 		{"SHELF_APPLE_DIR", "/music/apple"},
 		{"SHELF_DATA_DIR", " "},
+		{"SHELF_IP_HEADER", "forwarded"},
+		{"SHELF_IP_HEADER", ""},
 	} {
 		t.Run(tc.name+"="+tc.value, func(t *testing.T) {
 			vars := map[string]string{"SHELF_DOWNLOADS_ENABLED": "true", tc.name: tc.value}
@@ -403,5 +405,14 @@ func TestAuthSetupUI(t *testing.T) {
 				t.Fatalf("AuthSetupUI=%v, error=%v", c.AuthSetupUI, err)
 			}
 		})
+	}
+}
+
+func TestIPHeader(t *testing.T) {
+	for _, v := range []string{"x-real-ip", "X-Real-IP", " none ", "x-forwarded-for"} {
+		c, err := Load(env(map[string]string{"SHELF_IP_HEADER": v}))
+		if err != nil || c.IPHeader != strings.ToLower(strings.TrimSpace(v)) {
+			t.Fatalf("%q: IPHeader=%q err=%v", v, c.IPHeader, err)
+		}
 	}
 }

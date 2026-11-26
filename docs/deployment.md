@@ -47,6 +47,7 @@ Put Shelf behind a TLS-terminating reverse proxy such as nginx, Caddy, or Traefi
 - Disable response buffering and raise the read timeout for Server-Sent Events (`/api/events` and `/api/downloads/{id}/log`). In nginx, set `proxy_buffering off;` and `proxy_read_timeout 1h;`.
 - Do not overwrite `Content-Security-Policy`; Shelf sends its own.
 - Raise the proxy's request body limit to at least 32 MiB if you upload large cover art.
+- Forward client addresses (`X-Forwarded-For` or `X-Real-IP`). By default Shelf reads `X-Forwarded-For` from loopback, link-local, or private peers (`SHELF_IP_HEADER=x-forwarded-for`). Set `SHELF_IP_HEADER=x-real-ip` to use `X-Real-IP` instead, or `none` to always log the TCP peer.
 - Set `SHELF_PUBLIC_URL` to the public HTTPS origin, such as `https://shelf.example.com`.
 
 ## Music folder permissions

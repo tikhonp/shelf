@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/labstack/echo/v5"
+	"github.com/tikhonp/shelf/internal/platform/config"
 	"github.com/tikhonp/shelf/internal/platform/httpx"
 	"github.com/tikhonp/shelf/internal/platform/web"
 )
@@ -278,5 +279,68 @@ func TestPathGuardRefusesDotSegmentsAndOddEscapes(t *testing.T) {
 	}
 	if httpx.CleanPath("api") || !httpx.CleanPath("/") || !httpx.CleanPath("/api/a.b/c..d") {
 		t.Error("CleanPath")
+	}
+}
+
+func TestIPExtractor(t *testing.T) {
+	req := func(peer string, headers ...string) *http.Request {
+		r := &http.Request{RemoteAddr: peer, Header: http.Header{}}
+		for i := 0; i+1 < len(headers); i += 2 {
+			r.Header.Set(headers[i], headers[i+1])
+		}
+		return r
+	}
+	cases := []struct {
+		name, header string
+		r            *http.Request
+		want         string
+	}{
+		{"real-ip through the tunnel", config.IPHeaderRealIP, req("172.19.0.2:5000", "X-Real-IP", "203.0.113.9"), "203.0.113.9"},
+		{"real-ip over loopback, IPv6", config.IPHeaderRealIP, req("127.0.0.1:5000", "X-Real-IP", "[2001:db8::1]"), "2001:db8::1"},
+		{"real-ip over link-local", config.IPHeaderRealIP, req("169.254.1.2:5000", "X-Real-IP", "203.0.113.9"), "203.0.113.9"},
+		{"real-ip from the internet is ignored", config.IPHeaderRealIP, req("198.51.100.7:5000", "X-Real-IP", "10.0.0.1"), "198.51.100.7"},
+		{"garbage real-ip", config.IPHeaderRealIP, req("10.0.0.2:5000", "X-Real-IP", "nobody"), "10.0.0.2"},
+		{"missing real-ip", config.IPHeaderRealIP, req("10.0.0.2:5000"), "10.0.0.2"},
+		{"forwarded-for through the tunnel", config.IPHeaderXFF, req("172.19.0.2:5000", "X-Forwarded-For", "1.1.1.1, 203.0.113.9"), "203.0.113.9"},
+		{"forwarded-for from the internet is ignored", config.IPHeaderXFF, req("198.51.100.7:5000", "X-Forwarded-For", "203.0.113.9"), "198.51.100.7"},
+		{"the default is forwarded-for", "", req("127.0.0.1:5000", "X-Forwarded-For", "203.0.113.9"), "203.0.113.9"},
+		{"none takes the peer", config.IPHeaderNone, req("127.0.0.1:5000", "X-Forwarded-For", "203.0.113.9", "X-Real-IP", "203.0.113.9"), "127.0.0.1"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := httpx.IPExtractor(tc.header)(tc.r); got != tc.want {
+				t.Errorf("got %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestRequestLoggerUsesExtractedIP(t *testing.T) {
+	for _, tc := range []struct {
+		name, header, hdrName, hdrVal, want string
+	}{
+		{"x-forwarded-for", config.IPHeaderXFF, "X-Forwarded-For", "1.1.1.1, 203.0.113.9", "203.0.113.9"},
+		{"x-real-ip", config.IPHeaderRealIP, "X-Real-IP", "203.0.113.9", "203.0.113.9"},
+		{"none", config.IPHeaderNone, "X-Forwarded-For", "203.0.113.9", "172.19.0.2"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var logs bytes.Buffer
+			e := app(t, httpx.Options{Log: slog.New(slog.NewJSONHandler(&logs, nil)), IPHeader: tc.header})
+			req := httptest.NewRequest(http.MethodPost, "/api/echo", strings.NewReader("hi"))
+			req.RemoteAddr = "172.19.0.2:5000"
+			req.Header.Set(tc.hdrName, tc.hdrVal)
+			if rec := do(e, req); rec.Code != http.StatusOK {
+				t.Fatalf("status = %d", rec.Code)
+			}
+			var entry struct {
+				IP string `json:"ip"`
+			}
+			if err := json.Unmarshal(logs.Bytes(), &entry); err != nil {
+				t.Fatalf("log %q: %v", logs.String(), err)
+			}
+			if entry.IP != tc.want {
+				t.Errorf("logged ip = %q, want %q", entry.IP, tc.want)
+			}
+		})
 	}
 }

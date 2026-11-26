@@ -2,6 +2,7 @@ package platform_test
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -469,5 +470,38 @@ func TestEventsStream(t *testing.T) {
 		got[1].event != "run" || got[1].data != `{"id":1}` ||
 		got[2].event != "suggestions" || got[2].data != `{"album":2}` {
 		t.Fatalf("%+v", got)
+	}
+}
+
+func TestHTTPUsesConfiguredIPHeader(t *testing.T) {
+	cfg := testConfig(t)
+	cfg.IPHeader = config.IPHeaderRealIP
+	var logs bytes.Buffer
+	a, err := platform.Open(cfg, slog.New(slog.NewJSONHandler(&logs, nil)))
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	t.Cleanup(func() { _ = a.Close() })
+	if err := a.Migrate(ctx); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+	logs.Reset()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/version", nil)
+	req.RemoteAddr = "172.19.0.2:5000"
+	req.Header.Set("X-Real-IP", "203.0.113.9")
+	rec := httptest.NewRecorder()
+	a.HTTP().ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d", rec.Code)
+	}
+	var entry struct {
+		IP string `json:"ip"`
+	}
+	if err := json.Unmarshal(logs.Bytes(), &entry); err != nil {
+		t.Fatalf("log %q: %v", logs.String(), err)
+	}
+	if entry.IP != "203.0.113.9" {
+		t.Errorf("logged ip = %q, want 203.0.113.9", entry.IP)
 	}
 }

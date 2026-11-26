@@ -16,6 +16,13 @@ import (
 	"time"
 )
 
+// IP header modes accepted by SHELF_IP_HEADER.
+const (
+	IPHeaderXFF    = "x-forwarded-for"
+	IPHeaderRealIP = "x-real-ip"
+	IPHeaderNone   = "none"
+)
+
 // Config is the parsed environment. It prints as a placeholder with any
 // verb, because the proxy URL may carry a password and the tokens are
 // secrets.
@@ -27,6 +34,9 @@ type Config struct {
 	DataDir     string
 	MusicDir    string
 	HTTPAddr    string
+	// IPHeader names where the client's address comes from behind a proxy:
+	// IPHeaderXFF, IPHeaderRealIP, or IPHeaderNone (the TCP peer).
+	IPHeader string
 	// PublicURL is nil when unset.
 	PublicURL *url.URL
 	TZ        *time.Location
@@ -128,6 +138,7 @@ func Load(lookup func(string) (string, bool)) (*Config, error) {
 		DataDir:      p.required("SHELF_DATA_DIR", "/data"),
 		MusicDir:     p.required("SHELF_MUSIC_DIR", "/music"),
 		HTTPAddr:     p.required("SHELF_HTTP_ADDR", ":8080"),
+		IPHeader:     p.ipHeader("SHELF_IP_HEADER", IPHeaderXFF),
 		PublicURL:    p.url("SHELF_PUBLIC_URL", "", false, "http", "https"),
 		TZ:           p.timeZone("SHELF_TIMEZONE", "UTC"),
 		Qobuz: Qobuz{
@@ -365,6 +376,16 @@ func (p *parser) userIDs(name string) []int64 {
 		ids = append(ids, id)
 	}
 	return ids
+}
+
+func (p *parser) ipHeader(name, def string) string {
+	v := strings.ToLower(p.str(name, def))
+	switch v {
+	case IPHeaderXFF, IPHeaderRealIP, IPHeaderNone:
+		return v
+	}
+	p.fail("%s: %q is not one of %s, %s, %s", name, v, IPHeaderXFF, IPHeaderRealIP, IPHeaderNone)
+	return def
 }
 
 func (p *parser) level(name, def string) slog.Level {

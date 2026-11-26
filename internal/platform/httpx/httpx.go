@@ -14,6 +14,7 @@ import (
 
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
+	"github.com/tikhonp/shelf/internal/platform/config"
 	"github.com/tikhonp/shelf/internal/platform/identity"
 	"github.com/tikhonp/shelf/internal/platform/web"
 )
@@ -36,7 +37,11 @@ type Options struct {
 	Log *slog.Logger
 	// PublicURL, when set, is an origin that unsafe requests may come from.
 	PublicURL *url.URL
-	Health    Health
+	// IPHeader names where the client's address comes from behind a proxy:
+	// config.IPHeaderXFF (default when empty), config.IPHeaderRealIP, or
+	// config.IPHeaderNone.
+	IPHeader string
+	Health   Health
 	// BodyLimits raises the body limit of single routes, keyed by the
 	// route's path as registered, such as "/api/library/covers".
 	BodyLimits map[string]int64
@@ -47,6 +52,7 @@ func New(o Options) *echo.Echo {
 	e := echo.New()
 	e.Logger = o.Log
 	e.HTTPErrorHandler = web.ErrorHandler
+	e.IPExtractor = IPExtractor(o.IPHeader)
 
 	// Before RemoveTrailingSlash, which would hide a path's own spelling.
 	e.Pre(pathGuard)
@@ -62,6 +68,39 @@ func New(o Options) *echo.Echo {
 	e.GET("/healthz", healthz(o.Health))
 	e.HEAD("/healthz", healthz(o.Health)) // uptime monitors often ask with HEAD
 	return e
+}
+
+// IPExtractor says where a request's client address comes from
+// (SHELF_IP_HEADER). Behind a reverse proxy or tunnel every connection arrives
+// from the proxy's address, so the client address has to come from a header —
+// believed only when the TCP peer is on a loopback, link-local, or private
+// network, never from the public internet.
+func IPExtractor(header string) echo.IPExtractor {
+	switch header {
+	case config.IPHeaderNone:
+		return echo.ExtractIPDirect()
+	case config.IPHeaderRealIP:
+		return extractRealIP
+	default:
+		return echo.ExtractIPFromXFFHeader()
+	}
+}
+
+// extractRealIP believes X-Real-IP only from a loopback, link-local, or
+// private peer. Echo's ExtractIPFromRealIPHeader judges the header's own
+// address instead, so a public client behind the proxy would come out as the
+// proxy.
+func extractRealIP(r *http.Request) string {
+	peer := echo.ExtractIPDirect()(r)
+	if ip := net.ParseIP(peer); ip == nil || (!ip.IsLoopback() && !ip.IsLinkLocalUnicast() && !ip.IsPrivate()) {
+		return peer
+	}
+	h := strings.TrimSpace(r.Header.Get(echo.HeaderXRealIP))
+	h = strings.TrimSuffix(strings.TrimPrefix(h, "["), "]")
+	if net.ParseIP(h) == nil {
+		return peer
+	}
+	return h
 }
 
 // pathGuard refuses an /api path with dot segments, empty segments or an

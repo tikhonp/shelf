@@ -190,7 +190,7 @@ func (a *App) HTTP() *echo.Echo {
 			maps.Copy(limits, bl.BodyLimits())
 		}
 	}
-	e := httpx.New(httpx.Options{Log: a.Log, PublicURL: a.Cfg.PublicURL, Health: a.Health, BodyLimits: limits})
+	e := httpx.New(httpx.Options{Log: a.Log, PublicURL: a.Cfg.PublicURL, IPHeader: a.Cfg.IPHeader, Health: a.Health, BodyLimits: limits})
 	e.Use(a.Auth.Middleware)
 	api := e.Group("/api")
 	a.Auth.Routes(api)

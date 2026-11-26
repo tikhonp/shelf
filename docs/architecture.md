@@ -254,6 +254,7 @@ Tokens and passwords are `config.Secret`, which prints, logs and marshals as `[r
 | `SHELF_DATA_DIR` | `/data` | Database, backups and the amdl work folder. |
 | `SHELF_MUSIC_DIR` | `/music` | The music library root. |
 | `SHELF_HTTP_ADDR` | `:8080` | Listen address. |
+| `SHELF_IP_HEADER` | `x-forwarded-for` | Where the client IP comes from behind a proxy: `x-forwarded-for`, `x-real-ip`, or `none` (the TCP peer). Headers are trusted only from loopback, link-local, or private peers. |
 | `SHELF_PUBLIC_URL` | | Base URL for links in Telegram messages and in `shelf.txt`. |
 | `SHELF_TIMEZONE` | `UTC` | Display time zone for `shelf.txt`, the UI and the backup schedule. |
 | `SHELF_PROXY_URL` | | Proxy for modules that opt in. |
