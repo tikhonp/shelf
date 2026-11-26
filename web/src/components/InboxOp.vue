@@ -181,7 +181,7 @@ function leaveOut(trackId: number, listIndex: number) {
 </template>
 
 <style scoped>
-.rs .ib-op { padding: 0 14px; border-bottom: 1px solid var(--line); scroll-margin-top: calc(var(--ib-tabs-height, 59px) + 48px); }
+.rs .ib-op { container-type: inline-size; padding: 0 14px; border-bottom: 1px solid var(--line); scroll-margin-top: calc(var(--ib-tabs-height, 59px) + 48px); }
 .rs .ib-op.edited { box-shadow: inset 3px 0 0 var(--sun); }
 .rs .ib-op.off .ib-op-summary { color: var(--text-2); }
 .rs .ib-op-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 8px 12px; align-items: center; min-height: 63px; }
@@ -194,9 +194,12 @@ function leaveOut(trackId: number, listIndex: number) {
 .rs .ib-label .rk-name { white-space: normal; overflow-wrap: anywhere; }
 .rs .ib-label .rk-state { max-width: 100%; }
 .rs .ib-op-summary { min-width: 0; }
-.rs .ib-op-side { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; max-width: 115px; }
+.rs .ib-op-side { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; }
 .rs .ib-op-side:empty { display: none; }
-.rs .ib-op-side .pill { white-space: normal; }
+@container (max-width: 560px) {
+  .rs .ib-op-side { max-width: 115px; }
+  .rs .ib-op-side .pill { white-space: normal; text-align: center; }
+}
 .rs .ib-op-val { align-items: flex-start; padding-bottom: 12px; min-width: 0; overflow-wrap: anywhere; }
 .rs .ib-op-val > div { width: 100%; min-width: 0; }
 .rs .ib-track { padding-left: 10px; border-left: 2px solid var(--line); }
